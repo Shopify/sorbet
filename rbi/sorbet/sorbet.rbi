@@ -56,7 +56,15 @@ module Sorbet::Private::Static
     )
     .returns(T::Hash[T.type_parameter(:U), T.type_parameter(:V)])
   end
-  def self.enumerable_to_h(*arg0); end
+  sig do
+#    params(arg0: T.untyped, block: T.proc.params(arg: T.untyped).void).returns(T::Hash[Symbol, Symbol])
+    type_parameters(:U, :V, :W).params(
+      arg0: T::Enumerable[T.type_parameter(:W)],
+      block: T.proc.params(arg1: T.type_parameter(:W)).returns([T.type_parameter(:U), T.type_parameter(:V)])
+    )
+    .returns(T::Hash[T.type_parameter(:U), T.type_parameter(:V)])
+  end
+  def self.enumerable_to_h(*arg0, &block); end
 end
 
 module Sorbet::Private::Static::StubModule

@@ -2547,7 +2547,7 @@ public:
         TypeAndOrigins myType{args.selfType, {core::Loc(args.locs.file, args.locs.receiver)}};
         InlinedVector<const TypeAndOrigins *, 2> innerArgs{&myType};
 
-        DispatchArgs dispatch{core::Names::enumerableToH(), locs, 1, innerArgs, hash, hash, hash, nullptr,
+        DispatchArgs dispatch{core::Names::enumerableToH(), locs, 1, innerArgs, hash, hash, hash, args.block,
                               args.originForUninitialized};
         auto dispatched = hash.dispatchCall(gs, dispatch);
         for (auto &err : dispatched.main.errors) {
