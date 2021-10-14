@@ -603,12 +603,43 @@ SymbolRef Symbol::findMemberTransitiveInternal(const GlobalState &gs, NameRef na
         Exception::raise("findMemberTransitive hit a loop while resolving");
     }
 
-    SymbolRef result = findMember(gs, name);
+    SymbolRef result;
+
+    // first searches prepended mixins
+    if (isClassOrModuleLinearizationComputed()) {
+        // printf("IGNORING isClassOrModuleLinearizationComputed: %s\n", name.show(gs).c_str());
+
+        for (auto it = this->prepended_mixins().begin(); it != this->prepended_mixins().end(); ++it) {
+            ENFORCE(it->exists());
+            if (isClassOrModuleLinearizationComputed()) {
+                result = it->data(gs)->findMember(gs, name);
+                if (result.exists()) {
+                    if (mask == 0 || (result.data(gs)->flags & mask) == flags) {
+                        return result;
+                    }
+                }
+                result = core::Symbols::noSymbol();
+            }
+        }
+    } else {
+        for (auto it = this->prepended_mixins().rbegin(); it != this->prepended_mixins().rend(); ++it) {
+            ENFORCE(it->exists());
+            result = it->data(gs)->findMemberTransitiveInternal(gs, name, mask, flags, maxDepth - 1);
+            if (result.exists()) {
+                return result;
+            }
+        }
+    }
+
+    // then searches the class
+    result = findMember(gs, name);
     if (result.exists()) {
         if (mask == 0 || (result.data(gs)->flags & mask) == flags) {
             return result;
         }
     }
+
+    // then searches included mixins
     if (isClassOrModuleLinearizationComputed()) {
         for (auto it = this->mixins().begin(); it != this->mixins().end(); ++it) {
             ENFORCE(it->exists());
@@ -631,6 +662,7 @@ SymbolRef Symbol::findMemberTransitiveInternal(const GlobalState &gs, NameRef na
             }
         }
     }
+
     if (this->superClass().exists()) {
         return this->superClass().data(gs)->findMemberTransitiveInternal(gs, name, mask, flags, maxDepth - 1);
     }
