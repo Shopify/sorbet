@@ -140,9 +140,14 @@ public:
         return mixins_;
     }
 
+    inline const InlinedVector<ClassOrModuleRef, 4> &prepended_mixins() const {
+        ENFORCE_NO_TIMER(isClassOrModule());
+        return prepended_mixins_;
+    }
+
     // Attempts to add the given mixin to the symbol. If the mixin is invalid because it is not a module, it returns
     // `false` (but still adds the mixin for processing during linearization) and the caller should report an error.
-    [[nodiscard]] bool addMixin(const GlobalState &gs, ClassOrModuleRef sym);
+    [[nodiscard]] bool addMixin(const GlobalState &gs, ClassOrModuleRef sym, bool prepend = false);
 
     inline InlinedVector<SymbolRef, 4> &typeMembers() {
         ENFORCE(isClassOrModule());
@@ -690,6 +695,7 @@ private:
      *   Resolver::finalize(), these will be rewritten to `Object()`.
      */
     InlinedVector<ClassOrModuleRef, 4> mixins_;
+    InlinedVector<ClassOrModuleRef, 4> prepended_mixins_;
 
     /** For Class or module - ordered type members of the class,
      * for method - ordered type generic type arguments of the class

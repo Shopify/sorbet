@@ -502,7 +502,7 @@ TypePtr ArgInfo::argumentTypeAsSeenByImplementation(Context ctx, core::TypeConst
     return Types::arrayOf(ctx, instantiated);
 }
 
-bool Symbol::addMixin(const GlobalState &gs, ClassOrModuleRef sym) {
+bool Symbol::addMixin(const GlobalState &gs, ClassOrModuleRef sym, bool prepend) {
     ENFORCE(isClassOrModule());
     // Note: Symbols without an explicit declaration may not have class or module set. They default to modules in
     // GlobalPass.cc. We also do not complain if the mixin is BasicObject.
@@ -513,7 +513,11 @@ bool Symbol::addMixin(const GlobalState &gs, ClassOrModuleRef sym) {
         // Symbol hasn't been linearized yet, so add symbol unconditionally (order matters, so dupes are OK and
         // semantically important!)
         // This is the 99% common case.
-        mixins_.emplace_back(sym);
+        if (prepend) {
+            prepended_mixins_.emplace_back(sym);
+        } else {
+            mixins_.emplace_back(sym);
+        }
     } else {
         // Symbol has been linearized, but we are trying to add another mixin. This is bad behavior and we shouldn't
         // allow it, but we currently allow it for the following circumstances:
@@ -523,13 +527,25 @@ bool Symbol::addMixin(const GlobalState &gs, ClassOrModuleRef sym) {
         //   * incrementalResolver contains an ENFORCE that verifies that symbols haven't received new mixins via
         //   checking the linearization bit.
 
-        // Ignore superclass (as in GlobalPass.cc's `computeClassLinearization`)
-        if (sym != superClass() && absl::c_find(mixins_, sym) == mixins_.end()) {
-            auto parent = superClass();
-            // Don't include as mixin if it derives from the parent class (as in GlobalPass.cc's `maybeAddMixin`)
-            if (!parent.exists() || !parent.data(gs)->derivesFrom(gs, sym)) {
-                mixins_.emplace_back(sym);
-                unsetClassOrModuleLinearizationComputed();
+        if (prepend) {
+            // Ignore superclass (as in GlobalPass.cc's `computeClassLinearization`)
+            if (sym != superClass() && absl::c_find(prepended_mixins_, sym) == prepended_mixins_.end()) {
+                auto parent = superClass();
+                // Don't include as mixin if it derives from the parent class (as in GlobalPass.cc's `maybeAddMixin`)
+                if (!parent.exists() || !parent.data(gs)->derivesFrom(gs, sym)) {
+                    prepended_mixins_.emplace_back(sym);
+                    unsetClassOrModuleLinearizationComputed();
+                }
+            }
+        } else {
+            // Ignore superclass (as in GlobalPass.cc's `computeClassLinearization`)
+            if (sym != superClass() && absl::c_find(mixins_, sym) == mixins_.end()) {
+                auto parent = superClass();
+                // Don't include as mixin if it derives from the parent class (as in GlobalPass.cc's `maybeAddMixin`)
+                if (!parent.exists() || !parent.data(gs)->derivesFrom(gs, sym)) {
+                    mixins_.emplace_back(sym);
+                    unsetClassOrModuleLinearizationComputed();
+                }
             }
         }
     }
@@ -1752,6 +1768,7 @@ Symbol Symbol::deepCopy(const GlobalState &to, bool keepGsId) const {
     result.owner = this->owner;
     result.flags = this->flags;
     result.mixins_ = this->mixins_;
+    result.prepended_mixins_ = this->prepended_mixins_;
     result.resultType = this->resultType;
     result.name = NameRef(to, this->name);
     result.locs_ = this->locs_;
@@ -1884,6 +1901,11 @@ u4 Symbol::hash(const GlobalState &gs) const {
         }
     }
     for (const auto &e : mixins_) {
+        if (e.exists() && !e.data(gs)->ignoreInHashing(gs)) {
+            result = mix(result, _hash(e.data(gs)->name.shortName(gs)));
+        }
+    }
+    for (const auto &e : prepended_mixins_) {
         if (e.exists() && !e.data(gs)->ignoreInHashing(gs)) {
             result = mix(result, _hash(e.data(gs)->name.shortName(gs)));
         }

@@ -126,6 +126,7 @@ private:
 
         bool isSuperclass; // true if superclass, false for mixin
         bool isInclude;    // true if include, false if extend
+        bool isPrepend;    // true if prepend, false if include
 
         AncestorResolutionItem() = default;
         AncestorResolutionItem(AncestorResolutionItem &&rhs) noexcept = default;
@@ -548,7 +549,7 @@ private:
                 }
             }
         } else {
-            if (!job.klass.data(ctx)->addMixin(ctx, resolvedClass)) {
+            if (!job.klass.data(ctx)->addMixin(ctx, resolvedClass, job.isPrepend)) {
                 if (auto e = ctx.beginError(job.ancestor->loc, core::errors::Resolver::IncludesNonModule)) {
                     e.setHeader("Only modules can be `{}`d, but `{}` is a class", job.isInclude ? "include" : "extend",
                                 resolvedClass.show(ctx));
@@ -729,7 +730,7 @@ private:
     }
 
     void transformAncestor(core::Context ctx, core::ClassOrModuleRef klass, ast::ExpressionPtr &ancestor,
-                           bool isInclude, bool isSuperclass = false) {
+                           bool isInclude, bool isSuperclass = false, bool isPrepend = false) {
         if (auto *constScope = ast::cast_tree<ast::UnresolvedConstantLit>(ancestor)) {
             auto scopeTmp = nesting_;
             if (isSuperclass) {
@@ -741,6 +742,7 @@ private:
         AncestorResolutionItem job;
         job.klass = klass;
         job.isSuperclass = isSuperclass;
+        job.isPrepend = isPrepend;
         job.file = ctx.file;
         job.isInclude = isInclude;
 
@@ -808,6 +810,9 @@ public:
         auto klass = original.symbol;
 
         bool isInclude = true;
+        for (auto &ancst : original.prependers) {
+            transformAncestor(ctx.withOwner(klass), klass, ancst, isInclude, false, true);
+        }
         for (auto &ancst : original.ancestors) {
             bool isSuperclass = (original.kind == ast::ClassDef::Kind::Class && &ancst == &original.ancestors.front() &&
                                  !klass.data(ctx)->isSingletonClass(ctx));
