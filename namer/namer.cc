@@ -1533,14 +1533,16 @@ class TreeSymbolizer {
                 dest->emplace_back(arg.deepCopy());
                 continue;
             }
-            if (isValidAncestor(arg)) {
-                dest->emplace_back(arg.deepCopy());
-            } else {
+
+            if (!isValidAncestor(arg)) {
                 if (auto e = ctx.beginError(arg.loc(), core::errors::Namer::AncestorNotConstant)) {
                     e.setHeader("`{}` must only contain constant literals", send->fun.show(ctx));
                 }
                 arg = ast::MK::EmptyTree();
+                continue;
             }
+
+            dest->emplace_back(arg.deepCopy());
         }
     }
 
