@@ -331,6 +331,7 @@ public:
     using ANCESTORS_store = InlinedVector<ExpressionPtr, EXPECTED_ANCESTORS_COUNT>;
 
     ANCESTORS_store ancestors;
+    ANCESTORS_store prependers;
     ANCESTORS_store singletonAncestors;
 
     ClassDef(core::LocOffsets loc, core::LocOffsets declLoc, core::ClassOrModuleRef symbol, ExpressionPtr name,

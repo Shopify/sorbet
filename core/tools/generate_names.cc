@@ -87,6 +87,7 @@ NameDef names[] = {
     {"argPresent", "<argPresent>"},
     // end CFG temporaries
 
+    {"prepend"},
     {"include"},
     {"extend"},
     {"currentFile", "__FILE__"},
