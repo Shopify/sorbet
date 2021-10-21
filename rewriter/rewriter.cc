@@ -118,7 +118,7 @@ public:
                         return;
                     }
 
-                    nodes = Delegate::run(ctx, &send);
+                    nodes = Delegate::run(ctx, &send, prevStat);
                     if (!nodes.empty()) {
                         replaceNodes[stat.get()] = std::move(nodes);
                         return;

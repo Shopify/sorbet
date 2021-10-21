@@ -36,7 +36,8 @@ static optional<core::NameRef> stringOrSymbolNameRef(const core::GlobalState &gs
     }
 }
 
-vector<ast::ExpressionPtr> Delegate::run(core::MutableContext ctx, const ast::Send *send) {
+vector<ast::ExpressionPtr> Delegate::run(core::MutableContext ctx, const ast::Send *send,
+                                         ast::ExpressionPtr *prevStat) {
     vector<ast::ExpressionPtr> empty;
     auto loc = send->loc;
 
@@ -109,17 +110,26 @@ vector<ast::ExpressionPtr> Delegate::run(core::MutableContext ctx, const ast::Se
         } else {
             methodName = lit->asSymbol(ctx);
         }
-        // sig {params(arg0: T.untyped, blk: Proc).returns(T.untyped)}
-        auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
-                                         ast::MK::Symbol(loc, core::Names::blkArg()),
-                                         ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
 
-        methodStubs.push_back(ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc)));
+        ast::Send *previousSend = nullptr;
 
-        // def $methodName(*arg0, &blk); end
+        if (prevStat) {
+            previousSend = ast::cast_tree<ast::Send>(*prevStat);
+        }
+
+        if (!previousSend || previousSend->fun != core::Names::sig()) {
+            // sig {params(arg0: T.untyped, block: Proc).returns(T.untyped)}
+            auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
+                                             ast::MK::Symbol(loc, core::Names::block()),
+                                             ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
+
+            methodStubs.push_back(ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc)));
+        }
+
+        // def $methodName(*arg0, &block); end
         ast::MethodDef::ARGS_store args;
         args.emplace_back(ast::MK::RestArg(loc, ast::MK::Local(loc, core::Names::arg0())));
-        args.emplace_back(ast::make_expression<ast::BlockArg>(loc, ast::MK::Local(loc, core::Names::blkArg())));
+        args.emplace_back(ast::make_expression<ast::BlockArg>(loc, ast::MK::Local(loc, core::Names::block())));
 
         methodStubs.push_back(ast::MK::SyntheticMethod(loc, loc, methodName, std::move(args), ast::MK::EmptyTree()));
     }

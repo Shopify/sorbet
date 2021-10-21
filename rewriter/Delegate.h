@@ -24,7 +24,8 @@ namespace sorbet::rewriter {
  */
 class Delegate final {
 public:
-    static std::vector<ast::ExpressionPtr> run(core::MutableContext ctx, const ast::Send *send);
+    static std::vector<ast::ExpressionPtr> run(core::MutableContext ctx, const ast::Send *send,
+                                               ast::ExpressionPtr *prevStat);
 
     Delegate() = delete;
 };
