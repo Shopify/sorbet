@@ -112,7 +112,7 @@ public:
                         return;
                     }
 
-                    nodes = DefDelegator::run(ctx, &send);
+                    nodes = DefDelegator::run(ctx, &send, prevStat);
                     if (!nodes.empty()) {
                         replaceNodes[stat.get()] = std::move(nodes);
                         return;

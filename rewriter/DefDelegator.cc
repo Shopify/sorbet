@@ -9,26 +9,35 @@ using namespace std;
 namespace sorbet::rewriter {
 
 /// Generate method stub and sig for the delegator method
-void generateStub(vector<ast::ExpressionPtr> &methodStubs, const core::LocOffsets &loc,
-                  const core::NameRef &methodName) {
-    // sig {params(arg0: T.untyped, blk: Proc).returns(T.untyped)}
-    auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
-                                     ast::MK::Symbol(loc, core::Names::blkArg()),
-                                     ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
+void generateStub(vector<ast::ExpressionPtr> &methodStubs, const core::LocOffsets &loc, const core::NameRef &methodName,
+                  ast::ExpressionPtr *prevStat) {
+    ast::Send *previousSend = nullptr;
 
-    methodStubs.push_back(ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc)));
+    if (prevStat) {
+        previousSend = ast::cast_tree<ast::Send>(*prevStat);
+    }
 
-    // def $methodName(*arg0, &blk); end
+    if (!previousSend || previousSend->fun != core::Names::sig()) {
+        // sig {params(arg0: T.untyped, block: Proc).returns(T.untyped)}
+        auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
+                                         ast::MK::Symbol(loc, core::Names::block()),
+                                         ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
+
+        methodStubs.push_back(ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc)));
+    }
+
+    // def $methodName(*arg0, &block); end
     ast::MethodDef::ARGS_store args;
     args.emplace_back(ast::MK::RestArg(loc, ast::MK::Local(loc, core::Names::arg0())));
-    args.emplace_back(ast::make_expression<ast::BlockArg>(loc, ast::MK::Local(loc, core::Names::blkArg())));
+    args.emplace_back(ast::make_expression<ast::BlockArg>(loc, ast::MK::Local(loc, core::Names::block())));
 
     methodStubs.push_back(
         ast::MK::SyntheticMethod(loc, loc, methodName, std::move(args), ast::MK::RaiseUnimplemented(loc)));
 }
 
 /// Handle #def_delegator for a single delegate method
-vector<ast::ExpressionPtr> runDefDelegator(core::MutableContext ctx, const ast::Send *send) {
+vector<ast::ExpressionPtr> runDefDelegator(core::MutableContext ctx, const ast::Send *send,
+                                           ast::ExpressionPtr *prevStat) {
     vector<ast::ExpressionPtr> methodStubs;
     auto loc = send->loc;
 
@@ -63,7 +72,7 @@ vector<ast::ExpressionPtr> runDefDelegator(core::MutableContext ctx, const ast::
         methodName = alias->asSymbol(ctx);
     }
 
-    generateStub(methodStubs, loc, methodName);
+    generateStub(methodStubs, loc, methodName, prevStat);
 
     // Include the original call to def_delegator so sorbet will still type-check it
     // and throw errors if the class (or its parent) didn't `extend Forwardable`
@@ -73,7 +82,8 @@ vector<ast::ExpressionPtr> runDefDelegator(core::MutableContext ctx, const ast::
 }
 
 /// Handle #def_delegators for zero or more delegate methods
-vector<ast::ExpressionPtr> runDefDelegators(core::MutableContext ctx, const ast::Send *send) {
+vector<ast::ExpressionPtr> runDefDelegators(core::MutableContext ctx, const ast::Send *send,
+                                            ast::ExpressionPtr *prevStat) {
     vector<ast::ExpressionPtr> methodStubs;
     auto loc = send->loc;
 
@@ -100,7 +110,7 @@ vector<ast::ExpressionPtr> runDefDelegators(core::MutableContext ctx, const ast:
             continue;
         }
 
-        generateStub(methodStubs, loc, method->asSymbol(ctx));
+        generateStub(methodStubs, loc, method->asSymbol(ctx), prevStat);
     }
 
     // Include the original call to def_delegators so sorbet will still type-check it
@@ -110,11 +120,12 @@ vector<ast::ExpressionPtr> runDefDelegators(core::MutableContext ctx, const ast:
     return methodStubs;
 }
 
-vector<ast::ExpressionPtr> DefDelegator::run(core::MutableContext ctx, const ast::Send *send) {
+vector<ast::ExpressionPtr> DefDelegator::run(core::MutableContext ctx, const ast::Send *send,
+                                             ast::ExpressionPtr *prevStat) {
     if (send->fun == core::Names::defDelegator()) {
-        return runDefDelegator(ctx, send);
+        return runDefDelegator(ctx, send, prevStat);
     } else if (send->fun == core::Names::defDelegators()) {
-        return runDefDelegators(ctx, send);
+        return runDefDelegators(ctx, send, prevStat);
     } else {
         return vector<ast::ExpressionPtr>();
     }

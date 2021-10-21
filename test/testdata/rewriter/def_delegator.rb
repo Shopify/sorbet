@@ -95,6 +95,7 @@ class IgnoredUsages
 end
 
 class EnumerableUsage
+  extend T::Sig
   extend T::Generic
   extend Forwardable
 
@@ -102,5 +103,6 @@ class EnumerableUsage
 
   Elem = type_member
 
+  sig {override.params(arg0: T.untyped, block: Proc).returns(T.untyped)}
   def_delegator :thing, :each
 end
