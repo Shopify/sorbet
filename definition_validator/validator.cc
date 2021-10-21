@@ -324,28 +324,30 @@ void validateOverriding(const core::Context ctx, core::MethodRef method) {
                 e.addErrorLine(overridenMethod.data(ctx)->loc(), "original method defined here");
             }
         }
+
         auto isRBI = absl::c_any_of(method.data(ctx)->locs(), [&](auto &loc) { return loc.file().data(ctx).isRBI(); });
         if (!method.data(ctx)->isOverride() && method.data(ctx)->hasSig() &&
             (overridenMethod.data(ctx)->isOverridable() || overridenMethod.data(ctx)->isOverride()) &&
-            !anyIsInterface && overridenMethod.data(ctx)->hasSig() && !method.data(ctx)->isRewriterSynthesized() &&
-            !isRBI) {
+            !anyIsInterface && overridenMethod.data(ctx)->hasSig() && !isRBI) {
             if (auto e = ctx.state.beginError(method.data(ctx)->loc(), core::errors::Resolver::UndeclaredOverride)) {
                 e.setHeader("Method `{}` overrides an overridable method `{}` but is not declared with `{}`",
                             method.show(ctx), overridenMethod.show(ctx), "override.");
                 e.addErrorLine(overridenMethod.data(ctx)->loc(), "defined here");
             }
         }
+
         if (!method.data(ctx)->isOverride() && method.data(ctx)->hasSig() && overridenMethod.data(ctx)->isAbstract() &&
-            overridenMethod.data(ctx)->hasSig() && !method.data(ctx)->isRewriterSynthesized() && !isRBI) {
+            overridenMethod.data(ctx)->hasSig() && !isRBI) {
             if (auto e = ctx.state.beginError(method.data(ctx)->loc(), core::errors::Resolver::UndeclaredOverride)) {
                 e.setHeader("Method `{}` implements an abstract method `{}` but is not declared with `{}`",
                             method.show(ctx), overridenMethod.show(ctx), "override.");
                 e.addErrorLine(overridenMethod.data(ctx)->loc(), "defined here");
             }
         }
+
         if ((overridenMethod.data(ctx)->isAbstract() || overridenMethod.data(ctx)->isOverridable() ||
              (overridenMethod.data(ctx)->hasSig() && method.data(ctx)->isOverride())) &&
-            !method.data(ctx)->isIncompatibleOverride() && !isRBI && !method.data(ctx)->isRewriterSynthesized()) {
+            !method.data(ctx)->isIncompatibleOverride() && !isRBI) {
             validateCompatibleOverride(ctx, overridenMethod, method);
         }
     }
