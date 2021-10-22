@@ -221,6 +221,8 @@ NameDef names[] = {
     {"Private", "Private", true},
     {"Types", "Types", true},
     {"Chalk_ODM_Document", "::Chalk::ODM::Document"},
+    {"both"},
+    {"getter"},
 
     {"prefix"},
     {"to"},

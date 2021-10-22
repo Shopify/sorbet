@@ -312,8 +312,20 @@ private:
     }
 
 public:
-    static ExpressionPtr Sig(core::LocOffsets loc, Send::ARGS_store args, ExpressionPtr ret) {
-        auto params = Params(loc, Self(loc), std::move(args));
+    static ExpressionPtr Sig(core::LocOffsets loc, Send::ARGS_store args, ExpressionPtr ret, bool isOverride = false,
+                             bool allowIncompatible = false) {
+        sorbet::ast::ExpressionPtr receiver;
+
+        if (isOverride) {
+            auto incompatible = allowIncompatible ? True(loc) : False(loc);
+            auto args = SendArgs(Symbol(loc, core::Names::allowIncompatible()), std::move(incompatible));
+
+            receiver = Send(loc, Self(loc), core::Names::override_(), 0, std::move(args));
+        } else {
+            receiver = Self(loc);
+        }
+
+        auto params = Params(loc, std::move(receiver), std::move(args));
         auto returns = Send1(loc, std::move(params), core::Names::returns(), std::move(ret));
         auto sig = Send1(loc, Constant(loc, core::Symbols::Sorbet_Private_Static()), core::Names::sig(),
                          Constant(loc, core::Symbols::T_Sig_WithoutRuntime()));

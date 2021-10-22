@@ -93,10 +93,14 @@ struct PropContext {
     ast::ClassDef::Kind classDefKind;
 };
 
+enum class Override { None, Getter, Both };
+
 struct PropInfo {
     core::LocOffsets loc;
     bool isImmutable = false;
     bool hasWithoutAccessors = false;
+    Override override = Override::None;
+    bool allowIncompatible = false;
     core::NameRef name;
     core::LocOffsets nameLoc;
     ast::ExpressionPtr type;
@@ -246,6 +250,30 @@ optional<PropInfo> parseProp(core::MutableContext ctx, const ast::Send *send) {
             ret.hasWithoutAccessors = true;
         }
 
+        if (ASTUtil::hasTruthyHashValue(ctx, *rules, core::Names::override_())) {
+            auto [key, val] = ASTUtil::extractHashValue(ctx, *rules, core::Names::override_());
+            auto lit = ast::cast_tree<ast::Literal>(val);
+
+            if (lit != nullptr && lit->isSymbol(ctx)) {
+                auto overrideValue = lit->asSymbol(ctx);
+
+                if (overrideValue == core::Names::both()) {
+                    ret.override = Override::Both;
+                } else if (overrideValue == core::Names::getter()) {
+                    ret.override = Override::Getter;
+                }
+            } else {
+                if (auto e = ctx.beginError(val.loc(), core::errors::Rewriter::InvalidOverrideOption)) {
+                    e.setHeader("The valid values for a prop `{}` are `{}`, `{}` or `{}`", "override", ":both",
+                                ":getter", "false");
+                }
+            }
+        }
+
+        if (ASTUtil::hasTruthyHashValue(ctx, *rules, core::Names::allowIncompatible())) {
+            ret.allowIncompatible = true;
+        }
+
         if (ASTUtil::hasTruthyHashValue(ctx, *rules, core::Names::factory())) {
             ret.default_ = ast::MK::RaiseUnimplemented(ret.loc);
         } else if (ASTUtil::hasHashValue(ctx, *rules, core::Names::default_())) {
@@ -313,9 +341,13 @@ vector<ast::ExpressionPtr> processProp(core::MutableContext ctx, PropInfo &ret, 
     const auto computedByMethodName = ret.computedByMethodName;
     const auto computedByMethodNameLoc = ret.computedByMethodNameLoc;
 
-    auto ivarName = name.addAt(ctx);
+    const bool isOverride = ret.override != Override::None;
 
-    nodes.emplace_back(ast::MK::Sig0(loc, ASTUtil::dupType(getType)));
+    auto ivarName = name.addAt(ctx);
+    ast::Send::ARGS_store args;
+
+    nodes.emplace_back(
+        ast::MK::Sig(loc, std::move(args), ASTUtil::dupType(getType), isOverride, ret.allowIncompatible));
 
     if (computedByMethodName.exists()) {
         // Given `const :foo, type, computed_by: <name>`, where <name> is a Symbol pointing to a class method,
@@ -372,9 +404,12 @@ vector<ast::ExpressionPtr> processProp(core::MutableContext ctx, PropInfo &ret, 
     if (!ret.isImmutable) {
         auto setType = ASTUtil::dupType(ret.type);
         ast::Send::ARGS_store sigArgs;
+        const bool isOverride = ret.override == Override::Both;
+
         sigArgs.emplace_back(ast::MK::Symbol(nameLoc, core::Names::arg0()));
         sigArgs.emplace_back(ASTUtil::dupType(setType));
-        nodes.emplace_back(ast::MK::Sig(loc, std::move(sigArgs), ASTUtil::dupType(setType)));
+        nodes.emplace_back(
+            ast::MK::Sig(loc, std::move(sigArgs), ASTUtil::dupType(setType), isOverride, ret.allowIncompatible));
 
         if (propContext.classDefKind == ast::ClassDef::Kind::Module) {
             // Not all modules include Kernel, can't make an initialize, etc. so we're punting on props in modules rn.
