@@ -235,6 +235,12 @@ ParsedSig parseSigWithSelfTypeParams(core::Context ctx, const ast::Send &sigSend
                             sig.bind = appType->klass;
                             validBind = true;
                         }
+                    } else if (auto lambdaType = core::cast_type<core::LambdaParam>(bind)) {
+                        if (core::isa_type<core::ClassType>(lambdaType->upperBound)) {
+                            auto klass = core::cast_type_nonnull<core::ClassType>(lambdaType->upperBound);
+                            sig.bind = klass.symbol;
+                            validBind = true;
+                        }
                     }
 
                     if (!validBind) {
