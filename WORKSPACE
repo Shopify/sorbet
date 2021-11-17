@@ -1,4 +1,21 @@
+BAZEL_VERSION = "4.2.1"
+BAZEL_INSTALLER_VERSION_darwin_SHA = "7459290dd57a330e2d6461f4a04a12d127874720f7df9233f8837a75ba572e1f"
+
 workspace(name = "com_stripe_ruby_typer")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+## `bazel-toolchain`:
+LLVM_TOOLCHAIN_VER = "f353e0a15b96f5aaf915dcc0772794faba899e38"
+LLVM_TOOLCHAIN_SHA = "b0d6a9fe9b962939c01e2e5ad6dae5d7843d9c8c24df8258ea433634e9b11728"
+
+http_archive(
+    name = "com_grail_bazel_toolchain",
+    sha256 = LLVM_TOOLCHAIN_SHA,
+    canonical_id = LLVM_TOOLCHAIN_VER,
+    strip_prefix = "bazel-toolchain-{ver}".format(ver = LLVM_TOOLCHAIN_VER),
+    url = "https://github.com/rrbutani/bazel-toolchain/archive/{ver}.tar.gz".format(ver = LLVM_TOOLCHAIN_VER),
+)
 
 load("//third_party:externals.bzl", "register_sorbet_dependencies")
 
@@ -13,13 +30,25 @@ load("@com_grail_bazel_toolchain//toolchain:rules.bzl", "llvm_toolchain")
 llvm_toolchain(
     name = "llvm_toolchain_12_0_0",
     absolute_paths = True,
-    llvm_mirror_prefixes = [
-        "https://sorbet-deps.s3-us-west-2.amazonaws.com/",
-        "https://artifactory-content.stripe.build/artifactory/github-archives/llvm/llvm-project/releases/download/llvmorg-",
-        "https://github.com/llvm/llvm-project/releases/download/llvmorg-",
-    ],
     llvm_version = "12.0.0",
 )
+
+new_local_repository(
+    name = "macos-11.3-sdk",
+    path = "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+    build_file_content = """
+filegroup(
+  name = "sysroot",
+  srcs = glob(["usr/**"], exclude = ["usr/share/**"]),
+  visibility = ["//visibility:public"],
+)
+""",
+)
+
+load("@llvm_toolchain_12_0_0//:toolchains.bzl", "llvm_register_toolchains", "register_toolchain")
+llvm_register_toolchains()
+
+register_toolchains("//:clang-darwin-arm64")
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 

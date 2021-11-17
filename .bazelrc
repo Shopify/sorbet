@@ -24,11 +24,13 @@ build --crosstool_top=@llvm_toolchain_12_0_0//:toolchain --copt=-D_LIBCPP_ENABLE
 # shortly in 0.21.0 - https://github.com/bazelbuild/bazel/issues/7026). Remove
 # this flag here once flipped in Bazel again.
 build --incompatible_strict_action_env
+build --incompatible_enable_cc_toolchain_resolution
+build:arm64 --platforms=@//:apple-silicon
 
 # Enforce that we don't rely on `@bazel_tools//platforms` and instead use the
 # `@platforms` repository for constraint resolution.  See
 # https://github.com/bazelbuild/bazel/issues/8622 for more information.
-build --incompatible_use_platforms_repo_for_constraints
+# build --incompatible_use_platforms_repo_for_constraints
 
 # C / C++ Options
 # Don't depend on system compiler
