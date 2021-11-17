@@ -172,12 +172,15 @@ package(default_visibility = ["//visibility:public"])
         strip_prefix = "bazel-compilation-database-0ae6349c52700f060c9a87c5ed2b04b75f94a26f",
     )
 
-    # NOTE: we use the sorbet branch for development to keep our changes rebasable on grailio/bazel-toolchain
+    BAZEL_TOOLCHAIN_TAG = "0.6.3"
+    BAZEL_TOOLCHAIN_SHA = "da607faed78c4cb5a5637ef74a36fdd2286f85ca5192222c4664efec2d529bb8"
+
     http_archive(
         name = "com_grail_bazel_toolchain",
-        urls = _github_public_urls("sorbet/bazel-toolchain/archive/a685e1e6bd1e7cc9a5b84f832539585bb68d8ab4.zip"),
-        sha256 = "90c59f14cada755706a38bdd0f5ad8f0402cbf766387929cfbee9c3f1b4c82d7",
-        strip_prefix = "bazel-toolchain-a685e1e6bd1e7cc9a5b84f832539585bb68d8ab4",
+        sha256 = BAZEL_TOOLCHAIN_SHA,
+        strip_prefix = "bazel-toolchain-{tag}".format(tag = BAZEL_TOOLCHAIN_TAG),
+        canonical_id = BAZEL_TOOLCHAIN_TAG,
+        url = "https://github.com/grailbio/bazel-toolchain/archive/{tag}.tar.gz".format(tag = BAZEL_TOOLCHAIN_TAG),
     )
 
     http_archive(
