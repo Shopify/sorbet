@@ -172,12 +172,15 @@ package(default_visibility = ["//visibility:public"])
         strip_prefix = "bazel-compilation-database-0ae6349c52700f060c9a87c5ed2b04b75f94a26f",
     )
 
-    # NOTE: we use the sorbet branch for development to keep our changes rebasable on grailio/bazel-toolchain
+    LLVM_TOOLCHAIN_VER = "f353e0a15b96f5aaf915dcc0772794faba899e38"
+    LLVM_TOOLCHAIN_SHA = "b0d6a9fe9b962939c01e2e5ad6dae5d7843d9c8c24df8258ea433634e9b11728"
+
     http_archive(
         name = "com_grail_bazel_toolchain",
-        urls = _github_public_urls("sorbet/bazel-toolchain/archive/a685e1e6bd1e7cc9a5b84f832539585bb68d8ab4.zip"),
-        sha256 = "90c59f14cada755706a38bdd0f5ad8f0402cbf766387929cfbee9c3f1b4c82d7",
-        strip_prefix = "bazel-toolchain-a685e1e6bd1e7cc9a5b84f832539585bb68d8ab4",
+        sha256 = LLVM_TOOLCHAIN_SHA,
+        canonical_id = LLVM_TOOLCHAIN_VER,
+        strip_prefix = "bazel-toolchain-{ver}".format(ver = LLVM_TOOLCHAIN_VER),
+        url = "https://github.com/rrbutani/bazel-toolchain/archive/{ver}.tar.gz".format(ver = LLVM_TOOLCHAIN_VER),
     )
 
     http_archive(
