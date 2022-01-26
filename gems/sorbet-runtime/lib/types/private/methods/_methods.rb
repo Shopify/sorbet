@@ -399,8 +399,25 @@ module T::Private::Methods
   end
 
   def self.unwrap_method(mod, signature, original_method)
-    maybe_wrapped_method = CallValidation.wrap_method_if_needed(mod, signature, original_method)
-    @signatures_by_method[method_to_key(maybe_wrapped_method)] = signature
+    replaced = method_wrapper_replaced?(mod, signature, original_method)
+
+    method_key = if replaced
+      method_to_key(original_method)
+    else
+      maybe_wrapped_method = CallValidation.wrap_method_if_needed(mod, signature, original_method)
+      method_to_key(maybe_wrapped_method)
+    end
+
+    @signatures_by_method[method_key] = signature
+  end
+
+  private_class_method def self.method_wrapper_replaced?(mod, method_sig, original_method)
+    current_method = mod.instance_method(method_sig.method_name)
+
+    expected_location = __FILE__
+    current_location = current_method.source_location&.first
+
+    current_location != expected_location
   end
 
   def self.has_sig_block_for_method(method)

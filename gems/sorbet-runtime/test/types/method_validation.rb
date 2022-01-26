@@ -560,6 +560,31 @@ module Opus::Types::Test
       end
     end
 
+    it 'should not raise an error when the original method was redefined at unwrapping time' do
+      mod = Module.new do
+        extend T::Sig
+
+        # Define `foo` with a signature. This registers this version of the method `foo` for unwrapping
+        sig { returns(Integer) }
+        def foo
+          42
+        end
+
+        # Re-write `foo` to have a different implementation without a signature. The method is swapped,
+        # but nothing is registered in Sorbet about it
+        def foo
+          1
+        end
+      end
+
+      c = Class.new do
+        include mod
+      end
+
+      T::Utils.signature_for_method(c.instance_method(:foo))
+      assert_equal(1, c.new.foo)
+    end
+
     describe 'secretly-defined methods with sigs' do
       # The behavior of methods defined via this interface is special: we expect
       # that the methods themselves will perform argument validation.  The sig
