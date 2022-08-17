@@ -3963,7 +3963,7 @@ public:
             auto method_new = singletonClass.data(ctx)->findMethodTransitive(ctx.state, core::Names::new_());
             // If the .new method we find is owned by Class, that means
             // there was no user defined .new method, which warrants an error.
-            if (method_new.data(ctx)->owner.show(ctx) == "Class") {
+            if (method_new.data(ctx)->owner == core::Symbols::Class()) {
                 if (auto e = ctx.beginError(send.loc, core::errors::Resolver::AbstractClassInstantiated)) {
                     e.setHeader("Attempt to instantiate abstract class `{}`", id->symbol.show(ctx));
                 }
