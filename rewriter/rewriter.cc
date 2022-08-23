@@ -54,6 +54,7 @@ public:
         Singleton::run(ctx, classDef);
         Concern::run(ctx, classDef);
         TestCase::run(ctx, classDef);
+        Minitest::run(ctx, classDef);
 
         for (auto &extension : ctx.state.semanticExtensions) {
             extension->run(ctx, classDef);

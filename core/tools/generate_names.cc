@@ -293,6 +293,10 @@ NameDef names[] = {
     {"ActiveSupport", "ActiveSupport", true},
     {"Concern", "Concern", true},
 
+    {"Minitest", "Minitest", true},
+
+    {"name"},
+
     {"instance"},
     {"normal"},
     {"genericPropGetter"},

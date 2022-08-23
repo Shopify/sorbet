@@ -88,3 +88,45 @@ module Mod
   class C
   end
 end
+
+module Minitest
+  class Test
+  end
+end
+
+class BestCaseTestClass < Minitest::Test
+  extend T::Sig
+
+  sig { params(a: T.untyped, b: T.untyped).void }
+  def assert_equal(a, b); end
+
+  def setup
+    @x = T.let(1, Integer)
+  end
+
+  test "it works" do
+    assert_equal 1, @x
+  end
+end
+
+class SetupWithInitializerTest < Minitest::Test
+  extend T::Sig
+
+  sig { params(a: T.untyped, b: T.untyped).void }
+  def assert_equal(a, b); end
+
+  sig { params(name: T.untyped).void }
+  def initialize(name)
+    super(name)
+    @a = T.let(3, Integer)
+  end
+
+  def setup
+    @b = T.let(4, Integer)
+  end
+
+  test "it works" do
+    assert_equal 3, @a
+    assert_equal 4, @b
+  end
+end

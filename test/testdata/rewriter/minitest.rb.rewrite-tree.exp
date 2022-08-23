@@ -234,4 +234,93 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
     class <emptyTree>::<C C><<C <todo sym>>> < (::<todo sym>)
     end
   end
+
+  module <emptyTree>::<C Minitest><<C <todo sym>>> < ()
+    class <emptyTree>::<C Test><<C <todo sym>>> < (::<todo sym>)
+    end
+  end
+
+  class <emptyTree>::<C BestCaseTestClass><<C <todo sym>>> < (<emptyTree>::<C Minitest>::<C Test>)
+    ::Sorbet::Private::Static.sig(<self>) do ||
+      <self>.params(:a, <emptyTree>::<C T>.untyped(), :b, <emptyTree>::<C T>.untyped()).void()
+    end
+
+    def assert_equal<<todo method>>(a, b, &<blk>)
+      <emptyTree>
+    end
+
+    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+      <self>.params(:name, ::T.untyped()).void()
+    end
+
+    def initialize<<todo method>>(name, &<blk>)
+      @x = <cast:let>(1, <todo sym>, <emptyTree>::<C Integer>)
+    end
+
+    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+      <self>.void()
+    end
+
+    def test_it_works<<todo method>>(&<blk>)
+      <self>.assert_equal(1, @x)
+    end
+
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <runtime method definition of assert_equal>
+
+    <runtime method definition of initialize>
+
+    <runtime method definition of test_it_works>
+  end
+
+  class <emptyTree>::<C SetupWithInitializerTest><<C <todo sym>>> < (<emptyTree>::<C Minitest>::<C Test>)
+    ::Sorbet::Private::Static.sig(<self>) do ||
+      <self>.params(:a, <emptyTree>::<C T>.untyped(), :b, <emptyTree>::<C T>.untyped()).void()
+    end
+
+    def assert_equal<<todo method>>(a, b, &<blk>)
+      <emptyTree>
+    end
+
+    ::Sorbet::Private::Static.sig(<self>) do ||
+      <self>.params(:name, <emptyTree>::<C T>.untyped()).void()
+    end
+
+    def initialize<<todo method>>(name, &<blk>)
+      begin
+        <self>.<super>(name)
+        @a = <cast:let>(3, <todo sym>, <emptyTree>::<C Integer>)
+      end
+    end
+
+    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+      <self>.params(:name, ::T.untyped()).void()
+    end
+
+    def initialize<<todo method>>(name, &<blk>)
+      @b = <cast:let>(4, <todo sym>, <emptyTree>::<C Integer>)
+    end
+
+    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+      <self>.void()
+    end
+
+    def test_it_works<<todo method>>(&<blk>)
+      begin
+        <self>.assert_equal(3, @a)
+        <self>.assert_equal(4, @b)
+      end
+    end
+
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <runtime method definition of assert_equal>
+
+    <runtime method definition of initialize>
+
+    <runtime method definition of initialize>
+
+    <runtime method definition of test_it_works>
+  end
 end

@@ -420,4 +420,64 @@ vector<ast::ExpressionPtr> Minitest::run(core::MutableContext ctx, bool isClass,
     return stats;
 }
 
+// Move the contents of the `setup` method inside a synthetic `initialize` to allow non-nilable instance variables to be
+// declared
+//
+//    class Bar < Minitest::Test
+//      def setup
+//        @foo = T.let(42, Integer) # Error: The instance variable `@foo` must be declared
+//                                  # inside `initialize` or declared `nilable`
+//      end
+//    end
+//
+// One limitation is that this only works on immediate subclasses of Minitest::Test, given that at this stage we don't
+// really have more information about the class hierarchy.
+void rewriteMinitestSetupAsInitialize(core::MutableContext ctx, ast::ClassDef *klass) {
+    if (klass->kind != ast::ClassDef::Kind::Class || klass->ancestors.empty()) {
+        return;
+    }
+
+    auto *parent = ast::cast_tree<ast::UnresolvedConstantLit>(klass->ancestors.front());
+    if (parent == nullptr || parent->cnst != core::Names::Constants::Test()) {
+        return;
+    }
+
+    auto *scope = ast::cast_tree<ast::UnresolvedConstantLit>(parent->scope);
+    if (scope == nullptr || scope->cnst != core::Names::Constants::Minitest()) {
+        return;
+    }
+
+    std::vector<ast::ExpressionPtr> stats;
+    for (auto &stat : klass->rhs) {
+        if (auto *mdef = ast::cast_tree<ast::MethodDef>(stat)) {
+            if (mdef->name == core::Names::setup()) {
+                auto loc = mdef->loc;
+                auto method_name = core::Names::initialize();
+                auto arg = ast::MK::Local(loc, core::Names::name());
+                auto method = ast::MK::SyntheticMethod1(loc, loc, method_name, std::move(arg), std::move(mdef->rhs));
+
+                ast::Send::ARGS_store sigArgs;
+                sigArgs.emplace_back(ast::MK::Symbol(loc, core::Names::name()));
+                sigArgs.emplace_back(
+                    ast::MK::Send0(loc, ast::MK::Constant(loc, core::Symbols::T()), core::Names::untyped(), loc));
+
+                auto method_with_sig =
+                    ast::MK::InsSeq1(loc, ast::MK::SigVoid(loc, std::move(sigArgs)), std::move(method));
+                stats.emplace_back(std::move(method_with_sig));
+                continue;
+            }
+        }
+        stats.emplace_back(std::move(stat));
+    }
+    klass->rhs.clear();
+    klass->rhs.reserve(stats.size());
+    for (auto &stat : stats) {
+        klass->rhs.emplace_back(std::move(stat));
+    }
+}
+
+void Minitest::run(core::MutableContext ctx, ast::ClassDef *klass) {
+    rewriteMinitestSetupAsInitialize(ctx, klass);
+}
+
 }; // namespace sorbet::rewriter
