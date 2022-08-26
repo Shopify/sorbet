@@ -2020,6 +2020,23 @@ public:
                 return;
             }
         }
+
+        if (attachedClass == Symbols::Class() && args.numPosArgs == 1) {
+            // Why are we not getting inside the prvious if, we should be in `self == Class()`?
+            // What are we breaking if we don't do the dispatch?
+            // Should we set the the res.main.method?
+            // Should we set the the res.main.sendTp?
+            // Write tests, how do we test the result of an intrinsic method?
+            auto argType = args.args[0]->type;
+            ClassOrModuleRef argClass = unwrapSymbol(gs, argType, false);
+            if (argClass.exists()) {
+                auto argAttachedClass = argClass.data(gs)->attachedClass(gs);
+                std::cout << "Class.new called on Class with class " << argAttachedClass.show(gs) << std::endl;
+                res.returnType = argAttachedClass.data(gs)->externalType();
+                return;
+            }
+        }
+
         auto instanceTy = attachedClass.data(gs)->externalType();
         DispatchArgs innerArgs{Names::initialize(), args.locs,          args.numPosArgs,
                                args.args,           instanceTy,         {instanceTy, args.fullType.origins},
