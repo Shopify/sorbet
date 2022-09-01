@@ -544,6 +544,8 @@ NameDef names[] = {
     {"Tokens", "Tokens", true},
     {"AccountModelMerchantToken", "AccountModelMerchantToken", true},
 
+    {"Minitest", "Minitest", true},
+
     // used by the compiler
     {"returnValue", "<returnValue>"},
 };

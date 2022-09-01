@@ -20,6 +20,7 @@
 #include "common/Timer.h"
 #include "common/concurrency/ConcurrentQueue.h"
 #include "core/Symbols.h"
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -2033,12 +2034,22 @@ class ResolveTypeMembersAndFieldsWalk {
 
             scope = ctx.owner.enclosingClass(ctx);
         } else {
+            scope = ctx.selfClass();
             // we need to check nested block counts because we want all fields to be declared on top level of either
             // class or body, rather then nested in some block
             if (job.atTopLevel && ctx.owner.isClassOrModule()) {
                 // Declaring a class instance variable
             } else if (job.atTopLevel && ctx.owner.name(ctx) == core::Names::initialize()) {
                 // Declaring a instance variable
+            } else if (job.atTopLevel && ctx.owner.name(ctx) == core::Names::setup()) {
+                cout << "AAAA1" << endl;
+                core::ClassOrModuleRef sym = ctx.state.enterClassSymbol(
+                    core::Loc::none(), core::Names::Constants::Minitest(), core::Names::Constants::Test());
+
+                cout << "AAAA2" << core::Names::Constants::Test().toString(ctx) << endl;
+                if (scope.data(ctx)->derivesFrom(ctx, sym)) {
+                    cout << "AAAA3" << endl;
+                }
             } else if (ctx.owner.isMethod() &&
                        ctx.owner.asMethodRef().data(ctx)->owner.data(ctx)->isSingletonClass(ctx) &&
                        !core::Types::isSubType(ctx, core::Types::nilClass(), castType)) {
@@ -2055,7 +2066,6 @@ class ResolveTypeMembersAndFieldsWalk {
                                 uid->name.show(ctx), "initialize");
                 }
             }
-            scope = ctx.selfClass();
         }
 
         auto prior = scope.data(ctx)->findMember(ctx, uid->name);
