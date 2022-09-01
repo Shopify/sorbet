@@ -1,7 +1,34 @@
 # typed: strict
 
+class Foo
+  extend T::Sig
+
+  sig { void }
+  def setup
+    @foo1 = T.let(5, Integer)
+  end
+end
+
 module Minitest
   class Test; end
+
+  class Foo
+    extend T::Sig
+
+    sig { void }
+    def setup
+      @foo2 = T.let(5, Integer)
+    end
+  end
+end
+
+class Bar < Minitest::Foo
+  extend T::Sig
+
+  sig { void }
+  def setup
+    @foo3 = T.let(5, Integer)
+  end
 end
 
 class BestCaseTestClass < Minitest::Test
