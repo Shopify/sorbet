@@ -7,6 +7,7 @@ import {
   env as vscodeEnv,
   Uri,
   Position,
+  Location,
 } from "vscode";
 import {
   LanguageClient,
@@ -16,7 +17,6 @@ import {
   RevealOutputChannelOn,
   SymbolInformation,
   TextDocumentPositionParams,
-  TextDocument,
 } from "vscode-languageclient/node";
 
 import { stopProcess } from "./connections";
@@ -59,7 +59,8 @@ export function shimLanguageClient(
     const rv = originalSendRequest.apply(this, args as any);
     const metricName = `latency.${sanitizedRequestName}_ms`;
     rv.then(
-      () => {
+      (response) => {
+        console.log(response);
         // NOTE: This callback is only called if the request succeeds and was _not_ canceled.
         // If the request is canceled, the promise is rejected.
         _emitTimingMetric(metricName, now, { success: "true" });
@@ -205,11 +206,33 @@ export default class SorbetLanguageClient implements ErrorHandler {
           };
 
           console.log("Preparing type hierarchy...");
-          const response = await this._languageClient.sendRequest(
+          const response: Location[] = await this._languageClient.sendRequest(
             "textDocument/implementation",
             params,
           );
-          console.log(response);
+
+          // console.log(response);
+
+          // Map locations to symbols
+          const symbols = await Promise.all(
+            response.map(async (location) => {
+              // Query language server for symbol name
+              const symbolParams: TextDocumentPositionParams = {
+                textDocument: {
+                  uri: location.uri.toString(),
+                },
+                position,
+              };
+              const symbolResponse: SymbolInformation = await this._languageClient.sendRequest(
+                "sorbet/showSymbol",
+                symbolParams,
+              );
+
+              return symbolResponse?.name;
+            }),
+          );
+
+          console.log(symbols.filter((s) => s !== undefined));
 
           // const prepParams: TypeHierarchyPrepareParams = {};
           // const prep_response = this._languageClient.sendRequest(
