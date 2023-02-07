@@ -16,6 +16,7 @@ import {
   RevealOutputChannelOn,
   SymbolInformation,
   TextDocumentPositionParams,
+  TextDocument,
 } from "vscode-languageclient/node";
 
 import { stopProcess } from "./connections";
@@ -48,6 +49,8 @@ export function shimLanguageClient(
 ) {
   const originalSendRequest = lc.sendRequest;
   lc.sendRequest = function(this: LanguageClient, method: any, ...args: any[]) {
+    console.log(method);
+    console.log(args);
     const now = new Date();
     const requestName = typeof method === "string" ? method : method.method;
     // Replace some special characters with underscores.
@@ -179,6 +182,41 @@ export default class SorbetLanguageClient implements ErrorHandler {
           }),
         );
       }
+
+      this._subscriptions.push(
+        commands.registerCommand("sorbet.generateSourceGraph", async () => {
+          const editor = vscodeWindow.activeTextEditor;
+          if (!editor) {
+            console.log("No active editor!");
+            return;
+          }
+
+          if (!editor.selection.isEmpty) {
+            console.log("Something is selected!");
+            return; // something is selected, abort
+          }
+
+          const position = editor.selection.active;
+          const params: TextDocumentPositionParams = {
+            textDocument: {
+              uri: editor.document.uri.toString(),
+            },
+            position,
+          };
+
+          console.log("Preparing type hierarchy...");
+          const response = await this._languageClient.sendRequest(
+            "textDocument/implementation",
+            params,
+          );
+          console.log(response);
+
+          // const prepParams: TypeHierarchyPrepareParams = {};
+          // const prep_response = this._languageClient.sendRequest(
+          //   "sorbet/prepareTypeHierarchy",
+          // );
+        }),
+      );
 
       // Unfortunately, we need this command as a wrapper around `editor.action.rename`,
       // because VSCode doesn't allow calling it from the JSON RPC

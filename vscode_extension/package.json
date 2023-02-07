@@ -81,6 +81,11 @@
         "command": "sorbet.rename",
         "title": "Rename Symbol",
         "category": "Sorbet"
+      },
+      {
+        "command": "sorbet.generateSourceGraph",
+        "title": "Generate Source Graph",
+        "category": "Sorbet"
       }
     ],
     "configuration": {
