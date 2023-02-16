@@ -5,6 +5,7 @@ class Opus::Types::Test::TopLevel < Critic::Unit::UnitTest
   TOP_LEVEL_FIXTURE = "#{__dir__}/fixtures/top_level.rb"
 
   it 'works with top level sigs' do
+    skip if defined?(TruffleRuby)
     result = Subprocess.check_output(["ruby", TOP_LEVEL_FIXTURE])
     assert_equal(<<~EXPECTED, result)
       called main#foo
