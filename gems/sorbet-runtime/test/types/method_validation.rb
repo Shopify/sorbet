@@ -116,6 +116,8 @@ module Opus::Types::Test
       end
 
       it "gives a helpful error if you order optional kwargs after required" do
+        skip if defined?(TruffleRuby) # TruffleRuby doesn't reorder kwargs in parameters list
+
         ex = assert_raises(RuntimeError) do
           mod = Module.new do
             extend T::Sig
