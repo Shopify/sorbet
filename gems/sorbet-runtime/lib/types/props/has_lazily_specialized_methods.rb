@@ -18,7 +18,7 @@ module T::Props
     extend T::Sig
 
     class SourceEvaluationDisabled < RuntimeError
-      def initialize
+      def initialize(_msg = "")
         super("Evaluation of lazily-defined methods is disabled")
       end
     end
