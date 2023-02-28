@@ -2029,6 +2029,12 @@ public:
             }
         }
         auto instanceTy = attachedClass.data(gs)->externalType();
+        if (attachedClass.data(gs)->flags.isAbstract) {
+            if (auto e = gs.beginError(args.callLoc(), core::errors::Resolver::AbstractClassInstantiated)) {
+                e.setHeader("Attempt to instantiate abstract class `{}`", instanceTy.show(gs));
+            }
+        }
+
         DispatchArgs innerArgs{Names::initialize(), args.locs,          args.numPosArgs,
                                args.args,           instanceTy,         {instanceTy, args.fullType.origins},
                                instanceTy,          args.block,         args.originForUninitialized,
