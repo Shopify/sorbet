@@ -1,28 +1,36 @@
 # typed: true
 
-class Foo
+class Delegatee
+  def delegated_method; end
+end
+
+class Direct
   extend T::Sig
   extend T::Helpers
 
-  def foo
-    42
-  end
-
   def method_missing(name)
-    Bar.new.send(name)
+    Delegatee.new.send(name)
   end
 
   delegates_missing_methods_to { Bar }
 end
 
-class Bar
-  def bar
-    12
+Direct.new.delegated_method
+
+
+class DelegatingModule
+  extend T::Sig
+  extend T::Helpers
+
+  def method_missing(name)
+    Delegatee.new.send(name)
   end
+
+  delegates_missing_methods_to { Bar }
 end
 
-foo = Foo.new
-# no Sorbet error
-foo.foo #=> 42
-# no Sorbet error
-foo.bar #=> 12
+class ViaModule
+  include DelegatingModule
+end
+
+ViaModule.new.delegated_method
