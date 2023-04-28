@@ -237,12 +237,30 @@ private:
         const RequireAncestorResolutionItem &operator=(const RequireAncestorResolutionItem &) = delete;
     };
 
+    struct DelegatesMissingMethodsToResolutionItem {
+        core::FileRef file;
+        core::ClassOrModuleRef owner;
+        ast::Send *send;
+
+        DelegatesMissingMethodsToResolutionItem(core::FileRef file, core::ClassOrModuleRef owner, ast::Send *send)
+            : file(file), owner(owner), send(send) {}
+
+        DelegatesMissingMethodsToResolutionItem(DelegatesMissingMethodsToResolutionItem &&) noexcept = default;
+        DelegatesMissingMethodsToResolutionItem &
+        operator=(DelegatesMissingMethodsToResolutionItem &&rhs) noexcept = default;
+
+        DelegatesMissingMethodsToResolutionItem(const DelegatesMissingMethodsToResolutionItem &) = delete;
+        const DelegatesMissingMethodsToResolutionItem &
+        operator=(const DelegatesMissingMethodsToResolutionItem &) = delete;
+    };
+
     vector<ConstantResolutionItem> todo_;
     vector<AncestorResolutionItem> todoAncestors_;
     vector<ClassAliasResolutionItem> todoClassAliases_;
     vector<TypeAliasResolutionItem> todoTypeAliases_;
     vector<ClassMethodsResolutionItem> todoClassMethods_;
     vector<RequireAncestorResolutionItem> todoRequiredAncestors_;
+    vector<DelegatesMissingMethodsToResolutionItem> missingMethodsDelegatees_;
 
     static core::SymbolRef resolveLhs(core::Context ctx, const shared_ptr<Nesting> &nesting, core::NameRef name) {
         Nesting *scope = nesting.get();
@@ -1285,6 +1303,103 @@ private:
         owner.data(gs)->recordRequiredAncestor(gs, symbol, blockLoc);
     }
 
+    static void resolveMissingMethodsDelegateesJob(core::GlobalState &gs,
+                                                   const DelegatesMissingMethodsToResolutionItem &todo) {
+        auto owner = todo.owner;
+        auto send = todo.send;
+        auto loc = core::Loc(todo.file, send->loc);
+
+        if (owner.data(gs)->flags.isAbstract) {
+            if (auto e = gs.beginError(loc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                e.setHeader("`{}` can not be declared inside an abstract class", send->fun.show(gs));
+            }
+            return;
+        }
+
+        auto *block = send->block();
+
+        if (send->numPosArgs() > 0) {
+            if (auto e = gs.beginError(loc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                e.setHeader("`{}` only accepts a block", send->fun.show(gs));
+                e.addErrorNote("Use {} to auto-correct using the new syntax",
+                               "--isolate-error-code 5075 -a --typed true");
+
+                if (block != nullptr) {
+                    return;
+                }
+
+                string replacement = "";
+                int indent = core::Loc::offset2Pos(todo.file.data(gs), send->loc.beginPos()).column - 1;
+                int index = 1;
+                const auto numPosArgs = send->numPosArgs();
+                for (auto i = 0; i < numPosArgs; ++i) {
+                    auto &arg = send->getPosArg(i);
+                    auto argLoc = core::Loc(todo.file, arg.loc());
+                    replacement += fmt::format("{:{}}{} {{ {} }}{}", "", index == 1 ? 0 : indent, send->fun.show(gs),
+                                               argLoc.source(gs).value(), index < numPosArgs ? "\n" : "");
+                    index += 1;
+                }
+                e.addAutocorrect(
+                    core::AutocorrectSuggestion{fmt::format("Replace `{}` with `{}`", send->fun.show(gs), replacement),
+                                                {core::AutocorrectSuggestion::Edit{loc, replacement}}});
+            }
+            return;
+        }
+
+        if (block == nullptr) {
+            return; // The sig mismatch error will be emitted later by infer.
+        }
+
+        ENFORCE(block->body);
+
+        auto blockLoc = core::Loc(todo.file, block->body.loc());
+        core::ClassOrModuleRef symbol = core::Symbols::StubModule();
+
+        if (auto *constant = ast::cast_tree<ast::ConstantLit>(block->body)) {
+            if (constant->symbol.exists() && constant->symbol.isClassOrModule()) {
+                symbol = constant->symbol.asClassOrModuleRef();
+            }
+        } else if (isTClassOf(block->body)) {
+            send = ast::cast_tree<ast::Send>(block->body);
+
+            ENFORCE(send);
+
+            if (send->numPosArgs() == 1) {
+                if (auto *argClass = ast::cast_tree<ast::ConstantLit>(send->getPosArg(0))) {
+                    if (argClass->symbol.exists() && argClass->symbol.isClassOrModule()) {
+                        if (argClass->symbol == owner) {
+                            if (auto e =
+                                    gs.beginError(blockLoc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                                e.setHeader("Must not pass yourself to `{}` inside of `delegates_missing_methods_to`",
+                                            send->fun.show(gs));
+                            }
+                            return;
+                        }
+
+                        symbol = argClass->symbol.asClassOrModuleRef().data(gs)->lookupSingletonClass(gs);
+                    }
+                }
+            }
+        }
+
+        if (symbol == core::Symbols::StubModule()) {
+            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                e.setHeader("Argument to `{}` must be statically resolvable to a class", send->fun.show(gs));
+            }
+            return;
+        }
+
+        if (symbol == owner) {
+            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                e.setHeader("Must not pass yourself to `{}`", send->fun.show(gs));
+            }
+            return;
+        }
+
+        // STOPPED COPYPASTING HERE
+        owner.data(gs)->recordRequiredAncestor(gs, symbol, blockLoc);
+    }
+
     static void tryRegisterSealedSubclass(core::MutableContext ctx, AncestorResolutionItem &job) {
         ENFORCE(job.ancestor->symbol.exists(), "Ancestor must exist, or we can't check whether it's sealed.");
         auto ancestorSym = job.ancestor->symbol.dealias(ctx).asClassOrModuleRef();
@@ -1658,6 +1773,11 @@ public:
                 if (ctx.state.requiresAncestorEnabled) {
                     this->todoRequiredAncestors_.emplace_back(ctx.file, ctx.owner.asClassOrModuleRef(), &send);
                 }
+            } else if (send.fun == core::Names::delegatesMissingMethodsTo()) {
+                // printf("!!!!!!!!!!!!!!!!!!!!!\n");
+                // printf("delegatesMissingMethodsTo");
+                // printf("!!!!!!!!!!!!!!!!!!!!!\n");
+                this->missingMethodsDelegatees_.emplace_back(ctx.file, ctx.owner.asClassOrModuleRef(), &send);
             }
         } else {
             auto recvAsConstantLit = ast::cast_tree<ast::ConstantLit>(send.recv);
@@ -1775,6 +1895,7 @@ public:
         vector<ResolveItems<TypeAliasResolutionItem>> todoTypeAliases;
         vector<ResolveItems<ClassMethodsResolutionItem>> todoClassMethods;
         vector<ResolveItems<RequireAncestorResolutionItem>> todoRequiredAncestors;
+        vector<ResolveItems<DelegatesMissingMethodsToResolutionItem>> todoMissingMethodsDelegatees;
 
         {
             ResolveWalkResult threadResult;
@@ -1912,6 +2033,16 @@ public:
             for (auto &job : todoRequiredAncestors) {
                 for (auto &todo : job.items) {
                     resolveRequiredAncestorsJob(gs, todo);
+                }
+            }
+            todoRequiredAncestors.clear();
+        }
+
+        {
+            Timer timeit(gs.tracer(), "resolver.delegates_missing_methods_to");
+            for (auto &job : todoMissingMethodsDelegatees) {
+                for (auto &todo : job.items) {
+                    resolveMissingMethodsDelegateesJob(gs, todo);
                 }
             }
             todoRequiredAncestors.clear();

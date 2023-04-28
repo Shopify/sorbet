@@ -328,6 +328,9 @@ NameDef names[] = {
     {"requiredAncestorsLin", "<required-ancestor-lin>"},
     {"requiresAncestor", "requires_ancestor"},
 
+    // Delegate methods
+    {"delegatesMissingMethodsTo", "delegates_missing_methods_to"},
+
     // This behaves like the above two names, in the sense that we use a member
     // on a class to lookup an associated symbol with some extra info.
     {"sealedSubclasses", "sealed_subclasses"},
