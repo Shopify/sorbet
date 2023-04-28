@@ -1309,9 +1309,9 @@ private:
         auto send = todo.send;
         auto loc = core::Loc(todo.file, send->loc);
 
-        if (!owner.data(gs)->isModule() && !owner.data(gs)->flags.isAbstract) {
-            if (auto e = gs.beginError(loc, core::errors::Resolver::InvalidRequiredAncestor)) {
-                e.setHeader("`{}` can only be declared inside a module or an abstract class", send->fun.show(gs));
+        if (owner.data(gs)->flags.isAbstract) {
+            if (auto e = gs.beginError(loc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                e.setHeader("`{}` can not be declared inside an abstract class", send->fun.show(gs));
             }
             return;
         }
@@ -1319,10 +1319,10 @@ private:
         auto *block = send->block();
 
         if (send->numPosArgs() > 0) {
-            if (auto e = gs.beginError(loc, core::errors::Resolver::InvalidRequiredAncestor)) {
+            if (auto e = gs.beginError(loc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
                 e.setHeader("`{}` only accepts a block", send->fun.show(gs));
                 e.addErrorNote("Use {} to auto-correct using the new syntax",
-                               "--isolate-error-code 5062 -a --typed true");
+                               "--isolate-error-code 5075 -a --typed true");
 
                 if (block != nullptr) {
                     return;
@@ -1368,8 +1368,9 @@ private:
                 if (auto *argClass = ast::cast_tree<ast::ConstantLit>(send->getPosArg(0))) {
                     if (argClass->symbol.exists() && argClass->symbol.isClassOrModule()) {
                         if (argClass->symbol == owner) {
-                            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidRequiredAncestor)) {
-                                e.setHeader("Must not pass yourself to `{}` inside of `requires_ancestor`",
+                            if (auto e =
+                                    gs.beginError(blockLoc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                                e.setHeader("Must not pass yourself to `{}` inside of `delegates_missing_methods_to`",
                                             send->fun.show(gs));
                             }
                             return;
@@ -1382,20 +1383,20 @@ private:
         }
 
         if (symbol == core::Symbols::StubModule()) {
-            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidRequiredAncestor)) {
-                e.setHeader("Argument to `{}` must be statically resolvable to a class or a module",
-                            send->fun.show(gs));
+            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
+                e.setHeader("Argument to `{}` must be statically resolvable to a class", send->fun.show(gs));
             }
             return;
         }
 
         if (symbol == owner) {
-            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidRequiredAncestor)) {
+            if (auto e = gs.beginError(blockLoc, core::errors::Resolver::InvalidDelegatesMissingMethodsTo)) {
                 e.setHeader("Must not pass yourself to `{}`", send->fun.show(gs));
             }
             return;
         }
 
+        // STOPPED COPYPASTING HERE
         owner.data(gs)->recordRequiredAncestor(gs, symbol, blockLoc);
     }
 

@@ -80,6 +80,7 @@ constexpr ErrorClass BindNonBlockParameter{5071, StrictLevel::False};
 constexpr ErrorClass TypeMemberScopeMismatch{5072, StrictLevel::False};
 constexpr ErrorClass AbstractClassInstantiated{5073, StrictLevel::True};
 constexpr ErrorClass HasAttachedClassIncluded{5074, StrictLevel::False};
+constexpr ErrorClass InvalidDelegatesMissingMethodsTo{5075, StrictLevel::True};
 } // namespace sorbet::core::errors::Resolver
 
 #endif
