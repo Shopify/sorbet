@@ -5,7 +5,7 @@ module T::Types
   class TypedArray < TypedEnumerable
     # overrides Base
     def name
-      "T::Array[#{@type.name}]"
+      "T::Array[#{type.name}]"
     end
 
     def underlying_class
@@ -61,7 +61,9 @@ module T::Types
       end
 
       module Private
-        INSTANCE = Untyped.new.freeze
+        instance = Untyped.new
+        instance.type
+        INSTANCE = instance.freeze
       end
     end
   end

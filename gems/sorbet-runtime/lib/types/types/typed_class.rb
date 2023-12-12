@@ -3,15 +3,17 @@
 
 module T::Types
   class TypedClass < T::Types::Base
-    attr_reader :type
-
     def initialize(type)
-      @type = T::Utils.coerce(type)
+      @inner_type = type
+    end
+
+    def type
+      @type ||= T::Utils.coerce(@inner_type)
     end
 
     # overrides Base
     def name
-      "T::Class[#{@type.name}]"
+      "T::Class[#{type.name}]"
     end
 
     def underlying_class
@@ -68,7 +70,9 @@ module T::Types
       end
 
       module Private
-        INSTANCE = Untyped.new.freeze
+        instance = Untyped.new
+        instance.type # force lazy initialization
+        INSTANCE = instance.freeze
       end
     end
 
@@ -78,7 +82,9 @@ module T::Types
       end
 
       module Private
-        INSTANCE = Anything.new.freeze
+        instance = Anything.new
+        instance.type # force lazy initialization
+        INSTANCE = instance.freeze
       end
     end
   end
