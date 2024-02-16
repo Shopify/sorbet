@@ -261,7 +261,8 @@ module T::Props::Serializable::DecoratorMethods
   end
 
   def message_with_generated_source_context(error, generated_method, generate_source_method)
-    line_loc = error.backtrace_locations.find {|l| l.base_label == generated_method.name}
+    generated_method = generated_method.to_s
+    line_loc = error.backtrace_locations.find {|l| l.base_label == generated_method}
     return unless line_loc
 
     line_num = line_loc.lineno
