@@ -5,8 +5,8 @@ module T::Private::Sealed
   module NoInherit
     def inherited(child)
       super
-      this_line = Kernel.caller.find {|line| !line.match(/in `inherited'$/)}
-      T::Private::Sealed.validate_inheritance(this_line, self, child, 'inherited')
+      this_line = Kernel.caller_locations.find {|loc| loc.base_label != 'inherited'}
+      T::Private::Sealed.validate_inheritance(this_line.to_s, self, child, 'inherited')
       @sorbet_sealed_module_all_subclasses << child
     end
 

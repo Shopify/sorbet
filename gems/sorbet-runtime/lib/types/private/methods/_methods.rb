@@ -168,7 +168,7 @@ module T::Private::Methods
 
         definition_file, definition_line = T::Private::Methods.signature_for_method(ancestor.instance_method(method_name)).method.source_location
         is_redefined = target == ancestor
-        caller_loc = caller_locations.find {|l| !l.to_s.start_with?(SORBET_RUNTIME_LIB_PATH)}
+        caller_loc = find_caller
         extra_info = "\n"
         if caller_loc
           extra_info = (is_redefined ? "Redefined" : "Overridden") + " here: #{caller_loc.path}:#{caller_loc.lineno}\n"
@@ -192,6 +192,24 @@ module T::Private::Methods
           T::Private::DeclState.current.reset!
           T::Configuration.sig_validation_error_handler(e, {})
         end
+      end
+    end
+  end
+
+  if Thread.respond_to?(:each_caller_location) # RUBY_VERSION >= "3.2"
+    private_class_method def self.find_caller
+      Thread.each_caller_location do |l|
+        next if l.path.start_with?("<internal")
+        next if l.path.start_with?(SORBET_RUNTIME_LIB_PATH)
+
+        return l
+      end
+      nil
+    end
+  else
+    private_class_method def self.find_caller
+      caller_locations.find do |l|
+        !l.path.start_with?("<internal") && !l.path.start_with?(SORBET_RUNTIME_LIB_PATH)
       end
     end
   end
