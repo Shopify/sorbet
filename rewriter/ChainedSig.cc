@@ -66,7 +66,11 @@ struct ChainedSigWalk {
             return;
         }
 
-        tree = buildReplacement(ctx, send, blockBody);
+        if (ctx.enforceChainedSigSyntax) {
+            tree = enforceChainedSigSyntax(ctx, send, blockBody);
+        } else {
+            tree = buildReplacement(ctx, send, blockBody);
+        }
     }
 
     bool firstSendIsSig(ast::Send *send) {
@@ -177,6 +181,9 @@ struct ChainedSigWalk {
         ast::cast_tree_nonnull<ast::Send>(rv).setBlock(ast::MK::Block0(send->block()->loc, std::move(newBody)));
         return rv;
     }
+
+    // Enforces chained sig syntax is used by adding auto-correctable errors
+    void enforceChainedSigSyntax(core::MutableContext ctx, ast::Send *send, ast::Send *blockBody) {}
 };
 
 ast::ExpressionPtr ChainedSig::run(core::MutableContext &ctx, ast::ExpressionPtr tree) {

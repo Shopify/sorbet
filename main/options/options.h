@@ -252,6 +252,7 @@ struct Options {
     // Enables out-of-order reference checking
     bool outOfOrderReferenceChecksEnabled = false;
     bool trackUntyped = false;
+    bool enforeChainedSigSyntax = false;
 
     // Experimental feature `requires_ancestor`
     bool requiresAncestorEnabled = false;
