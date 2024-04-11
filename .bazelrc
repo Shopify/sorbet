@@ -12,7 +12,8 @@ common:test --test_env=GTEST_INSTALL_FAILURE_SIGNAL_HANDLER=1
 ##
 ##  Custom toolchain.
 ##
-build --crosstool_top=@llvm_toolchain_12_0_0//:toolchain --copt=-D_LIBCPP_ENABLE_NODISCARD
+#build --crosstool_top=@llvm_toolchain_12_0_0//:toolchain --copt=-D_LIBCPP_ENABLE_NODISCARD
+build --incompatible_enable_cc_toolchain_resolution --copt=-D_LIBCPP_ENABLE_NODISCARD
 
 ##
 ##  Common build options across all build configurations
@@ -262,7 +263,7 @@ build:webasm --cpu=webasm --spawn_strategy=local --genrule_strategy=local --copt
 build:webasm --define release=true
 build:webasm --compilation_mode=opt
 build:webasm --copt=-DNDEBUG --linkopt=-DNDEBUG # for some reason emscripten doesn't pass those when -O2\-Oz are specified
-build:webasm --copt=--llvm-lto --copt=3 --linkopt=--llvm-lto --linkopt=3
+build:webasm --copt=-flto=thin --linkopt=-flto=thin
 # Specify a "sane" C++ toolchain for the host platform.
 build:webasm --host_crosstool_top=@llvm_toolchain_12_0_0//:toolchain
 

@@ -46,6 +46,10 @@ llvm_toolchain(
     llvm_version = "12.0.0",
 )
 
+load("@llvm_toolchain_12_0_0//:toolchains.bzl", "llvm_register_toolchains")
+
+llvm_register_toolchains()
+
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
 
 go_rules_dependencies()
