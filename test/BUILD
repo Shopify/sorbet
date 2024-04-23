@@ -276,21 +276,3 @@ sh_library(
     name = "logging",
     srcs = ["logging.sh"],
 )
-
-sh_binary(
-    name = "single_package_runner",
-    srcs = ["test_single_package_runner.sh"],
-    data = [
-        "rbi_gen_package_runner.rb",
-        "//gems/sorbet-runtime",
-        "//main:sorbet",
-        "@sorbet_ruby_2_7//:ruby",
-    ],
-    # This is to get the test to run on the compiler build job,
-    # so we can avoid building ruby on the test-static-sanitized job.
-    tags = ["compiler"],
-    deps = [
-        ":logging",
-        "@bazel_tools//tools/bash/runfiles",
-    ],
-)
