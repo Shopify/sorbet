@@ -41,6 +41,10 @@
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 
+extern "C" {
+    #include "prism.h"
+}
+
 using namespace std;
 
 namespace sorbet::realmain::pipeline {
@@ -599,6 +603,11 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
     Timer timeit(gs.tracer(), "index");
     vector<ast::ParsedFile> ret;
     vector<ast::ParsedFile> empty;
+
+    // TODO: remove once we are actually parsing with prism
+    cout << "***"
+         << pm_version()
+         << "***";
 
     if (opts.stopAfterPhase == options::Phase::INIT) {
         return empty;
