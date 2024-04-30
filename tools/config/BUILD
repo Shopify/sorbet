@@ -49,14 +49,14 @@ config_setting(
 config_setting(
     name = "webasm",
     values = {
-        "cpu": "webasm",
+        "cpu": "wasm",
     },
 )
 
 config_setting(
     name = "webasm_opt",
     values = {
-        "cpu": "webasm",
+        "cpu": "wasm",
         "compilation_mode": "opt",
     },
 )

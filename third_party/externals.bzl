@@ -6,9 +6,9 @@ load("//third_party/openssl:system_openssl_repository.bzl", "system_openssl_repo
 def register_sorbet_dependencies():
     http_archive(
         name = "platforms",
-        urls = _github_public_urls("bazelbuild/platforms/archive/d4c9d7f51a7c403814b60f66d20eeb425fbaaacb.zip"),
-        sha256 = "a5058ac93023092c406432ec650f30ec5a8c75d8b9d13c73150f60a9050a5663",
-        strip_prefix = "platforms-d4c9d7f51a7c403814b60f66d20eeb425fbaaacb",
+        urls = _github_public_urls("bazelbuild/platforms/archive/526bbbffe9e74797c44fd1ea0dcb47f71818543a.zip"),
+        sha256 = "2d134749275b33c3d4cfad26bd3dbe6ceee121aadeab27f07bc96dfe91c81113",
+        strip_prefix = "platforms-526bbbffe9e74797c44fd1ea0dcb47f71818543a",
     )
 
     http_archive(
@@ -241,31 +241,10 @@ def register_sorbet_dependencies():
     )
 
     http_archive(
-        name = "emscripten_toolchain",
-        urls = _github_public_urls("kripken/emscripten/archive/1.38.25.tar.gz"),
-        build_file = "@com_stripe_ruby_typer//third_party:emscripten-toolchain.BUILD",
-        sha256 = "4d6fa350895fabc25b89ce5f9dcb528e719e7c2bf7dacab2a3e3cc818ecd7019",
-        strip_prefix = "emscripten-1.38.25",
-        patches = [
-            "@com_stripe_ruby_typer//third_party:emscripten_toolchain/emcc.py.patch",
-            "@com_stripe_ruby_typer//third_party:emscripten_toolchain/tools_shared.py.patch",
-        ],
-    )
-
-    http_archive(
-        name = "emscripten_clang_linux",
-        urls = _emscripten_urls("linux/emscripten-llvm-e1.38.25.tar.gz"),
-        build_file = "@com_stripe_ruby_typer//third_party:emscripten-clang.BUILD",
-        sha256 = "0e9a5a114a60c21604f4038b573109bd31424aeba275b4173480485ca0a56ba4",
-        strip_prefix = "emscripten-llvm-e1.38.25",
-    )
-
-    http_archive(
-        name = "emscripten_clang_darwin",
-        urls = _emscripten_urls("mac/emscripten-llvm-e1.38.25.tar.gz"),
-        build_file = "@com_stripe_ruby_typer//third_party:emscripten-clang.BUILD",
-        sha256 = "01519125c613d0b013193eaf5ac5031e6ec34aac2451c357fd4097874ceee38c",
-        strip_prefix = "emscripten-llvm-e1.38.25",
+        name = "emsdk",
+        sha256 = "025101ca57cf9d685127589acd1af259253b82d8bdc9640930745b7938981969",
+        urls = _github_public_urls("emscripten-core/emsdk/archive/f58f80d3bacc65d7ef6d95f1d23fb97542e120e9.tar.gz"),
+        strip_prefix = "emsdk-f58f80d3bacc65d7ef6d95f1d23fb97542e120e9/bazel",
     )
 
     http_archive(
@@ -365,11 +344,3 @@ def _github_public_urls(path):
         "https://artifactory-content.stripe.build/artifactory/github-archives/{}".format(path),
     ]
 
-def _emscripten_urls(path):
-    """
-    Produce a url list that works both with emscripten, and stripe's internal artifact cache.
-    """
-    return [
-        "https://storage.googleapis.com/webassembly/emscripten-releases-builds/old/{}".format(path),
-        "https://artifactory-content.stripe.build/artifactory/googleapis-storage-cache/webassembly/emscripten-releases-builds/old/{}".format(path),
-    ]

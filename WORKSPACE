@@ -84,12 +84,12 @@ load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_regi
 
 rules_rust_dependencies()
 
-rust_register_toolchains(
-    edition = "2021",
-    versions = [
-        "1.58.1",
-    ],
-)
+# rust_register_toolchains(
+#     edition = "2021",
+#     versions = [
+#         "1.58.1",
+#     ],
+# )
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 
@@ -98,6 +98,18 @@ bazel_skylib_workspace()
 load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies")
 
 aspect_bazel_lib_dependencies()
+
+load("@emsdk//:deps.bzl", emsdk_deps = "deps")
+
+emsdk_deps()
+
+load("@emsdk//:emscripten_deps.bzl", emsdk_emscripten_deps = "emscripten_deps")
+
+emsdk_emscripten_deps(emscripten_version = "3.1.58")
+
+load("@emsdk//:toolchains.bzl", "register_emscripten_toolchains")
+
+register_emscripten_toolchains()
 
 BAZEL_INSTALLER_VERSION_LINUX_X86_64_SHA = "47ac556eed788e1e83727d3d3bb5949418ee89ac528034e3a7b3c8615ed47b63"
 
