@@ -228,6 +228,11 @@ struct StopAfterOptions {
     Phase flag;
 };
 
+struct ParserOptions {
+    string option;
+    Parser flag;
+};
+
 const vector<StopAfterOptions> stop_after_options({
     {"init", Phase::INIT},
     {"parser", Phase::PARSER},
@@ -238,6 +243,11 @@ const vector<StopAfterOptions> stop_after_options({
     {"resolver", Phase::RESOLVER},
     {"cfg", Phase::CFG},
     {"inferencer", Phase::INFERENCER},
+});
+
+const vector<ParserOptions> parser_options({
+    {"sorbet", Parser::SORBET},
+    {"prism", Parser::PRISM},
 });
 
 core::TrackUntyped text2TrackUntyped(string_view key, spdlog::logger &logger) {
@@ -729,6 +739,9 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
                                  cxxopts::value<vector<string>>()->implicit_value("all"), "SECTION");
     // }}}
 
+    options.add_options("dev")("parser", "Which parser to use", cxxopts::value<string>()->default_value("sorbet"),
+                               "{sorbet, prism}");
+
     for (auto &provider : semanticExtensionProviders) {
         provider->injectOptions(options);
     }
@@ -801,6 +814,22 @@ Phase extractStopAfter(cxxopts::ParseResult &raw, shared_ptr<spdlog::logger> log
 
     logger->error("Unknown --stop-after option: {}\nValid values: {}", opt, fmt::join(allOptions, ", "));
     return Phase::INIT;
+}
+
+Parser extractParser(cxxopts::ParseResult &raw, shared_ptr<spdlog::logger> logger) {
+    string opt = raw["parser"].as<string>();
+    for (auto &known : parser_options) {
+        if (known.option == opt) {
+            return known.flag;
+        }
+    }
+    vector<string_view> allOptions;
+    for (auto &known : parser_options) {
+        allOptions.emplace_back(known.option);
+    }
+
+    logger->error("Unknown --parser option: {}\nValid values: {}", opt, fmt::join(allOptions, ", "));
+    return Parser::SORBET;
 }
 
 // Given a path, strips any trailing forward slashes (/) at the end of the path.
@@ -965,6 +994,7 @@ void readOptions(Options &opts,
             throw EarlyReturnWithCode(1);
         }
         opts.stopAfterPhase = extractStopAfter(raw, logger);
+        opts.parser = extractParser(raw, logger);
 
         opts.silenceErrors = raw["quiet"].as<bool>();
         opts.autocorrect = raw["autocorrect"].as<bool>();
@@ -1328,6 +1358,7 @@ void readOptions(Options &opts,
             fmt::print("Sorbet typechecker {}\n", sorbet_full_version_string);
             throw EarlyReturnWithCode(0);
         }
+
     } catch (cxxopts::OptionParseException &e) {
         logger->info("{}. To see all available options pass `--help`.", e.what());
         throw EarlyReturnWithCode(1);
