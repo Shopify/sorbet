@@ -106,6 +106,18 @@ enum class Phase {
     INFERENCER,
 };
 
+enum class Parser {
+    PRISM,
+    SORBET,
+};
+
+struct AutogenConstCacheConfig {
+    // A file which contains a cache that can be used to potentially skip autogen
+    std::string cacheFile;
+    // A list of files which have changed since the last autogen run.
+    std::vector<std::string> changedFiles;
+};
+
 namespace {
 
 #if !defined(EMSCRIPTEN)
@@ -120,6 +132,7 @@ constexpr size_t MAX_CACHE_SIZE_BYTES = 1L * 1024 * 1024 * 1024; // 1 GiB
 struct Options {
     Printers print;
     Phase stopAfterPhase = Phase::INFERENCER;
+    Parser parser = Parser::SORBET;
     bool noStdlib = false;
 
     // Should we monitor STDOUT for HUP and exit if it hangs up. This is a
