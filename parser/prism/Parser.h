@@ -32,10 +32,7 @@ public:
     }
 
     Parser(const Parser &) = default;
-    Parser &operator=(const Parser &) = delete;
-
-    // Expose the raw parser pointer temporarily, until we build wrappers for the other APIs
-    pm_parser_t *tmp_public_get_raw_parser_pointer();
+    Parser &operator=(const Parser &) = default;
 
     Node parse_root();
     core::LocOffsets translateLocation(pm_location_t *location);
@@ -55,6 +52,7 @@ class Node final {
     };
 
     friend class Parser;
+    friend class Translator;
 
     Parser parser;
     std::unique_ptr<pm_node_t, NodeDeleter> node;
@@ -64,9 +62,7 @@ class Node final {
     Node(const Node &) = delete;            // Copy constructor
     Node &operator=(const Node &) = delete; // Copy assignment
 
-public:
-    // Expose the raw parser pointer temporarily, until we build wrappers for the other APIs
-    pm_node_t *tmp_public_get_raw_node_pointer() {
+    pm_node_t *get_raw_node_pointer() const {
         return node.get();
     }
 };

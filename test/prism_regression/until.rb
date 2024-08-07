@@ -1,5 +1,5 @@
 # typed: false
 
-if false
-  5
+until true
+  "body"
 end
