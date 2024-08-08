@@ -17,6 +17,21 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Blockarg>(parser.translateLocation(loc), gs.enterNameUTF8(name));
         }
+        case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
+            auto classNode = reinterpret_cast<pm_class_node *>(node);
+            pm_location_t *loc = &classNode->base.location;
+            pm_location_t *declLoc = &classNode->class_keyword_loc;
+
+            auto name = translate(reinterpret_cast<pm_node *>(classNode->constant_path));
+            std::unique_ptr<parser::Node> superclass;
+
+            if (classNode->superclass != nullptr) {
+                superclass = translate(reinterpret_cast<pm_node *>(classNode->superclass));
+            }
+
+            return make_unique<parser::Class>(parser.translateLocation(loc), parser.translateLocation(declLoc),
+                                              std::move(name), std::move(superclass), nullptr);
+        }
         case PM_CONSTANT_PATH_NODE: {
             // Part of a constant path, like the `A` in `A::B`. `B` is a `PM_CONSTANT_READ_NODE`
             auto constantPathNode = reinterpret_cast<pm_constant_path_node *>(node);
@@ -232,6 +247,27 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Restarg>(parser.translateLocation(loc), gs.enterNameUTF8(name),
                                                 parser.translateLocation(nameLoc));
         }
+        case PM_SELF_NODE: {
+            auto selfNode = reinterpret_cast<pm_singleton_class_node *>(node);
+            pm_location_t *loc = &selfNode->base.location;
+
+            return make_unique<parser::Self>(parser.translateLocation(loc));
+        }
+        case PM_SINGLETON_CLASS_NODE: {
+            auto classNode = reinterpret_cast<pm_singleton_class_node *>(node);
+            pm_location_t *loc = &classNode->base.location;
+            pm_location_t *declLoc = &classNode->class_keyword_loc;
+
+            auto expr = translate(classNode->expression);
+            unique_ptr<parser::Node> body;
+
+            if (classNode->body != nullptr) {
+                body = translate(classNode->body);
+            }
+
+            return make_unique<parser::SClass>(parser.translateLocation(loc), parser.translateLocation(declLoc),
+                                               std::move(expr), std::move(body));
+        }
         case PM_STATEMENTS_NODE: {
             pm_statements_node *stmts_node = reinterpret_cast<pm_statements_node *>(node);
 
@@ -297,7 +333,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_CAPTURE_PATTERN_NODE:
         case PM_CASE_MATCH_NODE:
         case PM_CASE_NODE:
-        case PM_CLASS_NODE:
         case PM_CLASS_VARIABLE_AND_WRITE_NODE:
         case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE:
         case PM_CLASS_VARIABLE_OR_WRITE_NODE:
@@ -386,9 +421,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_RESCUE_NODE:
         case PM_RETRY_NODE:
         case PM_RETURN_NODE:
-        case PM_SELF_NODE:
         case PM_SHAREABLE_CONSTANT_NODE:
-        case PM_SINGLETON_CLASS_NODE:
         case PM_SOURCE_ENCODING_NODE:
         case PM_SOURCE_FILE_NODE:
         case PM_SOURCE_LINE_NODE:
