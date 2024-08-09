@@ -21,6 +21,73 @@ template <typename... TArgs>
     }
 }
 
+template <typename PrismAssignmentNode, typename SorbetLHSNode>
+std::unique_ptr<parser::Assign> Translator::translateAssignment(pm_node_t *untypedNode) {
+    auto node = reinterpret_cast<PrismAssignmentNode *>(untypedNode);
+    auto *loc = &node->base.location;
+
+    auto rhs = translate(node->value);
+    unique_ptr<parser::Node> lhs;
+
+    if constexpr (std::is_same_v<PrismAssignmentNode, pm_constant_write_node>) {
+        auto nameLoc = &node->name_loc;
+        auto name = parser.resolveConstant(node->name);
+        auto nameRef = gs.enterNameConstant(name);
+
+        // Second argument is the scope, which is null for top-level constants
+        auto constNode = make_unique<parser::Const>(parser.translateLocation(loc), nullptr, nameRef);
+
+        lhs = make_unique<SorbetLHSNode>(parser.translateLocation(nameLoc), std::move(constNode->scope), nameRef);
+    } else if constexpr (std::is_same_v<PrismAssignmentNode, pm_constant_path_write_node>) {
+        auto isAssignment = true;
+        lhs = translateConstantPath(node->target, isAssignment);
+    } else {
+        auto name = parser.resolveConstant(node->name);
+        lhs = make_unique<SorbetLHSNode>(parser.translateLocation(&node->name_loc), gs.enterNameUTF8(name));
+    }
+
+    return make_unique<parser::Assign>(parser.translateLocation(loc), std::move(lhs), std::move(rhs));
+}
+
+template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
+std::unique_ptr<SorbetAssignmentNode> Translator::translateOpAssignment(pm_node_t *untypedNode) {
+    static_assert(
+        std::is_same_v<SorbetAssignmentNode, parser::OpAsgn> || std::is_same_v<SorbetAssignmentNode, parser::AndAsgn> ||
+            std::is_same_v<SorbetAssignmentNode, parser::OrAsgn>,
+        "Invalid operator node type. Must be one of `parser::OpAssign`, `parser::AndAsgn` or `parser::OrAsgn`.");
+
+    auto node = reinterpret_cast<PrismAssignmentNode *>(untypedNode);
+    auto *loc = &node->base.location;
+
+    unique_ptr<parser::Node> lhs;
+    auto rhs = translate(node->value);
+
+    if constexpr (std::is_same_v<PrismAssignmentNode, pm_index_operator_write_node> ||
+                  std::is_same_v<PrismAssignmentNode, pm_index_and_write_node> ||
+                  std::is_same_v<PrismAssignmentNode, pm_index_or_write_node>) {
+        auto *openingLoc = &node->opening_loc;
+        auto receiver = translate(node->receiver);
+        auto args = translateArguments(node->arguments);
+        lhs =
+            make_unique<parser::Send>(parser.translateLocation(loc), std::move(receiver), core::Names::squareBrackets(),
+                                      parser.translateLocation(openingLoc), std::move(args));
+    } else {
+        auto *nameLoc = &node->name_loc;
+        auto name = parser.resolveConstant(node->name);
+        lhs = make_unique<SorbetLHSNode>(parser.translateLocation(nameLoc), gs.enterNameUTF8(name));
+    }
+
+    if constexpr (std::is_same_v<SorbetAssignmentNode, parser::OpAsgn>) {
+        auto *opLoc = &node->binary_operator_loc;
+        auto op = parser.resolveConstant(node->binary_operator);
+
+        return make_unique<parser::OpAsgn>(parser.translateLocation(loc), std::move(lhs), gs.enterNameUTF8(op),
+                                           parser.translateLocation(opLoc), std::move(rhs));
+    } else {
+        return make_unique<SorbetAssignmentNode>(parser.translateLocation(loc), std::move(lhs), std::move(rhs));
+    }
+}
+
 std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
@@ -45,15 +112,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto arrayNode = reinterpret_cast<pm_array_node *>(node);
             pm_location_t *loc = &arrayNode->base.location;
 
-            auto prismElements = absl::MakeSpan(arrayNode->elements.nodes, arrayNode->elements.size);
-
-            parser::NodeVec sorbetElements{};
-            sorbetElements.reserve(prismElements.size());
-
-            for (auto &prismElement : prismElements) {
-                unique_ptr<parser::Node> sorbetElement = translate(prismElement);
-                sorbetElements.emplace_back(std::move(sorbetElement));
-            }
+            parser::NodeVec sorbetElements = translateMulti(arrayNode->elements);
 
             return make_unique<parser::Array>(parser.translateLocation(loc), std::move(sorbetElements));
         }
@@ -65,6 +124,22 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto value = translate(assocNode->value);
 
             return make_unique<parser::Pair>(parser.translateLocation(loc), std::move(key), std::move(value));
+        }
+        case PM_ASSOC_SPLAT_NODE: {
+            unreachable("PM_ASSOC_SPLAT_NODE is handled separately in `Translator::translateHash()`, because its "
+                        "translation depends on whether its used in a hash or in a method call");
+        }
+        case PM_BEGIN_NODE: {
+            auto beginNode = reinterpret_cast<pm_begin_node *>(node);
+            auto loc = &beginNode->base.location;
+
+            NodeVec statements;
+
+            if (auto prismStatements = beginNode->statements; prismStatements != nullptr) {
+                statements = translateMulti(prismStatements->body);
+            }
+
+            return make_unique<parser::Kwbegin>(parser.translateLocation(loc), std::move(statements));
         }
         case PM_BLOCK_ARGUMENT_NODE: { // A block arg passed into a method call, e.g. the `&b` in `a.map(&b)`
             auto blockArg = reinterpret_cast<pm_block_argument_node *>(node);
@@ -81,13 +156,29 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto blockParamNode = reinterpret_cast<pm_block_parameter_node *>(node);
             pm_location_t *loc = &blockParamNode->base.location;
 
-            std::string_view name = parser.resolveConstant(blockParamNode->name);
+            core::NameRef sorbetName;
+            if (auto prismName = blockParamNode->name; prismName != PM_CONSTANT_ID_UNSET) {
+                // A named block parameter, like `def foo(&block)`
+                auto name = parser.resolveConstant(prismName);
+                sorbetName = gs.enterNameUTF8(name);
+            } else { // An anonymous block parameter, like `def foo(&)`
+                sorbetName =
+                    gs.freshNameUnique(core::UniqueNameKind::Parser, core::Names::ampersand(), ++uniqueCounter);
+            }
 
-            return make_unique<parser::Blockarg>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+            return make_unique<parser::Blockarg>(parser.translateLocation(loc), sorbetName);
         }
         case PM_BLOCK_PARAMETERS_NODE: { // The parameters declared at the top of a PM_BLOCK_NODE
             auto paramsNode = reinterpret_cast<pm_block_parameters_node *>(node);
             return translate(reinterpret_cast<pm_node *>(paramsNode->parameters));
+        }
+        case PM_BREAK_NODE: {
+            auto breakNode = reinterpret_cast<pm_break_node *>(node);
+            pm_location_t *loc = &breakNode->base.location;
+
+            auto arguments = translateArguments(breakNode->arguments);
+
+            return make_unique<parser::Break>(parser.translateLocation(loc), std::move(arguments));
         }
         case PM_CALL_NODE: {
             auto callNode = reinterpret_cast<pm_call_node *>(node);
@@ -124,12 +215,23 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 return sendNode;
             }
         }
+        case PM_CASE_NODE: {
+            auto caseNode = reinterpret_cast<pm_case_node *>(node);
+            pm_location_t *loc = &caseNode->base.location;
+
+            auto predicate = translate(caseNode->predicate);
+            auto sorbetConditions = translateMulti(caseNode->conditions);
+            auto consequent = translate(reinterpret_cast<pm_node_t *>(caseNode->consequent));
+
+            return make_unique<Case>(parser.translateLocation(loc), std::move(predicate), std::move(sorbetConditions),
+                                     std::move(consequent));
+        }
         case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
             auto classNode = reinterpret_cast<pm_class_node *>(node);
             pm_location_t *loc = &classNode->base.location;
             pm_location_t *declLoc = &classNode->class_keyword_loc;
 
-            auto name = translate(reinterpret_cast<pm_node *>(classNode->constant_path));
+            auto name = translate(classNode->constant_path);
             auto superclass = translate(classNode->superclass);
 
             auto body = translate(classNode->body);
@@ -137,25 +239,34 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Class>(parser.translateLocation(loc), parser.translateLocation(declLoc),
                                               std::move(name), std::move(superclass), std::move(body));
         }
+        case PM_CLASS_VARIABLE_AND_WRITE_NODE: {
+            return translateOpAssignment<pm_class_variable_and_write_node, parser::AndAsgn, parser::CVarLhs>(node);
+        }
+        case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE: {
+            return translateOpAssignment<pm_class_variable_operator_write_node, parser::OpAsgn, parser::CVarLhs>(node);
+        }
+        case PM_CLASS_VARIABLE_OR_WRITE_NODE: {
+            return translateOpAssignment<pm_class_variable_or_write_node, parser::OrAsgn, parser::CVarLhs>(node);
+        }
+        case PM_CLASS_VARIABLE_READ_NODE: {
+            auto classVarNode = reinterpret_cast<pm_class_variable_read_node *>(node);
+            pm_location_t *loc = &classVarNode->base.location;
+
+            std::string_view name = parser.resolveConstant(classVarNode->name);
+
+            return make_unique<parser::CVar>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+        }
+        case PM_CLASS_VARIABLE_WRITE_NODE: {
+            return translateAssignment<pm_class_variable_write_node, parser::CVarLhs>(node);
+        }
         case PM_CONSTANT_PATH_NODE: {
             // Part of a constant path, like the `A` in `A::B`. `B` is a `PM_CONSTANT_READ_NODE`
             auto constantPathNode = reinterpret_cast<pm_constant_path_node *>(node);
-            pm_location_t *loc = &constantPathNode->base.location;
-
-            std::string_view name = parser.resolveConstant(constantPathNode->name);
-
-            std::unique_ptr<parser::Node> parent;
-            if (constantPathNode->parent) {
-                // This constant reference is chained onto another constant reference.
-                // E.g. if `node` is pointing to `B`, then then `A` is the `parent` in `A::B::C`.
-                parent = translate(constantPathNode->parent);
-            } else { // This is a fully qualified constant reference, like `::A`.
-                pm_location_t *delimiterLoc = &constantPathNode->delimiter_loc; // The location of the `::`
-                parent = make_unique<parser::Cbase>(parser.translateLocation(delimiterLoc));
-            }
-
-            return make_unique<parser::Const>(parser.translateLocation(loc), std::move(parent),
-                                              gs.enterNameConstant(name));
+            auto isAssignment = false;
+            return translateConstantPath(constantPathNode, isAssignment);
+        }
+        case PM_CONSTANT_PATH_WRITE_NODE: {
+            return translateAssignment<pm_constant_path_write_node, void>(node);
         }
         case PM_CONSTANT_READ_NODE: { // A single, unnested, non-fully qualified constant like "Foo"
             auto constantReadNode = reinterpret_cast<pm_constant_read_node *>(node);
@@ -163,6 +274,9 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             std::string_view name = parser.resolveConstant(constantReadNode->name);
 
             return make_unique<parser::Const>(parser.translateLocation(loc), nullptr, gs.enterNameConstant(name));
+        }
+        case PM_CONSTANT_WRITE_NODE: {
+            return translateAssignment<pm_constant_write_node, parser::ConstLhs>(node);
         }
         case PM_DEF_NODE: {
             auto defNode = reinterpret_cast<pm_def_node *>(node);
@@ -194,11 +308,8 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                                   NodeVec{});
             }
         }
-        case PM_FALSE_NODE: {
-            auto falseNode = reinterpret_cast<pm_false_node *>(node);
-            pm_location_t *loc = &falseNode->base.location;
-
-            return make_unique<parser::False>(parser.translateLocation(loc));
+        case PM_FALSE_NODE: { // The `false` keyword
+            return translateSimpleKeyword<pm_false_node, parser::False>(node);
         }
         case PM_FLOAT_NODE: {
             auto floatNode = reinterpret_cast<pm_float_node *>(node);
@@ -206,11 +317,34 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Float>(parser.translateLocation(loc), std::to_string(floatNode->value));
         }
+        case PM_FORWARDING_ARGUMENTS_NODE: { // The `...` argument in a method call, like `foo(...)`
+            return translateSimpleKeyword<pm_forwarding_arguments_node, parser::ForwardedArgs>(node);
+        }
+        case PM_FORWARDING_PARAMETER_NODE: { // The `...` parameter in a method definition, like `def foo(...)`
+            return translateSimpleKeyword<pm_forwarding_parameter_node, parser::ForwardArg>(node);
+        }
         case PM_FORWARDING_SUPER_NODE: { // `super` with no `(...)`
-            auto forwardingSuperNode = reinterpret_cast<pm_forwarding_super_node *>(node);
-            pm_location_t *loc = &forwardingSuperNode->base.location;
+            return translateSimpleKeyword<pm_forwarding_super_node, parser::ZSuper>(node);
+        }
+        case PM_GLOBAL_VARIABLE_AND_WRITE_NODE: {
+            return translateOpAssignment<pm_global_variable_and_write_node, parser::AndAsgn, parser::GVarLhs>(node);
+        }
+        case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            return translateOpAssignment<pm_global_variable_operator_write_node, parser::OpAsgn, parser::GVarLhs>(node);
+        }
+        case PM_GLOBAL_VARIABLE_OR_WRITE_NODE: {
+            return translateOpAssignment<pm_global_variable_or_write_node, parser::OrAsgn, parser::GVarLhs>(node);
+        }
+        case PM_GLOBAL_VARIABLE_READ_NODE: {
+            auto globalVarReadNode = reinterpret_cast<pm_global_variable_read_node *>(node);
+            pm_location_t *loc = &globalVarReadNode->base.location;
 
-            return make_unique<parser::ZSuper>(parser.translateLocation(loc));
+            std::string_view name = parser.resolveConstant(globalVarReadNode->name);
+
+            return make_unique<parser::GVar>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+        }
+        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
+            return translateAssignment<pm_global_variable_write_node, parser::GVarLhs>(node);
         }
         case PM_HASH_NODE: {
             auto usedForKeywordArgs = false;
@@ -227,6 +361,25 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::If>(parser.translateLocation(loc), std::move(predicate), std::move(ifTrue),
                                            std::move(ifFalse));
         }
+        case PM_INDEX_AND_WRITE_NODE: {
+            return translateOpAssignment<pm_index_and_write_node, parser::AndAsgn, void>(node);
+        }
+        case PM_INDEX_OPERATOR_WRITE_NODE: {
+            return translateOpAssignment<pm_index_operator_write_node, parser::OpAsgn, void>(node);
+        }
+        case PM_INDEX_OR_WRITE_NODE: {
+            return translateOpAssignment<pm_index_or_write_node, parser::OrAsgn, void>(node);
+        }
+        case PM_INSTANCE_VARIABLE_AND_WRITE_NODE: {
+            return translateOpAssignment<pm_instance_variable_and_write_node, parser::AndAsgn, parser::IVarLhs>(node);
+        }
+        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: {
+            return translateOpAssignment<pm_instance_variable_operator_write_node, parser::OpAsgn, parser::IVarLhs>(
+                node);
+        }
+        case PM_INSTANCE_VARIABLE_OR_WRITE_NODE: {
+            return translateOpAssignment<pm_instance_variable_or_write_node, parser::OrAsgn, parser::IVarLhs>(node);
+        }
         case PM_INSTANCE_VARIABLE_READ_NODE: {
             auto instanceVarNode = reinterpret_cast<pm_instance_variable_read_node *>(node);
             pm_location_t *loc = &instanceVarNode->base.location;
@@ -236,15 +389,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::IVar>(parser.translateLocation(loc), gs.enterNameUTF8(name));
         }
         case PM_INSTANCE_VARIABLE_WRITE_NODE: {
-            auto instanceVarNode = reinterpret_cast<pm_instance_variable_write_node *>(node);
-            pm_location_t *loc = &instanceVarNode->base.location;
-
-            std::string_view ivarName = parser.resolveConstant(instanceVarNode->name);
-            auto lhs = make_unique<parser::IVarLhs>(parser.translateLocation(&instanceVarNode->name_loc),
-                                                    gs.enterNameUTF8(ivarName));
-            auto rhs = translate(instanceVarNode->value);
-
-            return make_unique<parser::Assign>(parser.translateLocation(loc), std::move(lhs), std::move(rhs));
+            return translateAssignment<pm_instance_variable_write_node, parser::IVarLhs>(node);
         }
         case PM_INTEGER_NODE: {
             auto intNode = reinterpret_cast<pm_integer_node *>(node);
@@ -257,16 +402,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto interpolatedStringNode = reinterpret_cast<pm_interpolated_string_node *>(node);
             pm_location_t *loc = &interpolatedStringNode->base.location;
 
-            auto prismStringParts =
-                absl::MakeSpan(interpolatedStringNode->parts.nodes, interpolatedStringNode->parts.size);
-
-            NodeVec sorbetParts{};
-            sorbetParts.reserve(prismStringParts.size());
-
-            for (auto &prismPart : prismStringParts) {
-                unique_ptr<parser::Node> sorbetPart = translate(prismPart);
-                sorbetParts.emplace_back(std::move(sorbetPart));
-            }
+            auto sorbetParts = translateMulti(interpolatedStringNode->parts);
 
             return make_unique<parser::DString>(parser.translateLocation(loc), std::move(sorbetParts));
         }
@@ -278,9 +414,44 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto keywordRestParamNode = reinterpret_cast<pm_keyword_rest_parameter_node *>(node);
             pm_location_t *loc = &keywordRestParamNode->base.location;
 
-            std::string_view name = parser.resolveConstant(keywordRestParamNode->name);
+            core::NameRef sorbetName;
+            if (auto prismName = keywordRestParamNode->name; prismName != PM_CONSTANT_ID_UNSET) {
+                // A named keyword rest parameter, like `def foo(**kwargs)`
+                auto name = parser.resolveConstant(prismName);
+                sorbetName = gs.enterNameUTF8(name);
+            } else { // An anonymous keyword rest parameter, like `def foo(**)`
+                sorbetName = gs.freshNameUnique(core::UniqueNameKind::Parser, core::Names::starStar(), ++uniqueCounter);
+            }
 
-            return make_unique<parser::Kwrestarg>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+            return make_unique<parser::Kwrestarg>(parser.translateLocation(loc), sorbetName);
+        }
+        case PM_LOCAL_VARIABLE_AND_WRITE_NODE: {
+            return translateOpAssignment<pm_local_variable_and_write_node, parser::AndAsgn, parser::LVarLhs>(node);
+        }
+        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            return translateOpAssignment<pm_local_variable_operator_write_node, parser::OpAsgn, parser::LVarLhs>(node);
+        }
+        case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
+            return translateOpAssignment<pm_local_variable_or_write_node, parser::OrAsgn, parser::LVarLhs>(node);
+        }
+        case PM_LOCAL_VARIABLE_READ_NODE: {
+            auto localVarReadNode = reinterpret_cast<pm_local_variable_read_node *>(node);
+            pm_location_t *loc = &localVarReadNode->base.location;
+
+            std::string_view name = parser.resolveConstant(localVarReadNode->name);
+
+            return make_unique<parser::LVar>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+        }
+        case PM_LOCAL_VARIABLE_TARGET_NODE: { // Left-hand side of an multi-assignment
+            auto localVarTargetNode = reinterpret_cast<pm_local_variable_target_node *>(node);
+            pm_location_t *loc = &localVarTargetNode->base.location;
+
+            std::string_view name = parser.resolveConstant(localVarTargetNode->name);
+
+            return make_unique<parser::LVarLhs>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+        }
+        case PM_LOCAL_VARIABLE_WRITE_NODE: {
+            return translateAssignment<pm_local_variable_write_node, parser::LVarLhs>(node);
         }
         case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
             auto moduleNode = reinterpret_cast<pm_module_node *>(node);
@@ -293,11 +464,50 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Module>(parser.translateLocation(loc), parser.translateLocation(declLoc),
                                                std::move(name), std::move(body));
         }
-        case PM_NIL_NODE: {
-            auto nilNode = reinterpret_cast<pm_nil_node *>(node);
-            pm_location_t *loc = &nilNode->base.location;
+        case PM_MULTI_WRITE_NODE: {
+            auto multiWriteNode = reinterpret_cast<pm_multi_write_node *>(node);
+            pm_location_t *loc = &multiWriteNode->base.location;
 
-            return make_unique<parser::Nil>(parser.translateLocation(loc));
+            // Left-hand side of the assignment
+            auto prismLefts = absl::MakeSpan(multiWriteNode->lefts.nodes, multiWriteNode->lefts.size);
+            auto prismRights = absl::MakeSpan(multiWriteNode->rights.nodes, multiWriteNode->rights.size);
+            auto prismSplat = multiWriteNode->rest;
+
+            NodeVec sorbetLhs{};
+            sorbetLhs.reserve(prismLefts.size() + prismRights.size() + (prismSplat != nullptr ? 1 : 0));
+
+            translateMultiInto(sorbetLhs, prismLefts);
+
+            if (prismSplat != nullptr) {
+                // This requires separate handling from the `PM_SPLAT_NODE` because it
+                // has a different Sorbet node type, `parser::SplatLhs`
+                auto splatNode = reinterpret_cast<pm_splat_node *>(prismSplat);
+                pm_location_t *loc = &splatNode->base.location;
+
+                auto expr = translate(splatNode->expression);
+
+                sorbetLhs.emplace_back(make_unique<parser::SplatLhs>(parser.translateLocation(loc), std::move(expr)));
+            }
+
+            translateMultiInto(sorbetLhs, prismRights);
+
+            auto mlhs = make_unique<parser::Mlhs>(parser.translateLocation(loc), std::move(sorbetLhs));
+
+            // Right-hand side of the assignment
+            auto value = translate(multiWriteNode->value);
+
+            return make_unique<parser::Masgn>(parser.translateLocation(loc), std::move(mlhs), std::move(value));
+        }
+        case PM_NEXT_NODE: {
+            auto nextNode = reinterpret_cast<pm_next_node *>(node);
+            pm_location_t *loc = &nextNode->base.location;
+
+            auto arguments = translateArguments(nextNode->arguments);
+
+            return make_unique<parser::Next>(parser.translateLocation(loc), std::move(arguments));
+        }
+        case PM_NIL_NODE: { // The `nil` keyword
+            return translateSimpleKeyword<pm_nil_node, parser::Nil>(node);
         }
         case PM_OPTIONAL_KEYWORD_PARAMETER_NODE: {
             auto optionalKeywordParamNode = reinterpret_cast<pm_optional_keyword_parameter_node *>(node);
@@ -346,35 +556,19 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             params.reserve(requireds.size() + optionals.size() + restSize + keywords.size() + kwrestSize + blockSize);
 
-            for (auto &param : requireds) {
-                unique_ptr<parser::Node> sorbetParam = translate(param);
-                params.emplace_back(std::move(sorbetParam));
-            }
+            translateMultiInto(params, requireds);
+            translateMultiInto(params, optionals);
 
-            for (auto &param : optionals) {
-                unique_ptr<parser::Node> sorbetParam = translate(param);
-                params.emplace_back(std::move(sorbetParam));
-            }
+            if (paramsNode->rest != nullptr)
+                params.emplace_back(translate(paramsNode->rest));
 
-            if (paramsNode->rest != nullptr) {
-                unique_ptr<parser::Node> rest = translate(paramsNode->rest);
-                params.emplace_back(std::move(rest));
-            }
+            translateMultiInto(params, keywords);
 
-            for (auto &param : keywords) {
-                unique_ptr<parser::Node> sorbetParam = translate(param);
-                params.emplace_back(std::move(sorbetParam));
-            }
+            if (paramsNode->keyword_rest != nullptr)
+                params.emplace_back(translate(paramsNode->keyword_rest));
 
-            if (paramsNode->keyword_rest != nullptr) {
-                unique_ptr<parser::Node> keywordRest = translate(paramsNode->keyword_rest);
-                params.emplace_back(std::move(keywordRest));
-            }
-
-            if (paramsNode->block != nullptr) {
-                unique_ptr<parser::Node> block = translate(reinterpret_cast<pm_node *>(paramsNode->block));
-                params.emplace_back(std::move(block));
-            }
+            if (paramsNode->block != nullptr)
+                params.emplace_back(translate(reinterpret_cast<pm_node *>(paramsNode->block)));
 
             return make_unique<parser::Args>(parser.translateLocation(loc), std::move(params));
         }
@@ -411,12 +605,46 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto *rationalNode = reinterpret_cast<pm_rational_node *>(node);
             pm_location_t *loc = &rationalNode->base.location;
 
-            const uint8_t *start = rationalNode->numeric->location.start;
-            const uint8_t *end = rationalNode->numeric->location.end;
+            const uint8_t *start = loc->start;
+            const uint8_t *end = loc->end;
 
-            std::string value = std::string(reinterpret_cast<const char *>(start), end - start);
+            // TODO: drop one char to remove the "r" at the end of the value
+            auto value = std::string_view(reinterpret_cast<const char *>(start), end - start - 1);
 
             return make_unique<parser::Rational>(parser.translateLocation(loc), value);
+        }
+        case PM_REDO_NODE: { // The `redo` keyword
+            return translateSimpleKeyword<pm_redo_node, parser::Redo>(node);
+        }
+        case PM_REGULAR_EXPRESSION_NODE: {
+            auto regularExpressionNode = reinterpret_cast<pm_regular_expression_node *>(node);
+            pm_location_t *loc = &regularExpressionNode->base.location;
+            pm_location_t *closingLoc = &regularExpressionNode->closing_loc;
+
+            // Sorbet represents the regex content as a vector of string nodes
+            parser::NodeVec parts;
+
+            auto source = parser.extractString(&regularExpressionNode->unescaped);
+            if (!source.empty()) {
+                auto sourceStringNode =
+                    make_unique<parser::String>(parser.translateLocation(loc), gs.enterNameUTF8(source));
+                parts.emplace_back(std::move(sourceStringNode));
+            }
+
+            std::string_view optString;
+
+            auto optStart = closingLoc->start + 1; // one character after the closing `/`
+            auto optEnd = closingLoc->end;
+            auto optLength = optEnd - optStart;
+
+            // Some regexps have options, e.g. `/foo/i`
+            if (optLength > 0) {
+                optString = std::string_view(reinterpret_cast<const char *>(optStart), optLength);
+            }
+
+            auto opt = make_unique<parser::Regopt>(parser.translateLocation(closingLoc), optString);
+
+            return make_unique<parser::Regexp>(parser.translateLocation(loc), std::move(parts), std::move(opt));
         }
         case PM_REQUIRED_KEYWORD_PARAMETER_NODE: {
             auto requiredKeywordParamNode = reinterpret_cast<pm_required_keyword_parameter_node *>(node);
@@ -439,9 +667,17 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t *loc = &restParamNode->base.location;
             pm_location_t *nameLoc = &restParamNode->name_loc;
 
-            std::string_view name = parser.resolveConstant(restParamNode->name);
+            core::NameRef sorbetName;
+            if (auto prismName = restParamNode->name; prismName != PM_CONSTANT_ID_UNSET) {
+                // A named rest parameter, like `def foo(*rest)`
+                auto name = parser.resolveConstant(prismName);
+                sorbetName = gs.enterNameUTF8(name);
+            } else { // An anonymous rest parameter, like `def foo(*)`
+                sorbetName = gs.freshNameUnique(core::UniqueNameKind::Parser, core::Names::star(), ++uniqueCounter);
+                nameLoc = loc;
+            }
 
-            return make_unique<parser::Restarg>(parser.translateLocation(loc), gs.enterNameUTF8(name),
+            return make_unique<parser::Restarg>(parser.translateLocation(loc), sorbetName,
                                                 parser.translateLocation(nameLoc));
         }
         case PM_RETURN_NODE: {
@@ -452,8 +688,11 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Return>(parser.translateLocation(loc), std::move(returnValues));
         }
-        case PM_SELF_NODE: {
-            auto selfNode = reinterpret_cast<pm_singleton_class_node *>(node);
+        case PM_RETRY_NODE: { // The `retry` keyword
+            return translateSimpleKeyword<pm_retry_node, parser::Retry>(node);
+        }
+        case PM_SELF_NODE: { // The `self` keyword
+            auto selfNode = reinterpret_cast<pm_self_node *>(node);
             pm_location_t *loc = &selfNode->base.location;
 
             return make_unique<parser::Self>(parser.translateLocation(loc));
@@ -473,13 +712,25 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::SClass>(parser.translateLocation(loc), parser.translateLocation(declLoc),
                                                std::move(expr), std::move(body));
         }
+        case PM_SOURCE_ENCODING_NODE: { // The `__ENCODING__` keyword
+            return translateSimpleKeyword<pm_source_encoding_node, parser::EncodingLiteral>(node);
+        }
+        case PM_SOURCE_FILE_NODE: { // The `__FILE__` keyword
+            return translateSimpleKeyword<pm_source_file_node, parser::FileLiteral>(node);
+        }
+        case PM_SOURCE_LINE_NODE: { // The `__LINE__` keyword
+            return translateSimpleKeyword<pm_source_line_node, parser::LineLiteral>(node);
+        }
         case PM_SPLAT_NODE: {
             auto splatNode = reinterpret_cast<pm_splat_node *>(node);
             pm_location_t *loc = &splatNode->base.location;
 
             auto expr = translate(splatNode->expression);
-
-            return make_unique<parser::Splat>(parser.translateLocation(loc), std::move(expr));
+            if (expr == nullptr) { // An anonymous splat like `f(*)`
+                return make_unique<parser::ForwardedRestArg>(parser.translateLocation(loc));
+            } else { // Splatting an expression like `f(*a)`
+                return make_unique<parser::Splat>(parser.translateLocation(loc), std::move(expr));
+            }
         }
         case PM_STATEMENTS_NODE: {
             auto inlineIfSingle = true;
@@ -490,8 +741,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t *loc = &strNode->base.location;
 
             auto unescaped = &strNode->unescaped;
-            auto source =
-                std::string(reinterpret_cast<const char *>(pm_string_source(unescaped)), pm_string_length(unescaped));
+            auto source = parser.extractString(unescaped);
 
             // TODO: handle different string encodings
             return make_unique<parser::String>(parser.translateLocation(loc), gs.enterNameUTF8(source));
@@ -510,17 +760,13 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto unescaped = &symNode->unescaped;
 
-            auto source =
-                std::string(reinterpret_cast<const char *>(pm_string_source(unescaped)), pm_string_length(unescaped));
+            auto source = parser.extractString(unescaped);
 
             // TODO: can these have different encodings?
             return make_unique<parser::Symbol>(parser.translateLocation(loc), gs.enterNameUTF8(source));
         }
-        case PM_TRUE_NODE: {
-            auto trueNode = reinterpret_cast<pm_true_node *>(node);
-            pm_location_t *loc = &trueNode->base.location;
-
-            return make_unique<parser::True>(parser.translateLocation(loc));
+        case PM_TRUE_NODE: { // The `true` keyword
+            return translateSimpleKeyword<pm_true_node, parser::True>(node);
         }
         case PM_UNLESS_NODE: { // An `unless` branch, either in a statement or modifier form.
             auto unlessNode = reinterpret_cast<pm_if_node *>(node);
@@ -543,6 +789,30 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Until>(parser.translateLocation(loc), std::move(predicate), std::move(body));
         }
+        case PM_WHEN_NODE: {
+            auto whenNode = reinterpret_cast<pm_when_node *>(node);
+            auto *loc = &whenNode->base.location;
+
+            auto sorbetConditions = translateMulti(whenNode->conditions);
+
+            auto inlineIfSingle = true;
+            auto statements = translateStatements(whenNode->statements, inlineIfSingle);
+
+            return make_unique<parser::When>(parser.translateLocation(loc), std::move(sorbetConditions),
+                                             std::move(statements));
+        }
+        case PM_WHILE_NODE: {
+            auto whileNode = reinterpret_cast<pm_while_node *>(node);
+            auto *loc = &whileNode->base.location;
+
+            auto inlineIfSingle = true;
+            auto predicate = translate(whileNode->predicate);
+
+            auto statements = translateStatements(whileNode->statements, inlineIfSingle);
+
+            return make_unique<parser::While>(parser.translateLocation(loc), std::move(predicate),
+                                              std::move(statements));
+        }
         case PM_YIELD_NODE: {
             auto yieldNode = reinterpret_cast<pm_yield_node *>(node);
             pm_location_t *loc = &yieldNode->base.location;
@@ -556,24 +826,15 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_ALIAS_METHOD_NODE:
         case PM_ALTERNATION_PATTERN_NODE:
         case PM_ARRAY_PATTERN_NODE:
-        case PM_ASSOC_SPLAT_NODE:
         case PM_BACK_REFERENCE_READ_NODE:
-        case PM_BEGIN_NODE:
         case PM_BLOCK_LOCAL_VARIABLE_NODE:
-        case PM_BREAK_NODE:
         case PM_CALL_AND_WRITE_NODE:
         case PM_CALL_OPERATOR_WRITE_NODE:
         case PM_CALL_OR_WRITE_NODE:
         case PM_CALL_TARGET_NODE:
         case PM_CAPTURE_PATTERN_NODE:
         case PM_CASE_MATCH_NODE:
-        case PM_CASE_NODE:
-        case PM_CLASS_VARIABLE_AND_WRITE_NODE:
-        case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_CLASS_VARIABLE_OR_WRITE_NODE:
-        case PM_CLASS_VARIABLE_READ_NODE:
         case PM_CLASS_VARIABLE_TARGET_NODE:
-        case PM_CLASS_VARIABLE_WRITE_NODE:
         case PM_CONSTANT_AND_WRITE_NODE:
         case PM_CONSTANT_OPERATOR_WRITE_NODE:
         case PM_CONSTANT_OR_WRITE_NODE:
@@ -581,56 +842,40 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_CONSTANT_PATH_OPERATOR_WRITE_NODE:
         case PM_CONSTANT_PATH_OR_WRITE_NODE:
         case PM_CONSTANT_PATH_TARGET_NODE:
-        case PM_CONSTANT_PATH_WRITE_NODE:
         case PM_CONSTANT_TARGET_NODE:
-        case PM_CONSTANT_WRITE_NODE:
         case PM_DEFINED_NODE:
         case PM_EMBEDDED_VARIABLE_NODE:
         case PM_ENSURE_NODE:
         case PM_FIND_PATTERN_NODE:
         case PM_FLIP_FLOP_NODE:
         case PM_FOR_NODE:
-        case PM_FORWARDING_ARGUMENTS_NODE:
-        case PM_FORWARDING_PARAMETER_NODE:
-        case PM_GLOBAL_VARIABLE_AND_WRITE_NODE:
-        case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_GLOBAL_VARIABLE_OR_WRITE_NODE:
-        case PM_GLOBAL_VARIABLE_READ_NODE:
         case PM_GLOBAL_VARIABLE_TARGET_NODE:
-        case PM_GLOBAL_VARIABLE_WRITE_NODE:
         case PM_HASH_PATTERN_NODE:
         case PM_IMAGINARY_NODE:
         case PM_IMPLICIT_NODE:
         case PM_IMPLICIT_REST_NODE:
         case PM_IN_NODE:
-        case PM_INDEX_AND_WRITE_NODE:
-        case PM_INDEX_OPERATOR_WRITE_NODE:
-        case PM_INDEX_OR_WRITE_NODE:
         case PM_INDEX_TARGET_NODE:
-        case PM_INSTANCE_VARIABLE_AND_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_OR_WRITE_NODE:
         case PM_INSTANCE_VARIABLE_TARGET_NODE:
         case PM_INTERPOLATED_MATCH_LAST_LINE_NODE:
         case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE:
         case PM_INTERPOLATED_SYMBOL_NODE:
         case PM_INTERPOLATED_X_STRING_NODE:
-        case PM_IT_PARAMETERS_NODE:
+        case PM_IT_LOCAL_VARIABLE_READ_NODE: {
+            // See Prism::ParserStorage::ParsedRubyVersion
+            unreachable("The `it` keyword was introduced in Ruby 3.4, which isn't supported by Sorbet yet.");
+        }
+        case PM_IT_PARAMETERS_NODE: {
+            // See Prism::ParserStorage::ParsedRubyVersion
+            unreachable("The `it` keyword was introduced in Ruby 3.4, which isn't supported by Sorbet yet.");
+        }
         case PM_LAMBDA_NODE:
-        case PM_LOCAL_VARIABLE_AND_WRITE_NODE:
-        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_LOCAL_VARIABLE_OR_WRITE_NODE:
-        case PM_LOCAL_VARIABLE_READ_NODE:
-        case PM_LOCAL_VARIABLE_TARGET_NODE:
-        case PM_LOCAL_VARIABLE_WRITE_NODE:
         case PM_MATCH_LAST_LINE_NODE:
         case PM_MATCH_PREDICATE_NODE:
         case PM_MATCH_REQUIRED_NODE:
         case PM_MATCH_WRITE_NODE:
         case PM_MISSING_NODE:
         case PM_MULTI_TARGET_NODE:
-        case PM_MULTI_WRITE_NODE:
-        case PM_NEXT_NODE:
         case PM_NO_KEYWORDS_PARAMETER_NODE:
         case PM_NUMBERED_PARAMETERS_NODE:
         case PM_NUMBERED_REFERENCE_READ_NODE:
@@ -638,18 +883,10 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_PINNED_VARIABLE_NODE:
         case PM_POST_EXECUTION_NODE:
         case PM_PRE_EXECUTION_NODE:
-        case PM_REDO_NODE:
-        case PM_REGULAR_EXPRESSION_NODE:
         case PM_RESCUE_MODIFIER_NODE:
         case PM_RESCUE_NODE:
-        case PM_RETRY_NODE:
         case PM_SHAREABLE_CONSTANT_NODE:
-        case PM_SOURCE_ENCODING_NODE:
-        case PM_SOURCE_FILE_NODE:
-        case PM_SOURCE_LINE_NODE:
         case PM_UNDEF_NODE:
-        case PM_WHEN_NODE:
-        case PM_WHILE_NODE:
         case PM_X_STRING_NODE:
         case PM_SCOPE_NODE:
             auto type_id = PM_NODE_TYPE(node);
@@ -669,6 +906,28 @@ std::unique_ptr<parser::Node> Translator::translate(const Node &node) {
     return translate(node.get_raw_node_pointer());
 }
 
+// Translates a Prism node list into a new `NodeVec` of legacy parser nodes.
+parser::NodeVec Translator::translateMulti(pm_node_list nodeList) {
+    auto prismNodes = absl::MakeSpan(nodeList.nodes, nodeList.size);
+
+    parser::NodeVec result;
+
+    // Pre-allocate the exactly capacity we're going to need, to prevent growth reallocations.
+    result.reserve(prismNodes.size());
+
+    translateMultiInto(result, prismNodes);
+
+    return result;
+}
+
+// Translates the given Prism elements, and appends them to the given `NodeVec` of Sorbet nodes.
+void Translator::translateMultiInto(NodeVec &outSorbetNodes, absl::Span<pm_node_t *> prismNodes) {
+    for (auto &prismNode : prismNodes) {
+        unique_ptr<parser::Node> sorbetNode = translate(prismNode);
+        outSorbetNodes.emplace_back(std::move(sorbetNode));
+    }
+}
+
 // The legacy Sorbet parser doesn't have a counterpart to PM_ARGUMENTS_NODE to wrap the array
 // of argument nodes. It just uses a NodeVec directly, which is what this function produces.
 NodeVec Translator::translateArguments(pm_arguments_node *argsNode, size_t extraCapacity) {
@@ -682,10 +941,7 @@ NodeVec Translator::translateArguments(pm_arguments_node *argsNode, size_t extra
     auto prismArgs = absl::MakeSpan(argsNode->arguments.nodes, argsNode->arguments.size);
     results.reserve(prismArgs.size() + extraCapacity);
 
-    for (auto &prismArg : prismArgs) {
-        unique_ptr<parser::Node> sorbetArg = translate(prismArg);
-        results.emplace_back(std::move(sorbetArg));
-    }
+    translateMultiInto(results, prismArgs);
 
     return results;
 }
@@ -711,8 +967,24 @@ std::unique_ptr<parser::Hash> Translator::translateHash(pm_node_t *node, pm_node
     sorbetElements.reserve(prismElements.size());
 
     for (auto &pair : prismElements) {
-        unique_ptr<parser::Node> sorbetKVPair = translate(pair);
-        sorbetElements.emplace_back(std::move(sorbetKVPair));
+        if (PM_NODE_TYPE_P(pair, PM_ASSOC_SPLAT_NODE)) {
+            auto prismSplatNode = reinterpret_cast<pm_assoc_splat_node *>(pair);
+            pm_location_t *loc = &prismSplatNode->base.location;
+            auto value = translate(prismSplatNode->value);
+
+            std::unique_ptr<parser::Node> sorbetSplatNode;
+            if (value == nullptr) { // An anonymous splat like `f(**)`
+                sorbetSplatNode = make_unique<parser::ForwardedKwrestArg>(parser.translateLocation(loc));
+            } else { // Splatting an expression like `f(**h)`
+                sorbetSplatNode = make_unique<parser::Kwsplat>(parser.translateLocation(loc), std::move(value));
+            }
+
+            sorbetElements.emplace_back(std::move(sorbetSplatNode));
+        } else {
+            ENFORCE(PM_NODE_TYPE_P(pair, PM_ASSOC_NODE))
+            unique_ptr<parser::Node> sorbetKVPair = translate(pair);
+            sorbetElements.emplace_back(std::move(sorbetKVPair));
+        }
     }
 
     return make_unique<parser::Hash>(parser.translateLocation(loc), isUsedForKeywordArguments,
@@ -738,23 +1010,50 @@ std::unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_block_node *
 // Translates the given Prism Statements Node into a `parser::Begin` node or an inlined `parser::Node`.
 // @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one `parser::Node`
 std::unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle) {
-    auto prismStmts = absl::MakeSpan(stmtsNode->body.nodes, stmtsNode->body.size);
+    if (stmtsNode == nullptr)
+        return nullptr;
 
     // For a single statement, do not create a `Begin` node and just return the statement, if that's enabled.
-    if (inlineIfSingle && prismStmts.size() == 1) {
-        return translate(reinterpret_cast<pm_node_t *>(prismStmts.front()));
+    if (inlineIfSingle && stmtsNode->body.size == 1) {
+        return translate(stmtsNode->body.nodes[0]);
     }
 
     // For multiple statements, convert each statement and add them to the body of a Begin node
-    parser::NodeVec sorbetStmts;
-    sorbetStmts.reserve(prismStmts.size());
-
-    for (auto &statement : prismStmts) {
-        unique_ptr<parser::Node> sorbetStmt = translate(statement);
-        sorbetStmts.emplace_back(std::move(sorbetStmt));
-    }
+    parser::NodeVec sorbetStmts = translateMulti(stmtsNode->body);
 
     return make_unique<parser::Begin>(parser.translateLocation(&stmtsNode->base.location), std::move(sorbetStmts));
+}
+
+std::unique_ptr<parser::Node> Translator::translateConstantPath(pm_constant_path_node *node, bool isAssignment) {
+    pm_location_t *loc = &node->base.location;
+
+    std::string_view name = parser.resolveConstant(node->name);
+
+    std::unique_ptr<parser::Node> parent;
+    if (node->parent) {
+        // This constant reference is chained onto another constant reference.
+        // E.g. if `node` is pointing to `B`, then then `A` is the `parent` in `A::B::C`.
+        parent = translate(node->parent);
+    } else {                                                // This is a fully qualified constant reference, like `::A`.
+        pm_location_t *delimiterLoc = &node->delimiter_loc; // The location of the `::`
+        parent = make_unique<parser::Cbase>(parser.translateLocation(delimiterLoc));
+    }
+
+    if (isAssignment) {
+        return make_unique<parser::ConstLhs>(parser.translateLocation(loc), std::move(parent),
+                                             gs.enterNameConstant(name));
+    } else {
+        return make_unique<parser::Const>(parser.translateLocation(loc), std::move(parent), gs.enterNameConstant(name));
+    }
+}
+
+// Translate a node that only has basic location information, and nothing else. E.g. `true`, `nil`, `it`.
+template <typename PrismNode, typename SorbetNode>
+std::unique_ptr<SorbetNode> Translator::translateSimpleKeyword(pm_node_t *untypedNode) {
+    auto node = reinterpret_cast<PrismNode *>(untypedNode);
+    pm_location_t *loc = &node->base.location;
+
+    return make_unique<SorbetNode>(parser.translateLocation(loc));
 }
 
 }; // namespace sorbet::parser::Prism
