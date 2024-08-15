@@ -329,9 +329,8 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto stmts = absl::MakeSpan(stmts_node->body.nodes, stmts_node->body.size);
 
             // For a single statement, do not create a Begin node and just return the statement
-            if (stmts.size() == 1) {
-                return translate((pm_node *)stmts.front());
-            }
+            if (stmts.size() == 1)
+                return translate(stmts.front());
 
             // For multiple statements, convert each statement and add them to the body of a Begin node
             parser::NodeVec sorbetStmts = mapIntoNodeVec(stmts, [this](auto &node) { return translate(node); });
