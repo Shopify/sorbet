@@ -23,6 +23,27 @@ template <typename... TArgs>
     }
 }
 
+// Backport for `std::ranges::range_value_t` from C++20.
+template <typename R> using range_value_t = typename std::iterator_traits<typename R::iterator>::value_type;
+
+// The return type of calling function `F` with an element of `Input`.
+template <typename F, typename Input> using map_result_t = std::invoke_result_t<F &, range_value_t<Input>>;
+
+// Map `func` over the  elements of `input`, returning a NodeVec of the transformed values.
+template <typename Input, typename F>
+// requires std::ranges::input_range<Input> &&
+//   std::invocable<F &, std::ranges::range_value_t<Input>>
+parser::NodeVec mapIntoNodeVec(Input &input, F func) {
+    parser::NodeVec result;
+
+    // Pre-allocate the exactly capacity we're going to need, to prevent growth reallocations.
+    result.reserve(std::distance(input.begin(), input.end()));
+
+    mapInto(result, input, func);
+
+    return result;
+}
+
 // Map `func` over the  elements of `input`, pushing the results into the given result container.
 template <typename ResultContainer, typename Input, typename F>
 // requires std::ranges::input_range<Input> &&
@@ -313,9 +334,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
 
             // For multiple statements, convert each statement and add them to the body of a Begin node
-            parser::NodeVec sorbetStmts;
-            sorbetStmts.reserve(stmts.size());
-            mapInto(sorbetStmts, stmts, [this](auto &node) { return translate(node); });
+            parser::NodeVec sorbetStmts = mapIntoNodeVec(stmts, [this](auto &node) { return translate(node); });
 
             auto *loc = &stmts_node->base.location;
 
@@ -506,9 +525,7 @@ std::unique_ptr<parser::Hash> Translator::translateHash(pm_node_t *node, pm_node
 
     auto prismElements = absl::MakeSpan(elements.nodes, elements.size);
 
-    parser::NodeVec sorbetElements{};
-    sorbetElements.reserve(prismElements.size());
-    mapInto(sorbetElements, prismElements, [this](auto &prismElement) { return translate(prismElement); });
+    parser::NodeVec sorbetElements = mapIntoNodeVec(prismElements, [this](auto &node) { return translate(node); });
 
     return make_unique<parser::Hash>(parser.translateLocation(loc), isUsedForKeywordArguments,
                                      std::move(sorbetElements));
