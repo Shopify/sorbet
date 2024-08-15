@@ -7,6 +7,8 @@ using std::unique_ptr;
 
 namespace sorbet::parser::Prism {
 
+namespace {
+
 // Indicates that a particular code path should never be reached, with an explanation of why.
 // Throws a `sorbet::SorbetException` in debug mode, and is undefined behaviour otherwise.
 template <typename... TArgs>
@@ -20,6 +22,16 @@ template <typename... TArgs>
         ABSL_UNREACHABLE();
     }
 }
+
+// Map `func` over the  elements of `input`, pushing the results into the given result container.
+template <typename ResultContainer, typename Input, typename F>
+// requires std::ranges::input_range<Input> &&
+//   std::invocable<F &, std::ranges::range_value_t<Input>>
+void mapInto(ResultContainer &result, Input &input, F func) {
+    std::transform(input.begin(), input.end(), std::back_inserter(result), func);
+}
+
+} // namespace
 
 std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
     if (node == nullptr)
@@ -82,10 +94,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             parser::NodeVec args;
             args.reserve(prismArgs.size() + (hasBlockArgument ? 0 : 1));
 
-            for (auto &prismArg : prismArgs) {
-                unique_ptr<parser::Node> sorbetArg = translate(prismArg);
-                args.emplace_back(std::move(sorbetArg));
-            }
+            mapInto(args, prismArgs, [this](auto &node) { return translate(node); });
 
             if (hasBlockArgument) {
                 auto blockPassNode = translate(prismBlock);
@@ -234,35 +243,20 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             params.reserve(requireds.size() + optionals.size() + restSize + keywords.size() + kwrestSize + blockSize);
 
-            for (auto &param : requireds) {
-                unique_ptr<parser::Node> sorbetParam = translate(param);
-                params.emplace_back(std::move(sorbetParam));
-            }
-
-            for (auto &param : optionals) {
-                unique_ptr<parser::Node> sorbetParam = translate(param);
-                params.emplace_back(std::move(sorbetParam));
-            }
+            mapInto(params, requireds, [this](pm_node_t *node) { return translate(node); });
+            mapInto(params, optionals, [this](pm_node_t *node) { return translate(node); });
 
             if (paramsNode->rest != nullptr) {
-                unique_ptr<parser::Node> rest = translate(paramsNode->rest);
-                params.emplace_back(std::move(rest));
+                params.emplace_back(translate(paramsNode->rest));
             }
 
-            for (auto &param : keywords) {
-                unique_ptr<parser::Node> sorbetParam = translate(param);
-                params.emplace_back(std::move(sorbetParam));
-            }
+            mapInto(params, keywords, [this](pm_node_t *keywordParam) { return translate(keywordParam); });
 
-            if (paramsNode->keyword_rest != nullptr) {
-                unique_ptr<parser::Node> keywordRest = translate(paramsNode->keyword_rest);
-                params.emplace_back(std::move(keywordRest));
-            }
+            if (paramsNode->keyword_rest != nullptr)
+                params.emplace_back(translate(paramsNode->keyword_rest));
 
-            if (paramsNode->block != nullptr) {
-                unique_ptr<parser::Node> block = translate(reinterpret_cast<pm_node *>(paramsNode->block));
-                params.emplace_back(std::move(block));
-            }
+            if (paramsNode->block != nullptr)
+                params.emplace_back(translate(reinterpret_cast<pm_node *>(paramsNode->block)));
 
             return make_unique<parser::Args>(parser.translateLocation(loc), std::move(params));
         }
@@ -321,11 +315,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             // For multiple statements, convert each statement and add them to the body of a Begin node
             parser::NodeVec sorbetStmts;
             sorbetStmts.reserve(stmts.size());
-
-            for (auto &node : stmts) {
-                unique_ptr<parser::Node> convertedStmt = translate(node);
-                sorbetStmts.emplace_back(std::move(convertedStmt));
-            }
+            mapInto(sorbetStmts, stmts, [this](auto &node) { return translate(node); });
 
             auto *loc = &stmts_node->base.location;
 
@@ -518,11 +508,7 @@ std::unique_ptr<parser::Hash> Translator::translateHash(pm_node_t *node, pm_node
 
     parser::NodeVec sorbetElements{};
     sorbetElements.reserve(prismElements.size());
-
-    for (auto &pair : prismElements) {
-        unique_ptr<parser::Node> sorbetKVPair = translate(pair);
-        sorbetElements.emplace_back(std::move(sorbetKVPair));
-    }
+    mapInto(sorbetElements, prismElements, [this](auto &prismElement) { return translate(prismElement); });
 
     return make_unique<parser::Hash>(parser.translateLocation(loc), isUsedForKeywordArguments,
                                      std::move(sorbetElements));
