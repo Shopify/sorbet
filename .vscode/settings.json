@@ -31,5 +31,10 @@
   },
   "files.exclude": {
     "bazel-*": true
-  }
+  },
+  "bazel.commandLine.commandArgs": [
+    "--define",
+    "RUBY_PATH='/opt/rubies/3.3.4/'",
+  ],
+  "bazel.executable": "${workspaceFolder}/bazel",
 }
