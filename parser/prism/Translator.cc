@@ -26,6 +26,15 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         return nullptr;
 
     switch (PM_NODE_TYPE(node)) {
+        case PM_AND_NODE: { // operator `&&` and `and`
+            auto andNode = reinterpret_cast<pm_and_node *>(node);
+            auto *loc = &andNode->base.location;
+
+            auto left = translate(andNode->left);
+            auto right = translate(andNode->right);
+
+            return make_unique<parser::And>(parser.translateLocation(loc), std::move(left), std::move(right));
+        }
         case PM_ARGUMENTS_NODE: { // The arguments to a method call, e.g the `1, 2, 3` in `f(1, 2, 3)`
             unreachable("PM_ARGUMENTS_NODE has special handling in the PM_CALL_NODE case.");
         }
@@ -218,6 +227,15 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Optarg>(parser.translateLocation(loc), gs.enterNameUTF8(name),
                                                parser.translateLocation(nameLoc), std::move(value));
         }
+        case PM_OR_NODE: { // operator `||` and `or`
+            auto orNode = reinterpret_cast<pm_or_node *>(node);
+            auto *loc = &orNode->base.location;
+
+            auto left = translate(orNode->left);
+            auto right = translate(orNode->right);
+
+            return make_unique<parser::Or>(parser.translateLocation(loc), std::move(left), std::move(right));
+        }
         case PM_PARAMETERS_NODE: { // The parameters declared at the top of a PM_DEF_NODE
             auto paramsNode = reinterpret_cast<pm_parameters_node *>(node);
             pm_location_t *loc = &paramsNode->base.location;
@@ -364,7 +382,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_ALIAS_GLOBAL_VARIABLE_NODE:
         case PM_ALIAS_METHOD_NODE:
         case PM_ALTERNATION_PATTERN_NODE:
-        case PM_AND_NODE:
         case PM_ARRAY_NODE:
         case PM_ARRAY_PATTERN_NODE:
         case PM_ASSOC_SPLAT_NODE:
@@ -453,7 +470,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_NO_KEYWORDS_PARAMETER_NODE:
         case PM_NUMBERED_PARAMETERS_NODE:
         case PM_NUMBERED_REFERENCE_READ_NODE:
-        case PM_OR_NODE:
         case PM_PARENTHESES_NODE:
         case PM_PINNED_EXPRESSION_NODE:
         case PM_PINNED_VARIABLE_NODE:
