@@ -369,10 +369,34 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Args>(parser.translateLocation(loc), std::move(params));
         }
+        case PM_PARENTHESES_NODE: { // A parethesized expression, e.g. `(a)`
+            auto parensNode = reinterpret_cast<pm_parentheses_node *>(node);
+
+            if (auto stmtsNode = parensNode->body; stmtsNode != nullptr) {
+                auto inlineIfSingle = false;
+                return translateStatements(reinterpret_cast<pm_statements_node *>(stmtsNode), inlineIfSingle);
+            } else {
+                return make_unique<parser::Begin>(parser.translateLocation(&parensNode->base.location), NodeVec{});
+            }
+        }
         case PM_PROGRAM_NODE: {
             pm_program_node *programNode = reinterpret_cast<pm_program_node *>(node);
 
             return translate(reinterpret_cast<pm_node *>(programNode->statements));
+        }
+        case PM_RANGE_NODE: { // A Range literal, e.g. `a..b`, `a..`, `..b`, `a...b`, `a...`, `...b`
+            auto rangeNode = reinterpret_cast<pm_range_node *>(node);
+            pm_location_t *loc = &rangeNode->base.location;
+
+            auto flags = static_cast<pm_range_flags>(rangeNode->base.flags);
+            auto left = translate(rangeNode->left);
+            auto right = translate(rangeNode->right);
+
+            if (flags & PM_RANGE_FLAGS_EXCLUDE_END) { // `...`
+                return make_unique<parser::ERange>(parser.translateLocation(loc), std::move(left), std::move(right));
+            } else { // `..`
+                return make_unique<parser::IRange>(parser.translateLocation(loc), std::move(left), std::move(right));
+            }
         }
         case PM_RATIONAL_NODE: {
             auto *rationalNode = reinterpret_cast<pm_rational_node *>(node);
@@ -594,12 +618,10 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_NO_KEYWORDS_PARAMETER_NODE:
         case PM_NUMBERED_PARAMETERS_NODE:
         case PM_NUMBERED_REFERENCE_READ_NODE:
-        case PM_PARENTHESES_NODE:
         case PM_PINNED_EXPRESSION_NODE:
         case PM_PINNED_VARIABLE_NODE:
         case PM_POST_EXECUTION_NODE:
         case PM_PRE_EXECUTION_NODE:
-        case PM_RANGE_NODE:
         case PM_REDO_NODE:
         case PM_REGULAR_EXPRESSION_NODE:
         case PM_RESCUE_MODIFIER_NODE:
