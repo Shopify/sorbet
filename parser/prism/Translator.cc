@@ -35,8 +35,11 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::And>(parser.translateLocation(loc), std::move(left), std::move(right));
         }
-        case PM_ARGUMENTS_NODE: { // The arguments to a method call, e.g the `1, 2, 3` in `f(1, 2, 3)`
-            unreachable("PM_ARGUMENTS_NODE has special handling in the PM_CALL_NODE case.");
+        case PM_ARGUMENTS_NODE: { // A list of arguments in one of several places:
+            // 1. The arguments to a method call, e.g the `1, 2, 3` in `f(1, 2, 3)`.
+            // 2. The value(s) returned from a return statement, e.g. the `1, 2, 3` in `return 1, 2, 3`.
+            // 3. The arguments to a `yield` call, e.g. the `1, 2, 3` in `yield 1, 2, 3`.
+            unreachable("PM_ARGUMENTS_NODE is handled separately in `Translator::translateArguments()`.");
         }
         case PM_ASSOC_NODE: {
             auto assocNode = reinterpret_cast<pm_assoc_node *>(node);
@@ -78,23 +81,12 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = parser.resolveConstant(callNode->name);
             auto receiver = translate(callNode->receiver);
 
-            absl::Span<pm_node_t *> prismArgs;
-            if (auto argsNode = callNode->arguments; argsNode != nullptr) {
-                prismArgs = absl::MakeSpan(argsNode->arguments.nodes, argsNode->arguments.size);
-            }
-
             pm_node_t *prismBlock = callNode->block;
             // PM_BLOCK_ARGUMENT_NODE models the `&b` in `a.map(&b)`,
             // but not an explicit block with `{ ... }` or `do ... end`
             auto hasBlockArgument = prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE);
 
-            parser::NodeVec args;
-            args.reserve(prismArgs.size() + (hasBlockArgument ? 0 : 1));
-
-            for (auto &prismArg : prismArgs) {
-                unique_ptr<parser::Node> sorbetArg = translate(prismArg);
-                args.emplace_back(std::move(sorbetArg));
-            }
+            parser::NodeVec args = translateArguments(callNode->arguments, (hasBlockArgument ? 0 : 1));
 
             if (hasBlockArgument) {
                 auto blockPassNode = translate(prismBlock);
@@ -326,6 +318,14 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Restarg>(parser.translateLocation(loc), gs.enterNameUTF8(name),
                                                 parser.translateLocation(nameLoc));
         }
+        case PM_RETURN_NODE: {
+            auto returnNode = reinterpret_cast<pm_return_node *>(node);
+            pm_location_t *loc = &returnNode->base.location;
+
+            auto returnValues = translateArguments(returnNode->arguments);
+
+            return make_unique<parser::Return>(parser.translateLocation(loc), std::move(returnValues));
+        }
         case PM_STATEMENTS_NODE: {
             pm_statements_node *stmts_node = reinterpret_cast<pm_statements_node *>(node);
 
@@ -377,6 +377,14 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t *loc = &trueNode->base.location;
 
             return make_unique<parser::True>(parser.translateLocation(loc));
+        }
+        case PM_YIELD_NODE: {
+            auto yieldNode = reinterpret_cast<pm_yield_node *>(node);
+            pm_location_t *loc = &yieldNode->base.location;
+
+            auto yieldArgs = translateArguments(yieldNode->arguments);
+
+            return make_unique<parser::Yield>(parser.translateLocation(loc), std::move(yieldArgs));
         }
 
         case PM_ALIAS_GLOBAL_VARIABLE_NODE:
@@ -481,7 +489,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_RESCUE_MODIFIER_NODE:
         case PM_RESCUE_NODE:
         case PM_RETRY_NODE:
-        case PM_RETURN_NODE:
         case PM_SELF_NODE:
         case PM_SHAREABLE_CONSTANT_NODE:
         case PM_SINGLETON_CLASS_NODE:
@@ -496,7 +503,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_WHEN_NODE:
         case PM_WHILE_NODE:
         case PM_X_STRING_NODE:
-        case PM_YIELD_NODE:
         case PM_SCOPE_NODE:
             auto type_id = PM_NODE_TYPE(node);
             auto type_name = pm_node_type_to_str(type_id);
@@ -513,6 +519,27 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
 std::unique_ptr<parser::Node> Translator::translate(const Node &node) {
     return translate(node.get_raw_node_pointer());
+}
+
+// The legacy Sorbet parser doesn't have a counterpart to PM_ARGUMENTS_NODE to wrap the array
+// of argument nodes. It just uses a NodeVec directly, which is what this function produces.
+NodeVec Translator::translateArguments(pm_arguments_node *argsNode, size_t extraCapacity) {
+    NodeVec results;
+
+    if (argsNode == nullptr) {
+        results.reserve(extraCapacity);
+        return results;
+    }
+
+    auto prismArgs = absl::MakeSpan(argsNode->arguments.nodes, argsNode->arguments.size);
+    results.reserve(prismArgs.size() + extraCapacity);
+
+    for (auto &prismArg : prismArgs) {
+        unique_ptr<parser::Node> sorbetArg = translate(prismArg);
+        results.emplace_back(std::move(sorbetArg));
+    }
+
+    return results;
 }
 
 // Translates the given Prism elements into a `parser::Hash`.
