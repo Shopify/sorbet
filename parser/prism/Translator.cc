@@ -193,6 +193,12 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Float>(parser.translateLocation(loc), std::to_string(floatNode->value));
         }
+        case PM_FORWARDING_SUPER_NODE: { // `super` with no `(...)`
+            auto forwardingSuperNode = reinterpret_cast<pm_forwarding_super_node *>(node);
+            pm_location_t *loc = &forwardingSuperNode->base.location;
+
+            return make_unique<parser::ZSuper>(parser.translateLocation(loc));
+        }
         case PM_HASH_NODE: {
             auto usedForKeywordArgs = false;
             return translateHash(node, reinterpret_cast<pm_hash_node *>(node)->elements, usedForKeywordArgs);
@@ -413,6 +419,14 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             // TODO: handle different string encodings
             return make_unique<parser::String>(parser.translateLocation(loc), gs.enterNameUTF8(source));
         }
+        case PM_SUPER_NODE: {
+            auto superNode = reinterpret_cast<pm_super_node *>(node);
+            pm_location_t *loc = &superNode->base.location;
+
+            auto returnValues = translateArguments(superNode->arguments);
+
+            return make_unique<parser::Super>(parser.translateLocation(loc), std::move(returnValues));
+        }
         case PM_SYMBOL_NODE: {
             auto symNode = reinterpret_cast<pm_string_node *>(node);
             pm_location_t *loc = &symNode->base.location;
@@ -481,7 +495,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_FOR_NODE:
         case PM_FORWARDING_ARGUMENTS_NODE:
         case PM_FORWARDING_PARAMETER_NODE:
-        case PM_FORWARDING_SUPER_NODE:
         case PM_GLOBAL_VARIABLE_AND_WRITE_NODE:
         case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE:
         case PM_GLOBAL_VARIABLE_OR_WRITE_NODE:
@@ -543,7 +556,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_SOURCE_FILE_NODE:
         case PM_SOURCE_LINE_NODE:
         case PM_SPLAT_NODE:
-        case PM_SUPER_NODE:
         case PM_UNDEF_NODE:
         case PM_UNLESS_NODE:
         case PM_UNTIL_NODE:
