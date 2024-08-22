@@ -130,14 +130,12 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t *declLoc = &classNode->class_keyword_loc;
 
             auto name = translate(reinterpret_cast<pm_node *>(classNode->constant_path));
-            std::unique_ptr<parser::Node> superclass;
+            auto superclass = translate(classNode->superclass);
 
-            if (classNode->superclass != nullptr) {
-                superclass = translate(reinterpret_cast<pm_node *>(classNode->superclass));
-            }
+            auto body = translate(classNode->body);
 
             return make_unique<parser::Class>(parser.translateLocation(loc), parser.translateLocation(declLoc),
-                                              std::move(name), std::move(superclass), nullptr);
+                                              std::move(name), std::move(superclass), std::move(body));
         }
         case PM_CONSTANT_PATH_NODE: {
             // Part of a constant path, like the `A` in `A::B`. `B` is a `PM_CONSTANT_READ_NODE`
@@ -150,7 +148,7 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             if (constantPathNode->parent) {
                 // This constant reference is chained onto another constant reference.
                 // E.g. if `node` is pointing to `B`, then then `A` is the `parent` in `A::B::C`.
-                parent = translate(reinterpret_cast<pm_node *>(constantPathNode->parent));
+                parent = translate(constantPathNode->parent);
             } else { // This is a fully qualified constant reference, like `::A`.
                 pm_location_t *delimiterLoc = &constantPathNode->delimiter_loc; // The location of the `::`
                 parent = make_unique<parser::Cbase>(parser.translateLocation(delimiterLoc));
@@ -283,6 +281,17 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             std::string_view name = parser.resolveConstant(keywordRestParamNode->name);
 
             return make_unique<parser::Kwrestarg>(parser.translateLocation(loc), gs.enterNameUTF8(name));
+        }
+        case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
+            auto moduleNode = reinterpret_cast<pm_module_node *>(node);
+            pm_location_t *loc = &moduleNode->base.location;
+            pm_location_t *declLoc = &moduleNode->module_keyword_loc;
+
+            auto name = translate(moduleNode->constant_path);
+            auto body = translate(moduleNode->body);
+
+            return make_unique<parser::Module>(parser.translateLocation(loc), parser.translateLocation(declLoc),
+                                               std::move(name), std::move(body));
         }
         case PM_NIL_NODE: {
             auto nilNode = reinterpret_cast<pm_nil_node *>(node);
@@ -619,7 +628,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_MATCH_REQUIRED_NODE:
         case PM_MATCH_WRITE_NODE:
         case PM_MISSING_NODE:
-        case PM_MODULE_NODE:
         case PM_MULTI_TARGET_NODE:
         case PM_MULTI_WRITE_NODE:
         case PM_NEXT_NODE:
