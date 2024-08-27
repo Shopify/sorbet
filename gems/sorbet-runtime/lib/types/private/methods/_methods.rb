@@ -2,6 +2,7 @@
 # typed: false
 
 module T::Private::Methods
+  @ran_all_sig_blocks = false
   @installed_hooks = {}
   if defined?(Concurrent::Hash)
     @signatures_by_method = Concurrent::Hash.new
@@ -216,6 +217,12 @@ module T::Private::Methods
   def self._on_method_added(hook_mod, mod, method_name)
     if T::Private::DeclState.current.skip_on_method_added
       return
+    end
+
+    if @ran_all_sig_blocks
+      $stderr.puts("method added after run_all_sig_blocks:")
+      $stderr.puts(caller(1, 10))
+      $stderr.puts("-" * 40)
     end
 
     current_declaration = T::Private::DeclState.current.active_declaration
@@ -463,11 +470,13 @@ module T::Private::Methods
   end
 
   def self.run_all_sig_blocks(force_type_init: true)
+    $stderr.puts("run_all_sig_blocks: #{@sig_wrappers.size}")
     loop do
       break if @sig_wrappers.empty?
       key, = @sig_wrappers.first
       run_sig_block_for_key(key, force_type_init: force_type_init)
     end
+    @ran_all_sig_blocks = true
   end
 
   def self.all_checked_tests_sigs
