@@ -1,0 +1,74 @@
+Begin {
+  stmts = [
+    OpAsgn {
+      left = LVarLhs {
+        name = <U a>
+      }
+      op = <U +>
+      right = Integer {
+        val = "1"
+      }
+    }
+    OpAsgn {
+      left = LVarLhs {
+        name = <U b>
+      }
+      op = <U ->
+      right = Integer {
+        val = "2"
+      }
+    }
+    OrAsgn {
+      left = LVarLhs {
+        name = <U c>
+      }
+      right = Integer {
+        val = "3"
+      }
+    }
+    AndAsgn {
+      left = LVarLhs {
+        name = <U d>
+      }
+      right = Integer {
+        val = "4"
+      }
+    }
+    OpAsgn {
+      left = LVarLhs {
+        name = <U e>
+      }
+      op = <U **>
+      right = Integer {
+        val = "5"
+      }
+    }
+    OpAsgn {
+      left = LVarLhs {
+        name = <U f>
+      }
+      op = <U %>
+      right = Integer {
+        val = "6"
+      }
+    }
+    OpAsgn {
+      left = LVarLhs {
+        name = <U g>
+      }
+      op = <U &>
+      right = Integer {
+        val = "7"
+      }
+    }
+    OpAsgn {
+      left = LVarLhs {
+        name = <U h>
+      }
+      op = <U |>
+      right = Integer {
+        val = "8"
+      }
+    }
+  ]
+}

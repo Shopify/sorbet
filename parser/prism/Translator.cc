@@ -296,6 +296,20 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Kwrestarg>(parser.translateLocation(loc), gs.enterNameUTF8(name));
         }
+        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            auto localVarOpWriteNode = reinterpret_cast<pm_local_variable_operator_write_node *>(node);
+            auto *loc = &localVarOpWriteNode->base.location;
+            auto *nameLoc = &localVarOpWriteNode->name_loc;
+            auto *opLoc = &localVarOpWriteNode->binary_operator_loc;
+
+            auto name = parser.resolveConstant(localVarOpWriteNode->name);
+            auto lhs = make_unique<parser::LVarLhs>(parser.translateLocation(nameLoc), gs.enterNameUTF8(name));
+            auto rhs = translate(localVarOpWriteNode->value);
+            auto op = parser.resolveConstant(localVarOpWriteNode->binary_operator);
+
+            return make_unique<parser::OpAsgn>(parser.translateLocation(loc), std::move(lhs), gs.enterNameUTF8(op),
+                                               parser.translateLocation(opLoc), std::move(rhs));
+        }
         case PM_LOCAL_VARIABLE_READ_NODE: {
             auto localVarReadNode = reinterpret_cast<pm_local_variable_read_node *>(node);
             pm_location_t *loc = &localVarReadNode->base.location;
@@ -742,7 +756,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_IT_PARAMETERS_NODE:
         case PM_LAMBDA_NODE:
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE:
-        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE:
         case PM_LOCAL_VARIABLE_OR_WRITE_NODE:
         case PM_MATCH_LAST_LINE_NODE:
         case PM_MATCH_PREDICATE_NODE:
