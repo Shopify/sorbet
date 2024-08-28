@@ -1,6 +1,7 @@
 #ifndef SORBET_REWRITER_RBS_ANNOTATIONS_H
 #define SORBET_REWRITER_RBS_ANNOTATIONS_H
 #include "ast/ast.h"
+#include "rbs_parser/parser.h"
 
 namespace sorbet::rewriter {
 
