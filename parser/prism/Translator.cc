@@ -21,6 +21,32 @@ template <typename... TArgs>
     }
 }
 
+template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
+std::unique_ptr<SorbetAssignmentNode> Translator::translateAssignment(pm_node_t *untypedNode) {
+    static_assert(
+        std::is_same_v<SorbetAssignmentNode, parser::OpAsgn> || std::is_same_v<SorbetAssignmentNode, parser::AndAsgn> ||
+            std::is_same_v<SorbetAssignmentNode, parser::OrAsgn>,
+        "Invalid operator node type. Must be one of `parser::OpAssign`, `parser::AndAsgn` or `parser::OrAsgn`.");
+
+    auto node = reinterpret_cast<PrismAssignmentNode *>(untypedNode);
+    auto *loc = &node->base.location;
+    auto *nameLoc = &node->name_loc;
+
+    auto name = parser.resolveConstant(node->name);
+    auto lhs = make_unique<parser::LVarLhs>(parser.translateLocation(nameLoc), gs.enterNameUTF8(name));
+    auto rhs = translate(node->value);
+
+    if constexpr (std::is_same_v<SorbetAssignmentNode, parser::OpAsgn>) {
+        auto *opLoc = &node->binary_operator_loc;
+        auto op = parser.resolveConstant(node->binary_operator);
+
+        return make_unique<parser::OpAsgn>(parser.translateLocation(loc), std::move(lhs), gs.enterNameUTF8(op),
+                                           parser.translateLocation(opLoc), std::move(rhs));
+    } else {
+        return make_unique<SorbetAssignmentNode>(parser.translateLocation(loc), std::move(lhs), std::move(rhs));
+    }
+}
+
 std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
@@ -297,40 +323,13 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Kwrestarg>(parser.translateLocation(loc), gs.enterNameUTF8(name));
         }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: {
-            auto localVarAndWriteNode = reinterpret_cast<pm_local_variable_and_write_node *>(node);
-            auto *loc = &localVarAndWriteNode->base.location;
-            auto *nameLoc = &localVarAndWriteNode->name_loc;
-
-            auto name = parser.resolveConstant(localVarAndWriteNode->name);
-            auto lhs = make_unique<parser::LVarLhs>(parser.translateLocation(nameLoc), gs.enterNameUTF8(name));
-            auto rhs = translate(localVarAndWriteNode->value);
-
-            return make_unique<parser::AndAsgn>(parser.translateLocation(loc), std::move(lhs), std::move(rhs));
+            return translateAssignment<pm_local_variable_and_write_node, parser::AndAsgn>(node);
         }
         case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
-            auto localVarOpWriteNode = reinterpret_cast<pm_local_variable_operator_write_node *>(node);
-            auto *loc = &localVarOpWriteNode->base.location;
-            auto *nameLoc = &localVarOpWriteNode->name_loc;
-            auto *opLoc = &localVarOpWriteNode->binary_operator_loc;
-
-            auto name = parser.resolveConstant(localVarOpWriteNode->name);
-            auto lhs = make_unique<parser::LVarLhs>(parser.translateLocation(nameLoc), gs.enterNameUTF8(name));
-            auto rhs = translate(localVarOpWriteNode->value);
-            auto op = parser.resolveConstant(localVarOpWriteNode->binary_operator);
-
-            return make_unique<parser::OpAsgn>(parser.translateLocation(loc), std::move(lhs), gs.enterNameUTF8(op),
-                                               parser.translateLocation(opLoc), std::move(rhs));
+            return translateAssignment<pm_local_variable_operator_write_node, parser::OpAsgn>(node);
         }
         case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
-            auto localVarOrWriteNode = reinterpret_cast<pm_local_variable_or_write_node *>(node);
-            auto *loc = &localVarOrWriteNode->base.location;
-            auto *nameLoc = &localVarOrWriteNode->name_loc;
-
-            auto name = parser.resolveConstant(localVarOrWriteNode->name);
-            auto lhs = make_unique<parser::LVarLhs>(parser.translateLocation(nameLoc), gs.enterNameUTF8(name));
-            auto rhs = translate(localVarOrWriteNode->value);
-
-            return make_unique<parser::OrAsgn>(parser.translateLocation(loc), std::move(lhs), std::move(rhs));
+            return translateAssignment<pm_local_variable_or_write_node, parser::OrAsgn>(node);
         }
         case PM_LOCAL_VARIABLE_READ_NODE: {
             auto localVarReadNode = reinterpret_cast<pm_local_variable_read_node *>(node);
@@ -910,5 +909,4 @@ std::unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node
 
     return make_unique<parser::Begin>(parser.translateLocation(&stmtsNode->base.location), std::move(sorbetStmts));
 }
-
 }; // namespace sorbet::parser::Prism
