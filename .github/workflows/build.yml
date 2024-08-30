@@ -1,0 +1,40 @@
+name: Build Sorbet ARM64
+
+on:
+  push:
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: macos-latest-xlarge
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install packages
+        run: brew install autoconf coreutils parallel
+
+      - name: Build x86_64
+        run: |
+          TARGET_PLATFORM=darwin-x86_64 ./bazel build //main:sorbet --strip=always --config=release-mac
+          mv bazel-bin/main/sorbet sorbet_x86_64
+
+      - name: Build arm64
+        run: |
+          ./bazel clean --expunge
+          TARGET_PLATFORM=darwin-arm64 ./bazel build //main:sorbet --strip=always --config=release-mac-arm64
+          mv bazel-bin/main/sorbet sorbet_arm64
+
+      - name: Merge binaries
+        run: |
+          lipo -create -output sorbet sorbet_x86_64 sorbet_arm64
+          rm sorbet_x86_64 sorbet_arm64
+
+      - name: Run
+        run: |
+          file ./sorbet
+          ./sorbet -e "42 + 'hello'"
+
+      # TODO: package the gem
+      # TODO: upload to internal package manager
