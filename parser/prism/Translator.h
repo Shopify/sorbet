@@ -41,7 +41,7 @@ private:
     std::unique_ptr<parser::Node> translateCallWithBlock(pm_block_node *prismBlockNode,
                                                          std::unique_ptr<parser::Send> sendNode);
     std::unique_ptr<parser::Node> translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle);
-    template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
+    template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
     std::unique_ptr<SorbetAssignmentNode> translateAssignment(pm_node_t *node);
 };
 

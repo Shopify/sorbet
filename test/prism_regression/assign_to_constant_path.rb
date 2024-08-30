@@ -1,20 +1,20 @@
 # typed: false
 
 # Regular assignment
-regular = 1
+Foo::REGULAR = 1
 
 # Compound assignment operators
-bitwise_and &= 2
-bitwise_xor ^= 4
-shift_right >>= 5
-shift_left <<= 6
-subtract_assign -= 7
-module_assign %= 8
-bitwise_or |= 9
-divide_assign /= 10
-multiply_assign *= 11
-exponentiate_assign **= 12
+Foo::BITWISE_AND &= 2
+Foo::BITWISE_XOR ^= 4
+Foo::SHIFT_RIGHT >>= 5
+Foo::SHIFT_LEFT <<= 6
+Foo::SUBTRACT_ASSIGN -= 7
+Foo::MODULE_ASSIGN %= 8
+Foo::BITWISE_OR |= 9
+Foo::DIVIDE_ASSIGN /= 10
+Foo::MULTIPLY_ASSIGN *= 11
+Foo::EXPONENTIATE_ASSIGN **= 12
 
 # Special cases
-lazy_and_assign &&= 13
-lazy_or_assgin ||= 14
+Foo::LAZY_AND_ASSIGN &&= 13
+Foo::LAZY_OR_ASSGIN ||= 14

@@ -1,0 +1,168 @@
+Begin {
+  stmts = [
+    Send {
+      receiver = Self {
+      }
+      method = <U regular=>
+      args = [
+        Integer {
+          val = "1"
+        }
+      ]
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U bitwise_and>
+        args = [
+        ]
+      }
+      op = <U &>
+      right = Integer {
+        val = "2"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U bitwise_xor>
+        args = [
+        ]
+      }
+      op = <U ^>
+      right = Integer {
+        val = "4"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U shift_right>
+        args = [
+        ]
+      }
+      op = <U >>>
+      right = Integer {
+        val = "5"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U shift_left>
+        args = [
+        ]
+      }
+      op = <U <<>
+      right = Integer {
+        val = "6"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U subtract_assign>
+        args = [
+        ]
+      }
+      op = <U ->
+      right = Integer {
+        val = "7"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U module_assign>
+        args = [
+        ]
+      }
+      op = <U %>
+      right = Integer {
+        val = "8"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U bitwise_or>
+        args = [
+        ]
+      }
+      op = <U |>
+      right = Integer {
+        val = "9"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U divide_assign>
+        args = [
+        ]
+      }
+      op = <U />
+      right = Integer {
+        val = "10"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U multiply_assign>
+        args = [
+        ]
+      }
+      op = <U *>
+      right = Integer {
+        val = "11"
+      }
+    }
+    OpAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U exponentiate_assign>
+        args = [
+        ]
+      }
+      op = <U **>
+      right = Integer {
+        val = "12"
+      }
+    }
+    AndAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U lazy_and_assign>
+        args = [
+        ]
+      }
+      right = Integer {
+        val = "13"
+      }
+    }
+    OrAsgn {
+      left = Send {
+        receiver = Self {
+        }
+        method = <U lazy_or_assgin>
+        args = [
+        ]
+      }
+      right = Integer {
+        val = "14"
+      }
+    }
+  ]
+}
