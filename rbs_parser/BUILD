@@ -8,6 +8,10 @@ cc_library(
         "-Wno-error=missing-field-initializers",
         "-Wno-error=implicit-fallthrough",
     ],
+    linkopts = [
+        "-L/opt/rubies/3.3.3/lib/",
+        "/opt/rubies/3.3.3/lib/libruby.3.3.dylib",
+    ],
     deps = [
         "@ruby-headers//:headers",
         "@ruby-headers2//:headers",
