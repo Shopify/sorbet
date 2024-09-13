@@ -20,6 +20,6 @@ cc_library(
         "//ast/verifier",
         "//common",
         "//core",
-        "//rbs_parser",
+        "//rbs",
     ],
 )

@@ -9,7 +9,7 @@ namespace sorbet::rewriter {
  */
 class RBSAnnotations final {
 public:
-    static ast::ExpressionPtr run(core::Context ctx, ast::ExpressionPtr tree);
+    static ast::ExpressionPtr run(core::MutableContext ctx, ast::ExpressionPtr tree);
 
     RBSAnnotations() = delete;
 };

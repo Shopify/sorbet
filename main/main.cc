@@ -10,16 +10,12 @@
 int main(int argc, char *argv[]) {
     ruby_init();
     ruby_init_loadpath();
-    std::cout << "before rb_require" << std::endl;
-    fflush(stdout);
 
     VALUE rb_load_path = rb_gv_get("$:");
     VALUE new_path = rb_str_new_cstr("/Users/at/src/github.com/ruby/rbs/lib");
     rb_funcall(rb_load_path, rb_intern("unshift"), 1, new_path);
 
     rb_require("rbs.rb");
-    std::cout << "after rb_require" << std::endl;
-    fflush(stdout);
 
     rbs__init_constants();
     // rbs__init_location();

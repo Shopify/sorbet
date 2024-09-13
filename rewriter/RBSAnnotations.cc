@@ -8,8 +8,10 @@
 #include "ast/ast.h"
 #include "ast/treemap/treemap.h"
 #include "rewriter/rewriter.h"
+
 #include "rbs_parser/parser.h"
 #include "rbs_parser/parserstate.h"
+#include "rbs/MethodTypeVisitor.h"
 
 using namespace std;
 
@@ -127,9 +129,9 @@ optional<string> findDocumentation(string_view sourceCode, int beginIndex) {
 }
 
 public:
-    RBSWalk(core::Context ctx) {}
+    RBSWalk(core::MutableContext ctx) {}
 
-    void preTransformClassDef(core::Context ctx, ast::ExpressionPtr &tree) {
+    void preTransformClassDef(core::MutableContext ctx, ast::ExpressionPtr &tree) {
         auto *classDef = ast::cast_tree<ast::ClassDef>(tree);
         if (!classDef) {
             return;
@@ -165,7 +167,7 @@ public:
             optional<string> docString;
             if (!documentation.empty()) {
                 docString = absl::StrJoin(documentation, "\n\n");
-                std::cout << "Documentation: " << *docString << std::endl;
+                // std::cout << "Documentation: '" << *docString << "'" << std::endl;
             }
 
             // TODO: Translate to rbs
@@ -173,21 +175,23 @@ public:
             // Create Ruby string
             VALUE string = rb_str_new2(docString->c_str());
             // StringValue(string);
-            std::cout << "String: " << RSTRING_PTR(string) << std::endl;
+            // std::cout << "String: " << RSTRING_PTR(string) << std::endl;
 
             // Create Ruby IO::Buffer from docString
             VALUE cIO = rb_const_get(rb_cObject, rb_intern("IO"));
             VALUE cBuffer = rb_const_get(cIO, rb_intern("Buffer"));
             VALUE buffer = rb_funcall(cBuffer, rb_intern("for"), 1, string);
 
-            VALUE rb_io_buffer_inspect = rb_funcall(buffer, rb_intern("get_string"), 0);
-            std::cout << "IO::Buffer inspect: " << StringValueCStr(rb_io_buffer_inspect) << std::endl;
+            // VALUE rb_io_buffer_inspect = rb_funcall(buffer, rb_intern("get_string"), 0);
+            // std::cout << "IO::Buffer inspect: " << StringValueCStr(rb_io_buffer_inspect) << std::endl;
 
             lexstate *lexer = alloc_lexer(string, 0, docString->length());
             parserstate *parser = alloc_parser(buffer, lexer, 0, docString->length(), Qnil);
 
-            VALUE result = parse_method_type(parser);
-            rb_p(result);
+            VALUE rbsMethodType = parse_method_type(parser);
+            rbs::MethodTypeVisitor visitor(ctx, methodDef);
+            auto sig = visitor.visitMethodType(rbsMethodType);
+
             // std::cout << "Result: " << RSTRING_PTR(result) << std::endl;
             // free_parser(parser);
 
@@ -198,11 +202,11 @@ public:
 
             // Create RBI sig
 
-            auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
-                                             ast::MK::Symbol(loc, core::Names::blkArg()),
-                                            ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
+            // auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
+            //                                  ast::MK::Symbol(loc, core::Names::blkArg()),
+            //                                 ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
 
-            auto sig = ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc));
+            // auto sig = ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc));
 
             classDef->rhs.emplace_back(std::move(sig));
             classDef->rhs.emplace_back(std::move(stat));
@@ -210,7 +214,7 @@ public:
     }
 };
 
-ast::ExpressionPtr RBSAnnotations::run(core::Context ctx, ast::ExpressionPtr tree) {
+ast::ExpressionPtr RBSAnnotations::run(core::MutableContext ctx, ast::ExpressionPtr tree) {
     RBSWalk rbs_translate(ctx);
     ast::TreeWalk::apply(ctx, rbs_translate, tree);
 

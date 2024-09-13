@@ -1,17 +1,11 @@
 # typed: true
 
-class Foo
-  # Some documentation
-  #: (String) -> Integer
-  def foo(x)
-    x
-  end
+extend T::Sig
+
+#: (Integer) -> String
+def foo(x)
+  (x + 1).to_s
 end
 
-# #: (String) -> String
-# def bar(x)
-#   y = x #: Integer
-#   y
-# end
-
-Foo.new.foo(42)
+x = foo("foo")
+T.reveal_type(x)
