@@ -93,6 +93,10 @@ void parser_insert_typevar(parserstate *state, ID id);
  * */
 bool parser_typevar_member(parserstate *state, ID id);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Allocate new lexstate object.
  *
@@ -113,6 +117,11 @@ lexstate *alloc_lexer(VALUE string, int start_pos, int end_pos);
  * */
 parserstate *alloc_parser(VALUE buffer, lexstate *lexer, int start_pos, int end_pos, VALUE variables);
 void free_parser(parserstate *parser);
+
+#ifdef __cplusplus
+}
+#endif
+
 /**
  * Advance one token.
  * */

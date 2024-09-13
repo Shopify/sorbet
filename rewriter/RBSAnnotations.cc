@@ -8,8 +8,17 @@
 #include "ast/ast.h"
 #include "ast/treemap/treemap.h"
 #include "rewriter/rewriter.h"
+#include "rbs_parser/parser.h"
+#include "rbs_parser/parserstate.h"
 
 using namespace std;
+
+// Add the extern "C" declaration
+// extern "C" {
+//     VALUE parse_method_type(parserstate *state);
+//     parserstate *alloc_parser(VALUE buffer, lexstate *lexer, int start_pos, int end_pos, VALUE variables);
+//     void free_parser(parserstate *parser);
+// }
 
 namespace sorbet::rewriter {
 
@@ -137,7 +146,7 @@ public:
                 continue;
             }
 
-            std::cout << "Method name: " << methodDef->name.show(ctx) << std::endl;
+            // std::cout << "Method name: " << methodDef->name.show(ctx) << std::endl;
 
             // Find method comment
 
@@ -153,15 +162,39 @@ public:
                 continue;
             }
 
-            // TODO: Translate to rbs
-
             optional<string> docString;
             if (!documentation.empty()) {
                 docString = absl::StrJoin(documentation, "\n\n");
                 std::cout << "Documentation: " << *docString << std::endl;
             }
 
+            // TODO: Translate to rbs
 
+            // Create Ruby string
+            VALUE string = rb_str_new2(docString->c_str());
+            // StringValue(string);
+            std::cout << "String: " << RSTRING_PTR(string) << std::endl;
+
+            // Create Ruby IO::Buffer from docString
+            VALUE cIO = rb_const_get(rb_cObject, rb_intern("IO"));
+            VALUE cBuffer = rb_const_get(cIO, rb_intern("Buffer"));
+            VALUE buffer = rb_funcall(cBuffer, rb_intern("for"), 1, string);
+
+            VALUE rb_io_buffer_inspect = rb_funcall(buffer, rb_intern("get_string"), 0);
+            std::cout << "IO::Buffer inspect: " << StringValueCStr(rb_io_buffer_inspect) << std::endl;
+
+            lexstate *lexer = alloc_lexer(string, 0, docString->length());
+            parserstate *parser = alloc_parser(buffer, lexer, 0, docString->length(), Qnil);
+
+            VALUE result = parse_method_type(parser);
+            rb_p(result);
+            // std::cout << "Result: " << RSTRING_PTR(result) << std::endl;
+            // free_parser(parser);
+
+            // parserstate *state = alloc_parser(buffer, nullptr, 0, docString->length(), Qnil);
+            // VALUE result = parse_method_type(state);
+            // std::cout << "Result: " << RSTRING_PTR(result) << std::endl;
+            // free_parser(state);
 
             // Create RBI sig
 

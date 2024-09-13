@@ -4,6 +4,10 @@
 #include "ruby.h"
 #include "lexer.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * RBS::Location class
  * */
@@ -75,5 +79,9 @@ VALUE rbs_location_pp(VALUE buffer, const position *start_pos, const position *e
  * Define RBS::Location class.
  * */
 void rbs__init_location();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

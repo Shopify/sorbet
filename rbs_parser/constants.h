@@ -1,6 +1,12 @@
 #ifndef RBS__CONSTANTS_H
 #define RBS__CONSTANTS_H
 
+#include "ruby.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern VALUE RBS;
 
 extern VALUE RBS_AST;
@@ -75,6 +81,10 @@ extern VALUE RBS_Types_Tuple;
 extern VALUE RBS_Types_Union;
 extern VALUE RBS_Types_Variable;
 
-void rbs__init_constants();
+void rbs__init_constants(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
