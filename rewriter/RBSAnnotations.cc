@@ -219,6 +219,9 @@ ast::ExpressionPtr RBSAnnotations::run(core::MutableContext ctx, ast::Expression
 
 }; // namespace sorbet::rewriter
 
-// Clean how we depend on `rbs_parser`
-// Translate more nodes
-// Add tests
+// TODO:
+// - Translate `rbi` gems signatures to RBS
+// - Pass `tc` on `rbi`
+// - Clean how we depend on `rbs_parser`
+// - Translate more nodes
+// - Add tests
