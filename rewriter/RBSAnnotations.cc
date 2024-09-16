@@ -222,3 +222,7 @@ ast::ExpressionPtr RBSAnnotations::run(core::MutableContext ctx, ast::Expression
 }
 
 }; // namespace sorbet::rewriter
+
+// Clean how we depend on `rbs_parser`
+// Translate more nodes
+// Add tests
