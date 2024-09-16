@@ -114,3 +114,27 @@ BAZEL_INSTALLER_VERSION_LINUX_ARM64_SHA = "5afe973cadc036496cac66f1414ca9be36881
 BAZEL_INSTALLER_VERSION_DARWIN_X86_64_SHA = "455589bbaedf26e7bdb949288f777492ba1c53d67fd8329bfe066fb988df0e5c"
 
 BAZEL_INSTALLER_VERSION_DARWIN_ARM64_SHA = "c2b5f82dcc1561d25bc05c734a7cc7a5ff58d4e69185f3d6d21b51ddb53b488b"
+
+new_local_repository(
+    name = "ruby-headers",
+    path = "/opt/rubies/3.3.3/include/ruby-3.3.0",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+cc_library(
+    name = "headers",
+    hdrs = glob(["**/*.h", "**/*.hpp"])
+)
+"""
+)
+
+new_local_repository(
+    name = "ruby-headers2",
+    path = "/opt/rubies/3.3.3/include/ruby-3.3.0/arm64-darwin23",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+cc_library(
+    name = "headers",
+    hdrs = glob(["**/*.h", "**/*.hpp"])
+)
+"""
+)
