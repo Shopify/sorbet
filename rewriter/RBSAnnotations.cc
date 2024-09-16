@@ -146,8 +146,6 @@ public:
 
             // std::cout << "Method name: " << methodDef->name.show(ctx) << std::endl;
 
-            // Find method comment
-
             vector<string> documentation;
             auto loc = methodDef->loc;
             auto doc = findDocumentation(ctx.file.data(ctx).source(), loc.beginPos());
@@ -166,43 +164,23 @@ public:
                 // std::cout << "Documentation: '" << *docString << "'" << std::endl;
             }
 
-            // TODO: Translate to rbs
-
-            // Create Ruby string
+            std::cout << "before" << std::endl;
             VALUE string = rb_str_new2(docString->c_str());
             // StringValue(string);
-            // std::cout << "String: " << RSTRING_PTR(string) << std::endl;
+            std::cout << "after" << std::endl;
 
-            // Create Ruby IO::Buffer from docString
             VALUE cIO = rb_const_get(rb_cObject, rb_intern("IO"));
             VALUE cBuffer = rb_const_get(cIO, rb_intern("Buffer"));
             VALUE buffer = rb_funcall(cBuffer, rb_intern("for"), 1, string);
-
-            // VALUE rb_io_buffer_inspect = rb_funcall(buffer, rb_intern("get_string"), 0);
-            // std::cout << "IO::Buffer inspect: " << StringValueCStr(rb_io_buffer_inspect) << std::endl;
 
             lexstate *lexer = alloc_lexer(string, 0, docString->length());
             parserstate *parser = alloc_parser(buffer, lexer, 0, docString->length(), Qnil);
 
             VALUE rbsMethodType = parse_method_type(parser);
+            free_parser(parser);
+
             rbs::MethodTypeVisitor visitor(ctx, methodDef);
             auto sig = visitor.visitMethodType(rbsMethodType);
-
-            // std::cout << "Result: " << RSTRING_PTR(result) << std::endl;
-            // free_parser(parser);
-
-            // parserstate *state = alloc_parser(buffer, nullptr, 0, docString->length(), Qnil);
-            // VALUE result = parse_method_type(state);
-            // std::cout << "Result: " << RSTRING_PTR(result) << std::endl;
-            // free_parser(state);
-
-            // Create RBI sig
-
-            // auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
-            //                                  ast::MK::Symbol(loc, core::Names::blkArg()),
-            //                                 ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
-
-            // auto sig = ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc));
 
             classDef->rhs.emplace_back(std::move(sig));
             classDef->rhs.emplace_back(std::move(stat));
