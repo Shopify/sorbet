@@ -82,6 +82,9 @@ class Node final {
     pm_node_t *get_raw_node_pointer() const {
         return node.get();
     }
+
+public:
+    core::LocOffsets getLoc();
 };
 
 } // namespace sorbet::parser::Prism

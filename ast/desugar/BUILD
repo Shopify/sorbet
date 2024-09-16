@@ -17,6 +17,7 @@ cc_library(
         "//ast/verifier",
         "//core",
         "//parser",
+        "//parser/prism",
     ],
 )
 

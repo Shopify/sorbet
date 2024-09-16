@@ -11,6 +11,7 @@
 #include "core/Names.h"
 #include "core/errors/desugar.h"
 #include "core/errors/internal.h"
+#include "parser/prism/WrappedPrismNode.h"
 
 namespace sorbet::ast::desugar {
 
@@ -698,6 +699,30 @@ public:
         }
     }
 };
+
+ExpressionPtr prismNode2TreeImpl(DesugarContext dctx, sorbet::parser::WrappedPrismNode *node) {
+    // try {
+    //     if (what.get() == nullptr) {
+    //         return MK::EmptyTree();
+    //     }
+    //     auto loc = what->loc;
+    //     auto locZeroLen = what->loc.copyWithZeroLength();
+    //     ENFORCE(loc.exists(), "parse-tree node has no location: {}", what->toString(dctx.ctx));
+    ExpressionPtr result;
+
+    ENFORCE(result.get() != nullptr, "desugar result unset");
+    return result;
+    // } catch (SorbetException &) {
+    //     Exception::failInFuzzer();
+    //     if (!locReported) {
+    //         locReported = true;
+    //         if (auto e = dctx.ctx.beginError(what->loc, core::errors::Internal::InternalError)) {
+    //             e.setHeader("Failed to process tree (backtrace is above)");
+    //         }
+    //     }
+    //     throw;
+    // }
+}
 
 ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) {
     try {
@@ -2395,6 +2420,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
 
             [&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
+            // [&](parser::WrappedPrismNode *wrappedPrismNode) { prismNode2TreeImpl(dctx, wrappedPrismNode); },
             [&](parser::Node *node) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); });
         ENFORCE(result.get() != nullptr, "desugar result unset");
         return result;

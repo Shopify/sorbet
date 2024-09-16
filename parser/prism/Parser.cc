@@ -33,4 +33,8 @@ std::string_view Parser::extractString(pm_string_t *string) {
     return std::string_view(reinterpret_cast<const char *>(pm_string_source(string)), pm_string_length(string));
 }
 
+core::LocOffsets Node::getLoc() {
+    return parser.translateLocation(&node->location);
+}
+
 }; // namespace sorbet::parser::Prism
