@@ -148,8 +148,8 @@ std::string demangle(const char *mangled);
 #pragma GCC poison strtok wcstok
 
 /* Signal related */
-#pragma GCC poison longjmp siglongjmp
-#pragma GCC poison setjmp sigsetjmp
+// #pragma GCC poison longjmp siglongjmp
+// #pragma GCC poison setjmp sigsetjmp
 
 /* File API's */
 #pragma GCC poison tmpnam tempnam

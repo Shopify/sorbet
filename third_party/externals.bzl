@@ -312,3 +312,11 @@ def register_sorbet_dependencies():
         sha256 = "47b61d25dd52bdaa1d571dab6705d076f05ba3d7a1bbbfed36145f8281c0403f",
         strip_prefix = "rules_foreign_cc-d74623f0ad47f4e375de81baa454eb106715a416",
     )
+
+    # http_archive(
+    #     name = "rbs",
+    #     url = "https://github.com/ruby/rbs/archive/v3.5.3.zip",
+    #     sha256 = "fd0be3a52a032974a95414090893de441ba30822df37326228201d08fc891fe4",
+    #     strip_prefix = "rbs-3.5.3",
+    #     build_file = "@com_stripe_ruby_typer//third_party:rbs_parser.BUILD",
+    # )
