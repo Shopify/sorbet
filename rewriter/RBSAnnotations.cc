@@ -144,7 +144,7 @@ public:
                 continue;
             }
 
-            // std::cout << "Method name: " << methodDef->name.show(ctx) << std::endl;
+            std::cout << "method: " << methodDef->name.show(ctx) << std::endl;
 
             vector<string> documentation;
             auto loc = methodDef->loc;
@@ -161,13 +161,11 @@ public:
             optional<string> docString;
             if (!documentation.empty()) {
                 docString = absl::StrJoin(documentation, "\n\n");
-                // std::cout << "Documentation: '" << *docString << "'" << std::endl;
+                std::cout << "rbs: '" << *docString << "'" << std::endl;
             }
 
-            std::cout << "before" << std::endl;
             VALUE string = rb_str_new2(docString->c_str());
             // StringValue(string);
-            std::cout << "after" << std::endl;
 
             VALUE cIO = rb_const_get(rb_cObject, rb_intern("IO"));
             VALUE cBuffer = rb_const_get(cIO, rb_intern("Buffer"));
@@ -203,3 +201,5 @@ ast::ExpressionPtr RBSAnnotations::run(core::MutableContext ctx, ast::Expression
 // - Clean how we depend on `rbs_parser`
 // - Translate more nodes
 // - Add tests
+
+// - Remove rbs parser dependency on ruby_vm
