@@ -14,34 +14,34 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
-// Remove unnessary `to_s` calls?
 // Test comments parsing
 // test sigs (attributes, methods, const?)
-// test errors
+
+// - Translate `rbi` gems signatures to RBS for methods
+    // - Handle required positional args
+    // - Handle optional positional args
+    // - Handle required keyword args
+    // - Handle optional keyword args
+    // - Handle rest args
+    // - Handle keyword rest args
+    // - Handle block args
+    // - Handle type params
+    // - Handle return types
+    // - Handle block binding
+    // - tests
 
 // - Handle types
-    * Proc types
-    * Type variales
+    * Proc types: Self binding
+    * Generic methods: Type variales
+
     * class -> T::Class[CurrentClass]
 
-// - Translate `rbi` gems signatures to RBS
-    // - methods
-        // - Handle required positional args
-        // - Handle optional positional args
-        // - Handle required keyword args
-        // - Handle optional keyword args
-        // - Handle rest args
-        // - Handle keyword rest args
-        // - Handle block args
-        // - Handle type params
-        // - Handle return types
-        // - Handle block binding
-    // - attributes
-
-// - Handle other annotations
-    // - Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
-
+// - Remove unnessary `to_s` calls?
+// - Translate attributes
 // - Handle errors
+    // test errors
+// - Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
+
 
 // - Pass `tc` on `rbi`
 // - Clean how we depend on `rbs_parser`

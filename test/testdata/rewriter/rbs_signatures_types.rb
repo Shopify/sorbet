@@ -172,6 +172,13 @@ T.reveal_type(tuple_type2) # error: Revealed type: `[Integer, String, T.untyped]
 def shape_type1; T.unsafe(nil); end
 T.reveal_type(shape_type1) # error: Revealed type: `{id: String, name: String} (shape of T::Hash[T.untyped, T.untyped])`
 
+# Proc types
+
+#: -> ^(Integer, String) -> String
+def proc_type1; T.unsafe(nil); end
+T.reveal_type(proc_type1) # error: Revealed type: `T.proc.params(arg0: Integer, arg1: String).returns(String)`
+
+
 # TODO
 # proc_type -> Proc
   # self binding
