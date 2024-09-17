@@ -23,8 +23,8 @@
 #include "rewriter/ModuleFunction.h"
 #include "rewriter/Private.h"
 #include "rewriter/Prop.h"
+#include "rewriter/RBSSignatures.h"
 #include "rewriter/Rails.h"
-#include "rewriter/RBSAnnotations.h"
 #include "rewriter/SigRewriter.h"
 #include "rewriter/Struct.h"
 #include "rewriter/TEnum.h"
@@ -205,7 +205,7 @@ ast::ExpressionPtr Rewriter::run(core::MutableContext ctx, ast::ExpressionPtr tr
 
     Rewriterer rewriter;
     ast::TreeWalk::apply(ctx, rewriter, ast);
-    ast = RBSAnnotations::run(ctx, std::move(ast));
+    ast = RBSSignatures::run(ctx, std::move(ast));
     // This AST flattening pass requires that we mutate the AST in a way that our previous DSL passes were not designed
     // around, which is why it runs all at once and is not expressed as a `patch` method like the other DSL passes. This
     // is a rare case: in general, we should *not* add new DSL passes here.

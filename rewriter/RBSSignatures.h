@@ -1,5 +1,5 @@
-#ifndef SORBET_REWRITER_RBS_ANNOTATIONS_H
-#define SORBET_REWRITER_RBS_ANNOTATIONS_H
+#ifndef SORBET_REWRITER_RBS_SIGNATURES_H
+#define SORBET_REWRITER_RBS_SIGNATURES_H
 #include "ast/ast.h"
 
 namespace sorbet::rewriter {
@@ -7,11 +7,11 @@ namespace sorbet::rewriter {
 /**
  * TODO
  */
-class RBSAnnotations final {
+class RBSSignatures final {
 public:
     static ast::ExpressionPtr run(core::MutableContext ctx, ast::ExpressionPtr tree);
 
-    RBSAnnotations() = delete;
+    RBSSignatures() = delete;
 };
 
 } // namespace sorbet::rewriter
