@@ -39,6 +39,7 @@
 #include "packager/rbi_gen.h"
 #include "parser/parser.h"
 #include "payload/binary/binary.h"
+#include "rbs/RubyVM.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -867,6 +868,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 } // namespace sorbet::test
 
 int main(int argc, char *argv[]) {
+    sorbet::rbs::RubyVM::initialize();
+
     cxxopts::Options options("test_corpus", "Test corpus for Sorbet typechecker");
     options.allow_unrecognised_options().add_options()("single_test", "run over single test.",
                                                        cxxopts::value<std::string>()->default_value(""), "testpath");
@@ -880,5 +883,9 @@ int main(int argc, char *argv[]) {
     sorbet::test::singleTest = res["single_test"].as<std::string>();
 
     doctest::Context context(argc, argv);
-    return context.run();
+    auto result = context.run();
+
+    sorbet::rbs::RubyVM::cleanup();
+
+    return result;
 }
