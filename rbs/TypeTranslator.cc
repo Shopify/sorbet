@@ -116,10 +116,9 @@ sorbet::ast::ExpressionPtr voidType(core::MutableContext ctx, VALUE type, core::
     return ast::MK::UnresolvedConstant(loc, std::move(cStatic), core::Names::Constants::Void());
 }
 
-sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
-    VALUE typeValue = rb_funcall(type, rb_intern("type"), 0);
-    VALUE requiredPositionalsValue = rb_funcall(typeValue, rb_intern("required_positionals"), 0);
-    VALUE returnValue = rb_funcall(typeValue, rb_intern("return_type"), 0);
+sorbet::ast::ExpressionPtr functionType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
+    VALUE requiredPositionalsValue = rb_funcall(type, rb_intern("required_positionals"), 0);
+    VALUE returnValue = rb_funcall(type, rb_intern("return_type"), 0);
     auto returnType = TypeTranslator::toRBI(ctx, returnValue, loc);
 
 
@@ -134,10 +133,12 @@ sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, VALUE type, core::
         paramsStore.emplace_back(std::move(innerType));
     }
 
-    // auto block = ast::MK::Block(loc, ast::MK::Self(loc));
-    // auto blockSig = ast::MK::Sig(loc, std::move(paramsStore), std::move(returnType));
-
     return ast::MK::T_Proc(loc, std::move(paramsStore), std::move(returnType));
+}
+
+sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
+    VALUE typeValue = rb_funcall(type, rb_intern("type"), 0);
+    return functionType(ctx, typeValue, loc);
 }
 
 sorbet::ast::ExpressionPtr tupleType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
@@ -180,7 +181,7 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx, VALUE type, core
 } // namespace
 
 sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
-    rb_p(type);
+    // rb_p(type);
     const char* className = rb_obj_classname(type);
     // TODO: handle errors
 
@@ -215,6 +216,8 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
             return voidType(ctx, type, loc);
         case hash("RBS::Types::Proc"):
             return procType(ctx, type, loc);
+        case hash("RBS::Types::Function"):
+            return functionType(ctx, type, loc);
         case hash("RBS::Types::Tuple"):
             return tupleType(ctx, type, loc);
         case hash("RBS::Types::Record"):
