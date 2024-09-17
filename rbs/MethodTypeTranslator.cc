@@ -1,8 +1,10 @@
 #include "MethodTypeTranslator.h"
+#include "absl/strings/strip.h"
 #include "ast/ast.h"
 #include "ast/Helpers.h"
 #include "core/Names.h"
 #include "core/GlobalState.h"
+#include "TypeTranslator.h"
 #include <cstring>
 #include <functional>
 
@@ -15,9 +17,7 @@ constexpr unsigned int hash(const char* str) {
 
 namespace sorbet::rbs {
 
-MethodTypeTranslator::MethodTypeTranslator(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType) : ctx(ctx), methodDef(methodDef), methodType(methodType) {}
-
-sorbet::ast::ExpressionPtr MethodTypeTranslator::to_rbi() {
+sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType) {
     auto loc = methodDef->loc;
 
     // TODO raise error if methodType is not a MethodType
@@ -70,7 +70,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::to_rbi() {
         VALUE paramType = rb_funcall(param, rb_intern("type"), 0);
         // rb_p(paramType);
 
-        auto translatedType = translateType(paramType);
+        auto translatedType = TypeTranslator::toRBI(ctx, paramType, methodArg.loc());
         // std::cout << "translatedType: " << translatedType << std::endl;
 
         sigArgs.emplace_back(ast::MK::Symbol(methodArg.loc(), ident->name));
@@ -86,57 +86,9 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::to_rbi() {
 
     // Visit return type
     VALUE rbsReturnType = rb_funcall(functionType, rb_intern("return_type"), 0);
-    auto rbiReturnType = translateType(rbsReturnType);
+    auto rbiReturnType = TypeTranslator::toRBI(ctx, rbsReturnType, methodDef->loc);
 
     return ast::MK::Sig(loc, std::move(sigArgs), std::move(rbiReturnType));
 }
-
-sorbet::ast::ExpressionPtr MethodTypeTranslator::translateType(VALUE type) {
-    // rb_p(type);
-
-    auto loc = methodDef->loc;
-    const char* className = rb_obj_classname(type);
-
-    switch (hash(className)) {
-        case hash("RBS::Types::Bases::Any"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Bases::Void"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Bases::Bool"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Bases::Integer"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Bases::String"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Bases::Symbol"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Bases::Nil"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Union"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::Optional"):
-            return ast::MK::Untyped(loc);
-        case hash("RBS::Types::ClassInstance"):
-            return translateClassInstanceType(loc, type);
-        case hash("RBS::Types::ClassSingleton"):
-            return ast::MK::Untyped(loc);
-        default:
-            return ast::MK::Untyped(loc);
-    }
-}
-
-sorbet::ast::ExpressionPtr MethodTypeTranslator::translateClassInstanceType(core::LocOffsets loc, VALUE type) {
-    VALUE nameSymbol = rb_funcall(type, rb_intern("name"), 0);
-    VALUE nameString = rb_funcall(nameSymbol, rb_intern("to_s"), 0);
-    const char* nameChars = RSTRING_PTR(nameString);
-    std::string nameStr(nameChars);
-    auto name = ctx.state.enterNameConstant(nameStr);
-
-    return ast::MK::UnresolvedConstant(loc, ast::MK::EmptyTree(), name);
-}
-
-
-
-// Implement more methods as needed to handle different RBS node types
 
 } // namespace sorbet::rbs
