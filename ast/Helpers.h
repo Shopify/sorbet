@@ -433,9 +433,19 @@ public:
         return Send1(loc, T(loc), core::Names::nilable(), loc, std::move(arg));
     }
 
+    static ExpressionPtr T_Array(core::LocOffsets loc) {
+        return UnresolvedConstantParts(loc, EmptyTree(),
+                                       {core::Names::Constants::T(), core::Names::Constants::Array()});
+    }
+
     static ExpressionPtr T_Boolean(core::LocOffsets loc) {
         return UnresolvedConstantParts(loc, EmptyTree(),
                                        {core::Names::Constants::T(), core::Names::Constants::Boolean()});
+    }
+
+    static ExpressionPtr T_Hash(core::LocOffsets loc) {
+        return UnresolvedConstantParts(loc, EmptyTree(),
+                                       {core::Names::Constants::T(), core::Names::Constants::Hash()});
     }
 
     static ExpressionPtr ZSuper(core::LocOffsets loc, core::NameRef method) {

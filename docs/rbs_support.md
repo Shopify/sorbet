@@ -7,21 +7,22 @@
 * Literal types
 * Boolish
 
+# Generics types
+
+We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 
 ## TODO
 
+// Remove unnessary `to_s` calls?
 // Test comments parsing
 // test sigs (attributes, methods, const?)
 // test errors
 
 // - Handle types
     * Proc types
-    * Record types
-    * Tuple types
     * Type variales
     * class -> T::Class[CurrentClass]
-    * Generics
 
 // - Translate `rbi` gems signatures to RBS
     // - methods

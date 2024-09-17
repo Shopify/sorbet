@@ -111,10 +111,70 @@ T.reveal_type(base_type6) # error: Revealed type: `T.anything`
 def base_type7; T.unsafe(nil); end
 T.reveal_type(base_type7) # error: Revealed type: `Sorbet::Private::Static::Void`
 
+# Generic types
+
+#: -> Array[Integer]
+def generic_type1; T.unsafe(nil); end
+T.reveal_type(generic_type1) # error: Revealed type: `T::Array[Integer]`
+
+#: -> Hash[String, Integer]
+def generic_type2; T.unsafe(nil); end
+T.reveal_type(generic_type2) # error: Revealed type: `T::Hash[String, Integer]`
+
+#: -> T::Array[Integer]
+def generic_type3; T.unsafe(nil); end
+T.reveal_type(generic_type1) # error: Revealed type: `T::Array[Integer]`
+
+#: -> T::Hash[String, Integer]
+def generic_type4; T.unsafe(nil); end
+T.reveal_type(generic_type2) # error: Revealed type: `T::Hash[String, Integer]`
+
+class GenericType1
+  extend T::Generic
+
+  T1 = type_member
+end
+
+class GenericType2
+  extend T::Generic
+
+  T1 = type_member
+  T2 = type_member
+end
+
+class GenericType3
+  extend T::Generic
+
+  T1 = type_member
+  T2 = type_member
+  T3 = type_member
+end
+
+#: -> GenericType1[Integer]
+def generic_type5; T.unsafe(nil); end
+T.reveal_type(generic_type5) # error: Revealed type: `GenericType1[Integer]`
+
+#: -> GenericType2[GenericType1[untyped], GenericType3[Integer, String, untyped]]
+def generic_type6; T.unsafe(nil); end
+T.reveal_type(generic_type6) # error: Revealed type: `GenericType2[GenericType1[T.untyped], GenericType3[Integer, String, T.untyped]]`
+
+# Tuples
+
+#: -> [Integer]
+def tuple_type1; T.unsafe(nil); end
+T.reveal_type(tuple_type1) # error: Revealed type: `[Integer] (1-tuple)`
+
+#: -> [Integer, String, untyped]
+def tuple_type2; T.unsafe(nil); end
+T.reveal_type(tuple_type2) # error: Revealed type: `[Integer, String, T.untyped] (3-tuple)`
+
+#: -> { id: String, name: String }
+def shape_type1; T.unsafe(nil); end
+T.reveal_type(shape_type1) # error: Revealed type: `{id: String, name: String} (shape of T::Hash[T.untyped, T.untyped])`
+
+# TODO
 # proc_type -> Proc
-# self binding
-# tuple
-# shape
+  # self binding
 
 # mixed tests
 
