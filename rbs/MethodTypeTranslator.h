@@ -7,21 +7,9 @@
 
 namespace sorbet::rbs {
 
-/**
- * TODO
- */
 class MethodTypeTranslator {
 public:
-    MethodTypeTranslator(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType);
-    sorbet::ast::ExpressionPtr to_rbi();
-
-private:
-    core::MutableContext ctx;
-    sorbet::ast::MethodDef *methodDef;
-    VALUE methodType;
-
-    sorbet::ast::ExpressionPtr translateType(VALUE type);
-    sorbet::ast::ExpressionPtr translateClassInstanceType(core::LocOffsets loc, VALUE type);
+    static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType);
 };
 
 } // namespace sorbet::rbs

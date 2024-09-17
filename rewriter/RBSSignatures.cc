@@ -171,8 +171,7 @@ public:
             VALUE rbsMethodType = parse_method_type(parser);
             free_parser(parser);
 
-            sorbet::rbs::MethodTypeTranslator translator(ctx, methodDef, rbsMethodType);
-            auto sig = translator.to_rbi();
+            auto sig = sorbet::rbs::MethodTypeTranslator::toRBI(ctx, methodDef, rbsMethodType);
 
             classDef->rhs.emplace_back(std::move(sig));
             classDef->rhs.emplace_back(std::move(stat));
