@@ -2,10 +2,10 @@
 
 extend T::Sig
 
-module A; end
-module B; end
-module C; end
+sig { returns({ id: String, name: String }) }
+def tuple_type0; T.unsafe(nil); end
+T.reveal_type(tuple_type0) # error: Revealed type: `[Integer]`
 
-#: -> void
-def type; T.unsafe(nil); end
-T.reveal_type(type)
+#: -> { id: String, name: String }
+def shape_type1; T.unsafe(nil); end
+T.reveal_type(shape_type1) # error: Revealed type: `{ id: String, name: String }`
