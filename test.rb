@@ -2,6 +2,10 @@
 
 extend T::Sig
 
-#: -> String
-def method1; T.unsafe(nil); end
-T.reveal_type(method1) # error: reveal typed `String`
+module A; end
+module B; end
+module C; end
+
+#: -> void
+def type; T.unsafe(nil); end
+T.reveal_type(type)
