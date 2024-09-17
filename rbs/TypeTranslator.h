@@ -10,9 +10,6 @@ namespace sorbet::rbs {
 class TypeTranslator {
 public:
     static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, VALUE type, core::LocOffsets loc);
-
-private:
-    static sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, VALUE type, core::LocOffsets loc);
 };
 
 } // namespace sorbet::rbs

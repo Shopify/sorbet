@@ -383,6 +383,22 @@ public:
         return Send1(loc, T(loc), core::Names::classOf(), loc, std::move(value));
     }
 
+    static ExpressionPtr All(core::LocOffsets loc, Send::ARGS_store args) {
+        return Send(loc, T(loc), core::Names::all(), loc, args.size(), std::move(args));
+    }
+
+    static ExpressionPtr Any(core::LocOffsets loc, Send::ARGS_store args) {
+        return Send(loc, T(loc), core::Names::any(), loc, args.size(), std::move(args));
+    }
+
+    static ExpressionPtr Anything(core::LocOffsets loc) {
+        return Send0(loc, T(loc), core::Names::anything(), loc);
+    }
+
+    static ExpressionPtr AttachedClass(core::LocOffsets loc) {
+        return Send0(loc, T(loc), core::Names::attachedClass(), loc);
+    }
+
     static ExpressionPtr Let(core::LocOffsets loc, ExpressionPtr value, ExpressionPtr type) {
         return ast::make_expression<ast::Cast>(loc, core::Types::todo(), std::move(value), core::Names::let(),
                                                std::move(type));
@@ -391,6 +407,14 @@ public:
     static ExpressionPtr AssertType(core::LocOffsets loc, ExpressionPtr value, ExpressionPtr type) {
         return ast::make_expression<ast::Cast>(loc, core::Types::todo(), std::move(value), core::Names::assertType(),
                                                std::move(type));
+    }
+
+    static ExpressionPtr NoReturn(core::LocOffsets loc) {
+        return Send0(loc, T(loc), core::Names::noreturn(), loc);
+    }
+
+    static ExpressionPtr SelfType(core::LocOffsets loc) {
+        return Send0(loc, T(loc), core::Names::selfType(), loc);
     }
 
     static ExpressionPtr Unsafe(core::LocOffsets loc, ExpressionPtr inner) {
