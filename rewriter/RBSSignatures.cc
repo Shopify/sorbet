@@ -8,7 +8,7 @@
 #include "ast/ast.h"
 #include "ast/treemap/treemap.h"
 #include "rbs/rbs_common.h"
-#include "rbs/MethodTypeVisitor.h"
+#include "rbs/MethodTypeTranslator.h"
 #include "rewriter/rewriter.h"
 
 using namespace std;
@@ -171,8 +171,8 @@ public:
             VALUE rbsMethodType = parse_method_type(parser);
             free_parser(parser);
 
-            sorbet::rbs::MethodTypeVisitor visitor(ctx, methodDef);
-            auto sig = visitor.visitMethodType(rbsMethodType);
+            sorbet::rbs::MethodTypeTranslator translator(ctx, methodDef, rbsMethodType);
+            auto sig = translator.to_rbi();
 
             classDef->rhs.emplace_back(std::move(sig));
             classDef->rhs.emplace_back(std::move(stat));

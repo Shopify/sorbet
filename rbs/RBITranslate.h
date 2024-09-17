@@ -10,10 +10,9 @@ namespace sorbet::rbs {
 /**
  * TODO
  */
-class MethodTypeVisitor {
+class RBITranslate {
 public:
-    MethodTypeVisitor(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef);
-    sorbet::ast::ExpressionPtr visitMethodType(VALUE methodType);
+    sorbet::ast::ExpressionPtr type_to_rbi(VALUE type);
 
 private:
     core::MutableContext ctx;

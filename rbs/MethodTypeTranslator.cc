@@ -1,4 +1,4 @@
-#include "MethodTypeVisitor.h"
+#include "MethodTypeTranslator.h"
 #include "ast/ast.h"
 #include "ast/Helpers.h"
 #include "core/Names.h"
@@ -15,9 +15,9 @@ constexpr unsigned int hash(const char* str) {
 
 namespace sorbet::rbs {
 
-MethodTypeVisitor::MethodTypeVisitor(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef) : ctx(ctx), methodDef(methodDef) {}
+MethodTypeTranslator::MethodTypeTranslator(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType) : ctx(ctx), methodDef(methodDef), methodType(methodType) {}
 
-sorbet::ast::ExpressionPtr MethodTypeVisitor::visitMethodType(VALUE methodType) {
+sorbet::ast::ExpressionPtr MethodTypeTranslator::to_rbi() {
     auto loc = methodDef->loc;
 
     // TODO raise error if methodType is not a MethodType
@@ -25,8 +25,6 @@ sorbet::ast::ExpressionPtr MethodTypeVisitor::visitMethodType(VALUE methodType) 
 
     VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
     // rb_p(functionType);
-
-    // auto sig = createSig();
 
     // // Visit parameter list
     VALUE requiredPositionals = rb_funcall(functionType, rb_intern("required_positionals"), 0);
@@ -93,31 +91,7 @@ sorbet::ast::ExpressionPtr MethodTypeVisitor::visitMethodType(VALUE methodType) 
     return ast::MK::Sig(loc, std::move(sigArgs), std::move(rbiReturnType));
 }
 
-sorbet::ast::ExpressionPtr MethodTypeVisitor::createSig() {
-    auto loc = methodDef->loc;
-
-    auto sigArgs = ast::MK::SendArgs(ast::MK::Symbol(loc, core::Names::arg0()), ast::MK::Untyped(loc),
-                                     ast::MK::Symbol(loc, core::Names::blkArg()),
-                                     ast::MK::Nilable(loc, ast::MK::Constant(loc, core::Symbols::Proc())));
-
-    auto sig = ast::MK::Sig(loc, std::move(sigArgs), ast::MK::Untyped(loc));
-
-    return sig;
-}
-
-void MethodTypeVisitor::visitParameterList(VALUE parameterList) {
-    // Implement parameter list traversal
-    // This will depend on the structure of the RBS parameter list
-    // You may need to add more methods to handle different parameter types
-}
-
-void MethodTypeVisitor::visitType(VALUE type) {
-    // Implement type traversal
-    // This will depend on the structure of the RBS type
-    // You may need to add more methods to handle different RBS types
-}
-
-sorbet::ast::ExpressionPtr MethodTypeVisitor::translateType(VALUE type) {
+sorbet::ast::ExpressionPtr MethodTypeTranslator::translateType(VALUE type) {
     // rb_p(type);
 
     auto loc = methodDef->loc;
@@ -151,7 +125,7 @@ sorbet::ast::ExpressionPtr MethodTypeVisitor::translateType(VALUE type) {
     }
 }
 
-sorbet::ast::ExpressionPtr MethodTypeVisitor::translateClassInstanceType(core::LocOffsets loc, VALUE type) {
+sorbet::ast::ExpressionPtr MethodTypeTranslator::translateClassInstanceType(core::LocOffsets loc, VALUE type) {
     VALUE nameSymbol = rb_funcall(type, rb_intern("name"), 0);
     VALUE nameString = rb_funcall(nameSymbol, rb_intern("to_s"), 0);
     const char* nameChars = RSTRING_PTR(nameString);
