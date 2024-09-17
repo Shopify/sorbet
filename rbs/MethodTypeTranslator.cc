@@ -17,64 +17,120 @@ constexpr unsigned int hash(const char* str) {
 
 namespace sorbet::rbs {
 
+namespace {
+
+// sorbet::ast::ExpressionPtr translateParams() {
+//     Send::ARGS_store paramsStore;
+
+//     for (long i = 0; i < RARRAY_LEN(params); i++) {
+//         auto &methodArg = methodDef->args[i];
+
+//         auto ident = ast::cast_tree<ast::UnresolvedIdent>(methodArg);
+//         if (ident == nullptr) {
+//             // TODO raise error
+//             continue;
+//         }
+
+//         VALUE param = rb_ary_entry(params, i);
+//         VALUE paramType = rb_funcall(param, rb_intern("type"), 0);
+
+//         sigArgs.emplace_back(ast::MK::Symbol(methodArg.loc(), ident->name));
+//         sigArgs.emplace_back(TypeTranslator::toRBI(ctx, paramType, methodArg.loc()));
+//     }
+
+//     return params;
+// }
+
+// sorbet::ast::ExpressionPtr translateParam(core::MutableContext ctx, VALUE param, ast::ExpressionPtr methodArg) {
+//     auto ident = ast::cast_tree<ast::UnresolvedIdent>(methodArg);
+//     if (ident == nullptr) {
+//         // TODO raise error
+//         continue;
+//     }
+
+//     VALUE paramType = rb_funcall(param, rb_intern("type"), 0);
+//     auto translatedType = TypeTranslator::toRBI(ctx, paramType, methodArg.loc());
+
+//     sigArgs.emplace_back(ast::MK::Symbol(methodArg.loc(), ident->name));
+//     sigArgs.emplace_back(std::move(translatedType));
+// }
+
+}
+
 sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType) {
     auto loc = methodDef->loc;
 
+    std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
+
     // TODO raise error if methodType is not a MethodType
-    // rb_p(methodType);
+    rb_p(methodType);
 
     VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
-    // rb_p(functionType);
-
-    // // Visit parameter list
-    VALUE requiredPositionals = rb_funcall(functionType, rb_intern("required_positionals"), 0);
-    // rb_p(requiredPositionals);
-
-    long numRequiredPositionals = RARRAY_LEN(requiredPositionals);
+    VALUE requiredPositionalsValue = rb_funcall(functionType, rb_intern("required_positionals"), 0);
+    VALUE optionalPositionalsValue = rb_funcall(functionType, rb_intern("optional_positionals"), 0);
+    VALUE restPositionalsValue = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
+    VALUE requiredKeywordsValue = rb_funcall(functionType, rb_intern("required_keywords"), 0);
+    // VALUE optionalKeywordsValue = rb_funcall(functionType, rb_intern("optional_keywords"), 0);
+    // VALUE restKeywordsValue = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
+    // VALUE blockValue = rb_funcall(functionType, rb_intern("block"), 0);
 
     Send::ARGS_store sigArgs;
-    for (long i = 0; i < numRequiredPositionals; i++) {
+    auto argIndex = 0;
+
+    for (int i = 0; i < methodDef->args.size(); i++) {
         auto &methodArg = methodDef->args[i];
 
-        auto ident = ast::cast_tree<ast::UnresolvedIdent>(methodArg);
-        if (ident == nullptr) {
+        core::NameRef argName;
+        VALUE arg;
+
+        auto requiredPositionalsIndex = 0;
+        auto optionalPositionalsIndex = 0;
+        auto requiredKeywordsIndex = 0;
+        typecase(
+            methodArg,
+            [&](const ast::UnresolvedIdent &p) {
+                argName = p.name;
+                arg = rb_ary_entry(requiredPositionalsValue, requiredPositionalsIndex);
+                requiredPositionalsIndex++;
+             },
+             [&](const ast::OptionalArg &p) {
+                auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+                if(argIdent != nullptr) {
+                    argName = argIdent->name;
+                }
+                arg = rb_ary_entry(optionalPositionalsValue, optionalPositionalsIndex);
+                optionalPositionalsIndex++;
+             },
+             [&](const ast::RestArg &p) {
+                auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+                if(argIdent != nullptr) {
+                    argName = argIdent->name;
+                }
+                arg = restPositionalsValue;
+             },
+            //  [&](const ast::KeywordArg &p) {
+            //     auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+            //     if(argIdent != nullptr) {
+            //         argName = argIdent->name;
+            //     }
+            //     arg = rb_ary_entry(requiredKeywordsValue, requiredKeywordsIndex);
+            //     requiredKeywordsIndex++;
+            //  },
+             [&](const ast::ExpressionPtr &p) {
+                std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
+             }
+        );
+
+        if (!argName.exists()) {
+            std::cout << "MISSING ARG NAME: " << argIndex << std::endl;
             // TODO raise error
             continue;
         }
-        // auto *methodArgName = &methodArg;
 
-        // typecase(
-        //     *methodArg,
-        //     [&](const ast::RestArg &rest) {
-        //         methodArgName = &rest.expr;
-        //     },
-        //     [&](const ast::KeywordArg &kw) {
-        //         methodArgName = &kw.expr;
-        //     },
-        //     [&](const ast::OptionalArg &opt) {
-        //         methodArgName = &opt.expr;
-        //     },
-        //     [&](const ast::BlockArg &blk) {
-        //         methodArgName = &blk.expr;
-        //     },
-        //     [&](const ast::ShadowArg &shadow) {
-        //         methodArgName = &shadow.expr;
-        //     },
-        //     [&](const ast::Local &local) {
-        //         methodArgName = nullptr;
-        //     }
-        // );
+        sigArgs.emplace_back(ast::MK::Symbol(methodArg.loc(), argName));
 
-        VALUE param = rb_ary_entry(requiredPositionals, i);
-        // // VALUE paramName = rb_funcall(param, rb_intern("name"), 0);
-        VALUE paramType = rb_funcall(param, rb_intern("type"), 0);
-        // rb_p(paramType);
-
-        auto translatedType = TypeTranslator::toRBI(ctx, paramType, methodArg.loc());
-        // std::cout << "translatedType: " << translatedType << std::endl;
-
-        sigArgs.emplace_back(ast::MK::Symbol(methodArg.loc(), ident->name));
-        sigArgs.emplace_back(std::move(translatedType));
+        VALUE argType = rb_funcall(arg, rb_intern("type"), 0);
+        sigArgs.emplace_back(TypeTranslator::toRBI(ctx, argType, methodArg.loc()));
     }
 
     //visitParameterList(parameterList);

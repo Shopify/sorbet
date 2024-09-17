@@ -116,6 +116,30 @@ sorbet::ast::ExpressionPtr voidType(core::MutableContext ctx, VALUE type, core::
     return ast::MK::UnresolvedConstant(loc, std::move(cStatic), core::Names::Constants::Void());
 }
 
+sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
+    VALUE typeValue = rb_funcall(type, rb_intern("type"), 0);
+    VALUE requiredPositionalsValue = rb_funcall(typeValue, rb_intern("required_positionals"), 0);
+    VALUE returnValue = rb_funcall(typeValue, rb_intern("return_type"), 0);
+    auto returnType = TypeTranslator::toRBI(ctx, returnValue, loc);
+
+
+    auto paramsStore = Send::ARGS_store();
+    for (long i = 0; i < RARRAY_LEN(requiredPositionalsValue); i++) {
+        auto argName = ctx.state.enterNameUTF8("arg" + std::to_string(i));
+        paramsStore.emplace_back(ast::MK::Symbol(loc, argName));
+
+        VALUE paramValue = rb_ary_entry(requiredPositionalsValue, i);
+        VALUE paramType = rb_funcall(paramValue, rb_intern("type"), 0);
+        auto innerType = TypeTranslator::toRBI(ctx, paramType, loc);
+        paramsStore.emplace_back(std::move(innerType));
+    }
+
+    // auto block = ast::MK::Block(loc, ast::MK::Self(loc));
+    // auto blockSig = ast::MK::Sig(loc, std::move(paramsStore), std::move(returnType));
+
+    return ast::MK::T_Proc(loc, std::move(paramsStore), std::move(returnType));
+}
+
 sorbet::ast::ExpressionPtr tupleType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
     VALUE types = rb_funcall(type, rb_intern("types"), 0);
     auto typesStore = Array::ENTRY_store();
@@ -178,8 +202,7 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
         case hash("RBS::Types::Bases::Instance"):
             return ast::MK::AttachedClass(loc);
         case hash("RBS::Types::Bases::Class"):
-            // TODO: get around type? error
-            return ast::MK::Untyped(loc);
+            return ast::MK::Untyped(loc); // TODO: get around type? error
         case hash("RBS::Types::Bases::Bool"):
             return ast::MK::T_Boolean(loc);
         case hash("RBS::Types::Bases::Nil"):
@@ -190,6 +213,8 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
             return ast::MK::NoReturn(loc);
         case hash("RBS::Types::Bases::Void"):
             return voidType(ctx, type, loc);
+        case hash("RBS::Types::Proc"):
+            return procType(ctx, type, loc);
         case hash("RBS::Types::Tuple"):
             return tupleType(ctx, type, loc);
         case hash("RBS::Types::Record"):

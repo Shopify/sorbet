@@ -448,6 +448,12 @@ public:
                                        {core::Names::Constants::T(), core::Names::Constants::Hash()});
     }
 
+    static ExpressionPtr T_Proc(core::LocOffsets loc, Send::ARGS_store args, ExpressionPtr ret) {
+        auto proc = Send0(loc, T(loc), core::Names::proc(), loc);
+        auto params = Params(loc, std::move(proc), std::move(args));
+        return Send1(loc, std::move(params), core::Names::returns(), loc, std::move(ret));
+    }
+
     static ExpressionPtr ZSuper(core::LocOffsets loc, core::NameRef method) {
         Send::Flags flags;
         flags.isPrivateOk = true;
