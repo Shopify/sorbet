@@ -1886,6 +1886,7 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
     // It's important that in all branches `enterNameUTF8` is called, which `translateConstantName` does,
     // so that the name is available for the rest of the pipeline.
     auto name = translateConstantName(node->name);
+    auto sorbetName = gs.enterNameConstant(name);
 
     if (isInMethodDef && replaceWithDynamicConstAssign) {
         // Check if this is a dynamic constant assignment (SyntaxError at runtime)
@@ -1899,6 +1900,8 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
                                     is_same_v<PrismLhsNode, pm_constant_path_node>;
 
     std::unique_ptr<parser::Node> parent;
+    ast::ExpressionPtr parentExpr;
+
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
         if (auto prismParentNode = node->parent; prismParentNode != nullptr) {
             // This constant reference is chained onto another constant reference.
@@ -1909,9 +1912,12 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
             //  /  \
             // A   ::B
             parent = translate(prismParentNode);
+            parentExpr = parent ? parent->getCachedDesugaredExpr() : nullptr;
         } else { // This is the root of a fully qualified constant reference, like `::A`.
             auto delimiterLoc = translateLoc(node->delimiter_loc); // The location of the `::`
+
             parent = make_node<parser::Cbase>(delimiterLoc);
+            parentExpr = MK::Constant(delimiterLoc, core::Symbols::root());
         }
     } else { // Handle plain constants like `A`, that aren't part of a constant path.
         static_assert(
@@ -1928,9 +1934,16 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
             location = translateLoc(node->name_loc);
         }
         parent = nullptr;
+        parentExpr = MK::EmptyTree();
     }
 
-    return make_node<SorbetLHSNode>(location, move(parent), gs.enterNameConstant(name));
+    auto sorbetNode = make_node<SorbetLHSNode>(location, move(parent), sorbetName);
+
+    if (parentExpr != nullptr) {
+        sorbetNode->cacheDesugaredExpr(MK::UnresolvedConstant(location, move(parentExpr), sorbetName));
+    }
+
+    return sorbetNode;
 }
 
 core::NameRef Translator::translateConstantName(pm_constant_id_t constant_id) {

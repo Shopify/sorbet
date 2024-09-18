@@ -731,6 +731,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             // add entries here, without consulting the "node.*" counters from a
             // run over a representative code base.
             [&](parser::Const *const_) {
+                TRANSLATED_BY_PRISM(dctx, const_);
+
                 auto scope = node2TreeImpl(dctx, std::move(const_->scope));
                 ExpressionPtr res = MK::UnresolvedConstant(loc, std::move(scope), const_->name);
                 result = std::move(res);
@@ -1586,11 +1588,15 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::ConstLhs *constLhs) {
+                TRANSLATED_BY_PRISM(dctx, constLhs);
+
                 auto scope = node2TreeImpl(dctx, std::move(constLhs->scope));
                 ExpressionPtr res = MK::UnresolvedConstant(loc, std::move(scope), constLhs->name);
                 result = std::move(res);
             },
             [&](parser::Cbase *cbase) {
+                TRANSLATED_BY_PRISM(dctx, cbase);
+
                 ExpressionPtr res = MK::Constant(loc, core::Symbols::root());
                 result = std::move(res);
             },
