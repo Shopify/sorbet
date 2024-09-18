@@ -18,5 +18,9 @@ constexpr ErrorClass NilableUntyped{3512, StrictLevel::False};
 // moved to namer:
 // constexpr ErrorClass HasAttachedClassInClass{3513, StrictLevel::False};
 constexpr ErrorClass ContravariantHasAttachedClass{3514, StrictLevel::False};
+
+// RBS translation errors
+constexpr ErrorClass RBSError{3550, StrictLevel::True};
+
 } // namespace sorbet::core::errors::Rewriter
 #endif
