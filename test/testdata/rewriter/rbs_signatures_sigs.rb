@@ -9,6 +9,30 @@ module P4; end
 module P5; end
 module P6; end
 
+# Sigs
+
+# We do not create any RBI if there is no RBS sigs
+def method_no_sig; T.unsafe(nil); end # error: The method `method_no_sig` does not have a `sig`
+
+#: -> String
+def method_sig1; T.unsafe(nil); end
+
+#: -> String
+def method_sig2; T.unsafe(nil); end
+
+#:      -> String
+def method_sig3; T.unsafe(nil); end
+
+# some comment
+#: -> String
+# some comment
+def method_sig4; T.unsafe(nil); end
+
+  #: -> String
+# ^^^^^^^^^^^^ error: Unused type annotation. No method def before next annotation
+  #: -> void
+  def method_sig5; T.unsafe(nil); end
+
 # Parse errors
 
 #: (P1, P2 -> void
@@ -19,7 +43,21 @@ class ParseError2
   #: void
   #  ^^^^ error: Failed to parse RBS signature (expected a token `pARROW`)
   def parse_error2(p1, p2); end # error: The method `parse_error2` does not have a `sig`
+
+  class ParseError3
+    # Some comment
+    #: v
+    #  ^ error: Failed to parse RBS signature (expected a token `pARROW`)
+    # Some comment
+    def parse_error3(p1, p2); end # error: The method `parse_error3` does not have a `sig`
+  end
 end
+
+  #:
+ #  ^ error: Failed to parse RBS signature (expected a token `pARROW`)
+  def parse_error4(p1, p2); end # error: The method `parse_error4` does not have a `sig`
+
+# Args
 
 #: (P1, P2) -> void
 def method1(p1, p2)
