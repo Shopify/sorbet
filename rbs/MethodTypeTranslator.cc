@@ -5,6 +5,8 @@
 #include "ast/ast.h"
 #include "core/GlobalState.h"
 #include "core/Names.h"
+#include "core/errors/rewriter.h"
+
 #include <cstring>
 #include <functional>
 
@@ -81,17 +83,34 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
     for (int i = 0; i < methodDef->args.size(); i++) {
         auto &methodArg = methodDef->args[i];
 
+        VALUE argValue;
         core::NameRef argName;
-        ast::ExpressionPtr argType;
-
+        bool asNilable = false;
         // std::cout << "ARG: " << methodArg.showRaw(ctx) << std::endl;
 
         typecase(
             methodArg,
             [&](const ast::UnresolvedIdent &p) {
-                argName = p.name;
-                auto argValue = rb_ary_entry(requiredPositionalsValue, requiredPositionalsIndex);
-                argType = TypeTranslator::toRBI(ctx, rb_funcall(argValue, rb_intern("type"), 0), methodArg.loc());
+                argValue = rb_ary_entry(requiredPositionalsValue, requiredPositionalsIndex);
+                if (argValue == Qnil) {
+                    std::cout << "ARG VALUE NIL" << std::endl;
+                    core::LocOffsets offset{docLoc.beginLoc, docLoc.endLoc};
+                    if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
+                        e.setHeader("Malformed `{}`. Type not specified for required positional `{}`", "sig",
+                                    p.name.show(ctx));
+                    }
+                    return;
+                }
+
+                auto rbsName = rb_funcall(argValue, rb_intern("name"), 0);
+                if (rbsName == Qnil) {
+                    argName = p.name;
+                } else {
+                    auto rbsString = rb_funcall(rbsName, rb_intern("to_s"), 0);
+                    const char *nameStr = StringValueCStr(rbsString);
+                    argName = ctx.state.enterNameUTF8(nameStr);
+                    rb_p(rbsName);
+                }
                 requiredPositionalsIndex++;
             },
             [&](const ast::OptionalArg &p) {
@@ -99,21 +118,25 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
                     p.expr,
                     [&](const ast::UnresolvedIdent &p) {
                         argName = p.name;
-                        auto argValue = rb_ary_entry(optionalPositionalsValue, optionalPositionalsIndex);
-                        argType = ast::MK::Nilable(
-                            methodArg.loc(),
-                            TypeTranslator::toRBI(ctx, rb_funcall(argValue, rb_intern("type"), 0), methodArg.loc()));
+                        argValue = rb_ary_entry(optionalPositionalsValue, optionalPositionalsIndex);
+                        asNilable = true;
                         optionalPositionalsIndex++;
+                        if (argValue == Qnil) {
+                            core::LocOffsets offset{docLoc.beginLoc + 2, docLoc.beginLoc + 2};
+                            if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
+                                e.setHeader("Malformed `{}`. Type not specified for argument `{}`", "sig",
+                                            argName.show(ctx));
+                            }
+                            return;
+                        }
                     },
                     [&](const ast::KeywordArg &p) {
                         auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
                         if (argIdent != nullptr) {
                             argName = argIdent->name;
                             VALUE key = ID2SYM(rb_intern(argName.show(ctx).c_str()));
-                            auto argValue = rb_hash_aref(optionalKeywordsValue, key);
-                            argType = ast::MK::Nilable(
-                                methodArg.loc(), TypeTranslator::toRBI(ctx, rb_funcall(argValue, rb_intern("type"), 0),
-                                                                       methodArg.loc()));
+                            argValue = rb_hash_aref(optionalKeywordsValue, key);
+                            asNilable = true;
                         }
                     },
                     [&](const ast::ExpressionPtr &p) {
@@ -124,17 +147,15 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
                 typecase(
                     p.expr,
                     [&](const ast::UnresolvedIdent &p) {
+                        argValue = restPositionalsValue;
                         argName = p.name;
-                        argType = TypeTranslator::toRBI(ctx, rb_funcall(restPositionalsValue, rb_intern("type"), 0),
-                                                        methodArg.loc());
                     },
                     [&](const ast::KeywordArg &p) {
                         auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
                         if (argIdent != nullptr) {
                             argName = argIdent->name;
-                            argType = TypeTranslator::toRBI(ctx, rb_funcall(restKeywordsValue, rb_intern("type"), 0),
-                                                            methodArg.loc());
                         }
+                        argValue = restKeywordsValue;
                     },
                     [&](const ast::ExpressionPtr &p) {
                         std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
@@ -146,8 +167,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
                 if (argIdent != nullptr) {
                     argName = argIdent->name;
                     VALUE key = ID2SYM(rb_intern(argName.show(ctx).c_str()));
-                    auto argValue = rb_hash_aref(requiredKeywordsValue, key);
-                    argType = TypeTranslator::toRBI(ctx, rb_funcall(argValue, rb_intern("type"), 0), methodArg.loc());
+                    argValue = rb_hash_aref(requiredKeywordsValue, key);
                 }
             },
             [&](const ast::BlockArg &p) {
@@ -155,16 +175,9 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
                 if (argIdent != nullptr) {
                     argName = argIdent->name;
                 }
-                if (blockValue != Qnil) {
-                    argType = TypeTranslator::toRBI(ctx, rb_funcall(blockValue, rb_intern("type"), 0), methodArg.loc());
-                }
+                argValue = blockValue;
             },
             [&](const ast::ExpressionPtr &p) { std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl; });
-
-        if (argType == nullptr) {
-            // std::cout << "NIL ARG: " << methodArg.showRaw(ctx) << std::endl;
-            continue;
-        }
 
         if (!argName.exists()) {
             std::cout << "MISSING ARG NAME: " << methodArg.showRaw(ctx) << std::endl;
@@ -174,7 +187,29 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
             // std::cout << "ARG NAME: " << argName.show(ctx) << std::endl;
         }
 
-        sigArgs.emplace_back(ast::MK::Symbol(methodArg.loc(), argName));
+        if (argValue == Qnil) {
+            // if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+            //     e.addErrorNote("Malformed `sig`. Type not specified for argument `{}`", argName.show(ctx));
+            // }
+            continue;
+        }
+
+        auto argTypeValue = rb_funcall(argValue, rb_intern("type"), 0);
+        auto argType = TypeTranslator::toRBI(ctx, argTypeValue, methodArg.loc());
+        if (asNilable) {
+            argType = ast::MK::Nilable(methodArg.loc(), std::move(argType));
+        }
+
+        VALUE rbsLoc = rb_funcall(argValue, rb_intern("location"), 0);
+        VALUE rbsStartColumnValue = rb_funcall(rbsLoc, rb_intern("start_column"), 0);
+        int rbsStartColumn = NUM2INT(rbsStartColumnValue);
+        VALUE rbsEndColumnValue = rb_funcall(rbsLoc, rb_intern("end_column"), 0);
+        int rbsEndColumn = NUM2INT(rbsEndColumnValue);
+        core::LocOffsets rbiOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
+        // std::cout << "DOC LOC: " << docLoc.showRaw(ctx) << std::endl;
+        // std::cout << "RBI OFFSETS: " << rbiOffsets.showRaw(ctx) << std::endl;
+
+        sigArgs.emplace_back(ast::MK::Symbol(rbiOffsets, argName));
         sigArgs.emplace_back(std::move(argType));
     }
 

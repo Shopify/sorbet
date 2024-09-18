@@ -57,26 +57,80 @@ end
  #  ^ error: Failed to parse RBS signature (expected a token `pARROW`)
   def parse_error4(p1, p2); end # error: The method `parse_error4` does not have a `sig`
 
-# Args
+# # Args
+
+#: (P1) -> void
+def method1(p1)
+  T.reveal_type(p1) # error: Revealed type: `P1`
+end
 
 #: (P1, P2) -> void
-def method1(p1, p2)
+def method2(p1, p2)
   T.reveal_type(p1) # error: Revealed type: `P1`
   T.reveal_type(p2) # error: Revealed type: `P2`
 end
 
 #: (?P1) -> void
-def method2(p1 = nil)
+def method3(p1 = nil)
   T.reveal_type(p1) # error: Revealed type: `T.nilable(P1)`
 end
 
-#: (P1, ?P2, *P3, p4: P4, ?p5: P5, **P6) { -> void } -> void
-def methodX(p1, p2 = nil, *p3, p4:, p5: nil, **p6, &block)
-  T.reveal_type(p1) # error: Revealed type: `P1`
-  T.reveal_type(p2) # error: Revealed type: `T.nilable(P2)`
-  T.reveal_type(p3) # error: Revealed type: `T::Array[P3]`
-  T.reveal_type(p4) # error: Revealed type: `P4`
-  T.reveal_type(p5) # error: Revealed type: `T.nilable(P5)`
-  T.reveal_type(p6) # error: Revealed type: `T::Hash[Symbol, P6]`
-  T.reveal_type(block) # error: Revealed type: `T.proc.void`
+#: (?P1, P2) -> void
+def method4(p1 = nil, p2)
+  T.reveal_type(p1) # error: Revealed type: `T.nilable(P1)`
+  T.reveal_type(p2) # error: Revealed type: `P2`
 end
+
+# #: (P1, ?P2, *P3, p4: P4, ?p5: P5, **P6) { -> void } -> void
+# def methodX(p1, p2 = nil, *p3, p4:, p5: nil, **p6, &block)
+#   T.reveal_type(p1) # error Revealed type: `P1`
+#   T.reveal_type(p2) # error Revealed type: `T.nilable(P2)`
+#   T.reveal_type(p3) # error Revealed type: `T::Array[P3]`
+#   T.reveal_type(p4) # error Revealed type: `P4`
+#   T.reveal_type(p5) # error Revealed type: `T.nilable(P5)`
+#   T.reveal_type(p6) # error Revealed type: `T::Hash[Symbol, P6]`
+#   T.reveal_type(block) # error Revealed type: `T.proc.void`
+# end
+
+# Named args
+
+#: (String x) -> String
+def named_args1(x)
+  T.reveal_type(x) # error: Revealed type: `String`
+end
+
+#: (String x) -> String
+#   ^^^^^^^^ error: Unknown argument name `x`
+def named_args2(y)
+  #             ^ error: Malformed `sig`. Type not specified for argument `y`
+  T.reveal_type(y) # error: Revealed type: `T.untyped`
+end
+
+#: (String foo) -> String
+#   ^^^^^^^^^^ error: Unknown argument name `foo`
+def named_args3(y)
+  #             ^ error: Malformed `sig`. Type not specified for argument `y`
+  T.reveal_type(y) # error: Revealed type: `T.untyped`
+end
+
+#: (String ?x) -> void
+def named_args4(x)
+  T.reveal_type(x) # error: Revealed type: `T.nilable(String)`
+end
+
+   #: (?String x) -> String
+ # ^^^^^^^^^^^^^^^^^^^^^^^^ error: Malformed `sig`. Type not specified for required positional `x`
+   def named_args5(x)
+     #             ^ error: Malformed `sig`. Type not specified for argument `x`
+     T.reveal_type(x) # error: Revealed type: `T.untyped`
+   end
+
+# #: (String x) -> void
+# def named_args5(x = nil)
+#   T.reveal_type(x)
+# end
+
+# #: (String ?x) -> void
+# def named_args6(x = nil)
+#   T.reveal_type(x)
+# end
