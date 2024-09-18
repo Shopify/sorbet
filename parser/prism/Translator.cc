@@ -1076,14 +1076,24 @@ std::unique_ptr<parser::Node> Translator::translateConstantPath(pm_constant_path
     } else {                                                // This is a fully qualified constant reference, like `::A`.
         pm_location_t *delimiterLoc = &node->delimiter_loc; // The location of the `::`
         parent = make_node<parser::Cbase>(parser.translateLocation(delimiterLoc));
+        parent->cacheDesugaredExpr(MK::Constant(parent->loc, core::Symbols::root()));
     }
 
+    auto parentExpr = parent->getCachedDesugaredExpr();
+    ENFORCE(parentExpr != nullptr);
+
+    auto sorbetName = gs.enterNameConstant(name);
+
+    unique_ptr<parser::Node> sorbetNode;
     if (isAssignment) {
-        return make_node<parser::ConstLhs>(parser.translateLocation(loc), std::move(parent),
-                                           gs.enterNameConstant(name));
+        sorbetNode = make_node<parser::ConstLhs>(parser.translateLocation(loc), std::move(parent), sorbetName);
     } else {
-        return make_node<parser::Const>(parser.translateLocation(loc), std::move(parent), gs.enterNameConstant(name));
+        sorbetNode = make_node<parser::Const>(parser.translateLocation(loc), std::move(parent), sorbetName);
     }
+
+    sorbetNode->cacheDesugaredExpr(MK::UnresolvedConstant(sorbetNode->loc, std::move(parentExpr), sorbetName));
+
+    return sorbetNode;
 }
 
 // Translate a node that only has basic location information, and nothing else. E.g. `true`, `nil`, `it`.
