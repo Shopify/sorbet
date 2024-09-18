@@ -18,9 +18,13 @@ public:
     template <typename... Args> NodeAndExpr(Args &&...args) : SorbetNode(std::forward<Args>(args)...) {}
 
     virtual ast::ExpressionPtr getCachedDesugaredExpr() {
-        if (this->desugaredExpr == nullptr)
-            return nullptr;
-        return this->desugaredExpr.deepCopy();
+        // We know each `NodeAndExpr` object's `getCachedDesugaredExpr()` will be called at most once, either:
+        // 1. When its parent node is being translated below, and this value is used to create that parent's expr.
+        // 2. When this node is visted by `node2TreeImpl` in `Runner.cc`, and this value is used in the fast-path.
+        //
+        // Because of this, we don't need to make any copies here. Just move this value out,
+        // and exclusive ownership to the caller.
+        return std::move(this->desugaredExpr);
     }
 
     // This method is intended to be called from the various `Translator` methods.
