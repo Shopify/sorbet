@@ -26,7 +26,8 @@ VALUE RBSParser::parse_method_type_wrapper(VALUE string) {
     return parse_method_type(parser);
 }
 
-VALUE RBSParser::parseRBS(core::MutableContext ctx, const std::string& docString, sorbet::core::LocOffsets loc) {
+VALUE RBSParser::parseRBS(core::MutableContext ctx, const std::string& docString, sorbet::core::LocOffsets docLoc, sorbet::core::LocOffsets methodLoc) {
+    std::cout << "parseRBS" << std::endl;
     VALUE string = rb_str_new2(docString.c_str());
 
     int state;
@@ -38,15 +39,23 @@ VALUE RBSParser::parseRBS(core::MutableContext ctx, const std::string& docString
         rb_set_errinfo(Qnil);  // Clear the error info
 
         // Get the error message from the exception
-        VALUE errorMessage = rb_funcall(exception, rb_intern("message"), 0);
+        VALUE errorMessage = rb_funcall(exception, rb_intern("error_message"), 0);
         char* cErrorMessage = StringValueCStr(errorMessage);
+
+        VALUE location = rb_funcall(exception, rb_intern("location"), 0);
+        auto startColumn = NUM2INT(rb_funcall(location, rb_intern("start_column"), 0));
+        auto endColumn = NUM2INT(rb_funcall(location, rb_intern("end_column"), 0));
+        std::cout << "docLoc: " << docLoc.showRaw(ctx) << std::endl;
+        std::cout << "startColumn: " << startColumn << std::endl;
+        std::cout << "endColumn: " << endColumn << std::endl;
 
         // Get the backtrace
         VALUE backtrace = rb_funcall(exception, rb_intern("backtrace"), 0);
 
         // Log the error or handle it as needed
-        if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSError)) {
-            e.setHeader("Failed to parse RBS signature: {}", cErrorMessage);
+        core::LocOffsets offset{docLoc.beginPos() + startColumn, docLoc.beginPos() + endColumn};
+        if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
+            e.setHeader("Failed to parse RBS signature ({})", cErrorMessage);
 
             rb_p(exception);
             rb_p(backtrace);

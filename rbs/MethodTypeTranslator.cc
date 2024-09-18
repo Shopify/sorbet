@@ -60,9 +60,10 @@ namespace {
 sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType) {
     auto loc = methodDef->loc;
 
-    std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
+    // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
 
     // TODO raise error if methodType is not a MethodType
+    // std::cout << rb_obj_classname(methodType) << std::endl;
     rb_p(methodType);
 
     VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
@@ -74,6 +75,9 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
     VALUE restKeywordsValue = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
     VALUE blockValue = rb_funcall(methodType, rb_intern("block"), 0);
 
+    auto requiredPositionalsIndex = 0;
+    auto optionalPositionalsIndex = 0;
+
     Send::ARGS_store sigArgs;
     for (int i = 0; i < methodDef->args.size(); i++) {
         auto &methodArg = methodDef->args[i];
@@ -83,8 +87,6 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
 
         // std::cout << "ARG: " << methodArg.showRaw(ctx) << std::endl;
 
-        auto requiredPositionalsIndex = 0;
-        auto optionalPositionalsIndex = 0;
         typecase(
             methodArg,
             [&](const ast::UnresolvedIdent &p) {
