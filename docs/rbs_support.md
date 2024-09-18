@@ -15,22 +15,23 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
-// - Translate `rbi` gems signatures to RBS for methods
-    // - tests method sigs
-    // - Handle block self binding
-    // - Generic methods: Type variales
+* Handle rewriter errors
+  * test errors
 
-// Test comments parsing
-// attribute sigs + tests
-// const sigs?
-// Inline annotations? #: Type
+* Translate `rbi` gems signatures to RBS for methods
+  * tests method sigs
+  * Handle block self binding
+  * Generic methods: Type variales
 
-// - Remove unnessary `to_s` calls?
-// - Translate attributes
-// - Handle errors
-    // test errors
-// - Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
+* Test comments parsing + errors
+* attribute sigs + tests
 
-// - Pass `tc` on `rbi`
-// - Clean how we depend on `rbs_parser`
-// - Remove rbs parser dependency on ruby_vm
+* Remove unnessary `to_s` calls?
+* Const sigs?
+* Inline annotations? #: Type
+* Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
+
+* Pass `tc` on `rbi`
+
+* Clean how we depend on `rbs_parser`
+* Remove rbs parser dependency on ruby_vm
