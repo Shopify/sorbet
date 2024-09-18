@@ -24,20 +24,18 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 ## TODO
 
 * Handle rewriter errors
+  * Test comments parsing + errors
   * sig parsing errors
   * sig rewriter signature match errors
-
   * test errors
 
 * Translate `rbi` gems signatures to RBS for methods
-  * tests method sigs
   * Handle block self binding
   * Generic methods: Type variales
 
-* Test comments parsing + errors
-* attribute sigs + tests
-
 * Remove unnessary `to_s` calls?
+
+* attribute sigs + tests
 * Const sigs?
 * Inline annotations? #: Type
 * Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors

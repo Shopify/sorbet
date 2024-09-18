@@ -9,7 +9,8 @@ namespace sorbet::rbs {
 
 class MethodTypeTranslator {
 public:
-    static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, sorbet::ast::MethodDef *methodDef, VALUE methodType);
+    static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, core::LocOffsets docLoc,
+                                            sorbet::ast::MethodDef *methodDef, VALUE methodType);
 };
 
 } // namespace sorbet::rbs

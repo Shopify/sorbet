@@ -8,8 +8,8 @@
 #include "ast/ast.h"
 #include "ast/treemap/treemap.h"
 #include "core/errors/rewriter.h"
-#include "rbs/RBSParser.h"
 #include "rbs/MethodTypeTranslator.h"
+#include "rbs/RBSParser.h"
 #include "rewriter/rewriter.h"
 
 using namespace std;
@@ -18,7 +18,9 @@ namespace sorbet::rewriter {
 
 class RBSSignaturesWalk {
     // TODO: review and clean up
-    optional<pair<core::LocOffsets, string>> findDocumentation(string_view sourceCode, core::LocOffsets loc) {
+    std::vector<pair<core::LocOffsets, string_view>> findRBSSignatures(string_view sourceCode, core::LocOffsets loc) {
+        std::vector<pair<core::LocOffsets, string_view>> rbs_signatures;
+
         uint32_t beginIndex = loc.beginPos();
 
         // Everything in the file before the method definition.
@@ -29,15 +31,16 @@ class RBSSignaturesWalk {
 
         // if there are no lines before the method definition, we're at the top of the file.
         if (all_lines.empty()) {
-            return nullopt;
+            return rbs_signatures;
         }
 
-        uint32_t index = beginIndex - 1;
-        std::vector<string_view> documentation_lines;
+        uint32_t index = beginIndex;
 
         // Iterate from the last line, to the first line
         for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
-            index -= it->size() - 1;
+            // std::cout << "line: '" << *it << "' size: " << it->size() << std::endl;
+            index -= it->size();
+            index -= 1;
 
             string_view line = absl::StripAsciiWhitespace(*it);
 
@@ -88,15 +91,16 @@ class RBSSignaturesWalk {
             }
 
             // Handle a comment line. Do not count typing declarations.
-            else if (absl::StartsWith(line, "#: ")) {
+            else if (absl::StartsWith(line, "#:")) {
                 // Account for whitespace before comment e.g
                 // # abc -> "abc"
                 // #abc -> "abc"
-                int skip_after_hash = absl::StartsWith(line, "#: ") ? 3 : 2;
+                // int skip_after_hash = absl::StartsWith(line, "#: ") ? 3 : 2;
 
-                string_view comment = line.substr(line.find("#: ") + skip_after_hash);
-
-                documentation_lines.emplace_back(comment);
+                int lineSize = line.size();
+                core::LocOffsets commentLoc{index, index + lineSize};
+                string_view comment = line.substr(line.find("#:") + 2);
+                rbs_signatures.emplace_back(std::make_pair(commentLoc, comment));
             }
 
             else if (absl::StartsWith(line, "#")) {
@@ -109,22 +113,19 @@ class RBSSignaturesWalk {
             }
         }
 
-        string documentation = absl::StrJoin(documentation_lines.rbegin(), documentation_lines.rend(), "\n");
-        std::cout << "documentation: '" << documentation << "'" << std::endl;
+        // std::cout << "documentation_lines: " << documentation_lines.size() << std::endl;
+        // string documentation = absl::StrJoin(documentation_lines.rbegin(), documentation_lines.rend(), "\n");
+        // std::cout << "documentation: '" << documentation << "'" << std::endl;
         // int documentationSize = documentation.size();
 
         // Remove trailing whitespace from the documentation
-        string_view stripped = absl::StripTrailingAsciiWhitespace(documentation);
-        if (stripped.size() != documentation.size()) {
-            documentation.resize(stripped.size());
-        }
+        // string_view stripped = absl::StripTrailingAsciiWhitespace(documentation);
+        // if (stripped.size() != documentation.size()) {
+        //     documentation.resize(stripped.size());
+        // }
 
-        if (documentation.empty()) {
-            return nullopt;
-        } else {
-            core::LocOffsets commentLoc{index, index};
-            return std::make_pair(commentLoc, documentation);
-        }
+        std::reverse(rbs_signatures.begin(), rbs_signatures.end());
+        return rbs_signatures;
     }
 
 public:
@@ -153,38 +154,19 @@ public:
 
             // std::cout << "method: " << methodDef->name.show(ctx) << std::endl;
 
-            vector<string> documentation;
-            auto loc = methodDef->loc;
-            auto res = findDocumentation(ctx.file.data(ctx).source(), loc);
+            auto methodLoc = methodDef->loc;
+            auto res = findRBSSignatures(ctx.file.data(ctx).source(), methodLoc);
 
-            if (!res.has_value()) {
-                classDef->rhs.emplace_back(std::move(stat));
-                continue;
-            }
+            for (auto &pair : res) {
+                auto docLoc = pair.first;
+                auto doc = pair.second;
+                // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
+                // std::cout << "doc: '" << doc << "'" << std::endl;
 
-            auto docLoc = res->first;
-            auto doc = res->second;
-
-            if (!doc.empty()) {
-                documentation.emplace_back(doc);
-            }
-
-            if (documentation.empty()) {
-                classDef->rhs.emplace_back(std::move(stat));
-                continue;
-            }
-
-            optional<string> docString;
-            if (!documentation.empty()) {
-                docString = absl::StrJoin(documentation, "\n\n");
-                std::cout << "rbs: '" << *docString << "'" << std::endl;
-            }
-
-            if (docString.has_value()) {
-                auto rbsMethodType = rbs::RBSParser::parseRBS(ctx, *docString, docLoc, methodDef->loc);
+                auto rbsMethodType = rbs::RBSParser::parseRBS(ctx, docLoc, methodLoc, doc);
 
                 if (rbsMethodType != Qnil) {
-                    auto sig = rbs::MethodTypeTranslator::toRBI(ctx, methodDef, rbsMethodType);
+                    auto sig = rbs::MethodTypeTranslator::toRBI(ctx, docLoc, methodDef, rbsMethodType);
                     classDef->rhs.emplace_back(std::move(sig));
                 }
             }
