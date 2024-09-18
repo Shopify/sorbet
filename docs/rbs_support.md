@@ -23,6 +23,8 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
+* run before
+
 * Handle rewriter errors
   * Test comments parsing + errors
   * sig parsing errors

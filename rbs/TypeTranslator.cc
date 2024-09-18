@@ -1,8 +1,8 @@
 #include "TypeTranslator.h"
-#include "ast/ast.h"
 #include "ast/Helpers.h"
-#include "core/Names.h"
+#include "ast/ast.h"
 #include "core/GlobalState.h"
+#include "core/Names.h"
 #include <cstring>
 #include <functional>
 
@@ -13,7 +13,7 @@ namespace sorbet::rbs {
 namespace {
 
 // TODO: do beter than this
-constexpr unsigned int hash(const char* str) {
+constexpr unsigned int hash(const char *str) {
     return *str ? static_cast<unsigned int>(*str) + 33 * hash(str + 1) : 5381;
 }
 
@@ -64,7 +64,8 @@ sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, VALUE typ
             argsStore.emplace_back(std::move(argType));
         }
 
-        return ast::MK::Send(loc, std::move(typeConstant), core::Names::squareBrackets(), loc, argsStore.size(), std::move(argsStore));
+        return ast::MK::Send(loc, std::move(typeConstant), core::Names::squareBrackets(), loc, argsStore.size(),
+                             std::move(argsStore));
     }
 
     return typeConstant;
@@ -121,7 +122,6 @@ sorbet::ast::ExpressionPtr functionType(core::MutableContext ctx, VALUE type, co
     VALUE returnValue = rb_funcall(type, rb_intern("return_type"), 0);
     auto returnType = TypeTranslator::toRBI(ctx, returnValue, loc);
 
-
     auto paramsStore = Send::ARGS_store();
     for (long i = 0; i < RARRAY_LEN(requiredPositionalsValue); i++) {
         auto argName = ctx.state.enterNameUTF8("arg" + std::to_string(i));
@@ -167,7 +167,8 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx, VALUE type, core
         VALUE keyToS = rb_funcall(key, rb_intern("to_s"), 0);
         std::string keyStr(RSTRING_PTR(keyToS));
         auto keyName = ctx.state.enterNameUTF8(keyStr);
-        auto keyLiteral = ast::MK::Literal(loc, core::make_type<core::NamedLiteralType>(core::Symbols::Symbol(), keyName));
+        auto keyLiteral =
+            ast::MK::Literal(loc, core::make_type<core::NamedLiteralType>(core::Symbols::Symbol(), keyName));
         keysStore.emplace_back(std::move(keyLiteral));
 
         rb_p(value);
@@ -182,7 +183,7 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx, VALUE type, core
 
 sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
     // rb_p(type);
-    const char* className = rb_obj_classname(type);
+    const char *className = rb_obj_classname(type);
     // TODO: handle errors
 
     switch (hash(className)) {
@@ -224,6 +225,8 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
             return recordType(ctx, type, loc);
 
         default:
+            std::cout << "unknown type: " << className << std::endl;
+            rb_p(type);
             return ast::MK::Untyped(loc);
     }
 }
