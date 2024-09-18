@@ -302,7 +302,12 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t *loc = &constantReadNode->base.location;
             std::string_view name = parser.resolveConstant(constantReadNode->name);
 
-            return make_node<parser::Const>(parser.translateLocation(loc), nullptr, gs.enterNameConstant(name));
+            auto sorbetName = gs.enterNameConstant(name);
+            auto sorbetNode = make_node<parser::Const>(parser.translateLocation(loc), nullptr, sorbetName);
+
+            sorbetNode->cacheDesugaredExpr(MK::UnresolvedConstant(sorbetNode->loc, MK::EmptyTree(), sorbetName));
+
+            return std::move(sorbetNode);
         }
         case PM_CONSTANT_WRITE_NODE: {
             return translateAssignment<pm_constant_write_node, parser::ConstLhs>(node);
@@ -337,7 +342,11 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
         }
         case PM_FALSE_NODE: { // The `false` keyword
-            return translateSimpleKeyword<pm_false_node, parser::False>(node);
+            auto sorbetNode = translateSimpleKeyword<pm_false_node, parser::False>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::False(sorbetNode->loc));
+
+            return std::move(sorbetNode);
         }
         case PM_FLOAT_NODE: {
             auto floatNode = reinterpret_cast<pm_float_node *>(node);
@@ -794,7 +803,11 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_node<parser::Symbol>(parser.translateLocation(loc), gs.enterNameUTF8(source));
         }
         case PM_TRUE_NODE: { // The `true` keyword
-            return translateSimpleKeyword<pm_true_node, parser::True>(node);
+            auto sorbetNode = translateSimpleKeyword<pm_true_node, parser::True>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::True(sorbetNode->loc));
+
+            return std::move(sorbetNode);
         }
         case PM_UNLESS_NODE: { // An `unless` branch, either in a statement or modifier form.
             auto unlessNode = reinterpret_cast<pm_if_node *>(node);
