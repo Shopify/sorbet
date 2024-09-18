@@ -1,5 +1,13 @@
 # RBS Support
 
+## Problem building
+
+Why do I need to comment `#require "rbs/collection"` in the rbs_parser gem?
+    undefined method `current' for class Ractor
+
+
+
+
 ## Unsupported RBS types
 
 * Interface types (use bare class types instead)
@@ -16,6 +24,9 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 ## TODO
 
 * Handle rewriter errors
+  * sig parsing errors
+  * sig rewriter signature match errors
+
   * test errors
 
 * Translate `rbi` gems signatures to RBS for methods
