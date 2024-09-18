@@ -32,10 +32,13 @@ class RBSSignaturesWalk {
             return nullopt;
         }
 
+        uint32_t index = beginIndex - 1;
         std::vector<string_view> documentation_lines;
 
         // Iterate from the last line, to the first line
         for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
+            index -= it->size() - 1;
+
             string_view line = absl::StripAsciiWhitespace(*it);
 
             // Short circuit when line is empty
@@ -108,7 +111,7 @@ class RBSSignaturesWalk {
 
         string documentation = absl::StrJoin(documentation_lines.rbegin(), documentation_lines.rend(), "\n");
         std::cout << "documentation: '" << documentation << "'" << std::endl;
-        int documentationSize = documentation.size();
+        // int documentationSize = documentation.size();
 
         // Remove trailing whitespace from the documentation
         string_view stripped = absl::StripTrailingAsciiWhitespace(documentation);
@@ -119,8 +122,7 @@ class RBSSignaturesWalk {
         if (documentation.empty()) {
             return nullopt;
         } else {
-            auto beingPos = loc.beingPos
-            core::LocOffsets commentLoc{loc.beginPos() - documentationSize - 1, loc.beginPos() - 1};
+            core::LocOffsets commentLoc{index, index};
             return std::make_pair(commentLoc, documentation);
         }
     }

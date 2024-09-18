@@ -12,8 +12,14 @@ module P6; end
 # Parse errors
 
 #: (P1, P2 -> void
-# ^^ error: Failed to parse RBS signature (unexpected token for function parameter name)
+#          ^^ error: Failed to parse RBS signature (unexpected token for function parameter name)
 def parse_error1; T.unsafe(nil); end # error: The method `parse_error1` does not have a `sig`
+
+class ParseError2
+  #: void
+  #  ^^^^ error: Failed to parse RBS signature (expected a token `pARROW`)
+  def parse_error2(p1, p2); end # error: The method `parse_error2` does not have a `sig`
+end
 
 #: (P1, P2) -> void
 def method1(p1, p2)
