@@ -704,11 +704,22 @@ public:
     }
 };
 
+// This macro indicates a code path that should never be reached if we're using Prism.
+#define TRANSLATED_BY_PRISM(dctx, node) \
+    ENFORCE(!(dctx).ctx.state.parseWithPrism, \
+            "The {} node should have already been desugared by the Prism Translator.", (node)->nodeName())
+
 ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) {
     try {
         if (what.get() == nullptr) {
             return MK::EmptyTree();
         }
+
+        if (auto expr = what->getCachedDesugaredExpr()) {
+            // This is a NodeAndExpr node that's already been translated to `ExpressionPtr` in `Translator.cc`
+            return expr;
+        }
+
         auto loc = what->loc;
         auto locZeroLen = what->loc.copyWithZeroLength();
         ENFORCE(loc.exists(), "parse-tree node has no location: {}", what->toString(dctx.ctx));
