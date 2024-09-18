@@ -8,7 +8,7 @@
 #include "ast/ast.h"
 #include "ast/treemap/treemap.h"
 #include "core/errors/rewriter.h"
-#include "rbs/rbs_common.h"
+#include "rbs/RBSParser.h"
 #include "rbs/MethodTypeTranslator.h"
 #include "rewriter/rewriter.h"
 
@@ -119,23 +119,6 @@ class RBSSignaturesWalk {
         }
     }
 
-    static VALUE parse_method_type_wrapper(VALUE string) {
-        VALUE cIO = rb_const_get(rb_cObject, rb_intern("RBS"));
-        VALUE cBuffer = rb_const_get(cIO, rb_intern("Buffer"));
-
-        VALUE kwargs = rb_hash_new();
-        rb_hash_aset(kwargs, ID2SYM(rb_intern("name")), rb_str_new2("(string)"));
-        rb_hash_aset(kwargs, ID2SYM(rb_intern("content")), string);
-        VALUE argv[1] = {kwargs};
-        VALUE buffer = rb_funcallv_kw(cBuffer, rb_intern("new"), 1, argv, RB_PASS_KEYWORDS);
-
-        int length = RSTRING_LEN(string);
-        lexstate *lexer = alloc_lexer(string, 0, length);
-        parserstate *parser = alloc_parser(buffer, lexer, 0, length, Qnil);
-
-        return parse_method_type(parser);
-    }
-
 public:
     RBSSignaturesWalk(core::MutableContext ctx) {}
 
@@ -180,43 +163,13 @@ public:
                 std::cout << "rbs: '" << *docString << "'" << std::endl;
             }
 
-            VALUE string = rb_str_new2(docString->c_str());
-            // StringValue(string);
+            if (docString.has_value()) {
+                auto rbsMethodType = rbs::RBSParser::parseRBS(ctx, *docString, methodDef->loc);
 
-            int state;
-            VALUE rbsMethodType = Qnil;
-            rbsMethodType = rb_protect(parse_method_type_wrapper, string, &state);
-
-            if (state) {
-                // An exception occurred
-                VALUE exception = rb_errinfo();
-                rb_set_errinfo(Qnil);  // Clear the error info
-
-                // Get the error message from the exception
-                VALUE errorMessage = rb_funcall(exception, rb_intern("message"), 0);
-                char* cErrorMessage = StringValueCStr(errorMessage);
-
-                // Get the backtrace
-                VALUE backtrace = rb_funcall(exception, rb_intern("backtrace"), 0);
-
-                // Log the error or handle it as needed
-                if (auto e = ctx.beginError(methodDef->loc, core::errors::Rewriter::RBSError)) {
-                    e.setHeader("Failed to parse RBS signature: {}", cErrorMessage);
-
-                    rb_p(exception);
-                    rb_p(backtrace);
-                    // e.addErrorNote("Stack trace: {}", rb_ary_join(backtrace, rb_str_new2("\n")));
+                if (rbsMethodType != Qnil) {
+                    auto sig = rbs::MethodTypeTranslator::toRBI(ctx, methodDef, rbsMethodType);
+                    classDef->rhs.emplace_back(std::move(sig));
                 }
-
-                // Skip adding the signature for this method
-                classDef->rhs.emplace_back(std::move(stat));
-                continue;
-            }
-
-            // Only proceed with signature translation if parsing was successful
-            if (rbsMethodType != Qnil) {
-                auto sig = sorbet::rbs::MethodTypeTranslator::toRBI(ctx, methodDef, rbsMethodType);
-                classDef->rhs.emplace_back(std::move(sig));
             }
 
             classDef->rhs.emplace_back(std::move(stat));
