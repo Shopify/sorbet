@@ -168,6 +168,8 @@ T.reveal_type(tuple_type1) # error: Revealed type: `[Integer] (1-tuple)`
 def tuple_type2; T.unsafe(nil); end
 T.reveal_type(tuple_type2) # error: Revealed type: `[Integer, String, T.untyped] (3-tuple)`
 
+# Shapes
+
 #: -> { id: String, name: String }
 def shape_type1; T.unsafe(nil); end
 T.reveal_type(shape_type1) # error: Revealed type: `{id: String, name: String} (shape of T::Hash[T.untyped, T.untyped])`

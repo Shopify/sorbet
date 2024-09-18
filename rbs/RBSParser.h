@@ -9,7 +9,7 @@ namespace sorbet::rbs {
 
 class RBSParser {
 public:
-    static VALUE parseRBS(core::MutableContext ctx, const std::string& docString, sorbet::core::LocOffsets loc);
+    static VALUE parseRBS(core::MutableContext ctx, const std::string& docString, sorbet::core::LocOffsets docLoc, sorbet::core::LocOffsets methodLoc);
 
 private:
     static VALUE parse_method_type_wrapper(VALUE string);

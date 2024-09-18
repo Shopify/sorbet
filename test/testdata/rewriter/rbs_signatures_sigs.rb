@@ -9,7 +9,11 @@ module P4; end
 module P5; end
 module P6; end
 
-# Method sigs
+# Parse errors
+
+#: (P1, P2 -> void
+# ^^ error: Failed to parse RBS signature (unexpected token for function parameter name)
+def parse_error1; T.unsafe(nil); end # error: The method `parse_error1` does not have a `sig`
 
 #: (P1, P2) -> void
 def method1(p1, p2)

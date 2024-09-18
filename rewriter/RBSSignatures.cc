@@ -18,7 +18,9 @@ namespace sorbet::rewriter {
 
 class RBSSignaturesWalk {
     // TODO: review and clean up
-    optional<string> findDocumentation(string_view sourceCode, int beginIndex) {
+    optional<pair<core::LocOffsets, string>> findDocumentation(string_view sourceCode, core::LocOffsets loc) {
+        uint32_t beginIndex = loc.beginPos();
+
         // Everything in the file before the method definition.
         string_view preDefinition = sourceCode.substr(0, sourceCode.rfind('\n', beginIndex));
 
@@ -92,12 +94,10 @@ class RBSSignaturesWalk {
                 string_view comment = line.substr(line.find("#: ") + skip_after_hash);
 
                 documentation_lines.emplace_back(comment);
+            }
 
-                // Account for yarddoc lines by inserting an extra newline right before
-                // the yarddoc line (note that we are reverse iterating)
-                if (absl::StartsWith(comment, "@")) {
-                    documentation_lines.emplace_back("");
-                }
+            else if (absl::StartsWith(line, "#")) {
+                continue;
             }
 
             // No other cases applied to this line, so stop looking.
@@ -107,6 +107,10 @@ class RBSSignaturesWalk {
         }
 
         string documentation = absl::StrJoin(documentation_lines.rbegin(), documentation_lines.rend(), "\n");
+        std::cout << "documentation: '" << documentation << "'" << std::endl;
+        int documentationSize = documentation.size();
+
+        // Remove trailing whitespace from the documentation
         string_view stripped = absl::StripTrailingAsciiWhitespace(documentation);
         if (stripped.size() != documentation.size()) {
             documentation.resize(stripped.size());
@@ -115,7 +119,9 @@ class RBSSignaturesWalk {
         if (documentation.empty()) {
             return nullopt;
         } else {
-            return documentation;
+            auto beingPos = loc.beingPos
+            core::LocOffsets commentLoc{loc.beginPos() - documentationSize - 1, loc.beginPos() - 1};
+            return std::make_pair(commentLoc, documentation);
         }
     }
 
@@ -147,9 +153,18 @@ public:
 
             vector<string> documentation;
             auto loc = methodDef->loc;
-            auto doc = findDocumentation(ctx.file.data(ctx).source(), loc.beginPos());
-            if (doc.has_value() && !doc->empty()) {
-                documentation.emplace_back(*doc);
+            auto res = findDocumentation(ctx.file.data(ctx).source(), loc);
+
+            if (!res.has_value()) {
+                classDef->rhs.emplace_back(std::move(stat));
+                continue;
+            }
+
+            auto docLoc = res->first;
+            auto doc = res->second;
+
+            if (!doc.empty()) {
+                documentation.emplace_back(doc);
             }
 
             if (documentation.empty()) {
@@ -164,7 +179,7 @@ public:
             }
 
             if (docString.has_value()) {
-                auto rbsMethodType = rbs::RBSParser::parseRBS(ctx, *docString, methodDef->loc);
+                auto rbsMethodType = rbs::RBSParser::parseRBS(ctx, *docString, docLoc, methodDef->loc);
 
                 if (rbsMethodType != Qnil) {
                     auto sig = rbs::MethodTypeTranslator::toRBI(ctx, methodDef, rbsMethodType);

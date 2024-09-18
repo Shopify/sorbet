@@ -25,9 +25,6 @@ void RubyVM::initialize() {
     ruby_init();
     ruby_init_loadpath();
 
-    VALUE version_info = rb_eval_string("RUBY_VERSION");
-    rb_p(version_info);
-
     // TODO: read this from the dep
     VALUE rb_load_path = rb_gv_get("$:");
     VALUE new_path = rb_str_new_cstr("/Users/at/src/github.com/ruby/rbs/lib");
