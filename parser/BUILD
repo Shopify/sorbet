@@ -23,6 +23,7 @@ cc_library(
     deps = [
         "//core",
         "//parser/parser",
+        "//ast",
         "@com_google_absl//absl/algorithm:container",
     ],
 )
