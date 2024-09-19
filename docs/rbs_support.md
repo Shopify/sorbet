@@ -27,11 +27,11 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 ## TODO
 
 * sig rewriter signature match errors + tests
-
 * run before all other rewriters?
-
 * Handle block self binding
 * Generic methods: Type variales
+
+
 
 * Remove unnessary `to_s` calls?
 
