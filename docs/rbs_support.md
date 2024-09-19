@@ -18,6 +18,7 @@ No location on blocks?
 * Literal types
 * Boolish
 * class -> T::Class[CurrentClass]
+* self types on procs
 
 # Generics types
 
@@ -26,21 +27,16 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
-* sig rewriter signature match errors + tests
-* run before all other rewriters?
-* Handle block self binding
-* Generic methods: Type variales
+* Pass `tc` on `rbi`
 
-
-
-* Remove unnessary `to_s` calls?
-
+* Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
 * attribute sigs + tests
 * Const sigs?
-* Inline annotations? #: Type
-* Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
 
-* Pass `tc` on `rbi`
+* Generic methods: Type variales
+* Remove unnessary `to_s` calls?
+
+* Inline annotations? #: Type
 
 * Clean how we depend on `rbs_parser`
 * Remove rbs parser dependency on ruby_vm
