@@ -444,14 +444,19 @@ public:
     }
 
     static ExpressionPtr T_Hash(core::LocOffsets loc) {
-        return UnresolvedConstantParts(loc, EmptyTree(),
-                                       {core::Names::Constants::T(), core::Names::Constants::Hash()});
+        return UnresolvedConstantParts(loc, EmptyTree(), {core::Names::Constants::T(), core::Names::Constants::Hash()});
     }
 
     static ExpressionPtr T_Proc(core::LocOffsets loc, Send::ARGS_store args, ExpressionPtr ret) {
         auto proc = Send0(loc, T(loc), core::Names::proc(), loc);
         auto params = Params(loc, std::move(proc), std::move(args));
         return Send1(loc, std::move(params), core::Names::returns(), loc, std::move(ret));
+    }
+
+    static ExpressionPtr T_ProcVoid(core::LocOffsets loc, Send::ARGS_store args) {
+        auto proc = Send0(loc, T(loc), core::Names::proc(), loc);
+        auto params = Params(loc, std::move(proc), std::move(args));
+        return Send0(loc, std::move(params), core::Names::void_(), loc);
     }
 
     static ExpressionPtr ZSuper(core::LocOffsets loc, core::NameRef method) {
