@@ -21,4 +21,4 @@ module P6; end
 #def methodX(p1, p2 = nil, *p3); end
 
 #: (P1, ?P2, *P3, p4: P4, ?p5: P5, **P6) { -> void } -> void
-def methodX(p1, p2 = nil, *p3, p4:, p5: nil, **p6, &block)
+def methodX(p1, p2 = nil, *p3, p4:, p5: nil, **p6, &block); end
