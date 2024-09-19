@@ -145,6 +145,24 @@ sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, VALUE type, core::
     return functionType(ctx, typeValue, loc);
 }
 
+sorbet::ast::ExpressionPtr blockType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
+    VALUE typeValue = rb_funcall(type, rb_intern("type"), 0);
+    auto function = functionType(ctx, typeValue, loc);
+
+    VALUE selfValue = rb_funcall(type, rb_intern("self_type"), 0);
+    if (selfValue != Qnil) {
+        auto selfType = TypeTranslator::toRBI(ctx, selfValue, loc);
+        function = ast::MK::Send1(loc, std::move(function), core::Names::bind(), loc, std::move(selfType));
+    }
+
+    bool required = RTEST(rb_funcall(type, rb_intern("required"), 0));
+    if (!required) {
+        return ast::MK::Nilable(loc, std::move(function));
+    }
+
+    return function;
+}
+
 sorbet::ast::ExpressionPtr tupleType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
     VALUE types = rb_funcall(type, rb_intern("types"), 0);
     auto typesStore = Array::ENTRY_store();
@@ -219,6 +237,8 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
             return ast::MK::NoReturn(loc);
         case hash("RBS::Types::Bases::Void"):
             return voidType(ctx, type, loc);
+        case hash("RBS::Types::Block"):
+            return blockType(ctx, type, loc);
         case hash("RBS::Types::Proc"):
             return procType(ctx, type, loc);
         case hash("RBS::Types::Function"):

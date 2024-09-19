@@ -137,3 +137,19 @@ end
 def method18(&block)
   T.reveal_type(block) # error: Revealed type: `T.nilable(T.proc.void)`
 end
+
+class FooProc
+  #: (p: ^() [self: FooProc] -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
+  def initialize(p: -> { 42 }, &block)
+    T.reveal_type(p) # error: Revealed type: `T.proc.returns(Integer)`
+    T.reveal_type(block) # error: Revealed type: `T.nilable(T.proc.params(arg0: Integer).returns(String))`
+    T.reveal_type(p.call) # error: Revealed type: `Integer`
+    T.reveal_type(block&.call(42)) # error: Revealed type: `T.nilable(String)`
+  end
+end
+
+FooProc.new do |foo|
+  T.reveal_type(self) # error: Revealed type: `FooProc`
+  T.reveal_type(foo) # error: Revealed type: `Integer`
+  "foo"
+end

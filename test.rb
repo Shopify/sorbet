@@ -31,7 +31,16 @@ module P6; end
 #   T.reveal_type(block) # error: Revealed type: `T.proc.void`
 # end
 
-#: (String name) ?{ (String node) -> void } -> void
-def initialize(name, &block)
-  block&.call(name)
+class Foo
+  #: (p: ^() [self: Foo] -> Integer ) ?{ () [self: Foo] -> String } -> void
+  def initialize(p: -> { 42 }, &block)
+    T.reveal_type(p) # error: Revealed type: `Foo`
+    T.reveal_type(block) # error: Revealed type: `T.proc.returns(String)`
+    T.reveal_type(p.call) # error: Revealed type: `Integer`
+    T.reveal_type(block&.call) # error: Revealed type: `String`
+  end
+end
+
+Foo.new do |foo|
+  T.reveal_type(foo) # error: Revealed type: `Foo`
 end

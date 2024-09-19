@@ -119,9 +119,8 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
         // TODO: RBS doesn't have location on blocks?
         auto loc = docLoc;
         auto name = Qnil;
-        auto type = rb_funcall(block, rb_intern("type"), 0);
-        auto optional = !RTEST(rb_funcall(block, rb_intern("required"), 0));
-        args.emplace_back(RBSArg{loc, block, name, type, optional});
+        auto type = block;
+        args.emplace_back(RBSArg{loc, block, name, type, false});
     }
 
     for (int i = 0; i < args.size(); i++) {
