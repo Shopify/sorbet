@@ -31,7 +31,7 @@ module P6; end
 #   T.reveal_type(block) # error: Revealed type: `T.proc.void`
 # end
 
-#: ?{ -> void } -> void
-def methodY(&block)
-  T.reveal_type(block) # error: Revealed type: `T.proc.void`
+#: (String name) ?{ (String node) -> void } -> void
+def initialize(name, &block)
+  block&.call(name)
 end

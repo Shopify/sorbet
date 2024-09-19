@@ -97,7 +97,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
     std::vector<RBSArg> args;
 
     collectArgs(docLoc, rb_funcall(functionType, rb_intern("required_positionals"), 0), args, false);
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("optional_positionals"), 0), args, true);
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("optional_positionals"), 0), args, false);
 
     VALUE restPositionals = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
     if (restPositionals != Qnil) {
@@ -107,7 +107,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
     collectArgs(docLoc, rb_funcall(functionType, rb_intern("trailing_positionals"), 0), args, false);
 
     collectKeywords(docLoc, rb_funcall(functionType, rb_intern("required_keywords"), 0), args, false);
-    collectKeywords(docLoc, rb_funcall(functionType, rb_intern("optional_keywords"), 0), args, true);
+    collectKeywords(docLoc, rb_funcall(functionType, rb_intern("optional_keywords"), 0), args, false);
 
     VALUE restKeywords = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
     if (restKeywords != Qnil) {
@@ -153,8 +153,11 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
     }
 
     VALUE returnValue = rb_funcall(functionType, rb_intern("return_type"), 0);
-    auto returnType = TypeTranslator::toRBI(ctx, returnValue, methodDef->loc);
+    if (strcmp(rb_obj_classname(returnValue), "RBS::Types::Bases::Void") == 0) {
+        return ast::MK::SigVoid(docLoc, std::move(sigArgs));
+    }
 
+    auto returnType = TypeTranslator::toRBI(ctx, returnValue, methodDef->loc);
     return ast::MK::Sig(docLoc, std::move(sigArgs), std::move(returnType));
 }
 

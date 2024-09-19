@@ -68,12 +68,12 @@ def method8(p1, p2)
   T.reveal_type(p2) # error: Revealed type: `P2`
 end
 
-#: (?P1) -> void
-def method9(p1 = nil)
-  T.reveal_type(p1) # error: Revealed type: `T.nilable(P1)`
+#: (?Integer) -> void
+def method9(p1 = 42)
+  T.reveal_type(p1) # error: Revealed type: `Integer`
 end
 
-#: (?P1, P2) -> void
+#: (?P1?, P2) -> void
 def method10(p1 = nil, p2)
   T.reveal_type(p1) # error: Revealed type: `T.nilable(P1)`
   T.reveal_type(p2) # error: Revealed type: `P2`
@@ -107,20 +107,22 @@ end
 
 #: (?String x) -> void
 def method14(x)
-  T.reveal_type(x) # error: Revealed type: `T.nilable(String)`
+  T.reveal_type(x) # error: Revealed type: `String`
 end
 
+# TODO: should error
 #: (String x) -> void
 def method15(x = nil) # error: Argument does not have asserted type `String`
   T.reveal_type(x) # error: Revealed type: `T.nilable(String)`
 end
 
+# TODO: should error
 #: (String ?x) -> void
 def method16(x = nil)
   T.reveal_type(x) # error: Revealed type: `T.nilable(String)`
 end
 
-#: (P1, ?P2, *P3, p4: P4, ?p5: P5, **P6) { -> void } -> void
+#: (P1, ?P2?, *P3, p4: P4, ?p5: P5?, **P6) { -> void } -> void
 def method17(p1, p2 = nil, *p3, p4:, p5: nil, **p6, &block)
   T.reveal_type(p1) # error: Revealed type: `P1`
   T.reveal_type(p2) # error: Revealed type: `T.nilable(P2)`

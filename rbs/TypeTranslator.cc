@@ -133,6 +133,10 @@ sorbet::ast::ExpressionPtr functionType(core::MutableContext ctx, VALUE type, co
         paramsStore.emplace_back(std::move(innerType));
     }
 
+    if (strcmp(rb_obj_classname(returnValue), "RBS::Types::Bases::Void") == 0) {
+        return ast::MK::T_ProcVoid(loc, std::move(paramsStore));
+    }
+
     return ast::MK::T_Proc(loc, std::move(paramsStore), std::move(returnType));
 }
 
