@@ -6,7 +6,10 @@ Why do I need to comment `#require "rbs/collection"` in the rbs_parser gem?
     undefined method `current' for class Ractor
 
 
+## Problems RBS
 
+Require Ruby VM
+No location on blocks?
 
 ## Unsupported RBS types
 

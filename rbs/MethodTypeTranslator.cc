@@ -57,27 +57,6 @@ namespace {
 //     sigArgs.emplace_back(std::move(translatedType));
 // }
 
-struct RBSArg {
-    core::LocOffsets loc;
-    VALUE value;
-    VALUE name;
-    VALUE type;
-};
-
-core::LocOffsets rbsLoc(core::LocOffsets docLoc, VALUE location) {
-    int rbsStartColumn = NUM2INT(rb_funcall(location, rb_intern("start_column"), 0));
-    int rbsEndColumn = NUM2INT(rb_funcall(location, rb_intern("end_column"), 0));
-    return core::LocOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
-}
-
-RBSArg rbsArg(core::LocOffsets docLoc, VALUE arg) {
-    auto loc = rbsLoc(docLoc, rb_funcall(arg, rb_intern("location"), 0));
-    auto name = rb_funcall(arg, rb_intern("name"), 0);
-    auto type = rb_funcall(arg, rb_intern("type"), 0);
-
-    return RBSArg{loc, arg, name, type};
-}
-
 core::NameRef expressionName(core::MutableContext ctx, const ast::ExpressionPtr *expr) {
     core::NameRef name;
 
@@ -95,48 +74,95 @@ core::NameRef expressionName(core::MutableContext ctx, const ast::ExpressionPtr 
     return name;
 }
 
-void collectArgs(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &args) {
+struct RBSArg {
+    core::LocOffsets loc;
+    VALUE value;
+    VALUE name;
+    VALUE type;
+    bool optional;
+};
+
+core::LocOffsets rbsLoc(core::LocOffsets docLoc, VALUE location) {
+    int rbsStartColumn = NUM2INT(rb_funcall(location, rb_intern("start_column"), 0));
+    int rbsEndColumn = NUM2INT(rb_funcall(location, rb_intern("end_column"), 0));
+    return core::LocOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
+}
+
+RBSArg rbsArg(core::LocOffsets docLoc, VALUE arg, bool optional) {
+    auto loc = rbsLoc(docLoc, rb_funcall(arg, rb_intern("location"), 0));
+    auto name = rb_funcall(arg, rb_intern("name"), 0);
+    auto type = rb_funcall(arg, rb_intern("type"), 0);
+
+    return RBSArg{loc, arg, name, type, optional};
+}
+
+void collectArgs(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &args, bool optional) {
     for (int i = 0; i < RARRAY_LEN(field); i++) {
         VALUE argValue = rb_ary_entry(field, i);
-        args.emplace_back(rbsArg(docLoc, argValue));
+        args.emplace_back(rbsArg(docLoc, argValue, optional));
     }
 }
 
-std::vector<RBSArg> getPositionals(core::LocOffsets docLoc, VALUE functionType) {
-    std::vector<RBSArg> args;
+void collectKeywords(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &args, bool optional) {
+    VALUE keys = rb_funcall(field, rb_intern("keys"), 0);
+    long size = RARRAY_LEN(keys);
 
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("required_positionals"), 0), args);
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("optional_positionals"), 0), args);
+    for (long i = 0; i < size; i++) {
+        VALUE key = rb_ary_entry(keys, i);
+        VALUE value = rb_hash_aref(field, key);
 
-    VALUE restPositionals = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
-    if (restPositionals != Qnil) {
-        args.emplace_back(rbsArg(docLoc, restPositionals));
+        auto arg = rbsArg(docLoc, value, optional);
+        arg.name = key;
+        args.emplace_back(arg);
     }
-
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("trailing_positionals"), 0), args);
-
-    return args;
 }
 
 } // namespace
 
 sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, core::LocOffsets docLoc,
                                                        sorbet::ast::MethodDef *methodDef, VALUE methodType) {
-    std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
-
     // TODO raise error if methodType is not a MethodType
+    // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
     // std::cout << rb_obj_classname(methodType) << std::endl;
-    rb_p(methodType);
+    // rb_p(methodType);
 
     VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
 
     Send::ARGS_store sigArgs;
 
-    auto positionals = getPositionals(docLoc, functionType);
-    for (int i = 0; i < positionals.size(); i++) {
-        auto &arg = positionals[i];
-        std::cout << "PARAM: " << arg.loc.showRaw(ctx) << std::endl;
-        rb_p(arg.value);
+    std::vector<RBSArg> args;
+
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("required_positionals"), 0), args, false);
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("optional_positionals"), 0), args, true);
+
+    VALUE restPositionals = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
+    if (restPositionals != Qnil) {
+        args.emplace_back(rbsArg(docLoc, restPositionals, false));
+    }
+
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("trailing_positionals"), 0), args, false);
+
+    collectKeywords(docLoc, rb_funcall(functionType, rb_intern("required_keywords"), 0), args, false);
+    collectKeywords(docLoc, rb_funcall(functionType, rb_intern("optional_keywords"), 0), args, true);
+
+    VALUE restKeywords = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
+    if (restKeywords != Qnil) {
+        args.emplace_back(rbsArg(docLoc, restKeywords, false));
+    }
+
+    VALUE block = rb_funcall(methodType, rb_intern("block"), 0);
+    if (block != Qnil) {
+        // TODO: RBS doesn't have location on blocks?
+        auto loc = docLoc;
+        auto name = Qnil;
+        auto type = rb_funcall(block, rb_intern("type"), 0);
+        args.emplace_back(RBSArg{loc, block, name, type, false});
+    }
+
+    for (int i = 0; i < args.size(); i++) {
+        auto &arg = args[i];
+        // std::cout << "PARAM: " << arg.loc.showRaw(ctx) << std::endl;
+        // rb_p(arg.value);
 
         core::NameRef name;
         auto nameValue = arg.name;
@@ -149,23 +175,23 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
         } else {
             // The RBS arg is not named in the signature, so we look at the method definition
             auto &methodArg = methodDef->args[i];
-            std::cout << "METHOD ARG: " << methodArg.showRaw(ctx) << std::endl;
+            // std::cout << "METHOD ARG: " << methodArg.showRaw(ctx) << std::endl;
             name = expressionName(ctx, &methodArg);
         }
 
         auto type = TypeTranslator::toRBI(ctx, arg.type, arg.loc);
-        // if (asNilable) {
-        //     argType = ast::MK::Nilable(methodArg.loc(), std::move(argType));
-        // }
+        if (arg.optional) {
+            type = ast::MK::Nilable(arg.loc, std::move(type));
+        }
 
         sigArgs.emplace_back(ast::MK::Symbol(arg.loc, name));
         sigArgs.emplace_back(std::move(type));
     }
 
-    VALUE requiredKeywordsValue = rb_funcall(functionType, rb_intern("required_keywords"), 0);
-    VALUE optionalKeywordsValue = rb_funcall(functionType, rb_intern("optional_keywords"), 0);
-    VALUE restKeywordsValue = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
-    VALUE blockValue = rb_funcall(methodType, rb_intern("block"), 0);
+    // VALUE requiredKeywordsValue = rb_funcall(functionType, rb_intern("required_keywords"), 0);
+    // VALUE optionalKeywordsValue = rb_funcall(functionType, rb_intern("optional_keywords"), 0);
+    // VALUE restKeywordsValue = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
+    // VALUE blockValue = rb_funcall(methodType, rb_intern("block"), 0);
 
     // Iterate over positionals
     // find matching positional in positionals array
@@ -175,97 +201,97 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
 
     // Add block
 
-    for (int i = 0; i < methodDef->args.size(); i++) {
-        auto &methodArg = methodDef->args[i];
+    // for (int i = 0; i < methodDef->args.size(); i++) {
+    //     auto &methodArg = methodDef->args[i];
 
-        VALUE argValue;
-        core::NameRef argName;
-        bool asNilable = false;
-        // std::cout << "ARG: " << methodArg.showRaw(ctx) << std::endl;
+    //     VALUE argValue;
+    //     core::NameRef argName;
+    //     bool asNilable = false;
+    //     // std::cout << "ARG: " << methodArg.showRaw(ctx) << std::endl;
 
-        typecase(
-            methodArg,
-            [&](const ast::OptionalArg &p) {
-                typecase(
-                    p.expr,
-                    [&](const ast::KeywordArg &p) {
-                        auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
-                        if (argIdent != nullptr) {
-                            argName = argIdent->name;
-                            VALUE key = ID2SYM(rb_intern(argName.show(ctx).c_str()));
-                            argValue = rb_hash_aref(optionalKeywordsValue, key);
-                            asNilable = true;
-                        }
-                    },
-                    [&](const ast::ExpressionPtr &p) {
-                        std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
-                    });
-            },
-            [&](const ast::RestArg &p) {
-                typecase(
-                    p.expr,
-                    [&](const ast::KeywordArg &p) {
-                        auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
-                        if (argIdent != nullptr) {
-                            argName = argIdent->name;
-                        }
-                        argValue = restKeywordsValue;
-                    },
-                    [&](const ast::ExpressionPtr &p) {
-                        std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
-                    });
-            },
-            // TODO: Access the hash
-            [&](const ast::KeywordArg &p) {
-                auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
-                if (argIdent != nullptr) {
-                    argName = argIdent->name;
-                    VALUE key = ID2SYM(rb_intern(argName.show(ctx).c_str()));
-                    argValue = rb_hash_aref(requiredKeywordsValue, key);
-                }
-            },
-            [&](const ast::BlockArg &p) {
-                auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
-                if (argIdent != nullptr) {
-                    argName = argIdent->name;
-                }
-                argValue = blockValue;
-            },
-            [&](const ast::ExpressionPtr &p) { std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl; });
+    //     typecase(
+    //         methodArg,
+    //         [&](const ast::OptionalArg &p) {
+    //             typecase(
+    //                 p.expr,
+    //                 [&](const ast::KeywordArg &p) {
+    //                     auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+    //                     if (argIdent != nullptr) {
+    //                         argName = argIdent->name;
+    //                         VALUE key = ID2SYM(rb_intern(argName.show(ctx).c_str()));
+    //                         argValue = rb_hash_aref(optionalKeywordsValue, key);
+    //                         asNilable = true;
+    //                     }
+    //                 },
+    //                 [&](const ast::ExpressionPtr &p) {
+    //                     std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
+    //                 });
+    //         },
+    //         [&](const ast::RestArg &p) {
+    //             typecase(
+    //                 p.expr,
+    //                 [&](const ast::KeywordArg &p) {
+    //                     auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+    //                     if (argIdent != nullptr) {
+    //                         argName = argIdent->name;
+    //                     }
+    //                     argValue = restKeywordsValue;
+    //                 },
+    //                 [&](const ast::ExpressionPtr &p) {
+    //                     std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
+    //                 });
+    //         },
+    //         // TODO: Access the hash
+    //         [&](const ast::KeywordArg &p) {
+    //             auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+    //             if (argIdent != nullptr) {
+    //                 argName = argIdent->name;
+    //                 VALUE key = ID2SYM(rb_intern(argName.show(ctx).c_str()));
+    //                 argValue = rb_hash_aref(requiredKeywordsValue, key);
+    //             }
+    //         },
+    //         [&](const ast::BlockArg &p) {
+    //             auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
+    //             if (argIdent != nullptr) {
+    //                 argName = argIdent->name;
+    //             }
+    //             argValue = blockValue;
+    //         },
+    //         [&](const ast::ExpressionPtr &p) { std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl; });
 
-        if (!argName.exists()) {
-            std::cout << "MISSING ARG NAME: " << methodArg.showRaw(ctx) << std::endl;
-            // TODO raise error
-            continue;
-        } else {
-            // std::cout << "ARG NAME: " << argName.show(ctx) << std::endl;
-        }
+    //     if (!argName.exists()) {
+    //         std::cout << "MISSING ARG NAME: " << methodArg.showRaw(ctx) << std::endl;
+    //         // TODO raise error
+    //         continue;
+    //     } else {
+    //         // std::cout << "ARG NAME: " << argName.show(ctx) << std::endl;
+    //     }
 
-        if (argValue == Qnil) {
-            // if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
-            //     e.addErrorNote("Malformed `sig`. Type not specified for argument `{}`", argName.show(ctx));
-            // }
-            continue;
-        }
+    //     if (argValue == Qnil) {
+    //         // if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+    //         //     e.addErrorNote("Malformed `sig`. Type not specified for argument `{}`", argName.show(ctx));
+    //         // }
+    //         continue;
+    //     }
 
-        auto argTypeValue = rb_funcall(argValue, rb_intern("type"), 0);
-        auto argType = TypeTranslator::toRBI(ctx, argTypeValue, methodArg.loc());
-        if (asNilable) {
-            argType = ast::MK::Nilable(methodArg.loc(), std::move(argType));
-        }
+    //     auto argTypeValue = rb_funcall(argValue, rb_intern("type"), 0);
+    //     auto argType = TypeTranslator::toRBI(ctx, argTypeValue, methodArg.loc());
+    //     if (asNilable) {
+    //         argType = ast::MK::Nilable(methodArg.loc(), std::move(argType));
+    //     }
 
-        VALUE rbsLoc = rb_funcall(argValue, rb_intern("location"), 0);
-        VALUE rbsStartColumnValue = rb_funcall(rbsLoc, rb_intern("start_column"), 0);
-        int rbsStartColumn = NUM2INT(rbsStartColumnValue);
-        VALUE rbsEndColumnValue = rb_funcall(rbsLoc, rb_intern("end_column"), 0);
-        int rbsEndColumn = NUM2INT(rbsEndColumnValue);
-        core::LocOffsets rbiOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
-        // std::cout << "DOC LOC: " << docLoc.showRaw(ctx) << std::endl;
-        // std::cout << "RBI OFFSETS: " << rbiOffsets.showRaw(ctx) << std::endl;
+    //     VALUE rbsLoc = rb_funcall(argValue, rb_intern("location"), 0);
+    //     VALUE rbsStartColumnValue = rb_funcall(rbsLoc, rb_intern("start_column"), 0);
+    //     int rbsStartColumn = NUM2INT(rbsStartColumnValue);
+    //     VALUE rbsEndColumnValue = rb_funcall(rbsLoc, rb_intern("end_column"), 0);
+    //     int rbsEndColumn = NUM2INT(rbsEndColumnValue);
+    //     core::LocOffsets rbiOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
+    //     // std::cout << "DOC LOC: " << docLoc.showRaw(ctx) << std::endl;
+    //     // std::cout << "RBI OFFSETS: " << rbiOffsets.showRaw(ctx) << std::endl;
 
-        sigArgs.emplace_back(ast::MK::Symbol(rbiOffsets, argName));
-        sigArgs.emplace_back(std::move(argType));
-    }
+    //     sigArgs.emplace_back(ast::MK::Symbol(rbiOffsets, argName));
+    //     sigArgs.emplace_back(std::move(argType));
+    // }
 
     // visitParameterList(parameterList);
     //  (store.emplace_back(std::forward<Args>(args)), ...);
