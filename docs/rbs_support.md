@@ -23,17 +23,12 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
-* run before
+* sig rewriter signature match errors + tests
 
-* Handle rewriter errors
-  * Test comments parsing + errors
-  * sig parsing errors
-  * sig rewriter signature match errors
-  * test errors
+* run before all other rewriters?
 
-* Translate `rbi` gems signatures to RBS for methods
-  * Handle block self binding
-  * Generic methods: Type variales
+* Handle block self binding
+* Generic methods: Type variales
 
 * Remove unnessary `to_s` calls?
 
