@@ -57,29 +57,124 @@ namespace {
 //     sigArgs.emplace_back(std::move(translatedType));
 // }
 
+struct RBSArg {
+    core::LocOffsets loc;
+    VALUE value;
+    VALUE name;
+    VALUE type;
+};
+
+core::LocOffsets rbsLoc(core::LocOffsets docLoc, VALUE location) {
+    int rbsStartColumn = NUM2INT(rb_funcall(location, rb_intern("start_column"), 0));
+    int rbsEndColumn = NUM2INT(rb_funcall(location, rb_intern("end_column"), 0));
+    return core::LocOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
+}
+
+RBSArg rbsArg(core::LocOffsets docLoc, VALUE arg) {
+    auto loc = rbsLoc(docLoc, rb_funcall(arg, rb_intern("location"), 0));
+    auto name = rb_funcall(arg, rb_intern("name"), 0);
+    auto type = rb_funcall(arg, rb_intern("type"), 0);
+
+    return RBSArg{loc, arg, name, type};
+}
+
+core::NameRef expressionName(core::MutableContext ctx, const ast::ExpressionPtr *expr) {
+    core::NameRef name;
+
+    typecase(
+        *expr, [&](const ast::UnresolvedIdent &p) { name = p.name; },
+        [&](const ast::OptionalArg &p) { name = expressionName(ctx, &p.expr); },
+        [&](const ast::RestArg &p) { name = expressionName(ctx, &p.expr); },
+        [&](const ast::KeywordArg &p) { name = expressionName(ctx, &p.expr); },
+        [&](const ast::BlockArg &p) { name = expressionName(ctx, &p.expr); },
+        [&](const ast::ExpressionPtr &p) {
+            std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
+            name = ctx.state.enterNameUTF8("TMP");
+        });
+
+    return name;
+}
+
+void collectArgs(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &args) {
+    for (int i = 0; i < RARRAY_LEN(field); i++) {
+        VALUE argValue = rb_ary_entry(field, i);
+        args.emplace_back(rbsArg(docLoc, argValue));
+    }
+}
+
+std::vector<RBSArg> getPositionals(core::LocOffsets docLoc, VALUE functionType) {
+    std::vector<RBSArg> args;
+
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("required_positionals"), 0), args);
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("optional_positionals"), 0), args);
+
+    VALUE restPositionals = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
+    if (restPositionals != Qnil) {
+        args.emplace_back(rbsArg(docLoc, restPositionals));
+    }
+
+    collectArgs(docLoc, rb_funcall(functionType, rb_intern("trailing_positionals"), 0), args);
+
+    return args;
+}
+
 } // namespace
 
 sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, core::LocOffsets docLoc,
                                                        sorbet::ast::MethodDef *methodDef, VALUE methodType) {
-    // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
+    std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
 
     // TODO raise error if methodType is not a MethodType
     // std::cout << rb_obj_classname(methodType) << std::endl;
-    // rb_p(methodType);
+    rb_p(methodType);
 
     VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
-    VALUE requiredPositionalsValue = rb_funcall(functionType, rb_intern("required_positionals"), 0);
-    VALUE optionalPositionalsValue = rb_funcall(functionType, rb_intern("optional_positionals"), 0);
-    VALUE restPositionalsValue = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
+
+    Send::ARGS_store sigArgs;
+
+    auto positionals = getPositionals(docLoc, functionType);
+    for (int i = 0; i < positionals.size(); i++) {
+        auto &arg = positionals[i];
+        std::cout << "PARAM: " << arg.loc.showRaw(ctx) << std::endl;
+        rb_p(arg.value);
+
+        core::NameRef name;
+        auto nameValue = arg.name;
+
+        if (nameValue != Qnil) {
+            // The RBS arg is named in the signature, so we use that name.
+            auto nameString = rb_funcall(nameValue, rb_intern("to_s"), 0);
+            const char *nameStr = StringValueCStr(nameString);
+            name = ctx.state.enterNameUTF8(nameStr);
+        } else {
+            // The RBS arg is not named in the signature, so we look at the method definition
+            auto &methodArg = methodDef->args[i];
+            std::cout << "METHOD ARG: " << methodArg.showRaw(ctx) << std::endl;
+            name = expressionName(ctx, &methodArg);
+        }
+
+        auto type = TypeTranslator::toRBI(ctx, arg.type, arg.loc);
+        // if (asNilable) {
+        //     argType = ast::MK::Nilable(methodArg.loc(), std::move(argType));
+        // }
+
+        sigArgs.emplace_back(ast::MK::Symbol(arg.loc, name));
+        sigArgs.emplace_back(std::move(type));
+    }
+
     VALUE requiredKeywordsValue = rb_funcall(functionType, rb_intern("required_keywords"), 0);
     VALUE optionalKeywordsValue = rb_funcall(functionType, rb_intern("optional_keywords"), 0);
     VALUE restKeywordsValue = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
     VALUE blockValue = rb_funcall(methodType, rb_intern("block"), 0);
 
-    auto requiredPositionalsIndex = 0;
-    auto optionalPositionalsIndex = 0;
+    // Iterate over positionals
+    // find matching positional in positionals array
 
-    Send::ARGS_store sigArgs;
+    // Iterate over keywords
+    // find matching keyword in keywords hash
+
+    // Add block
+
     for (int i = 0; i < methodDef->args.size(); i++) {
         auto &methodArg = methodDef->args[i];
 
@@ -90,46 +185,9 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
 
         typecase(
             methodArg,
-            [&](const ast::UnresolvedIdent &p) {
-                argValue = rb_ary_entry(requiredPositionalsValue, requiredPositionalsIndex);
-                if (argValue == Qnil) {
-                    std::cout << "ARG VALUE NIL" << std::endl;
-                    core::LocOffsets offset{docLoc.beginLoc, docLoc.endLoc};
-                    if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
-                        e.setHeader("Malformed `{}`. Type not specified for required positional `{}`", "sig",
-                                    p.name.show(ctx));
-                    }
-                    return;
-                }
-
-                auto rbsName = rb_funcall(argValue, rb_intern("name"), 0);
-                if (rbsName == Qnil) {
-                    argName = p.name;
-                } else {
-                    auto rbsString = rb_funcall(rbsName, rb_intern("to_s"), 0);
-                    const char *nameStr = StringValueCStr(rbsString);
-                    argName = ctx.state.enterNameUTF8(nameStr);
-                    rb_p(rbsName);
-                }
-                requiredPositionalsIndex++;
-            },
             [&](const ast::OptionalArg &p) {
                 typecase(
                     p.expr,
-                    [&](const ast::UnresolvedIdent &p) {
-                        argName = p.name;
-                        argValue = rb_ary_entry(optionalPositionalsValue, optionalPositionalsIndex);
-                        asNilable = true;
-                        optionalPositionalsIndex++;
-                        if (argValue == Qnil) {
-                            core::LocOffsets offset{docLoc.beginLoc + 2, docLoc.beginLoc + 2};
-                            if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
-                                e.setHeader("Malformed `{}`. Type not specified for argument `{}`", "sig",
-                                            argName.show(ctx));
-                            }
-                            return;
-                        }
-                    },
                     [&](const ast::KeywordArg &p) {
                         auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
                         if (argIdent != nullptr) {
@@ -146,10 +204,6 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
             [&](const ast::RestArg &p) {
                 typecase(
                     p.expr,
-                    [&](const ast::UnresolvedIdent &p) {
-                        argValue = restPositionalsValue;
-                        argName = p.name;
-                    },
                     [&](const ast::KeywordArg &p) {
                         auto argIdent = ast::cast_tree<ast::UnresolvedIdent>(p.expr);
                         if (argIdent != nullptr) {
