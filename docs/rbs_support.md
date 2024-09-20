@@ -27,16 +27,20 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
+* attribute sigs + tests
 * Pass `tc` on `rbi`
 
-* Handle abstract, interface, final, sealed, mixes_in, overrides, required_ancestors
-* attribute sigs + tests
-* Const sigs?
+* Handle abstract, interface, final, sealed, mixes_in, required_ancestors
 
-* Generic methods: Type variales
-* Remove unnessary `to_s` calls?
+* Const sigs? CONST = T.let(42, Integer)
+* Pass `tc` on `rbi`
 
 * Inline annotations? #: Type
+* Pass `tc` on `rbi`
 
+* Generic methods: Type variables
+* Remove sorbet-runtime (t::Struct, t::Enum, etc...)
+
+* Remove unnessary `to_s` calls?
 * Clean how we depend on `rbs_parser`
 * Remove rbs parser dependency on ruby_vm

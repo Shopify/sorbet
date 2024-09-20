@@ -84,7 +84,8 @@ void collectKeywords(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &
 } // namespace
 
 sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                       sorbet::ast::MethodDef *methodDef, VALUE methodType) {
+                                                       sorbet::ast::MethodDef *methodDef, VALUE methodType,
+                                                       std::vector<RBSAnnotation> annotations) {
     // TODO raise error if methodType is not a MethodType
     // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
     // std::cout << rb_obj_classname(methodType) << std::endl;
@@ -151,13 +152,42 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
         sigArgs.emplace_back(std::move(type));
     }
 
-    VALUE returnValue = rb_funcall(functionType, rb_intern("return_type"), 0);
-    if (strcmp(rb_obj_classname(returnValue), "RBS::Types::Bases::Void") == 0) {
-        return ast::MK::SigVoid(docLoc, std::move(sigArgs));
+    auto sigBuilder = ast::MK::Self(docLoc);
+
+    for (auto &annotation : annotations) {
+        if (annotation.string == "@abstract") {
+            sigBuilder = ast::MK::Send0(annotation.loc, std::move(sigBuilder), core::Names::abstract(), annotation.loc);
+        } else if (annotation.string == "@override") {
+            sigBuilder =
+                ast::MK::Send0(annotation.loc, std::move(sigBuilder), core::Names::override_(), annotation.loc);
+        }
     }
 
-    auto returnType = TypeTranslator::toRBI(ctx, returnValue, methodDef->loc);
-    return ast::MK::Sig(docLoc, std::move(sigArgs), std::move(returnType));
+    ENFORCE(sigArgs.size() % 2 == 0, "Sig params must be arg name/type pairs");
+
+    if (sigArgs.size() > 0) {
+        sigBuilder = ast::MK::Send(docLoc, std::move(sigBuilder), core::Names::params(), docLoc, 0, std::move(sigArgs));
+    }
+
+    VALUE returnValue = rb_funcall(functionType, rb_intern("return_type"), 0);
+    rb_p(returnValue);
+
+    if (strcmp(rb_obj_classname(returnValue), "RBS::Types::Bases::Void") == 0) {
+        sigBuilder = ast::MK::Send0(docLoc, std::move(sigBuilder), core::Names::void_(), docLoc);
+    } else {
+        auto returnType = TypeTranslator::toRBI(ctx, returnValue, methodDef->loc);
+        sigBuilder =
+            ast::MK::Send1(docLoc, std::move(sigBuilder), core::Names::returns(), docLoc, std::move(returnType));
+    }
+
+    auto sig =
+        ast::MK::Send1(docLoc, ast::MK::Constant(docLoc, core::Symbols::Sorbet_Private_Static()), core::Names::sig(),
+                       docLoc, ast::MK::Constant(docLoc, core::Symbols::T_Sig_WithoutRuntime()));
+    auto sigSend = ast::cast_tree<ast::Send>(sig);
+    sigSend->setBlock(ast::MK::Block0(docLoc, std::move(sigBuilder)));
+    sigSend->flags.isRewriterSynthesized = true;
+
+    return sig;
 }
 
 } // namespace sorbet::rbs

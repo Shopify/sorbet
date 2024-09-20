@@ -153,3 +153,11 @@ FooProc.new do |foo|
   T.reveal_type(foo) # error: Revealed type: `Integer`
   "foo"
 end
+
+# @abstract
+#: -> Integer
+def method19; end # error: Before declaring an abstract method, you must mark your class/module as abstract using `abstract!` or `interface!`
+
+# @override
+#: -> Integer
+def method20; T.unsafe(nil); end # error: Method `Object#method20` is marked `override` but does not override anything

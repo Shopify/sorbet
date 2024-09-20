@@ -26,8 +26,8 @@ VALUE RBSParser::parse_method_type_wrapper(VALUE string) {
     return parse_method_type(parser);
 }
 
-VALUE RBSParser::parseRBS(core::MutableContext ctx, sorbet::core::LocOffsets docLoc, sorbet::core::LocOffsets methodLoc,
-                          const std::string_view docString) {
+VALUE RBSParser::parseSignature(core::MutableContext ctx, sorbet::core::LocOffsets docLoc,
+                                sorbet::core::LocOffsets methodLoc, const std::string_view docString) {
     // std::cout << "parseRBS" << std::endl;
     VALUE string = rb_str_new(docString.data(), docString.size());
 

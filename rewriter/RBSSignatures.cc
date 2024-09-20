@@ -18,22 +18,19 @@ namespace sorbet::rewriter {
 
 class RBSSignaturesWalk {
     // TODO: review and clean up
-    std::vector<pair<core::LocOffsets, string_view>> findRBSSignatures(string_view sourceCode, core::LocOffsets loc) {
-        std::vector<pair<core::LocOffsets, string_view>> rbs_signatures;
+    rbs::MethodComments findRBSSignatures(string_view sourceCode, core::LocOffsets loc) {
+        std::vector<rbs::RBSAnnotation> annotations;
+        std::vector<rbs::RBSSignature> signatures;
 
         uint32_t beginIndex = loc.beginPos();
 
-        // Everything in the file before the method definition.
+        // Everything in the file before the method definition
         string_view preDefinition = sourceCode.substr(0, sourceCode.rfind('\n', beginIndex));
 
-        // Get all the lines before it.
+        // Get all the lines before it
         std::vector<string_view> all_lines = absl::StrSplit(preDefinition, '\n');
 
-        // if there are no lines before the method definition, we're at the top of the file.
-        if (all_lines.empty()) {
-            return rbs_signatures;
-        }
-
+        // We compute the current position in the source so we know the location of each comment
         uint32_t index = beginIndex;
 
         // Iterate from the last line, to the first line
@@ -52,11 +49,13 @@ class RBSSignaturesWalk {
             // Handle single-line sig block
             else if (absl::StartsWith(line, "sig")) {
                 // Do nothing for a one-line sig block
+                // TODO: Handle single-line sig blocks
             }
 
             // Handle multi-line sig block
             else if (absl::StartsWith(line, "end")) {
                 // ASSUMPTION: We either hit the start of file, a `sig do`/`sig(:final) do` or an `end`
+                // TODO: Handle multi-line sig blocks
                 it++;
                 while (
                     // SOF
@@ -90,7 +89,7 @@ class RBSSignaturesWalk {
                 // Else, this is a valid sig block. Move on to any possible documentation.
             }
 
-            // Handle a comment line. Do not count typing declarations.
+            // Handle a RBS sig annotation `#: SomeRBS`
             else if (absl::StartsWith(line, "#:")) {
                 // Account for whitespace before comment e.g
                 // # abc -> "abc"
@@ -98,11 +97,24 @@ class RBSSignaturesWalk {
                 // int skip_after_hash = absl::StartsWith(line, "#: ") ? 3 : 2;
 
                 int lineSize = line.size();
-                core::LocOffsets commentLoc{index, index + lineSize};
-                string_view comment = line.substr(line.find("#:") + 2);
-                rbs_signatures.emplace_back(std::make_pair(commentLoc, comment));
+                auto rbsSignature = rbs::RBSSignature{
+                    core::LocOffsets{index, index + lineSize},
+                    line.substr(line.find("#:") + 2),
+                };
+                signatures.insert(signatures.begin(), rbsSignature);
             }
 
+            // Handle RDoc annotations `# @abstract`
+            else if (absl::StartsWith(line, "# @")) {
+                int lineSize = line.size();
+                auto annotation = rbs::RBSAnnotation{
+                    core::LocOffsets{index, index + lineSize},
+                    line.substr(line.find("# ") + 2),
+                };
+                annotations.insert(annotations.begin(), annotation);
+            }
+
+            // Ignore other comments
             else if (absl::StartsWith(line, "#")) {
                 continue;
             }
@@ -124,8 +136,7 @@ class RBSSignaturesWalk {
         //     documentation.resize(stripped.size());
         // }
 
-        std::reverse(rbs_signatures.begin(), rbs_signatures.end());
-        return rbs_signatures;
+        return rbs::MethodComments{annotations, signatures};
     }
 
 public:
@@ -155,18 +166,19 @@ public:
             // std::cout << "method: " << methodDef->name.show(ctx) << std::endl;
 
             auto methodLoc = methodDef->loc;
-            auto res = findRBSSignatures(ctx.file.data(ctx).source(), methodLoc);
+            auto methodComments = findRBSSignatures(ctx.file.data(ctx).source(), methodLoc);
 
-            for (auto &pair : res) {
-                auto docLoc = pair.first;
-                auto doc = pair.second;
+            for (auto &signature : methodComments.signatures) {
+                auto docLoc = signature.loc;
+                auto doc = signature.signature;
                 // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
                 // std::cout << "doc: '" << doc << "'" << std::endl;
 
-                auto rbsMethodType = rbs::RBSParser::parseRBS(ctx, docLoc, methodLoc, doc);
+                auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
 
                 if (rbsMethodType != Qnil) {
-                    auto sig = rbs::MethodTypeTranslator::toRBI(ctx, docLoc, methodDef, rbsMethodType);
+                    auto sig = rbs::MethodTypeTranslator::toRBI(ctx, docLoc, methodDef, rbsMethodType,
+                                                                methodComments.annotations);
                     classDef->rhs.emplace_back(std::move(sig));
                 }
             }
