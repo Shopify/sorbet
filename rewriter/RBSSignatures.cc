@@ -7,9 +7,11 @@
 #include "ast/Helpers.h"
 #include "ast/ast.h"
 #include "ast/treemap/treemap.h"
+#include "core/GlobalState.h"
 #include "core/errors/rewriter.h"
 #include "rbs/MethodTypeTranslator.h"
 #include "rbs/RBSParser.h"
+#include "rbs/TypeTranslator.h"
 #include "rewriter/rewriter.h"
 
 using namespace std;
@@ -18,7 +20,7 @@ namespace sorbet::rewriter {
 
 class RBSSignaturesWalk {
     // TODO: review and clean up
-    rbs::MethodComments findRBSSignatures(string_view sourceCode, core::LocOffsets loc) {
+    rbs::MethodComments findRBSComments(string_view sourceCode, core::LocOffsets loc) {
         std::vector<rbs::RBSAnnotation> annotations;
         std::vector<rbs::RBSSignature> signatures;
 
@@ -125,18 +127,26 @@ class RBSSignaturesWalk {
             }
         }
 
-        // std::cout << "documentation_lines: " << documentation_lines.size() << std::endl;
-        // string documentation = absl::StrJoin(documentation_lines.rbegin(), documentation_lines.rend(), "\n");
-        // std::cout << "documentation: '" << documentation << "'" << std::endl;
-        // int documentationSize = documentation.size();
-
-        // Remove trailing whitespace from the documentation
-        // string_view stripped = absl::StripTrailingAsciiWhitespace(documentation);
-        // if (stripped.size() != documentation.size()) {
-        //     documentation.resize(stripped.size());
-        // }
-
         return rbs::MethodComments{annotations, signatures};
+    }
+
+    bool isAttr(ast::ExpressionPtr &recv) {
+        auto *send = ast::cast_tree<ast::Send>(recv);
+        if (!send) {
+            return false;
+        }
+
+        if (!send->recv.isSelfReference()) {
+            return false;
+        }
+
+        core::NameRef name = send->fun;
+        if (name != core::Names::attrReader() && name != core::Names::attrWriter() &&
+            name != core::Names::attrAccessor()) {
+            return false;
+        }
+
+        return true;
     }
 
 public:
@@ -152,37 +162,57 @@ public:
         classDef->rhs.clear();
         classDef->rhs.reserve(oldRHS.size());
 
-        // if (auto e = ctx.beginError(classDef->loc, core::errors::Rewriter::RBSError)) {
-        //     e.setHeader("`{}` error", "class << EXPRESSION");
-        // }
-
         for (auto &stat : oldRHS) {
-            auto *methodDef = ast::cast_tree<ast::MethodDef>(stat);
-            if (methodDef == nullptr) {
+            if (auto *methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
+                // std::cout << "method: " << methodDef->name.show(ctx) << std::endl;
+
+                auto methodLoc = methodDef->loc;
+                auto methodComments = findRBSComments(ctx.file.data(ctx).source(), methodLoc);
+
+                for (auto &signature : methodComments.signatures) {
+                    auto docLoc = signature.loc;
+                    auto doc = signature.signature;
+                    // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
+                    // std::cout << "doc: '" << doc << "'" << std::endl;
+
+                    auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
+
+                    if (rbsMethodType != Qnil) {
+                        auto sig = rbs::MethodTypeTranslator::methodSignature(ctx, docLoc, methodDef, rbsMethodType,
+                                                                              methodComments.annotations);
+                        classDef->rhs.emplace_back(std::move(sig));
+                    }
+                }
+
                 classDef->rhs.emplace_back(std::move(stat));
                 continue;
             }
 
-            // std::cout << "method: " << methodDef->name.show(ctx) << std::endl;
+            if (isAttr(stat)) {
+                auto attr = ast::cast_tree<ast::Send>(stat);
+                auto comments = findRBSComments(ctx.file.data(ctx).source(), attr->loc);
 
-            auto methodLoc = methodDef->loc;
-            auto methodComments = findRBSSignatures(ctx.file.data(ctx).source(), methodLoc);
+                for (auto &signature : comments.signatures) {
+                    auto docLoc = signature.loc;
+                    auto doc = signature.signature;
+                    // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
+                    // std::cout << "doc: '" << doc << "'" << std::endl;
 
-            for (auto &signature : methodComments.signatures) {
-                auto docLoc = signature.loc;
-                auto doc = signature.signature;
-                // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
-                // std::cout << "doc: '" << doc << "'" << std::endl;
+                    auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, attr->loc, doc);
 
-                auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
-
-                if (rbsMethodType != Qnil) {
-                    auto sig = rbs::MethodTypeTranslator::toRBI(ctx, docLoc, methodDef, rbsMethodType,
-                                                                methodComments.annotations);
-                    classDef->rhs.emplace_back(std::move(sig));
+                    if (rbsType != Qnil) {
+                        auto sig =
+                            rbs::MethodTypeTranslator::attrSignature(ctx, docLoc, attr, rbsType, comments.annotations);
+                        classDef->rhs.emplace_back(std::move(sig));
+                    }
                 }
-            }
 
+                classDef->rhs.emplace_back(std::move(stat));
+                continue;
+
+                classDef->rhs.emplace_back(std::move(stat));
+                continue;
+            }
             classDef->rhs.emplace_back(std::move(stat));
         }
     }
@@ -194,5 +224,4 @@ ast::ExpressionPtr RBSSignatures::run(core::MutableContext ctx, ast::ExpressionP
 
     return tree;
 }
-
 }; // namespace sorbet::rewriter
