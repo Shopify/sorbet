@@ -37,7 +37,6 @@ class RBSSignaturesWalk {
 
         // Iterate from the last line, to the first line
         for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
-            // std::cout << "line: '" << *it << "' size: " << it->size() << std::endl;
             index -= it->size();
             index -= 1;
 
@@ -164,17 +163,12 @@ public:
 
         for (auto &stat : oldRHS) {
             if (auto *methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
-                // std::cout << "method: " << methodDef->name.show(ctx) << std::endl;
-
                 auto methodLoc = methodDef->loc;
                 auto methodComments = findRBSComments(ctx.file.data(ctx).source(), methodLoc);
 
                 for (auto &signature : methodComments.signatures) {
                     auto docLoc = signature.loc;
                     auto doc = signature.signature;
-                    // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
-                    // std::cout << "doc: '" << doc << "'" << std::endl;
-
                     auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
 
                     if (rbsMethodType != Qnil) {
@@ -195,9 +189,6 @@ public:
                 for (auto &signature : comments.signatures) {
                     auto docLoc = signature.loc;
                     auto doc = signature.signature;
-                    // std::cout << "docLoc: " << docLoc.beginPos() << std::endl;
-                    // std::cout << "doc: '" << doc << "'" << std::endl;
-
                     auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, attr->loc, doc);
 
                     if (rbsType != Qnil) {
