@@ -1,19 +1,17 @@
-# typed: true
+# typed: strict
 
-module P1; end
-module P2; end
-module P3; end
-module P4; end
-module P5; end
-module P6; end
-
-class Abstract
+class Foo
   extend T::Sig
-  extend T::Helpers
 
-  abstract!
+  #: Integer?
+  attr_writer :baz
 
-  # @abstract
-  #: -> Integer
-  def foo; end
+  sig { returns(T.nilable(Integer)) }
+  attr_accessor :bar
+
+  #: -> void
+  def initialize
+    @baz = nil
+    @bar = nil
+  end
 end

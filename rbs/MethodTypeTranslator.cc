@@ -1,12 +1,12 @@
 #include "MethodTypeTranslator.h"
 #include "TypeTranslator.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/strip.h"
 #include "ast/Helpers.h"
 #include "ast/ast.h"
 #include "core/GlobalState.h"
 #include "core/Names.h"
 #include "core/errors/rewriter.h"
-
 #include <cstring>
 #include <functional>
 
@@ -36,6 +36,50 @@ core::NameRef expressionName(core::MutableContext ctx, const ast::ExpressionPtr 
         });
 
     return name;
+}
+
+std::pair<core::NameRef, core::LocOffsets> getName(core::MutableContext ctx, ast::ExpressionPtr &name) {
+    core::LocOffsets loc;
+    core::NameRef res;
+    if (auto *lit = ast::cast_tree<ast::Literal>(name)) {
+        if (lit->isSymbol()) {
+            res = lit->asSymbol();
+            loc = lit->loc;
+            ENFORCE(ctx.locAt(loc).exists());
+            ENFORCE(ctx.locAt(loc).source(ctx).value().size() > 1 && ctx.locAt(loc).source(ctx).value()[0] == ':');
+            loc = core::LocOffsets{loc.beginPos() + 1, loc.endPos()};
+        } else if (lit->isString()) {
+            core::NameRef nameRef = lit->asString();
+            auto shortName = nameRef.shortName(ctx);
+            bool validAttr = (isalpha(shortName.front()) || shortName.front() == '_') &&
+                             absl::c_all_of(shortName, [](char c) { return isalnum(c) || c == '_'; });
+            if (validAttr) {
+                res = nameRef;
+            } else {
+                if (auto e = ctx.beginError(name.loc(), core::errors::Rewriter::BadAttrArg)) {
+                    e.setHeader("Bad attribute name \"{}\"", absl::CEscape(shortName));
+                }
+                res = core::Names::empty();
+            }
+            loc = lit->loc;
+            DEBUG_ONLY({
+                auto l = ctx.locAt(loc);
+                ENFORCE(l.exists());
+                auto source = l.source(ctx).value();
+                ENFORCE(source.size() > 2);
+                ENFORCE(source[0] == '"' || source[0] == '\'');
+                auto lastChar = source[source.size() - 1];
+                ENFORCE(lastChar == '"' || lastChar == '\'');
+            });
+            loc = core::LocOffsets{loc.beginPos() + 1, loc.endPos() - 1};
+        }
+    }
+    if (!res.exists()) {
+        if (auto e = ctx.beginError(name.loc(), core::errors::Rewriter::BadAttrArg)) {
+            e.setHeader("arg must be a Symbol or String");
+        }
+    }
+    return std::make_pair(res, loc);
 }
 
 struct RBSArg {
@@ -83,9 +127,9 @@ void collectKeywords(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &
 
 } // namespace
 
-sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                       sorbet::ast::MethodDef *methodDef, VALUE methodType,
-                                                       std::vector<RBSAnnotation> annotations) {
+sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableContext ctx, core::LocOffsets docLoc,
+                                                                 sorbet::ast::MethodDef *methodDef, VALUE methodType,
+                                                                 std::vector<RBSAnnotation> annotations) {
     // TODO raise error if methodType is not a MethodType
     // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
     // std::cout << rb_obj_classname(methodType) << std::endl;
@@ -179,6 +223,39 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::toRBI(core::MutableContext ctx,
         sigBuilder =
             ast::MK::Send1(docLoc, std::move(sigBuilder), core::Names::returns(), docLoc, std::move(returnType));
     }
+
+    auto sig =
+        ast::MK::Send1(docLoc, ast::MK::Constant(docLoc, core::Symbols::Sorbet_Private_Static()), core::Names::sig(),
+                       docLoc, ast::MK::Constant(docLoc, core::Symbols::T_Sig_WithoutRuntime()));
+    auto sigSend = ast::cast_tree<ast::Send>(sig);
+    sigSend->setBlock(ast::MK::Block0(docLoc, std::move(sigBuilder)));
+    sigSend->flags.isRewriterSynthesized = true;
+
+    return sig;
+}
+
+sorbet::ast::ExpressionPtr MethodTypeTranslator::attrSignature(core::MutableContext ctx, core::LocOffsets docLoc,
+                                                               sorbet::ast::Send *send, VALUE attrType,
+                                                               std::vector<RBSAnnotation> annotations) {
+    // TODO raise error if attr is not a Type
+    // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
+    // std::cout << rb_obj_classname(methodType) << std::endl;
+
+    auto sigBuilder = ast::MK::Self(docLoc);
+
+    if (send->fun == core::Names::attrWriter()) {
+        ENFORCE(send->numPosArgs() >= 1);
+        auto &arg = send->getPosArg(0);
+        auto name = getName(ctx, arg);
+
+        Send::ARGS_store sigArgs;
+        sigArgs.emplace_back(ast::MK::Symbol(name.second, name.first));
+        sigArgs.emplace_back(TypeTranslator::toRBI(ctx, attrType, docLoc));
+        sigBuilder = ast::MK::Send(docLoc, std::move(sigBuilder), core::Names::params(), docLoc, 0, std::move(sigArgs));
+    }
+
+    auto returnType = TypeTranslator::toRBI(ctx, attrType, docLoc);
+    sigBuilder = ast::MK::Send1(docLoc, std::move(sigBuilder), core::Names::returns(), docLoc, std::move(returnType));
 
     auto sig =
         ast::MK::Send1(docLoc, ast::MK::Constant(docLoc, core::Symbols::Sorbet_Private_Static()), core::Names::sig(),

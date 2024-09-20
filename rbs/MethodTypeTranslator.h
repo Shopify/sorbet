@@ -24,9 +24,13 @@ struct MethodComments {
 
 class MethodTypeTranslator {
 public:
-    static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, core::LocOffsets docLoc,
-                                            sorbet::ast::MethodDef *methodDef, VALUE methodType,
-                                            std::vector<RBSAnnotation> annotations);
+    static sorbet::ast::ExpressionPtr methodSignature(core::MutableContext ctx, core::LocOffsets docLoc,
+                                                      sorbet::ast::MethodDef *methodDef, VALUE methodType,
+                                                      std::vector<RBSAnnotation> annotations);
+
+    static sorbet::ast::ExpressionPtr attrSignature(core::MutableContext ctx, core::LocOffsets docLoc,
+                                                    sorbet::ast::Send *send, VALUE attrType,
+                                                    std::vector<RBSAnnotation> annotations);
 };
 
 } // namespace sorbet::rbs
