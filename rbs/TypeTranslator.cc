@@ -193,7 +193,7 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx, VALUE type, core
             ast::MK::Literal(loc, core::make_type<core::NamedLiteralType>(core::Symbols::Symbol(), keyName));
         keysStore.emplace_back(std::move(keyLiteral));
 
-        rb_p(value);
+        // rb_p(value);
         auto innerType = TypeTranslator::toRBI(ctx, value, loc);
         valuesStore.emplace_back(std::move(innerType));
     }
@@ -231,10 +231,12 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
             return ast::MK::T_Boolean(loc);
         case hash("RBS::Types::Bases::Nil"):
             return ast::MK::UnresolvedConstant(loc, ast::MK::EmptyTree(), core::Names::Constants::NilClass());
-        case hash("RBS::Types::Bases::Top"):
-            return ast::MK::Anything(loc);
+        case hash("RBS::Types::Bases::Any"):
+            return ast::MK::Untyped(loc);
         case hash("RBS::Types::Bases::Bottom"):
             return ast::MK::NoReturn(loc);
+        case hash("RBS::Types::Bases::Top"):
+            return ast::MK::Anything(loc);
         case hash("RBS::Types::Bases::Void"):
             return voidType(ctx, type, loc);
         case hash("RBS::Types::Block"):
@@ -250,7 +252,7 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, VALUE
 
         default:
             std::cout << "unknown type: " << className << std::endl;
-            rb_p(type);
+            // rb_p(type);
             return ast::MK::Untyped(loc);
     }
 }

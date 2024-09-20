@@ -55,9 +55,9 @@ void RubyVM::cleanup() {
     ruby_cleanup(0);
 }
 
-void RubyVM::handle_ruby_exception(const char* context, int state) {
+void RubyVM::handle_ruby_exception(const char *context, int state) {
     VALUE exception = rb_errinfo();
-    rb_set_errinfo(Qnil);  // Clear the error info
+    rb_set_errinfo(Qnil); // Clear the error info
 
     VALUE errorMessage = rb_funcall(exception, rb_intern("message"), 0);
     rb_p(errorMessage);

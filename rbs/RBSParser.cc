@@ -73,10 +73,6 @@ VALUE RBSParser::parseSignature(core::MutableContext ctx, sorbet::core::LocOffse
         // std::cout << "offset: " << offset.showRaw(ctx) << (offset.beginPos()) << std::endl;
         if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
             e.setHeader("Failed to parse RBS signature ({})", cErrorMessage);
-
-            // rb_p(exception);
-            // rb_p(backtrace);
-            // e.addErrorNote("Stack trace: {}", rb_ary_join(backtrace, rb_str_new2("\n")));
         }
 
         return Qnil;

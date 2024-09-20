@@ -65,17 +65,14 @@ pair<core::NameRef, core::LocOffsets> getName(core::MutableContext ctx, ast::Exp
 bool isT(const ast::ExpressionPtr &expr) {
     if (auto *t = ast::cast_tree<ast::ConstantLit>(expr)) {
         if (t->symbol == core::Symbols::T()) {
-            std::cout << "isT: true" << std::endl;
             return true;
         }
     }
 
     auto *t = ast::cast_tree<ast::UnresolvedConstantLit>(expr);
     if (t == nullptr || t->cnst != core::Names::Constants::T()) {
-        std::cout << "isT: true" << std::endl;
         return false;
     }
-    std::cout << "isT: naybe" << std::endl;
     return ast::MK::isRootScope(t->scope);
 }
 
@@ -104,7 +101,6 @@ bool hasNilableOrUntypedReturns(ast::ExpressionPtr &sharedSig) {
     auto *body = findSendReturns(ASTUtil::castSig(sharedSig));
 
     ENFORCE(body->fun == core::Names::returns());
-    std::cout << "body->numPosArgs(): " << body->numPosArgs() << std::endl;
     if (body->numPosArgs() != 1) {
         return false;
     }
@@ -238,10 +234,7 @@ vector<ast::ExpressionPtr> AttrReader::run(core::MutableContext ctx, ast::Send *
     }
 
     bool declareIvars = false;
-    std::cout << "sig: " << (sig != nullptr) << std::endl;
-    // std::cout << "prevStat: " << prevStat->showRaw(ctx) << std::endl;
     if (sig != nullptr && hasNilableOrUntypedReturns(*prevStat)) {
-        std::cout << "hasNilableOrUntypedReturns" << std::endl;
         declareIvars = true;
     }
 

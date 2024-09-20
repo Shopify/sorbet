@@ -133,7 +133,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
     // TODO raise error if methodType is not a MethodType
     // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
     // std::cout << rb_obj_classname(methodType) << std::endl;
-    rb_p(methodType);
+    // rb_p(methodType);
 
     VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
 
@@ -214,8 +214,6 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
     }
 
     VALUE returnValue = rb_funcall(functionType, rb_intern("return_type"), 0);
-    rb_p(returnValue);
-
     if (strcmp(rb_obj_classname(returnValue), "RBS::Types::Bases::Void") == 0) {
         sigBuilder = ast::MK::Send0(docLoc, std::move(sigBuilder), core::Names::void_(), docLoc);
     } else {
