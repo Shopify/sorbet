@@ -1,6 +1,4 @@
-# typed: true
-
-def foo; end
+# typed: false
 
 case foo
 when 1

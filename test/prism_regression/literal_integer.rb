@@ -1,3 +1,3 @@
 # typed: false
 
-__ENCODING__
+42
