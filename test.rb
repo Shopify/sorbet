@@ -3,15 +3,12 @@
 class Foo
   extend T::Sig
 
-  #: Integer?
-  attr_writer :baz
-
-  sig { returns(T.nilable(Integer)) }
-  attr_accessor :bar
-
-  #: -> void
+  sig { void }
   def initialize
-    @baz = nil
-    @bar = nil
+    @x = ARGV.first #: String # This is a test
+    T.reveal_type(@x)
+
+    @y = nil #: Integer? # This is a test
+    T.reveal_type(@y)
   end
 end

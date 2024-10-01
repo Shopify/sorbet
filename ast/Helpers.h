@@ -399,6 +399,11 @@ public:
         return Send0(loc, T(loc), core::Names::attachedClass(), loc);
     }
 
+    static ExpressionPtr Cast(core::LocOffsets loc, ExpressionPtr value, ExpressionPtr type) {
+        return ast::make_expression<ast::Cast>(loc, core::Types::todo(), std::move(value), core::Names::cast(),
+                                               std::move(type));
+    }
+
     static ExpressionPtr Let(core::LocOffsets loc, ExpressionPtr value, ExpressionPtr type) {
         return ast::make_expression<ast::Cast>(loc, core::Types::todo(), std::move(value), core::Names::let(),
                                                std::move(type));

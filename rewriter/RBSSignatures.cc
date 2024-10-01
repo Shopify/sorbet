@@ -13,6 +13,7 @@
 #include "rbs/RBSParser.h"
 #include "rbs/TypeTranslator.h"
 #include "rewriter/rewriter.h"
+#include <optional>
 
 using namespace std;
 
@@ -148,6 +149,79 @@ class RBSSignaturesWalk {
         return true;
     }
 
+    std::optional<rbs::RBSInlineAnnotation> getTrailingComment(string_view sourceCode, core::LocOffsets loc) {
+        uint32_t beginIndex = loc.beginPos();
+        uint32_t endIndex = loc.endPos();
+
+        // Find the start of the line containing the location
+        size_t lineStart = sourceCode.rfind('\n', beginIndex);
+        lineStart = (lineStart == string_view::npos) ? 0 : lineStart + 1;
+
+        // Find the end of the line containing the location
+        size_t lineEnd = sourceCode.find('\n', endIndex);
+        lineEnd = (lineEnd == string_view::npos) ? sourceCode.length() : lineEnd;
+
+        // Extract the full line
+        string_view fullLine = sourceCode.substr(lineStart, lineEnd - lineStart);
+
+        // Find the position of the first '#'
+        size_t firstHashPos = fullLine.find('#');
+        if (firstHashPos != string_view::npos) {
+            // Check if it's an RBS annotation (either #: or #::)
+            if (fullLine.substr(firstHashPos, 2) == "#:" || fullLine.substr(firstHashPos, 3) == "#::") {
+                size_t annotationStart = firstHashPos + 2; // Default for #:
+                bool isCast = false;
+                if (fullLine.substr(firstHashPos, 3) == "#::") {
+                    annotationStart = firstHashPos + 3; // Adjust for #::
+                    isCast = true;
+                }
+
+                // Find the next '#' after the RBS annotation
+                size_t nextHashPos = fullLine.find('#', annotationStart);
+                string_view rbsAnnotation;
+                if (nextHashPos != string_view::npos) {
+                    // Extract the RBS type annotation
+                    rbsAnnotation = fullLine.substr(annotationStart, nextHashPos - annotationStart);
+                } else {
+                    // If there's no second '#', take everything after #: or #::
+                    rbsAnnotation = fullLine.substr(annotationStart);
+                }
+
+                return rbs::RBSInlineAnnotation{
+                    core::LocOffsets{static_cast<uint32_t>(lineStart + annotationStart),
+                                     static_cast<uint32_t>(lineStart + annotationStart + rbsAnnotation.length())},
+                    absl::StripAsciiWhitespace(rbsAnnotation), isCast};
+            }
+        }
+
+        // Return nullopt if no RBS annotation is found
+        return std::nullopt;
+    }
+
+    void transformAssign(core::MutableContext ctx, ast::ExpressionPtr &stat) {
+        auto *assign = ast::cast_tree<ast::Assign>(stat);
+        if (!assign) {
+            return;
+        }
+
+        auto trailingComment = getTrailingComment(ctx.file.data(ctx).source(), assign->loc);
+        if (trailingComment) {
+            auto docLoc = trailingComment->loc;
+            auto doc = trailingComment->string;
+            auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, assign->loc, doc);
+
+            if (rbsType != Qnil) {
+                auto type = rbs::TypeTranslator::toRBI(ctx, rbsType, assign->loc);
+
+                if (trailingComment->isCast) {
+                    assign->rhs = ast::MK::Cast(assign->loc, std::move(assign->rhs), std::move(type));
+                } else {
+                    assign->rhs = ast::MK::Let(assign->loc, std::move(assign->rhs), std::move(type));
+                }
+            }
+        }
+    }
+
 public:
     RBSSignaturesWalk(core::MutableContext ctx) {}
 
@@ -178,6 +252,16 @@ public:
                     }
                 }
 
+                // Iterate over the method body and transform assignments
+                if (auto stmts = ast::cast_tree<ast::InsSeq>(methodDef->rhs)) {
+                    for (auto &s : stmts->stats) {
+                        transformAssign(ctx, s);
+                    }
+                    transformAssign(ctx, stmts->expr);
+                } else {
+                    transformAssign(ctx, methodDef->rhs);
+                }
+
                 classDef->rhs.emplace_back(std::move(stat));
                 continue;
             }
@@ -204,6 +288,9 @@ public:
                 classDef->rhs.emplace_back(std::move(stat));
                 continue;
             }
+
+            transformAssign(ctx, stat);
+
             classDef->rhs.emplace_back(std::move(stat));
         }
     }
