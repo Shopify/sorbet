@@ -17,6 +17,13 @@ constexpr unsigned int hash(const char *str) {
     return *str ? static_cast<unsigned int>(*str) + 33 * hash(str + 1) : 5381;
 }
 
+core::LocOffsets locOffsets(VALUE type, core::LocOffsets loc) {
+    VALUE location = rb_funcall(type, rb_intern("location"), 0);
+    auto startColumn = NUM2INT(rb_funcall(location, rb_intern("start_column"), 0));
+    auto endColumn = NUM2INT(rb_funcall(location, rb_intern("end_column"), 0));
+    return core::LocOffsets{loc.beginPos() + startColumn + 2, loc.beginPos() + endColumn + 2};
+}
+
 sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, VALUE typeName, core::LocOffsets loc) {
     VALUE typeNamespace = rb_funcall(typeName, rb_intern("namespace"), 0);
     VALUE typePath = rb_funcall(typeNamespace, rb_intern("path"), 0);
@@ -53,18 +60,19 @@ sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, VALUE typeName
 
 sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
     VALUE typeValue = rb_funcall(type, rb_intern("name"), 0);
-    auto typeConstant = typeNameType(ctx, typeValue, loc);
+    auto offsets = locOffsets(type, loc);
+    auto typeConstant = typeNameType(ctx, typeValue, offsets);
 
     VALUE argsValue = rb_funcall(type, rb_intern("args"), 0);
     if (!NIL_P(argsValue) && RARRAY_LEN(argsValue) > 0) {
         auto argsStore = Send::ARGS_store();
         for (long i = 0; i < RARRAY_LEN(argsValue); i++) {
             VALUE argValue = rb_ary_entry(argsValue, i);
-            auto argType = TypeTranslator::toRBI(ctx, argValue, loc);
+            auto argType = TypeTranslator::toRBI(ctx, argValue, offsets);
             argsStore.emplace_back(std::move(argType));
         }
 
-        return ast::MK::Send(loc, std::move(typeConstant), core::Names::squareBrackets(), loc, argsStore.size(),
+        return ast::MK::Send(offsets, std::move(typeConstant), core::Names::squareBrackets(), offsets, argsStore.size(),
                              std::move(argsStore));
     }
 
@@ -73,9 +81,10 @@ sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, VALUE typ
 
 sorbet::ast::ExpressionPtr classSingletonType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
     VALUE typeName = rb_funcall(type, rb_intern("name"), 0);
-    auto innerType = typeNameType(ctx, typeName, loc);
+    auto offsets = locOffsets(type, loc);
+    auto innerType = typeNameType(ctx, typeName, offsets);
 
-    return ast::MK::ClassOf(loc, std::move(innerType));
+    return ast::MK::ClassOf(offsets, std::move(innerType));
 }
 
 sorbet::ast::ExpressionPtr unionType(core::MutableContext ctx, VALUE type, core::LocOffsets loc) {
