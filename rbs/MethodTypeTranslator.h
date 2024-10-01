@@ -12,6 +12,12 @@ struct RBSAnnotation {
     std::string_view string;
 };
 
+struct RBSInlineAnnotation {
+    core::LocOffsets loc;
+    std::string_view string;
+    bool isCast; // If true, the annotation is a cast with `#:: Type` instead of `#: Type`
+};
+
 struct RBSSignature {
     core::LocOffsets loc;
     std::string_view signature;
