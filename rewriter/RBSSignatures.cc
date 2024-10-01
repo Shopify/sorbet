@@ -198,28 +198,46 @@ class RBSSignaturesWalk {
         return std::nullopt;
     }
 
-    void transformAssign(core::MutableContext ctx, ast::ExpressionPtr &stat) {
-        auto *assign = ast::cast_tree<ast::Assign>(stat);
-        if (!assign) {
-            return;
+    ast::ExpressionPtr makeCast(ast::ExpressionPtr &stat, ast::ExpressionPtr &type, bool isCast) {
+        if (isCast) {
+            return ast::MK::Cast(stat.loc(), std::move(stat), std::move(type));
+        } else {
+            return ast::MK::Let(stat.loc(), std::move(stat), std::move(type));
+        }
+    }
+
+    ast::ExpressionPtr insertCast(core::MutableContext ctx, ast::ExpressionPtr &stat) {
+        std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
+        std::cout << "stat loc: " << stat.loc().showRaw(ctx) << std::endl;
+
+        auto loc = stat.loc();
+
+        auto trailingComment = getTrailingComment(ctx.file.data(ctx).source(), loc);
+        if (!trailingComment) {
+            return std::move(stat);
         }
 
-        auto trailingComment = getTrailingComment(ctx.file.data(ctx).source(), assign->loc);
-        if (trailingComment) {
-            auto docLoc = trailingComment->loc;
-            auto doc = trailingComment->string;
-            auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, assign->loc, doc);
+        std::cout << "trailingComment: " << trailingComment->string << std::endl;
 
-            if (rbsType != Qnil) {
-                auto type = rbs::TypeTranslator::toRBI(ctx, rbsType, assign->loc);
+        auto docLoc = trailingComment->loc;
+        auto doc = trailingComment->string;
+        auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, loc, doc);
 
-                if (trailingComment->isCast) {
-                    assign->rhs = ast::MK::Cast(assign->loc, std::move(assign->rhs), std::move(type));
-                } else {
-                    assign->rhs = ast::MK::Let(assign->loc, std::move(assign->rhs), std::move(type));
-                }
-            }
+        if (rbsType == Qnil) {
+            return std::move(stat);
         }
+
+        auto type = rbs::TypeTranslator::toRBI(ctx, rbsType, loc);
+
+        if (auto *assign = ast::cast_tree<ast::Assign>(stat)) {
+            return makeCast(assign->rhs, type, trailingComment->isCast);
+        }
+
+        if (auto *ret = ast::cast_tree<ast::Return>(stat)) {
+            return makeCast(ret->expr, type, true);
+        }
+
+        return makeCast(stat, type, true);
     }
 
 public:
@@ -252,14 +270,20 @@ public:
                     }
                 }
 
-                // Iterate over the method body and transform assignments
+                // std::cout << "methodDef: " << stat.showRaw(ctx) << std::endl;
                 if (auto stmts = ast::cast_tree<ast::InsSeq>(methodDef->rhs)) {
-                    for (auto &s : stmts->stats) {
-                        transformAssign(ctx, s);
-                    }
-                    transformAssign(ctx, stmts->expr);
-                } else {
-                    transformAssign(ctx, methodDef->rhs);
+                    // auto oldStats = std::move(stmts->stats);
+                    // stmts->stats.clear();
+                    // stmts->stats.reserve(oldStats.size());
+
+                    // for (auto &s : oldStats) {
+                    //     // std::cout << "s: " << s.showRaw(ctx) << std::endl;
+                    //     auto newStat = insertCast(ctx, s);
+                    //     stmts->stats.emplace_back(std::move(newStat));
+                    // }
+
+                    auto newStat = insertCast(ctx, stmts->expr);
+                    stmts->expr = std::move(newStat);
                 }
 
                 classDef->rhs.emplace_back(std::move(stat));
@@ -289,10 +313,29 @@ public:
                 continue;
             }
 
-            transformAssign(ctx, stat);
-
-            classDef->rhs.emplace_back(std::move(stat));
+            auto newStat = insertCast(ctx, stat);
+            classDef->rhs.emplace_back(std::move(newStat));
         }
+    }
+
+    void preTransformInsSeq(core::MutableContext ctx, ast::ExpressionPtr &tree) {
+        auto *insSeq = ast::cast_tree<ast::InsSeq>(tree);
+        if (!insSeq) {
+            return;
+        }
+
+        auto oldStats = std::move(insSeq->stats);
+        insSeq->stats.clear();
+        insSeq->stats.reserve(oldStats.size());
+
+        for (auto &stat : oldStats) {
+            // std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
+            auto newStat = insertCast(ctx, stat);
+            insSeq->stats.emplace_back(std::move(newStat));
+        }
+
+        auto newStat = insertCast(ctx, insSeq->expr);
+        insSeq->expr = std::move(newStat);
     }
 };
 
