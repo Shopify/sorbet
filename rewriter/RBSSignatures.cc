@@ -149,23 +149,36 @@ class RBSSignaturesWalk {
         return true;
     }
 
+    bool isUntyped(ast::ExpressionPtr &expr) {
+        auto *send = ast::cast_tree<ast::Send>(expr);
+        if (!send) {
+            return false;
+        }
+
+        auto *recv = ast::cast_tree<ast::ConstantLit>(send->recv);
+        if (!recv) {
+            return false;
+        }
+
+        return recv->symbol == core::Symbols::T() && send->fun == core::Names::untyped();
+    }
+
     std::optional<rbs::RBSInlineAnnotation> getTrailingComment(string_view sourceCode, core::LocOffsets loc) {
-        uint32_t beginIndex = loc.beginPos();
         uint32_t endIndex = loc.endPos();
 
-        // Find the start of the line containing the location
-        size_t lineStart = sourceCode.rfind('\n', beginIndex);
+        // Find the start of the line containing the end of the location
+        size_t lineStart = sourceCode.rfind('\n', endIndex);
         lineStart = (lineStart == string_view::npos) ? 0 : lineStart + 1;
 
-        // Find the end of the line containing the location
+        // Find the end of the line containing the end of the location
         size_t lineEnd = sourceCode.find('\n', endIndex);
         lineEnd = (lineEnd == string_view::npos) ? sourceCode.length() : lineEnd;
 
         // Extract the full line
         string_view fullLine = sourceCode.substr(lineStart, lineEnd - lineStart);
 
-        // Find the position of the first '#'
-        size_t firstHashPos = fullLine.find('#');
+        // Find the position of the first '#' after the end of the location
+        size_t firstHashPos = fullLine.find('#', endIndex - lineStart);
         if (firstHashPos != string_view::npos) {
             // Check if it's an RBS annotation (either #: or #::)
             if (fullLine.substr(firstHashPos, 2) == "#:" || fullLine.substr(firstHashPos, 3) == "#::") {
@@ -200,6 +213,9 @@ class RBSSignaturesWalk {
 
     ast::ExpressionPtr makeCast(ast::ExpressionPtr &stat, ast::ExpressionPtr &type, bool isCast) {
         if (isCast) {
+            if (isUntyped(type)) {
+                return ast::MK::Unsafe(stat.loc(), std::move(stat));
+            }
             return ast::MK::Cast(stat.loc(), std::move(stat), std::move(type));
         } else {
             return ast::MK::Let(stat.loc(), std::move(stat), std::move(type));
@@ -207,17 +223,22 @@ class RBSSignaturesWalk {
     }
 
     ast::ExpressionPtr insertCast(core::MutableContext ctx, ast::ExpressionPtr &stat) {
-        std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
-        std::cout << "stat loc: " << stat.loc().showRaw(ctx) << std::endl;
+        if (auto *ifExpr = ast::cast_tree<ast::If>(stat)) {
+            return std::move(stat);
+        }
+
+        // std::cout << "insertCast: " << stat.showRaw(ctx) << std::endl;
+        // std::cout << "atLoc: " << stat.loc().showRaw(ctx) << std::endl;
 
         auto loc = stat.loc();
 
         auto trailingComment = getTrailingComment(ctx.file.data(ctx).source(), loc);
         if (!trailingComment) {
+            // std::cout << "no trailing comment" << std::endl;
             return std::move(stat);
         }
 
-        std::cout << "trailingComment: " << trailingComment->string << std::endl;
+        // std::cout << "trailing comment: " << trailingComment->string << std::endl;
 
         auto docLoc = trailingComment->loc;
         auto doc = trailingComment->string;
@@ -230,11 +251,13 @@ class RBSSignaturesWalk {
         auto type = rbs::TypeTranslator::toRBI(ctx, rbsType, loc);
 
         if (auto *assign = ast::cast_tree<ast::Assign>(stat)) {
-            return makeCast(assign->rhs, type, trailingComment->isCast);
+            assign->rhs = makeCast(assign->rhs, type, trailingComment->isCast);
+            return std::move(stat);
         }
 
         if (auto *ret = ast::cast_tree<ast::Return>(stat)) {
-            return makeCast(ret->expr, type, true);
+            ret->expr = makeCast(ret->expr, type, true);
+            return std::move(stat);
         }
 
         return makeCast(stat, type, true);
@@ -254,6 +277,7 @@ public:
         classDef->rhs.reserve(oldRHS.size());
 
         for (auto &stat : oldRHS) {
+            // std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
             if (auto *methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
                 auto methodLoc = methodDef->loc;
                 auto methodComments = findRBSComments(ctx.file.data(ctx).source(), methodLoc);
@@ -270,7 +294,6 @@ public:
                     }
                 }
 
-                // std::cout << "methodDef: " << stat.showRaw(ctx) << std::endl;
                 if (auto stmts = ast::cast_tree<ast::InsSeq>(methodDef->rhs)) {
                     // auto oldStats = std::move(stmts->stats);
                     // stmts->stats.clear();
@@ -280,10 +303,11 @@ public:
                     //     // std::cout << "s: " << s.showRaw(ctx) << std::endl;
                     //     auto newStat = insertCast(ctx, s);
                     //     stmts->stats.emplace_back(std::move(newStat));
-                    // }
 
-                    auto newStat = insertCast(ctx, stmts->expr);
-                    stmts->expr = std::move(newStat);
+                    // no-op, let the next pass handle it
+                } else {
+                    auto newStat = insertCast(ctx, methodDef->rhs);
+                    methodDef->rhs = std::move(newStat);
                 }
 
                 classDef->rhs.emplace_back(std::move(stat));
@@ -336,6 +360,45 @@ public:
 
         auto newStat = insertCast(ctx, insSeq->expr);
         insSeq->expr = std::move(newStat);
+    }
+
+    void preTransformSend(core::MutableContext ctx, ast::ExpressionPtr &tree) {
+        auto *send = ast::cast_tree<ast::Send>(tree);
+        if (!send) {
+            return;
+        }
+
+        auto *block = send->block();
+        if (!block) {
+            return;
+        }
+
+        if (auto *body = ast::cast_tree<ast::InsSeq>(block->body)) {
+            // no-op, let the next pass handle it
+        } else {
+            auto newStat = insertCast(ctx, block->body);
+            block->body = std::move(newStat);
+        }
+    }
+
+    void preTransformIf(core::MutableContext ctx, ast::ExpressionPtr &tree) {
+        // std::cout << "preTransformIf: " << tree.showRaw(ctx) << std::endl;
+        auto *ifExpr = ast::cast_tree<ast::If>(tree);
+        if (!ifExpr) {
+            return;
+        }
+
+        if (auto *thenp = ast::cast_tree<ast::InsSeq>(ifExpr->thenp)) {
+            // no-op, let the next pass handle it
+        } else {
+            ifExpr->thenp = insertCast(ctx, ifExpr->thenp);
+        }
+
+        if (auto *elsep = ast::cast_tree<ast::InsSeq>(ifExpr->elsep)) {
+            // no-op, let the next pass handle it
+        } else {
+            ifExpr->elsep = insertCast(ctx, ifExpr->elsep);
+        }
     }
 };
 

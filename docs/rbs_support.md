@@ -27,28 +27,16 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
-* translate as Array
+* Handle abstract, interface, final, sealed, mixes_in, required_ancestors
+
+* translate as Array, Hash, etc...
 
 * Const sigs? CONST = T.let(42, Integer)
 * Pass `tc` on `rbi`
 
-* Inline annotations? #: Type
-
-    * `T.let` => #: Type
-    * `T.unsafe` => #: Type
-    * `T.cast` => #:: Type
-    * `T.must` => #:: Type
-
-    * Go recursively down the tree
-    * Handle non assign
-    * Auto transform `T.let`/`T.cast(T.untyped)` to `T.unsafe`
-
-* Pass `tc` on `rbi`
-
 * Generic methods: Type variables
-* Handle abstract, interface, final, sealed, mixes_in, required_ancestors
-* Remove sorbet-runtime (t::Struct, t::Enum, etc...)
 
+* Collect comments and associate them to the correct nodes
 * Remove unnessary `to_s` calls?
 * Clean how we depend on `rbs_parser`
 * Remove rbs parser dependency on ruby_vm
