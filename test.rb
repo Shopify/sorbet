@@ -1,14 +1,33 @@
 # typed: strict
 
-class Foo
-  extend T::Sig
+extend T::Sig
 
-  sig { void }
-  def initialize
-    @x = ARGV.first #: String # This is a test
-    T.reveal_type(@x)
+# #: (String?) -> String
+# def foo(x)
+#   if ARGV.first
+#     puts x
+#     return x #:: String
+#   end
 
-    @y = nil #: Integer? # This is a test
-    T.reveal_type(@y)
-  end
+#   x #:: String
+# end
+
+# if ARGV.first
+#   z1 = ARGV.first #:: String
+#   T.reveal_type(z1)
+
+#   ARGV.each do |arg|
+#     z2 = ARGV.first #:: String
+#     T.reveal_type(z2)
+#   end
+# end
+
+# y = nil #: Integer?
+# T.reveal_type(y)
+
+x = "hello" #: String?
+
+if ARGV.first
+  puts x
+  return x #:: String
 end
