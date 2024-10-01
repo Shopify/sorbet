@@ -215,9 +215,19 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 args.emplace_back(std::move(blockPassNode));
             }
 
-            auto sendNode =
-                make_unique<parser::Send>(parser.translateLocation(loc), std::move(receiver), gs.enterNameUTF8(name),
-                                          parser.translateLocation(messageLoc), std::move(args));
+            auto flags = static_cast<pm_call_node_flags>(callNode->base.flags);
+
+            unique_ptr<parser::Node> sendNode;
+
+            if (flags & PM_CALL_NODE_FLAGS_SAFE_NAVIGATION) { // Handle conditional send, e.g. `a&.b`
+                sendNode = make_unique<parser::CSend>(parser.translateLocation(loc), std::move(receiver),
+                                                      gs.enterNameUTF8(name), parser.translateLocation(messageLoc),
+                                                      std::move(args));
+            } else { // Regular send, e.g. `a.b`
+                sendNode = make_unique<parser::Send>(parser.translateLocation(loc), std::move(receiver),
+                                                     gs.enterNameUTF8(name), parser.translateLocation(messageLoc),
+                                                     std::move(args));
+            }
 
             if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
                 // PM_BLOCK_NODE models an explicit block arg with `{ ... }` or
@@ -1026,7 +1036,7 @@ std::unique_ptr<parser::Hash> Translator::translateHash(pm_node_t *node, pm_node
 // This function translates between the two, creating a `Block` node for the given `pm_block_node *`,
 // and wrapping it around the given `Send` node.
 std::unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_block_node *prismBlockNode,
-                                                                 std::unique_ptr<parser::Send> sendNode) {
+                                                                 std::unique_ptr<parser::Node> sendNode) {
     auto blockParametersNode = translate(prismBlockNode->parameters);
     auto body = translate(prismBlockNode->body);
 
