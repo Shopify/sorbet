@@ -27,14 +27,15 @@ We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
 ## TODO
 
-* Handle abstract, interface, final, sealed, mixes_in, required_ancestors
-
 * translate as Array, Hash, etc...
+* push fixes to `rbi`
+* push translate to `spoom` (--sigs, --attrs, --consts, --methods)
+    spoom rbs translate-rbi ? or use `bundle exec rbi`?
 
 * Const sigs? CONST = T.let(42, Integer)
-* Pass `tc` on `rbi`
-
+* Generic classes: Type arguments
 * Generic methods: Type variables
+* Handle mixes_in, required_ancestors
 
 * Collect comments and associate them to the correct nodes
 * Remove unnessary `to_s` calls?

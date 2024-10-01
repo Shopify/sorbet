@@ -69,4 +69,12 @@ extend T::Sig
 #   x #:: Integer
 # end
 
-x = [1, 2, 3].to_h { |x| [x, "#{x}"] } #: Hash[Integer, String]
+# x = [1, 2, 3].to_h { |x| [x, "#{x}"] } #: Hash[Integer, String]
+
+# @abstract
+class C
+end
+
+# @interface
+module I
+end
