@@ -272,9 +272,39 @@ public:
             return;
         }
 
+        auto classComments = findRBSComments(ctx.file.data(ctx).source(), classDef->loc);
+
         auto oldRHS = std::move(classDef->rhs);
         classDef->rhs.clear();
         classDef->rhs.reserve(oldRHS.size());
+
+        for (auto &annotation : classComments.annotations) {
+            if (annotation.string == "@abstract") {
+                classDef->rhs.emplace_back(
+                    ast::MK::Send1(annotation.loc, ast::MK::Self(annotation.loc), core::Names::extend(), annotation.loc,
+                                   ast::MK::Constant(annotation.loc, core::Symbols::T_Helpers())));
+                classDef->rhs.emplace_back(ast::MK::Send0(annotation.loc, ast::MK::Self(annotation.loc),
+                                                          core::Names::declareAbstract(), annotation.loc));
+            } else if (annotation.string == "@interface") {
+                classDef->rhs.emplace_back(
+                    ast::MK::Send1(annotation.loc, ast::MK::Self(annotation.loc), core::Names::extend(), annotation.loc,
+                                   ast::MK::Constant(annotation.loc, core::Symbols::T_Helpers())));
+                classDef->rhs.emplace_back(ast::MK::Send0(annotation.loc, ast::MK::Self(annotation.loc),
+                                                          core::Names::declareInterface(), annotation.loc));
+            } else if (annotation.string == "@final") {
+                classDef->rhs.emplace_back(
+                    ast::MK::Send1(annotation.loc, ast::MK::Self(annotation.loc), core::Names::extend(), annotation.loc,
+                                   ast::MK::Constant(annotation.loc, core::Symbols::T_Helpers())));
+                classDef->rhs.emplace_back(ast::MK::Send0(annotation.loc, ast::MK::Self(annotation.loc),
+                                                          core::Names::declareFinal(), annotation.loc));
+            } else if (annotation.string == "@sealed") {
+                classDef->rhs.emplace_back(
+                    ast::MK::Send1(annotation.loc, ast::MK::Self(annotation.loc), core::Names::extend(), annotation.loc,
+                                   ast::MK::Constant(annotation.loc, core::Symbols::T_Helpers())));
+                classDef->rhs.emplace_back(ast::MK::Send0(annotation.loc, ast::MK::Self(annotation.loc),
+                                                          core::Names::declareSealed(), annotation.loc));
+            }
+        }
 
         for (auto &stat : oldRHS) {
             // std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
