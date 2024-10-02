@@ -1,0 +1,226 @@
+Begin {
+  stmts = [
+    CaseMatch {
+      expr = Send {
+        receiver = NULL
+        method = <U foo>
+        args = [
+        ]
+      }
+      inBodies = [
+        InPattern {
+          pattern = Integer {
+            val = "1"
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U one!>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = Integer {
+            val = "2"
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U two!>
+              }
+            ]
+          }
+        }
+      ]
+      elseBody = Send {
+        receiver = NULL
+        method = <U puts>
+        args = [
+          String {
+            val = <U Who knows!>
+          }
+        ]
+      }
+    }
+    CaseMatch {
+      expr = Send {
+        receiver = NULL
+        method = <U array_like_thing>
+        args = [
+        ]
+      }
+      inBodies = [
+        InPattern {
+          pattern = ArrayPattern {
+            elts = [
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U empty!>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = ArrayPattern {
+            elts = [
+              Integer {
+                val = "1"
+              }
+              Integer {
+                val = "2"
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U one and two!>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = ArrayPattern {
+            elts = [
+              Integer {
+                val = "3"
+              }
+              Integer {
+                val = "4"
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U three and four!>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = ArrayPattern {
+            elts = [
+              Integer {
+                val = "5"
+              }
+              MatchRest {
+                var = NULL
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U starts with five!>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = ArrayPattern {
+            elts = [
+              MatchRest {
+                var = NULL
+              }
+              Integer {
+                val = "6"
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U ends with six!>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = FindPattern {
+            elements = [
+              MatchRest {
+                var = NULL
+              }
+              Integer {
+                val = "7"
+              }
+              MatchRest {
+                var = NULL
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U contains a seven!>
+              }
+            ]
+          }
+        }
+      ]
+      elseBody = NULL
+    }
+    CaseMatch {
+      expr = Send {
+        receiver = NULL
+        method = <U foo>
+        args = [
+        ]
+      }
+      inBodies = [
+        InPattern {
+          pattern = Integer {
+            val = "1"
+          }
+          guard = NULL
+          body = Begin {
+            stmts = [
+              String {
+                val = <U one!>
+              }
+              Send {
+                receiver = NULL
+                method = <U puts>
+                args = [
+                  String {
+                    val = <U surprise, multi-line!>
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+      elseBody = NULL
+    }
+  ]
+}

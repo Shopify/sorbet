@@ -128,6 +128,31 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Array>(parser.translateLocation(loc), std::move(sorbetElements));
         }
+        case PM_ARRAY_PATTERN_NODE: { // An array pattern such as the `[head, *tail]` in the `a in [head, *tail]`
+            auto arrayPatternNode = reinterpret_cast<pm_array_pattern_node *>(node);
+            pm_location_t *loc = &arrayPatternNode->base.location;
+
+            auto prismPrefixNodes = absl::MakeSpan(arrayPatternNode->requireds.nodes, arrayPatternNode->requireds.size);
+            auto prismSplatNode = reinterpret_cast<pm_splat_node *>(arrayPatternNode->rest);
+            auto prismSuffixNodes = absl::MakeSpan(arrayPatternNode->posts.nodes, arrayPatternNode->posts.size);
+
+            NodeVec sorbetElements{};
+            sorbetElements.reserve(prismPrefixNodes.size() + (prismSplatNode != nullptr ? 1 : 0) +
+                                   prismSuffixNodes.size());
+
+            translateMultiInto(sorbetElements, prismPrefixNodes);
+
+            if (prismSplatNode != nullptr) {
+                auto expr = translate(prismSplatNode->expression);
+                auto splatLoc = &prismSplatNode->base.location;
+                sorbetElements.emplace_back(
+                    make_unique<MatchRest>(parser.translateLocation(splatLoc), std::move(expr)));
+            }
+
+            translateMultiInto(sorbetElements, prismSuffixNodes);
+
+            return make_unique<parser::ArrayPattern>(parser.translateLocation(loc), std::move(sorbetElements));
+        }
         case PM_ASSOC_NODE: { // A key-value pair in a Hash literal, e.g. the `a: 1` in `{ a: 1 }
             auto assocNode = reinterpret_cast<pm_assoc_node *>(node);
             pm_location_t *loc = &assocNode->base.location;
@@ -246,6 +271,17 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_CALL_OR_WRITE_NODE: { // Or-assignment to a method call, e.g. `a.b ||= true`
             return translateOpAssignment<pm_call_or_write_node, parser::OrAsgn, parser::Send>(node);
         }
+        case PM_CASE_MATCH_NODE: { // A pattern-matching `case` statement that only uses `in` (and not `when`)
+            auto caseMatchNode = reinterpret_cast<pm_case_match_node *>(node);
+            pm_location_t *loc = &caseMatchNode->base.location;
+
+            auto predicate = translate(caseMatchNode->predicate);
+            auto sorbetConditions = translateMulti(caseMatchNode->conditions);
+            auto consequent = translate(reinterpret_cast<pm_node_t *>(caseMatchNode->consequent));
+
+            return make_unique<parser::CaseMatch>(parser.translateLocation(loc), std::move(predicate),
+                                                  std::move(sorbetConditions), std::move(consequent));
+        }
         case PM_CASE_NODE: { // A classic `case` statement that only uses `when` (and not pattern matching with `in`)
             auto caseNode = reinterpret_cast<pm_case_node *>(node);
             pm_location_t *loc = &caseNode->base.location;
@@ -360,6 +396,38 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_FALSE_NODE: { // The `false` keyword
             return translateSimpleKeyword<pm_false_node, parser::False>(node);
         }
+        case PM_FIND_PATTERN_NODE: { // A find pattern such as the `[*, middle, *]` in the `a in [*, middle, *]`
+            auto findPatternNode = reinterpret_cast<pm_find_pattern_node *>(node);
+            pm_location_t *loc = &findPatternNode->base.location;
+
+            auto prismLeadingSplat = findPatternNode->left;
+            auto prismMiddleNodes = absl::MakeSpan(findPatternNode->requireds.nodes, findPatternNode->requireds.size);
+            auto prismTrailingSplat = findPatternNode->right;
+
+            NodeVec sorbetElements{};
+            sorbetElements.reserve(1 + prismMiddleNodes.size() + (prismTrailingSplat != nullptr ? 1 : 0));
+
+            if (prismLeadingSplat != nullptr && PM_NODE_TYPE_P(prismLeadingSplat, PM_SPLAT_NODE)) {
+                auto prismSplatNode = reinterpret_cast<pm_splat_node *>(prismLeadingSplat);
+                auto expr = translate(prismSplatNode->expression);
+                auto splatLoc = &prismSplatNode->base.location;
+                sorbetElements.emplace_back(
+                    make_unique<MatchRest>(parser.translateLocation(splatLoc), std::move(expr)));
+            }
+
+            translateMultiInto(sorbetElements, prismMiddleNodes);
+
+            if (prismTrailingSplat != nullptr && PM_NODE_TYPE_P(prismTrailingSplat, PM_SPLAT_NODE)) {
+                // TODO: handle PM_NODE_TYPE_P(prismTrailingSplat, PM_MISSING_NODE)
+                auto prismSplatNode = reinterpret_cast<pm_splat_node *>(prismTrailingSplat);
+                auto expr = translate(prismSplatNode->expression);
+                auto splatLoc = &prismSplatNode->base.location;
+                sorbetElements.emplace_back(
+                    make_unique<MatchRest>(parser.translateLocation(splatLoc), std::move(expr)));
+            }
+
+            return make_unique<parser::FindPattern>(parser.translateLocation(loc), std::move(sorbetElements));
+        }
         case PM_FLOAT_NODE: { // A floating point number literal, e.g. `1.23`
             auto floatNode = reinterpret_cast<pm_float_node *>(node);
             pm_location_t *loc = &floatNode->base.location;
@@ -409,6 +477,18 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::If>(parser.translateLocation(loc), std::move(predicate), std::move(ifTrue),
                                            std::move(ifFalse));
+        }
+        case PM_IN_NODE: { // An `in` pattern such as in a `case` statement, or as a standalone expression.
+            auto inNode = reinterpret_cast<pm_in_node *>(node);
+            auto *loc = &inNode->base.location;
+
+            auto sorbetPattern = translate(inNode->pattern);
+
+            auto inlineIfSingle = true;
+            auto statements = translateStatements(inNode->statements, inlineIfSingle);
+
+            return make_unique<parser::InPattern>(parser.translateLocation(loc), std::move(sorbetPattern), nullptr,
+                                                  std::move(statements));
         }
         case PM_INDEX_AND_WRITE_NODE: { // And-assignment to an index, e.g. `a[i] &&= false`
             return translateOpAssignment<pm_index_and_write_node, parser::AndAsgn, void>(node);
@@ -883,19 +963,16 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_ALIAS_GLOBAL_VARIABLE_NODE:
         case PM_ALIAS_METHOD_NODE:
         case PM_ALTERNATION_PATTERN_NODE:
-        case PM_ARRAY_PATTERN_NODE:
         case PM_BACK_REFERENCE_READ_NODE:
         case PM_BLOCK_LOCAL_VARIABLE_NODE:
         case PM_CALL_TARGET_NODE:
         case PM_CAPTURE_PATTERN_NODE:
-        case PM_CASE_MATCH_NODE:
         case PM_CLASS_VARIABLE_TARGET_NODE:
         case PM_CONSTANT_PATH_TARGET_NODE:
         case PM_CONSTANT_TARGET_NODE:
         case PM_DEFINED_NODE:
         case PM_EMBEDDED_VARIABLE_NODE:
         case PM_ENSURE_NODE:
-        case PM_FIND_PATTERN_NODE:
         case PM_FLIP_FLOP_NODE:
         case PM_FOR_NODE:
         case PM_GLOBAL_VARIABLE_TARGET_NODE:
@@ -903,7 +980,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_IMAGINARY_NODE:
         case PM_IMPLICIT_NODE:
         case PM_IMPLICIT_REST_NODE:
-        case PM_IN_NODE:
         case PM_INDEX_TARGET_NODE:
         case PM_INSTANCE_VARIABLE_TARGET_NODE:
         case PM_INTERPOLATED_MATCH_LAST_LINE_NODE:
