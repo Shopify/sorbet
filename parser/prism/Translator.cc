@@ -163,8 +163,9 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Pair>(parser.translateLocation(loc), std::move(key), std::move(value));
         }
         case PM_ASSOC_SPLAT_NODE: { // A Hash splat, e.g. `**h` in `f(a: 1, **h)` and `{ k: v, **h }`
-            unreachable("PM_ASSOC_SPLAT_NODE is handled separately in `Translator::translateHash()`, because its "
-                        "translation depends on whether its used in a hash or in a method call");
+            unreachable("PM_ASSOC_SPLAT_NODE is handled separately in `Translator::translateHash()` and "
+                        "`PM_HASH_PATTERN_NODE`, because its translation depends on whether its used in a "
+                        "Hash literal, Hash pattern, or method call.");
         }
         case PM_BEGIN_NODE: { // A `begin ... end` block
             auto beginNode = reinterpret_cast<pm_begin_node *>(node);
@@ -467,6 +468,31 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto usedForKeywordArgs = false;
             return translateHash(node, reinterpret_cast<pm_hash_node *>(node)->elements, usedForKeywordArgs);
         }
+        case PM_HASH_PATTERN_NODE: { // An hash pattern such as the `{ k: Integer }` in the `h in { k: Integer }`
+            auto hashPatternNode = reinterpret_cast<pm_hash_pattern_node *>(node);
+            pm_location_t *loc = &hashPatternNode->base.location;
+
+            auto prismElements = absl::MakeSpan(hashPatternNode->elements.nodes, hashPatternNode->elements.size);
+            auto prismRestNode = hashPatternNode->rest;
+
+            NodeVec sorbetElements{};
+            sorbetElements.reserve(prismElements.size() + (prismRestNode != nullptr ? 1 : 0));
+
+            translateMultiInto(sorbetElements, prismElements);
+            if (prismRestNode != nullptr) {
+                switch (PM_NODE_TYPE(prismRestNode)) {
+                    case PM_ASSOC_SPLAT_NODE: {
+                        sorbetElements.emplace_back(make_unique<parser::MatchRest>(
+                            parser.translateLocation(&prismRestNode->location), nullptr));
+                        break;
+                    }
+                    default:
+                        sorbetElements.emplace_back(translate(prismRestNode));
+                }
+            }
+
+            return make_unique<parser::HashPattern>(parser.translateLocation(loc), std::move(sorbetElements));
+        }
         case PM_IF_NODE: { // An `if` statement or modifier, like `if cond; ...; end` or `a.b if cond`
             auto ifNode = reinterpret_cast<pm_if_node *>(node);
             auto *loc = &ifNode->base.location;
@@ -644,6 +670,12 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         }
         case PM_NIL_NODE: { // The `nil` keyword
             return translateSimpleKeyword<pm_nil_node, parser::Nil>(node);
+        }
+        case PM_NO_KEYWORDS_PARAMETER_NODE: { // `**nil`, such as in `def foo(**nil)` or `h in { k: v, **nil}`
+            auto noKeywordsParamNode = reinterpret_cast<pm_no_keywords_parameter_node *>(node);
+            pm_location_t *loc = &noKeywordsParamNode->base.location;
+
+            return make_unique<parser::MatchNilPattern>(parser.translateLocation(loc));
         }
         case PM_OPTIONAL_KEYWORD_PARAMETER_NODE: { // An optional keyword parameter, like `def foo(a: 1)`
             auto optionalKeywordParamNode = reinterpret_cast<pm_optional_keyword_parameter_node *>(node);
@@ -976,7 +1008,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_FLIP_FLOP_NODE:
         case PM_FOR_NODE:
         case PM_GLOBAL_VARIABLE_TARGET_NODE:
-        case PM_HASH_PATTERN_NODE:
         case PM_IMAGINARY_NODE:
         case PM_IMPLICIT_NODE:
         case PM_IMPLICIT_REST_NODE:
@@ -993,7 +1024,6 @@ std::unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_MATCH_WRITE_NODE:
         case PM_MISSING_NODE:
         case PM_MULTI_TARGET_NODE:
-        case PM_NO_KEYWORDS_PARAMETER_NODE:
         case PM_NUMBERED_PARAMETERS_NODE:
         case PM_NUMBERED_REFERENCE_READ_NODE:
         case PM_PINNED_EXPRESSION_NODE:
