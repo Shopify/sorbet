@@ -33,6 +33,8 @@ public:
     std::unique_ptr<parser::Node> translate(const Node &node);
 
 private:
+    core::LocOffsets translateLoc(pm_location_t loc);
+
     parser::NodeVec translateMulti(pm_node_list prismNodes);
     void translateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
@@ -43,8 +45,7 @@ private:
                                                          std::unique_ptr<parser::Node> sendNode);
     std::unique_ptr<parser::Node> translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle);
 
-    template <typename PrismNode, typename SorbetNode>
-    std::unique_ptr<SorbetNode> translateSimpleKeyword(pm_node_t *untypedNode);
+    template <typename SorbetNode> std::unique_ptr<SorbetNode> translateSimpleKeyword(pm_node_t *untypedNode);
 
     template <typename PrismAssignmentNode, typename SorbetLHSNode>
     std::unique_ptr<parser::Assign> translateAssignment(pm_node_t *node);
@@ -53,7 +54,7 @@ private:
     std::unique_ptr<SorbetAssignmentNode> translateOpAssignment(pm_node_t *node);
 
     template <typename PrismLhsNode, typename SorbetLHSNode>
-    std::unique_ptr<SorbetLHSNode> translateConst(PrismLhsNode *untypedNode);
+    std::unique_ptr<SorbetLHSNode> translateConst(PrismLhsNode *node);
 };
 
 } // namespace sorbet::parser::Prism
