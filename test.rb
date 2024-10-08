@@ -2,15 +2,15 @@
 
 extend T::Sig
 
-# #: (String?) -> String
-# def foo(x)
-#   if ARGV.first
-#     puts x
-#     return x #:: String
-#   end
+#: (String?) -> String
+def foo(x)
+  if ARGV.first
+    puts x
+    return x #:: String
+  end
 
-#   x #:: String
-# end
+  x #:: String
+end
 
 # if ARGV.first
 #   z1 = ARGV.first #:: String
@@ -72,9 +72,9 @@ extend T::Sig
 # x = [1, 2, 3].to_h { |x| [x, "#{x}"] } #: Hash[Integer, String]
 
 # @abstract
-class C
-end
+# class C
+# end
 
 # @interface
-module I
-end
+# module I
+# end
