@@ -24,15 +24,10 @@ No location on blocks?
 
 We automatically translate `Array`, `Hash`, to their `T::` counterparts.
 
-
 ## TODO
 
-* translate as Array, Hash, etc...
-* push fixes to `rbi`
-* push translate to `spoom` (--sigs, --attrs, --consts, --methods)
-    spoom rbs translate-rbi ? or use `bundle exec rbi`?
-
 * Const sigs? CONST = T.let(42, Integer)
+
 * Generic classes: Type arguments
 * Generic methods: Type variables
 * Handle mixes_in, required_ancestors
