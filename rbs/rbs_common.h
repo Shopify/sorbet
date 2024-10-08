@@ -4,9 +4,9 @@
 #include "ruby.h"
 
 extern "C" {
-#include "rbs_parser/constants.h"
-#include "rbs_parser/location.h"
-#include "rbs_parser/parser.h"
+#include "ext/rbs_extension/constants.h"
+#include "ext/rbs_extension/location.h"
+#include "ext/rbs_extension/parser.h"
 }
 
 #endif // RBS_COMMON_H

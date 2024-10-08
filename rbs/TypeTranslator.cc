@@ -29,7 +29,7 @@ sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, VALUE typeName
     VALUE typePath = rb_funcall(typeNamespace, rb_intern("path"), 0);
 
     auto parent = ast::MK::EmptyTree();
-    if (!NIL_P(typePath)) {
+    if (!NIL_P(typePath) && typePath != Qfalse) {
         for (long i = 0; i < RARRAY_LEN(typePath); i++) {
             VALUE pathName = rb_ary_entry(typePath, i);
             VALUE pathNameToS = rb_funcall(pathName, rb_intern("to_s"), 0);
@@ -45,7 +45,7 @@ sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, VALUE typeName
     VALUE nameToS = rb_funcall(nameValue, rb_intern("to_s"), 0);
     std::string nameStr(RSTRING_PTR(nameToS));
 
-    if (NIL_P(typePath) || RARRAY_LEN(typePath) == 0) {
+    if (NIL_P(typePath) || typePath == Qfalse || RARRAY_LEN(typePath) == 0) {
         if (nameStr == "Array") {
             return ast::MK::T_Array(loc);
         } else if (nameStr == "Hash") {
@@ -64,7 +64,7 @@ sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, VALUE typ
     auto typeConstant = typeNameType(ctx, typeValue, offsets);
 
     VALUE argsValue = rb_funcall(type, rb_intern("args"), 0);
-    if (!NIL_P(argsValue) && RARRAY_LEN(argsValue) > 0) {
+    if (!NIL_P(argsValue) && argsValue != Qfalse && RARRAY_LEN(argsValue) > 0) {
         auto argsStore = Send::ARGS_store();
         for (long i = 0; i < RARRAY_LEN(argsValue); i++) {
             VALUE argValue = rb_ary_entry(argsValue, i);

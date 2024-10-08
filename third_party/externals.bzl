@@ -344,4 +344,10 @@ def register_sorbet_dependencies():
     #     build_file = "@com_stripe_ruby_typer//third_party:rbs_parser.BUILD",
     # )
 
+    native.new_local_repository(
+        name = "rbs_parser",
+        path = "/Users/at/src/github.com/ruby/rbs",
+        build_file = "@com_stripe_ruby_typer//third_party:rbs_parser.BUILD",
+    )
+
     register_ruby_dependencies()

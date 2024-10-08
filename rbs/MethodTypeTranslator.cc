@@ -142,14 +142,20 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
     std::vector<RBSArg> args;
 
     collectArgs(docLoc, rb_funcall(functionType, rb_intern("required_positionals"), 0), args, false);
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("optional_positionals"), 0), args, false);
 
+    VALUE optionalPositionals = rb_funcall(functionType, rb_intern("optional_positionals"), 0);
+    if (optionalPositionals != Qfalse) {
+        collectArgs(docLoc, optionalPositionals, args, true);
+    }
     VALUE restPositionals = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
     if (restPositionals != Qnil) {
         args.emplace_back(rbsArg(docLoc, restPositionals, false));
     }
 
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("trailing_positionals"), 0), args, false);
+    VALUE trailingPositionals = rb_funcall(functionType, rb_intern("trailing_positionals"), 0);
+    if (trailingPositionals != Qfalse) {
+        collectArgs(docLoc, trailingPositionals, args, false);
+    }
 
     collectKeywords(docLoc, rb_funcall(functionType, rb_intern("required_keywords"), 0), args, false);
     collectKeywords(docLoc, rb_funcall(functionType, rb_intern("optional_keywords"), 0), args, false);
