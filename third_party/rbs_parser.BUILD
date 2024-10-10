@@ -1,9 +1,9 @@
 cc_library(
     name = "rbs_parser",
-    srcs = glob(["ext/rbs_extension/*.c"]),
-    hdrs = glob(["ext/rbs_extension/*.h"]),
+    srcs = glob(["src/*.c"]),
+    hdrs = glob(["include/rbs/*.h"]),
     copts = [
-        "-Iexternal/rbs_parser/ext/rbs_extension",
+        "-Iexternal/rbs_parser/include/rbs",
         "-Iexternal/ruby-headers",
         "-Iexternal/ruby-headers2",
         "-Wno-error=missing-field-initializers",
