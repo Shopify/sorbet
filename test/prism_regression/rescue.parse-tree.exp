@@ -1,9 +1,171 @@
 Begin {
   stmts = [
+    DefMethod {
+      name = <U foo>
+      args = NULL
+      body = Rescue {
+        body = Send {
+          receiver = NULL
+          method = <U problematic_code>
+          args = [
+          ]
+        }
+        rescue = [
+          Resbody {
+            exception = NULL
+            var = NULL
+            body = Send {
+              receiver = NULL
+              method = <U puts>
+              args = [
+                String {
+                  val = <U rescued>
+                }
+              ]
+            }
+          }
+        ]
+        else_ = NULL
+      }
+    }
+    DefMethod {
+      name = <U bar>
+      args = NULL
+      body = Rescue {
+        body = Send {
+          receiver = NULL
+          method = <U problematic_code>
+          args = [
+          ]
+        }
+        rescue = [
+          Resbody {
+            exception = Array {
+              elts = [
+                Const {
+                  scope = NULL
+                  name = <C <U RuntimeError>>
+                }
+              ]
+            }
+            var = LVarLhs {
+              name = <U e>
+            }
+            body = Send {
+              receiver = NULL
+              method = <U puts>
+              args = [
+                String {
+                  val = <U rescued>
+                }
+              ]
+            }
+          }
+        ]
+        else_ = NULL
+      }
+    }
+    Kwbegin {
+      stmts = [
+        Rescue {
+          body = Send {
+            receiver = NULL
+            method = <U problematic_code>
+            args = [
+            ]
+          }
+          rescue = [
+            Resbody {
+              exception = NULL
+              var = LVarLhs {
+                name = <U e>
+              }
+              body = Send {
+                receiver = NULL
+                method = <U puts>
+                args = [
+                  String {
+                    val = <U rescued>
+                  }
+                ]
+              }
+            }
+          ]
+          else_ = NULL
+        }
+      ]
+    }
+    Kwbegin {
+      stmts = [
+        Rescue {
+          body = Send {
+            receiver = NULL
+            method = <U problematic_code>
+            args = [
+            ]
+          }
+          rescue = [
+            Resbody {
+              exception = Array {
+                elts = [
+                  Const {
+                    scope = NULL
+                    name = <C <U FooException>>
+                  }
+                ]
+              }
+              var = LVarLhs {
+                name = <U e>
+              }
+              body = Send {
+                receiver = NULL
+                method = <U puts>
+                args = [
+                  String {
+                    val = <U rescued foo>
+                  }
+                ]
+              }
+            }
+            Resbody {
+              exception = Array {
+                elts = [
+                  Const {
+                    scope = NULL
+                    name = <C <U BarException>>
+                  }
+                ]
+              }
+              var = LVarLhs {
+                name = <U e>
+              }
+              body = Send {
+                receiver = NULL
+                method = <U puts>
+                args = [
+                  String {
+                    val = <U rescued bar>
+                  }
+                ]
+              }
+            }
+          ]
+          else_ = Send {
+            receiver = NULL
+            method = <U puts>
+            args = [
+              String {
+                val = <U not rescued>
+              }
+            ]
+          }
+        }
+      ]
+    }
     Rescue {
       body = Send {
         receiver = NULL
-        method = <U problematic_code>
+        method = <U foo>
         args = [
         ]
       }

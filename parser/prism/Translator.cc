@@ -174,7 +174,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 statements = translateMulti(prismStatements->body);
             }
 
-            return make_unique<parser::Kwbegin>(location, move(statements));
+            auto sorbetBeginNode = make_unique<parser::Begin>(location, move(statements));
+
+            if (auto prismRescue = beginNode->rescue_clause; prismRescue != nullptr) {
+                return translateRescue(reinterpret_cast<pm_rescue_node *>(prismRescue), move(sorbetBeginNode));
+            }
+
+            return sorbetBeginNode;
         }
         case PM_BLOCK_ARGUMENT_NODE: { // A block arg passed into a method call, e.g. the `&b` in `a.map(&b)`
             auto blockArg = reinterpret_cast<pm_block_argument_node *>(node);
@@ -850,6 +856,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Rescue>(location, move(body), move(cases), nullptr);
         }
+        case PM_RESCUE_NODE: {
+            unreachable("PM_RESCUE_NODE is handled separately in translateRescue, see its docs for details.");
+        }
         case PM_REST_PARAMETER_NODE: { // A rest parameter, like `def foo(*rest)`
             auto restParamNode = reinterpret_cast<pm_rest_parameter_node *>(node);
             core::LocOffsets nameLoc;
@@ -1041,7 +1050,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_NUMBERED_REFERENCE_READ_NODE:
         case PM_POST_EXECUTION_NODE:
         case PM_PRE_EXECUTION_NODE:
-        case PM_RESCUE_NODE:
         case PM_SHAREABLE_CONSTANT_NODE:
         case PM_SCOPE_NODE:
             auto type_id = PM_NODE_TYPE(node);
@@ -1335,6 +1343,27 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_block_node *prism
     // TODO: what's the correct location to use for the Block?
     // TODO: do we have to adjust the location for the Send node?
     return make_unique<parser::Block>(sendNode->loc, move(sendNode), move(blockParametersNode), move(body));
+}
+
+// Prism models a rescue clause as a `pm_begin_node` that contains a `pm_rescue_node`.
+// Sorbet's legacy parser models this the other way around, as a parent `Rescue` with a child `Begin`.
+//
+// This function translates between the two, creating a `Rescue` node for the given `pm_rescue_node *`,
+// and wrapping it around the given `Begin` node.
+unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescueNode,
+                                                     std::unique_ptr<parser::Node> beginNode) {
+    auto rescueBody = translate(reinterpret_cast<pm_node *>(prismRescueNode->statements));
+    auto var = translate(prismRescueNode->reference);
+    auto exceptions = translateMulti(prismRescueNode->exceptions);
+
+    NodeVec cases;
+    for (auto &exception : exceptions) {
+        auto sorbetException =
+            make_unique<parser::Resbody>(exception->loc, move(exception), move(var), move(rescueBody));
+        cases.emplace_back(move(sorbetException));
+    }
+
+    return make_unique<parser::Rescue>(beginNode->loc, move(beginNode), move(cases), nullptr);
 }
 
 // Translates the given Prism Statements Node into a `parser::Begin` node or an inlined `parser::Node`.
