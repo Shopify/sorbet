@@ -41,11 +41,18 @@ private:
     NodeVec translateArguments(pm_arguments_node *node, size_t extraCapacity = 0);
     std::unique_ptr<parser::Hash> translateHash(pm_node_t *node, pm_node_list_t elements,
                                                 bool isUsedForKeywordArguments);
-    std::unique_ptr<parser::Node> translateCallWithBlock(pm_block_node *prismBlockNode,
+    std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
                                                          std::unique_ptr<parser::Node> sendNode);
+    std::unique_ptr<parser::Node> translateRescue(pm_rescue_node *prismRescueNode,
+                                                  std::unique_ptr<parser::Node> beginNode,
+                                                  std::unique_ptr<parser::Node> elseNode);
     std::unique_ptr<parser::Node> translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle);
 
     template <typename SorbetNode> std::unique_ptr<SorbetNode> translateSimpleKeyword(pm_node_t *untypedNode);
+
+    std::unique_ptr<parser::Regopt> translateRegexpOptions(pm_location_t closingLoc);
+    std::unique_ptr<parser::Regexp> translateRegexp(pm_string_t unescaped, core::LocOffsets location,
+                                                    pm_location_t closingLoc);
 
     template <typename PrismAssignmentNode, typename SorbetLHSNode>
     std::unique_ptr<parser::Assign> translateAssignment(pm_node_t *node);
