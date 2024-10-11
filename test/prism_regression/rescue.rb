@@ -1,6 +1,7 @@
 # typed: false
 
 def foo
+  foobar
   problematic_code
 rescue
   puts "rescued"

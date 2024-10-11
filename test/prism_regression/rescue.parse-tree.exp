@@ -4,10 +4,20 @@ Begin {
       name = <U foo>
       args = NULL
       body = Rescue {
-        body = Send {
-          receiver = NULL
-          method = <U problematic_code>
-          args = [
+        body = Begin {
+          stmts = [
+            Send {
+              receiver = NULL
+              method = <U foobar>
+              args = [
+              ]
+            }
+            Send {
+              receiver = NULL
+              method = <U problematic_code>
+              args = [
+              ]
+            }
           ]
         }
         rescue = [

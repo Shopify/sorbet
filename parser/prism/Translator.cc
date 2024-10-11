@@ -174,13 +174,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 statements = translateMulti(prismStatements->body);
             }
 
-            auto sorbetBeginNode = make_unique<parser::Begin>(location, move(statements));
-
             if (auto prismRescue = beginNode->rescue_clause; prismRescue != nullptr) {
+                auto sorbetBeginNode = make_unique<parser::Begin>(location, move(statements));
+
                 return translateRescue(reinterpret_cast<pm_rescue_node *>(prismRescue), move(sorbetBeginNode));
             }
 
-            return sorbetBeginNode;
+            return make_unique<parser::Kwbegin>(location, move(statements));
         }
         case PM_BLOCK_ARGUMENT_NODE: { // A block arg passed into a method call, e.g. the `&b` in `a.map(&b)`
             auto blockArg = reinterpret_cast<pm_block_argument_node *>(node);
@@ -1351,8 +1351,15 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_block_node *prism
 // This function translates between the two, creating a `Rescue` node for the given `pm_rescue_node *`,
 // and wrapping it around the given `Begin` node.
 unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescueNode,
-                                                     std::unique_ptr<parser::Node> beginNode) {
-    auto rescueBody = translate(reinterpret_cast<pm_node *>(prismRescueNode->statements));
+                                                     std::unique_ptr<parser::Begin> beginNode) {
+    unique_ptr<parser::Node> rescueBody;
+
+    if (beginNode->stmts.size() > 1) {
+        rescueBody = move(beginNode);
+    } else {
+        rescueBody = move(beginNode->stmts[0]);
+    }
+
     auto var = translate(prismRescueNode->reference);
     auto exceptions = translateMulti(prismRescueNode->exceptions);
 
