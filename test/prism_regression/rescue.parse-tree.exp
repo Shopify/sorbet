@@ -1,19 +1,49 @@
-Kwbegin {
+Begin {
   stmts = [
-    Rescue {
-      body = Integer {
-        val = "123"
-      }
-      rescue = [
-        Resbody {
-          exception = NULL
-          var = NULL
-          body = String {
-            val = <U rescued>
+    Kwbegin {
+      stmts = [
+        Rescue {
+          body = Integer {
+            val = "123"
           }
+          rescue = [
+            Resbody {
+              exception = NULL
+              var = NULL
+              body = String {
+                val = <U rescued>
+              }
+            }
+          ]
+          else_ = NULL
         }
       ]
-      else_ = NULL
+    }
+    Kwbegin {
+      stmts = [
+        Rescue {
+          body = Integer {
+            val = "123"
+          }
+          rescue = [
+            Resbody {
+              exception = Array {
+                elts = [
+                  Const {
+                    scope = NULL
+                    name = <C <U FooException>>
+                  }
+                ]
+              }
+              var = NULL
+              body = String {
+                val = <U rescued Foo>
+              }
+            }
+          ]
+          else_ = NULL
+        }
+      ]
     }
   ]
 }

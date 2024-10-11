@@ -177,14 +177,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     translateRescue(reinterpret_cast<pm_rescue_node *>(prismRescue), move(sorbetBeginNode));
 
                 statements.emplace_back(move(beginNode));
-                return make_unique<parser::Kwbegin>(location, move(statements));
             } else {
                 if (auto prismStatements = beginNode->statements; prismStatements != nullptr) {
                     statements = translateMulti(prismStatements->body);
                 }
-
-                return make_unique<parser::Kwbegin>(location, move(statements));
             }
+
+            return make_unique<parser::Kwbegin>(location, move(statements));
         }
         case PM_BLOCK_ARGUMENT_NODE: { // A block arg passed into a method call, e.g. the `&b` in `a.map(&b)`
             auto blockArg = reinterpret_cast<pm_block_argument_node *>(node);
@@ -1357,20 +1356,19 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_block_node *prism
 unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescueNode,
                                                      std::unique_ptr<parser::Node> beginNode) {
     auto var = translate(prismRescueNode->reference);
+    // The things being caught, e.g. the `Foo, Bar` in `rescue Foo, Bar => e`
     auto exceptions = translateMulti(prismRescueNode->exceptions);
     auto rescueBody = translateStatements(prismRescueNode->statements, true);
 
-    // NodeVec cases;
-    // for (auto &exception : exceptions) {
-    //     auto sorbetException =
-    //         make_unique<parser::Resbody>(exception->loc, move(exception), move(var), move(rescueBody));
-    //     cases.emplace_back(move(sorbetException));
-    // }
-    //   Rescue(core::LocOffsets loc, std::unique_ptr<Node> body, NodeVec rescue,
-    //          std::unique_ptr<Node> else_)
+    auto exceptionsArray =
+        (exceptions.size() == 0)
+            ? nullptr
+            : make_unique<parser::Array>(translateLoc(prismRescueNode->base.location), move(exceptions));
+
     NodeVec rescueBodies{};
-    rescueBodies.emplace_back(make_unique<parser::Resbody>(translateLoc(prismRescueNode->base.location), nullptr,
-                                                           move(var), move(rescueBody)));
+    rescueBodies.emplace_back(make_unique<parser::Resbody>(translateLoc(prismRescueNode->base.location),
+                                                           move(exceptionsArray), move(var), move(rescueBody)));
+
     return make_unique<parser::Rescue>(beginNode->loc, move(beginNode), move(rescueBodies), nullptr);
 }
 
