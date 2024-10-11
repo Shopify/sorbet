@@ -1369,6 +1369,26 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescue
     rescueBodies.emplace_back(make_unique<parser::Resbody>(translateLoc(prismRescueNode->base.location),
                                                            move(exceptionsArray), move(var), move(rescueBody)));
 
+    for (pm_rescue_node_t *subsequent prismRescueNode->subsequent; subsequent != nullptr;
+         subsequent = subsequent->subsequent) {
+        // translate the `subsequent`
+        // make a ResBody from it
+        // append it into `rescueBodies`
+
+        // roughly:
+        auto var = translate(subsequent->reference);
+        // The things being caught, e.g. the `Foo, Bar` in `rescue Foo, Bar => e`
+        auto exceptions = translateMulti(subsequent->exceptions);
+        auto rescueBody = translateStatements(subsequent->statements, true);
+
+        auto exceptionsArray =
+            (exceptions.size() == 0)
+                ? nullptr
+                : make_unique<parser::Array>(translateLoc(prismRescueNode->base.location), move(exceptions));
+        rescueBodies.emplace_back(make_unique<parser::Resbody>(translateLoc(prismRescueNode->base.location),
+                                                               move(exceptionsArray), move(var), move(rescueBody)));
+    }
+
     return make_unique<parser::Rescue>(beginNode->loc, move(beginNode), move(rescueBodies), nullptr);
 }
 

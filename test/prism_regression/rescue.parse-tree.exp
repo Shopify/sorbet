@@ -45,5 +45,45 @@ Begin {
         }
       ]
     }
+    Kwbegin {
+      stmts = [
+        Rescue {
+          body = Integer {
+            val = "123"
+          }
+          rescue = [
+            Resbody {
+              exception = Array {
+                elts = [
+                  Const {
+                    scope = NULL
+                    name = <C <U FooException>>
+                  }
+                ]
+              }
+              var = NULL
+              body = String {
+                val = <U rescued Foo>
+              }
+            }
+            Resbody {
+              exception = Array {
+                elts = [
+                  Const {
+                    scope = NULL
+                    name = <C <U BarException>>
+                  }
+                ]
+              }
+              var = NULL
+              body = String {
+                val = <U rescued Bar>
+              }
+            }
+          ]
+          else_ = NULL
+        }
+      ]
+    }
   ]
 }
