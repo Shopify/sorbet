@@ -5,12 +5,12 @@
             "type": "lldb",
             "request": "launch",
             "name": "Debug Prism test in LLDB",
-            "program": "${workspaceFolder}/bazel-out/darwin_arm64-dbg/bin/test/test_PosTests/prism_regression/keyword_self.runfiles/com_stripe_ruby_typer/test/pipeline_test_runner",
+            "program": "${workspaceFolder}/bazel-out/darwin_arm64-dbg/bin/test/test_PosTests/prism_regression/rescue.runfiles/com_stripe_ruby_typer/test/pipeline_test_runner",
             "args": [
-                "--single_test=com_stripe_ruby_typer/test/prism_regression/keyword_self.rb",
+                "--single_test=com_stripe_ruby_typer/test/prism_regression/rescue.rb",
                 "--parser=prism",
             ],
-            "cwd": "${workspaceFolder}/bazel-out/darwin_arm64-dbg/bin/test/test_PosTests/prism_regression/keyword_self.runfiles",
+            "cwd": "${workspaceFolder}/bazel-out/darwin_arm64-dbg/bin/test/test_PosTests/prism_regression/rescue.runfiles",
             "stopOnEntry": false,
             "sourceMap": {
                 // `bazel info execution_root --define RUBY_PATH='/opt/rubies/3.3.4/' --config=dbg` to get this path:
