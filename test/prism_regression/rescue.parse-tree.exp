@@ -1,22 +1,19 @@
-DefMethod {
-  name = <U foo>
-  args = NULL
-  body = Rescue {
-    body = Send {
-      receiver = NULL
-      method = <U problematic_code>
-      args = [
-      ]
-    }
-    rescue = [
-      Resbody {
-        exception = NULL
-        var = NULL
-        body = String {
-          val = <U rescued>
-        }
+Kwbegin {
+  stmts = [
+    Rescue {
+      body = Integer {
+        val = "123"
       }
-    ]
-    else_ = NULL
-  }
+      rescue = [
+        Resbody {
+          exception = NULL
+          var = NULL
+          body = String {
+            val = <U rescued>
+          }
+        }
+      ]
+      else_ = NULL
+    }
+  ]
 }

@@ -1,0 +1,20 @@
+@ BeginNode
+├── statements:
+│   @ StatementsNode
+│   └── body: (length: 2)
+│       ├── @ CallNode
+│       │   ├── name: :foo
+│       └── @ IntegerNode
+│           └── value: 123
+├── rescue_clause:
+│   @ RescueNode
+│   ├── exceptions: (length: 0)
+│   ├── reference: ∅
+│   ├── statements:
+│   │   @ StatementsNode
+│   │   └── body: (length: 1)
+│   │       └── @ StringNode
+│   │           └── unescaped: "rescued"
+│   └── subsequent: ∅
+├── else_clause: ∅
+├── ensure_clause: ∅
