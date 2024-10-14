@@ -195,6 +195,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_BLOCK_NODE: { // An explicit block passed to a method call, i.e. `{ ... }` or `do ... end`
             unreachable("PM_BLOCK_NODE has special handling in translateCallWithBlock, see its docs for details.");
         }
+        case PM_BLOCK_LOCAL_VARIABLE_NODE: {
+            auto blockLocalNode = reinterpret_cast<pm_block_local_variable_node *>(node);
+            auto prismName = blockLocalNode->name;
+            // A named block local variable, like `baz` in `|bar; baz|`
+            auto name = parser.resolveConstant(prismName);
+            auto sorbetName = gs.enterNameUTF8(name);
+            return make_unique<parser::Shadowarg>(location, sorbetName);
+        }
         case PM_BLOCK_PARAMETER_NODE: { // A block parameter declared at the top of a method, e.g. `def m(&block)`
             auto blockParamNode = reinterpret_cast<pm_block_parameter_node *>(node);
 
@@ -212,7 +220,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         }
         case PM_BLOCK_PARAMETERS_NODE: { // The parameters declared at the top of a PM_BLOCK_NODE
             auto paramsNode = reinterpret_cast<pm_block_parameters_node *>(node);
-            return translate(reinterpret_cast<pm_node *>(paramsNode->parameters));
+
+            // Sorbet's legacy parser inserts locals (Shadowargs) into the block's Args node, along its other
+            // parameters. So we need to extract the args vector from the Args node, and insert the locals at the end of
+            // it.
+            auto sorbetArgsNode = translate(reinterpret_cast<pm_node *>(paramsNode->parameters));
+            auto argsNode = static_cast<parser::Args *>(sorbetArgsNode.get());
+            auto argsVec = move(argsNode->args);
+            auto sorbetShadowArgs = translateMulti(paramsNode->locals);
+
+            argsVec.insert(argsVec.end(), std::make_move_iterator(sorbetShadowArgs.begin()),
+                           std::make_move_iterator(sorbetShadowArgs.end()));
+            argsNode->args = move(argsVec);
+
+            return sorbetArgsNode;
         }
         case PM_BREAK_NODE: { // A `break` statement, e.g. `break`, `break 1, 2, 3`
             auto breakNode = reinterpret_cast<pm_break_node *>(node);
@@ -1072,7 +1093,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 "These pattern-match related nodes are handled separately in `Translator::patternTranslate()`.");
 
         case PM_BACK_REFERENCE_READ_NODE:
-        case PM_BLOCK_LOCAL_VARIABLE_NODE:
         case PM_CAPTURE_PATTERN_NODE:
         case PM_EMBEDDED_VARIABLE_NODE:
         case PM_ENSURE_NODE:
