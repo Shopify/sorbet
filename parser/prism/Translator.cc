@@ -650,6 +650,18 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Kwrestarg>(location, sorbetName);
         }
+        case PM_LAMBDA_NODE: {
+            auto lambdaNode = reinterpret_cast<pm_lambda_node *>(node);
+
+            auto params = translate(reinterpret_cast<pm_node *>(lambdaNode->parameters));
+            auto body = translateStatements(reinterpret_cast<pm_statements_node *>(lambdaNode->body), true);
+            auto receiver = make_unique<parser::Const>(location, nullptr, core::Names::Constants::Kernel());
+
+            auto sendNode = make_unique<parser::Send>(location, move(receiver), core::Names::lambda(),
+                                                      translateLoc(lambdaNode->operator_loc), NodeVec{});
+
+            return make_unique<parser::Block>(location, move(sendNode), move(params), move(body));
+        }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a local variable, e.g. `local &&= false`
             return translateOpAssignment<pm_local_variable_and_write_node, parser::AndAsgn, parser::LVarLhs>(node);
         }
@@ -1115,7 +1127,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_IMPLICIT_NODE:
         case PM_IMPLICIT_REST_NODE:
         case PM_INTERPOLATED_MATCH_LAST_LINE_NODE:
-        case PM_LAMBDA_NODE:
         case PM_MATCH_LAST_LINE_NODE:
         case PM_MATCH_PREDICATE_NODE:
         case PM_MATCH_REQUIRED_NODE:

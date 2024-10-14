@@ -1,0 +1,15 @@
+Block {
+  send = Send {
+    receiver = Const {
+      scope = NULL
+      name = <C <U Kernel>>
+    }
+    method = <U lambda>
+    args = [
+    ]
+  }
+  args = NULL
+  body = Integer {
+    val = "123"
+  }
+}
