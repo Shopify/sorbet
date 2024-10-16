@@ -195,12 +195,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_BLOCK_NODE: { // An explicit block passed to a method call, i.e. `{ ... }` or `do ... end`
             unreachable("PM_BLOCK_NODE has special handling in translateCallWithBlock, see its docs for details.");
         }
-        case PM_BLOCK_LOCAL_VARIABLE_NODE: {
+        case PM_BLOCK_LOCAL_VARIABLE_NODE: { // A block-local variable, like `baz` in `|bar; baz|`
             auto blockLocalNode = reinterpret_cast<pm_block_local_variable_node *>(node);
-            auto prismName = blockLocalNode->name;
-            // A named block local variable, like `baz` in `|bar; baz|`
-            auto name = parser.resolveConstant(prismName);
+
+            auto name = parser.resolveConstant(blockLocalNode->name);
             auto sorbetName = gs.enterNameUTF8(name);
+
             return make_unique<parser::Shadowarg>(location, sorbetName);
         }
         case PM_BLOCK_PARAMETER_NODE: { // A block parameter declared at the top of a method, e.g. `def m(&block)`
@@ -218,20 +218,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Blockarg>(location, sorbetName);
         }
-        case PM_BLOCK_PARAMETERS_NODE: { // The parameters declared at the top of a PM_BLOCK_NODE
+        case PM_BLOCK_PARAMETERS_NODE: { // The parameters declared at the top of a `PM_BLOCK_NODE`
             auto paramsNode = reinterpret_cast<pm_block_parameters_node *>(node);
 
-            // Sorbet's legacy parser inserts locals (Shadowargs) into the block's Args node, along its other
-            // parameters. So we need to extract the args vector from the Args node, and insert the locals at the end of
-            // it.
             auto sorbetArgsNode = translate(reinterpret_cast<pm_node *>(paramsNode->parameters));
-            auto argsNode = static_cast<parser::Args *>(sorbetArgsNode.get());
-            auto argsVec = move(argsNode->args);
             auto sorbetShadowArgs = translateMulti(paramsNode->locals);
 
-            argsVec.insert(argsVec.end(), std::make_move_iterator(sorbetShadowArgs.begin()),
-                           std::make_move_iterator(sorbetShadowArgs.end()));
-            argsNode->args = move(argsVec);
+            auto argsNode = static_cast<parser::Args *>(sorbetArgsNode.get());
+            // Sorbet's legacy parser inserts locals (Shadowargs) at the end of the the block's Args node
+            argsNode->args.insert(argsNode->args.end(), std::make_move_iterator(sorbetShadowArgs.begin()),
+                                  std::make_move_iterator(sorbetShadowArgs.end()));
 
             return sorbetArgsNode;
         }
