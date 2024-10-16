@@ -13,6 +13,7 @@ cc_library(
     ],
     copts = [
         "-Iexternal/rbs_parser",
+        "-Iexternal/rbs_parser/include",
         "-Iexternal/rbs_parser/ext/rbs_extension",
     ],
     visibility = ["//visibility:public"],
