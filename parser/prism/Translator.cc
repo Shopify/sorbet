@@ -650,7 +650,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::Kwrestarg>(location, sorbetName);
         }
-        case PM_LAMBDA_NODE: {
+        case PM_LAMBDA_NODE: { // lambda literals, like `-> { 123 }` or `lambda { 123 }`
             auto lambdaNode = reinterpret_cast<pm_lambda_node *>(node);
 
             auto params = translate(reinterpret_cast<pm_node *>(lambdaNode->parameters));
@@ -660,7 +660,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto sendNode = make_unique<parser::Send>(location, move(receiver), core::Names::lambda(),
                                                       translateLoc(lambdaNode->operator_loc), NodeVec{});
 
-            return make_unique<parser::Block>(location, move(sendNode), move(params), move(body));
+            if (lambdaNode->parameters != nullptr &&
+                PM_NODE_TYPE_P(lambdaNode->parameters, PM_NUMBERED_PARAMETERS_NODE)) {
+                return make_unique<parser::NumBlock>(location, move(sendNode), move(params), move(body));
+            } else {
+                return make_unique<parser::Block>(location, move(sendNode), move(params), move(body));
+            }
         }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a local variable, e.g. `local &&= false`
             return translateOpAssignment<pm_local_variable_and_write_node, parser::AndAsgn, parser::LVarLhs>(node);

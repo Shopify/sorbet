@@ -134,6 +134,38 @@ Begin {
         }
       ]
     }
+    NumBlock {
+      send = Send {
+        receiver = Const {
+          scope = NULL
+          name = <C <U Kernel>>
+        }
+        method = <U lambda>
+        args = [
+        ]
+      }
+      args = NumParams {
+        decls = [
+          LVar {
+            name = <U _1>
+          }
+          LVar {
+            name = <U _2>
+          }
+        ]
+      }
+      body = Send {
+        receiver = LVar {
+          name = <U _1>
+        }
+        method = <U +>
+        args = [
+          LVar {
+            name = <U _2>
+          }
+        ]
+      }
+    }
     Class {
       name = Const {
         scope = NULL
