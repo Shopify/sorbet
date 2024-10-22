@@ -453,8 +453,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
 
             auto name = parser.resolveConstant(defNode->name);
-            auto params = translate(reinterpret_cast<pm_node *>(defNode->parameters));
-            auto body = translate(defNode->body);
+
+            // These 2 need to be called on a new Translator with isInMethod set to true
+            Translator childContext = enterMethod();
+            auto params = childContext.translate(reinterpret_cast<pm_node *>(defNode->parameters));
+            auto body = childContext.translate(defNode->body);
 
             return make_unique<parser::DefMethod>(location, declLoc, gs.enterNameUTF8(name), move(params), move(body));
         }
@@ -1599,6 +1602,12 @@ unique_ptr<parser::Regexp> Translator::translateRegexp(pm_string_t unescaped, co
     auto options = translateRegexpOptions(closingLoc);
 
     return make_unique<parser::Regexp>(location, move(parts), move(options));
+}
+
+// Context management methods
+Translator Translator::enterMethod() {
+    auto isInMethodDef = true;
+    return Translator(parser, gs, isInMethodDef);
 }
 
 }; // namespace sorbet::parser::Prism
