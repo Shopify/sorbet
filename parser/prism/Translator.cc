@@ -165,6 +165,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         "`PM_HASH_PATTERN_NODE`, because its translation depends on whether its used in a "
                         "Hash literal, Hash pattern, or method call.");
         }
+        case PM_BACK_REFERENCE_READ_NODE: {
+            auto backReferenceReadNode = reinterpret_cast<pm_back_reference_read_node *>(node);
+            auto name = parser.resolveConstant(backReferenceReadNode->name);
+
+            return make_unique<parser::Backref>(location, gs.enterNameUTF8(name));
+        }
         case PM_BEGIN_NODE: { // A `begin ... end` block
             auto beginNode = reinterpret_cast<pm_begin_node *>(node);
 
@@ -455,6 +461,26 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = parser.resolveConstant(defNode->name);
             auto params = translate(reinterpret_cast<pm_node *>(defNode->parameters));
             auto body = translate(defNode->body);
+
+            if (defNode->body != nullptr && PM_NODE_TYPE_P(defNode->body, PM_BEGIN_NODE)) {
+                // If the body is a PM_BEGIN_NODE instead of a PM_STATEMENTS_NODE, it means the method definition
+                // doesn't have an explicit begin block.
+                // If that's the case, we need to check if the body contains an ensure or rescue clause, and if so,
+                // we need to elevate that node to the top level of the method definition, without the Kwbegin node to
+                // match the behavior of Sorbet's legacy parser.
+                auto kwbeginNode = dynamic_cast<parser::Kwbegin *>(body.get());
+
+                if (kwbeginNode != nullptr && kwbeginNode->stmts[0] != nullptr &&
+                    (dynamic_cast<parser::Rescue *>(kwbeginNode->stmts[0].get()) != nullptr ||
+                     dynamic_cast<parser::Ensure *>(kwbeginNode->stmts[0].get()) != nullptr)) {
+
+                    if (kwbeginNode->stmts.size() == 1) {
+                        body = move(kwbeginNode->stmts[0]);
+                    } else {
+                        unreachable("With ensure or rescue, the body of a method definition will be either a rescue or ensure node.");
+                    }
+                }
+            }
 
             return make_unique<parser::DefMethod>(location, declLoc, gs.enterNameUTF8(name), move(params), move(body));
         }
@@ -815,6 +841,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::NumParams>(location, move(params));
         }
+        case PM_NUMBERED_REFERENCE_READ_NODE: {
+            auto numberedReferenceReadNode = reinterpret_cast<pm_numbered_reference_read_node *>(node);
+            auto number = numberedReferenceReadNode->number;
+
+            return make_unique<parser::NthRef>(location, number);
+        }
         case PM_OPTIONAL_KEYWORD_PARAMETER_NODE: { // An optional keyword parameter, like `def foo(a: 1)`
             auto optionalKeywordParamNode = reinterpret_cast<pm_optional_keyword_parameter_node *>(node);
             auto nameLoc = translateLoc(optionalKeywordParamNode->name_loc);
@@ -896,10 +928,22 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 return make_unique<parser::Begin>(location, NodeVec{});
             }
         }
+        case PM_PRE_EXECUTION_NODE: {
+            auto preExecutionNode = reinterpret_cast<pm_pre_execution_node *>(node);
+            auto inlineIfSingle = true;
+            auto body = translateStatements(preExecutionNode->statements, inlineIfSingle);
+            return make_unique<parser::Preexe>(location, move(body));
+        }
         case PM_PROGRAM_NODE: { // The root node of the parse tree, representing the entire program
             pm_program_node *programNode = reinterpret_cast<pm_program_node *>(node);
 
             return translate(reinterpret_cast<pm_node *>(programNode->statements));
+        }
+        case PM_POST_EXECUTION_NODE: {
+            auto postExecutionNode = reinterpret_cast<pm_post_execution_node *>(node);
+            auto inlineIfSingle = true;
+            auto body = translateStatements(postExecutionNode->statements, inlineIfSingle);
+            return make_unique<parser::Postexe>(location, move(body));
         }
         case PM_RANGE_NODE: { // A Range literal, e.g. `a..b`, `a..`, `..b`, `a...b`, `a...`, `...b`
             auto rangeNode = reinterpret_cast<pm_range_node *>(node);
@@ -1140,7 +1184,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_SCOPE_NODE: // An internal node type only created by the MRI's Ruby compiler, and not Prism itself.
             unreachable("Prism's parser never produces `PM_SCOPE_NODE` nodes.");
 
-        case PM_BACK_REFERENCE_READ_NODE:
         case PM_CAPTURE_PATTERN_NODE:
         case PM_EMBEDDED_VARIABLE_NODE:
         case PM_FLIP_FLOP_NODE:
@@ -1151,9 +1194,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_MATCH_REQUIRED_NODE:
         case PM_MATCH_WRITE_NODE:
         case PM_MISSING_NODE:
-        case PM_NUMBERED_REFERENCE_READ_NODE:
-        case PM_POST_EXECUTION_NODE:
-        case PM_PRE_EXECUTION_NODE:
             auto type_id = PM_NODE_TYPE(node);
             auto type_name = pm_node_type_to_str(type_id);
 
