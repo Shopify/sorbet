@@ -2,6 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Prism test in LLDB",
+            "program": "${workspaceFolder}/bazel-out/darwin_arm64-dbg/bin/test/test_PosTests/prism_regression/keyword_self.runfiles/com_stripe_ruby_typer/test/pipeline_test_runner",
+            "args": [
+                "--single_test=com_stripe_ruby_typer/test/prism_regression/keyword_self.rb",
+                "--parser=prism",
+            ],
+            "cwd": "${workspaceFolder}/bazel-out/darwin_arm64-dbg/bin/test/test_PosTests/prism_regression/keyword_self.runfiles",
+            "stopOnEntry": false,
+            "sourceMap": {
+                // `bazel info execution_root --define RUBY_PATH='/opt/rubies/3.3.4/' --config=dbg` to get this path:
+                "/private/var/tmp/_bazel_alex/6cfcf34b544626b5ce95e8aa2935011b/execroot/com_stripe_ruby_typer": "${workspaceFolder}",
+            },
+        },
+        {
             "name": "LSP Test - Debug active test",
             "type": "cppdbg",
             "request": "launch",
