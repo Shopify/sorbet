@@ -372,12 +372,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto declLoc = translateLoc(classNode->class_keyword_loc).join(name->loc);
             auto superclass = translate(classNode->superclass);
 
-            unique_ptr<parser::Node> body;
+            auto body = translate(classNode->body);
 
-            if (!parser.hasUnclosedClass) {
-                body = translate(classNode->body);
-            } else {
-                body = nullptr;
+            if (parser.hasUnclosedClass) {
+                auto beginNode = dynamic_cast<parser::Begin *>(body.get());
+                if (beginNode != nullptr) {
+                    body = move(beginNode->stmts[0]);
+                }
             }
 
             if (superclass != nullptr) {
@@ -1225,6 +1226,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     reportError(translateLoc(error.location), error.message);
                 }
             }
+
+            if (parser.hasUnclosedClass) {
+                return nullptr;
+            }
+
             return make_unique<parser::Const>(location, nullptr, core::Names::Constants::ErrorNode());
     }
 }
