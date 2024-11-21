@@ -37,6 +37,10 @@ void Parser::collectErrors() {
         auto *error = reinterpret_cast<pm_diagnostic_t *>(node);
         auto level = static_cast<pm_error_level_t>(error->level);
 
+        if (error->diag_id == PM_ERR_CLASS_TERM) {
+            hasUnclosedClass = true;
+        }
+
         ParseError parseError(error->diag_id, std::string(reinterpret_cast<const char *>(error->message)),
                               error->location, level);
 

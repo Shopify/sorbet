@@ -371,7 +371,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = translate(classNode->constant_path);
             auto declLoc = translateLoc(classNode->class_keyword_loc).join(name->loc);
             auto superclass = translate(classNode->superclass);
-            auto body = translate(classNode->body);
+
+            unique_ptr<parser::Node> body;
+
+            if (!parser.hasUnclosedClass) {
+                body = translate(classNode->body);
+            } else {
+                body = nullptr;
+            }
 
             if (superclass != nullptr) {
                 declLoc = declLoc.join(superclass->loc);

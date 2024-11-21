@@ -58,8 +58,10 @@ class Parser final {
 
 public:
     std::vector<ParseError> parseErrors;
+    bool hasUnclosedClass;
 
-    Parser(std::string_view source_code) : storage(std::make_shared<ParserStorage>(source_code)) {}
+    Parser(std::string_view source_code)
+        : storage(std::make_shared<ParserStorage>(source_code)), hasUnclosedClass(false) {}
 
     Parser(const Parser &) = default;
     Parser &operator=(const Parser &) = default;
