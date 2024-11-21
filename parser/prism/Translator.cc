@@ -376,8 +376,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             if (parser.hasUnclosedClass) {
                 auto beginNode = dynamic_cast<parser::Begin *>(body.get());
+
                 if (beginNode != nullptr) {
-                    body = move(beginNode->stmts[0]);
+                    if (extraStatements != nullptr) {
+                        for (auto &stmt : beginNode->stmts) {
+                            if (stmt != nullptr) {
+                                extraStatements->emplace_back(move(stmt));
+                            }
+                        }
+                        body = nullptr;
+                    }
                 }
             }
 
@@ -481,8 +489,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 // If the body is a PM_BEGIN_NODE instead of a PM_STATEMENTS_NODE, it means the method definition
                 // doesn't have an explicit begin block.
                 // If that's the case, we need to check if the body contains an ensure or rescue clause, and if so,
-                // we need to elevate that node to the top level of the method definition, without the Kwbegin node to
-                // match the behavior of Sorbet's legacy parser.
+                // we need to elevate that node to the top level of the method definition, without the Kwbegin node
+                // to match the behavior of Sorbet's legacy parser.
                 auto kwbeginNode = dynamic_cast<parser::Kwbegin *>(body.get());
 
                 if (kwbeginNode != nullptr && kwbeginNode->stmts[0] != nullptr &&
@@ -650,7 +658,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_INSTANCE_VARIABLE_AND_WRITE_NODE: { // And-assignment to an instance variable, e.g. `@iv &&= false`
             return translateOpAssignment<pm_instance_variable_and_write_node, parser::AndAsgn, parser::IVarLhs>(node);
         }
-        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: { // Compound assignment to an instance variable, e.g. `@iv += 1`
+        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: { // Compound assignment to an instance variable, e.g. `@iv
+                                                         // += 1`
             return translateOpAssignment<pm_instance_variable_operator_write_node, parser::OpAsgn, parser::IVarLhs>(
                 node);
         }
@@ -691,7 +700,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::MatchCurLine>(location, move(regex));
         }
-        case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE: { // A regular expression with interpolation, like `/a #{b} c/`
+        case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE: { // A regular expression with interpolation, like `/a #{b}
+                                                        // c/`
             auto interpolatedRegexNode = down_cast<pm_interpolated_regular_expression_node>(node);
 
             auto parts = translateMulti(interpolatedRegexNode->parts);
@@ -720,7 +730,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::XString>(location, move(sorbetParts));
         }
-        case PM_IT_LOCAL_VARIABLE_READ_NODE: { // The `it` implicit parameter added in Ruby 3.4, e.g. `a.map { it + 1 }`
+        case PM_IT_LOCAL_VARIABLE_READ_NODE: { // The `it` implicit parameter added in Ruby 3.4, e.g. `a.map { it +
+                                               // 1 }`
             [[fallthrough]];
         }
         case PM_IT_PARAMETERS_NODE: { // Used in a parameter list for lambdas that the `it` implicit parameter.
@@ -810,8 +821,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto matchWriteNode = down_cast<pm_match_write_node>(node);
 
             // "Match writes" let you bind regex capture groups directly into new variables.
-            // Sorbet doesn't treat this syntax in a special way, so it doesn't know that it introduces new local var.
-            // It's treated as a normal call to `=~` with a Regexp receiver and the rhs as an argument.
+            // Sorbet doesn't treat this syntax in a special way, so it doesn't know that it introduces new local
+            // var. It's treated as a normal call to `=~` with a Regexp receiver and the rhs as an argument.
             //
             // This is why we just translate the `call` and completely ignore `matchWriteNode->targets`.
 
@@ -863,7 +874,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             params.reserve(paramCount);
 
             for (auto i = 1; i <= paramCount; i++) {
-                // The location is arbitrary and not really used, since these aren't explicitly written in the source.
+                // The location is arbitrary and not really used, since these aren't explicitly written in the
+                // source.
                 auto paramNode = make_unique<parser::LVar>(location, gs.enterNameUTF8("_" + std::to_string(i)));
                 params.emplace_back(move(paramNode));
             }
@@ -1216,12 +1228,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
         case PM_IMPLICIT_NODE:
         case PM_MISSING_NODE:
-            // For now, we only report errors when we hit a missing node because we don't want to always report dynamic
-            // constant assignment errors
+            // For now, we only report errors when we hit a missing node because we don't want to always report
+            // dynamic constant assignment errors
             // TODO: We will improve this in the future when we handle more errored cases
             for (auto &error : parser.parseErrors) {
-                // EOF error is always pointed to the very last line of the file, which can't be expressed in Sorbet's
-                // error comments
+                // EOF error is always pointed to the very last line of the file, which can't be expressed in
+                // Sorbet's error comments
                 if (error.id != PM_ERR_UNEXPECTED_TOKEN_CLOSE_CONTEXT) {
                     reportError(translateLoc(error.location), error.message);
                 }
@@ -1259,17 +1271,21 @@ parser::NodeVec Translator::translateMulti(pm_node_list nodeList) {
 
 // Translates the given Prism nodes, and appends them to the given `NodeVec` of Sorbet nodes.
 void Translator::translateMultiInto(NodeVec &outSorbetNodes, absl::Span<pm_node_t *> prismNodes) {
-    for (auto &prismNode : prismNodes)
-        outSorbetNodes.emplace_back(translate(prismNode));
+    for (auto &prismNode : prismNodes) {
+        auto sorbetNode = translate(prismNode);
+        if (sorbetNode != nullptr) {
+            outSorbetNodes.emplace_back(move(sorbetNode));
+        }
+    }
 }
 
 // Similar to `translate()`, but it's used for pattern-matching nodes.
 //
-// This is necessary because some Prism nodes get translated differently depending on whether they're part of "regular"
-// syntax, or pattern-matching syntax.
+// This is necessary because some Prism nodes get translated differently depending on whether they're part of
+// "regular" syntax, or pattern-matching syntax.
 //
-// E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the context
-// of a pattern.
+// E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the
+// context of a pattern.
 unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
@@ -1424,9 +1440,8 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                     sorbetGuard = make_unique<parser::UnlessGuard>(location, translate(unlessNode->predicate));
                 }
 
-                ENFORCE(
-                    conditionalStatements->body.size == 1,
-                    "In pattern-matching's `in` clause, a conditional (if/unless) guard must have a single statement.");
+                ENFORCE(conditionalStatements->body.size == 1, "In pattern-matching's `in` clause, a conditional "
+                                                               "(if/unless) guard must have a single statement.");
 
                 sorbetPattern = patternTranslate(conditionalStatements->body.nodes[0]);
             } else {
@@ -1604,8 +1619,9 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
 //   - `rescue`: a list of `Resbody` nodes, each representing a `rescue` clause.
 //   - `else_`: an optional node representing the `else` clause.
 //
-// This function and the PM_BEGIN_NODE case translate between the two representations by processing the `pm_rescue_node`
-// (and its linked `subsequent` nodes) and assembling the corresponding `Rescue` and `Resbody` nodes in Sorbet's AST.
+// This function and the PM_BEGIN_NODE case translate between the two representations by processing the
+// `pm_rescue_node` (and its linked `subsequent` nodes) and assembling the corresponding `Rescue` and `Resbody`
+// nodes in Sorbet's AST.
 unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescueNode, unique_ptr<parser::Node> bodyNode,
                                                      unique_ptr<parser::Node> elseNode) {
     auto rescueLoc = translateLoc(prismRescueNode->base.location);
@@ -1636,18 +1652,29 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescue
 }
 
 // Translates the given Prism Statements Node into a `parser::Begin` node or an inlined `parser::Node`.
-// @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one `parser::Node`
+// @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one
+// `parser::Node`
 unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle) {
     if (stmtsNode == nullptr)
         return nullptr;
 
-    // For a single statement, do not create a `Begin` node and just return the statement, if that's enabled.
+    // Initialize extraStatements
+    extraStatements = std::make_unique<parser::NodeVec>();
+
+    // For a single statement, do not create a `Begin` node and just return the statement, if enabled.
     if (inlineIfSingle && stmtsNode->body.size == 1) {
         return translate(stmtsNode->body.nodes[0]);
     }
 
     // For multiple statements, convert each statement and add them to the body of a Begin node
     parser::NodeVec sorbetStmts = translateMulti(stmtsNode->body);
+
+    // Before returning, merge extraStatements into sorbetStmts
+    if (extraStatements->size() > 0) {
+        sorbetStmts.insert(sorbetStmts.end(), std::make_move_iterator(extraStatements->begin()),
+                           std::make_move_iterator(extraStatements->end()));
+        extraStatements = nullptr;
+    }
 
     return make_unique<parser::Begin>(translateLoc(stmtsNode->base.location), move(sorbetStmts));
 }
@@ -1662,7 +1689,8 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
 // The only exception is that dynamic constant path *operator* assignments inside of a method definition
 // do not raise a SyntaxError at runtime, so we want to skip the workaround in that case.
 // However, within this method, both regular constant path assignments and constant path operator assignments
-// are passed in as `pm_constant_path_node` types, so we need an extra boolean flag to know when to skip the workaround.
+// are passed in as `pm_constant_path_node` types, so we need an extra boolean flag to know when to skip the
+// workaround.
 //
 // Usually returns the `SorbetLHSNode`, but for constant writes and targets,
 // it can can return an `LVarLhs` as a workaround in the case of a dynamic constant assignment.
@@ -1679,7 +1707,8 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool ski
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
         if (auto prismParentNode = node->parent; prismParentNode != nullptr) {
             // This constant reference is chained onto another constant reference.
-            // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the `name`.
+            // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the
+            // `name`.
             //   A::B::C
             //    /    \
             //  A::B   ::C
@@ -1706,8 +1735,8 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool ski
                   is_same_v<PrismLhsNode, pm_constant_operator_write_node> ||
                   is_same_v<PrismLhsNode, pm_constant_or_write_node> ||
                   is_same_v<PrismLhsNode, pm_constant_and_write_node>) {
-        if (isInMethodDef &&
-            !skipDynamicConstantWorkaround) { // Check if this is a dynamic constant assignment (SyntaxError at runtime)
+        if (isInMethodDef && !skipDynamicConstantWorkaround) { // Check if this is a dynamic constant assignment
+                                                               // (SyntaxError at runtime)
             // This is a copy of a workaround from `Desugar.cc`, which substitues in a fake assignment,
             // so the parsing can continue. See other usages of `dynamicConstAssign` for more details.
 

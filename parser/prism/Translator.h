@@ -27,6 +27,9 @@ class Translator final {
     uint16_t uniqueCounter = 1;
     bool isInMethodDef = false;
 
+    // NodeVec to hold extra statements from translateStatements
+    std::unique_ptr<parser::NodeVec> extraStatements;
+
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
     Translator &operator=(Translator &&) = delete;      // Move assignment
