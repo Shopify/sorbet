@@ -1,8 +1,8 @@
 #ifndef METHOD_TYPE_TRANSLATOR_H
 #define METHOD_TYPE_TRANSLATOR_H
 
+#include "rbs_common.h"
 #include "ast/ast.h"
-#include "ruby.h"
 #include <memory>
 
 namespace sorbet::rbs {
@@ -31,11 +31,11 @@ struct MethodComments {
 class MethodTypeTranslator {
 public:
     static sorbet::ast::ExpressionPtr methodSignature(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                      sorbet::ast::MethodDef *methodDef, VALUE methodType,
+                                                      sorbet::ast::MethodDef *methodDef, rbs_methodtype_t *node,
                                                       std::vector<RBSAnnotation> annotations);
 
     static sorbet::ast::ExpressionPtr attrSignature(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                    sorbet::ast::Send *send, VALUE attrType,
+                                                    sorbet::ast::Send *send, rbs_node_t *node,
                                                     std::vector<RBSAnnotation> annotations);
 };
 

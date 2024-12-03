@@ -2,11 +2,8 @@
 #include "main/options/options.h"
 #include "main/realmain.h"
 #include "rbs/rbs_common.h"
-#include "rbs/RubyVM.h"
 
 int main(int argc, char *argv[]) {
-    sorbet::rbs::RubyVM::initialize();
-
     int result;
     try {
         result = sorbet::realmain::realmain(argc, argv);
@@ -14,6 +11,5 @@ int main(int argc, char *argv[]) {
         result = c.returnCode;
     }
 
-    sorbet::rbs::RubyVM::cleanup();
     return result;
 }

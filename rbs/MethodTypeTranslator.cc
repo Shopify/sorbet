@@ -84,43 +84,32 @@ std::pair<core::NameRef, core::LocOffsets> getName(core::MutableContext ctx, ast
 
 struct RBSArg {
     core::LocOffsets loc;
-    VALUE value;
-    VALUE name;
-    VALUE type;
+    rbs_ast_symbol_t *name;
+    rbs_node_t *type;
     bool optional;
 };
 
-core::LocOffsets rbsLoc(core::LocOffsets docLoc, VALUE location) {
-    int rbsStartColumn = NUM2INT(rb_funcall(location, rb_intern("start_column"), 0));
-    int rbsEndColumn = NUM2INT(rb_funcall(location, rb_intern("end_column"), 0));
-    return core::LocOffsets{docLoc.beginLoc + rbsStartColumn + 2, docLoc.beginLoc + rbsEndColumn + 2};
+core::LocOffsets rbsLoc(core::LocOffsets docLoc, rbs_location_t *location) {
+    return core::LocOffsets{
+        docLoc.beginLoc + location->rg.start.byte_pos + 2,
+        docLoc.beginLoc + location->rg.end.byte_pos + 2
+    };
 }
 
-RBSArg rbsArg(core::LocOffsets docLoc, VALUE arg, bool optional) {
-    auto loc = rbsLoc(docLoc, rb_funcall(arg, rb_intern("location"), 0));
-    auto name = rb_funcall(arg, rb_intern("name"), 0);
-    auto type = rb_funcall(arg, rb_intern("type"), 0);
-
-    return RBSArg{loc, arg, name, type, optional};
-}
-
-void collectArgs(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &args, bool optional) {
-    for (int i = 0; i < RARRAY_LEN(field); i++) {
-        VALUE argValue = rb_ary_entry(field, i);
-        args.emplace_back(rbsArg(docLoc, argValue, optional));
+void collectArgs(core::LocOffsets docLoc, rbs_node_list_t *field, std::vector<RBSArg> &args, bool optional) {
+    for (rbs_node_list_node_t *list_node = field->head; list_node != nullptr; list_node = list_node->next) {
+        auto node = (rbs_types_function_param_t *)list_node->node;
+        auto loc = rbsLoc(docLoc, node->location);
+        auto arg = RBSArg{loc, node->name, node->type, optional};
+        args.emplace_back(arg);
     }
 }
 
-void collectKeywords(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &args, bool optional) {
-    VALUE keys = rb_funcall(field, rb_intern("keys"), 0);
-    long size = RARRAY_LEN(keys);
-
-    for (long i = 0; i < size; i++) {
-        VALUE key = rb_ary_entry(keys, i);
-        VALUE value = rb_hash_aref(field, key);
-
-        auto arg = rbsArg(docLoc, value, optional);
-        arg.name = key;
+void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, std::vector<RBSArg> &args, bool optional) {
+    for (rbs_hash_node_t *hash_node = field->head; hash_node != nullptr; hash_node = hash_node->next) {
+        rbs_node_t *keyNode = hash_node->key;
+        rbs_node_t *valueNode = hash_node->value;
+        auto arg = RBSArg{docLoc, (rbs_ast_symbol_t *)keyNode, valueNode, optional};
         args.emplace_back(arg);
     }
 }
@@ -128,48 +117,52 @@ void collectKeywords(core::LocOffsets docLoc, VALUE field, std::vector<RBSArg> &
 } // namespace
 
 sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                                 sorbet::ast::MethodDef *methodDef, VALUE methodType,
+                                                                 sorbet::ast::MethodDef *methodDef, rbs_methodtype_t *methodType,
                                                                  std::vector<RBSAnnotation> annotations) {
     // TODO raise error if methodType is not a MethodType
     // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
     // std::cout << rb_obj_classname(methodType) << std::endl;
     // rb_p(methodType);
 
-    VALUE functionType = rb_funcall(methodType, rb_intern("type"), 0);
+    if (methodType->type->type != RBS_TYPES_FUNCTION) {
+        std::cout << "METHOD TYPE IS NOT A FUNCTION" << std::endl;
+        return nullptr;
+    }
 
+    rbs_types_function_t *functionType = (rbs_types_function_t *)methodType->type;
     Send::ARGS_store sigArgs;
-
     std::vector<RBSArg> args;
 
-    collectArgs(docLoc, rb_funcall(functionType, rb_intern("required_positionals"), 0), args, false);
+    collectArgs(docLoc, functionType->required_positionals, args, false);
 
-    VALUE optionalPositionals = rb_funcall(functionType, rb_intern("optional_positionals"), 0);
-    if (optionalPositionals != Qfalse) {
+    rbs_node_list_t *optionalPositionals = functionType->optional_positionals;
+    if (optionalPositionals && optionalPositionals->length > 0) {
         collectArgs(docLoc, optionalPositionals, args, true);
     }
-    VALUE restPositionals = rb_funcall(functionType, rb_intern("rest_positionals"), 0);
-    if (restPositionals != Qnil) {
+
+    rbs_node_list_t *restPositionals = functionType->rest_positionals;
+    if (restPositionals && restPositionals->length > 0) {
         args.emplace_back(rbsArg(docLoc, restPositionals, false));
     }
 
-    VALUE trailingPositionals = rb_funcall(functionType, rb_intern("trailing_positionals"), 0);
-    if (trailingPositionals != Qfalse) {
+    rbs_node_list_t *trailingPositionals = functionType->trailing_positionals;
+    if (trailingPositionals && trailingPositionals->length > 0) {
         collectArgs(docLoc, trailingPositionals, args, false);
     }
 
-    collectKeywords(docLoc, rb_funcall(functionType, rb_intern("required_keywords"), 0), args, false);
-    collectKeywords(docLoc, rb_funcall(functionType, rb_intern("optional_keywords"), 0), args, false);
+    collectKeywords(docLoc, functionType->required_keywords, args, false);
+    collectKeywords(docLoc, functionType->optional_keywords, args, false);
 
-    VALUE restKeywords = rb_funcall(functionType, rb_intern("rest_keywords"), 0);
-    if (restKeywords != Qnil) {
+    rbs_node_t *restKeywords = functionType->rest_keywords;
+    if (restKeywords) {
         args.emplace_back(rbsArg(docLoc, restKeywords, false));
     }
 
-    VALUE block = rb_funcall(methodType, rb_intern("block"), 0);
-    if (block != Qnil) {
+    rbs_node_t *block = functionType->block;
+    if (block) {
         // TODO: RBS doesn't have location on blocks?
         auto loc = docLoc;
-        auto name = Qnil;
+        auto name = NULL;
         auto type = block;
         args.emplace_back(RBSArg{loc, block, name, type, false});
     }
@@ -182,7 +175,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
         core::NameRef name;
         auto nameValue = arg.name;
 
-        if (nameValue != Qnil) {
+        if (nameValue) {
             // The RBS arg is named in the signature, so we use that name.
             auto nameString = rb_funcall(nameValue, rb_intern("to_s"), 0);
             const char *nameStr = StringValueCStr(nameString);
@@ -239,7 +232,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
 }
 
 sorbet::ast::ExpressionPtr MethodTypeTranslator::attrSignature(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                               sorbet::ast::Send *send, VALUE attrType,
+                                                               sorbet::ast::Send *send, rbs_node_t *attrType,
                                                                std::vector<RBSAnnotation> annotations) {
     // TODO raise error if attr is not a Type
     // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
