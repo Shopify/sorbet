@@ -92,6 +92,7 @@ T.reveal_type(BaseType2.base_type2) # error: Revealed type: `BaseType2`
 
 # TODO: unsupported
 #: -> class
+#     ^^^^^ error: RBS type `class` is not supported yet
 def base_type3; T.unsafe(nil); end
 T.reveal_type(base_type3) # error: Revealed type: `T.untyped`
 

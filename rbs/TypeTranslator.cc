@@ -371,8 +371,13 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, rbs_n
             return ast::MK::SelfType(docLoc);
         case RBS_TYPES_BASES_INSTANCE:
             return ast::MK::AttachedClass(docLoc);
-        case RBS_TYPES_BASES_CLASS:
-            return ast::MK::Untyped(docLoc); // TODO: get around type? error
+        case RBS_TYPES_BASES_CLASS: {
+            auto loc = TypeTranslator::nodeLoc(ctx, docLoc, node);
+            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSError)) {
+                e.setHeader("RBS type `{}` is not supported yet", "class");
+            }
+            return ast::MK::Untyped(docLoc);
+        }
         case RBS_TYPES_BASES_BOOL:
             return ast::MK::T_Boolean(docLoc);
         case RBS_TYPES_BASES_NIL:
