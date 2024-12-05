@@ -154,7 +154,16 @@ sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, rbs_types_proc_t *
         }
     }
 
-    return functionType(ctx, (rbs_types_function_t *)functionTypeNode, loc);
+    auto function = functionType(ctx, (rbs_types_function_t *)functionTypeNode, loc);
+
+    rbs_node_t *selfNode = node->self_type;
+    if (selfNode != nullptr) {
+        auto selfLoc = TypeTranslator::nodeLoc(ctx, loc, (rbs_node_t *)selfNode);
+        auto selfType = TypeTranslator::toRBI(ctx, selfNode, selfLoc);
+        function = ast::MK::Send1(loc, std::move(function), core::Names::bind(), loc, std::move(selfType));
+    }
+
+    return function;
 }
 
 sorbet::ast::ExpressionPtr blockType(core::MutableContext ctx, rbs_types_block_t *node, core::LocOffsets loc) {
@@ -169,8 +178,9 @@ sorbet::ast::ExpressionPtr blockType(core::MutableContext ctx, rbs_types_block_t
 
     rbs_node_t *selfNode = node->self_type;
     if (selfNode != nullptr) {
-        auto selfType = TypeTranslator::toRBI(ctx, selfNode, loc);
-        function = ast::MK::Send1(loc, std::move(function), core::Names::bind(), loc, std::move(selfType));
+        auto selfLoc = TypeTranslator::nodeLoc(ctx, loc, (rbs_node_t *)selfNode);
+        auto selfType = TypeTranslator::toRBI(ctx, selfNode, selfLoc);
+        function = ast::MK::Send1(selfLoc, std::move(function), core::Names::bind(), selfLoc, std::move(selfType));
     }
 
     if (!node->required) {

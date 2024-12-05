@@ -181,9 +181,8 @@ T.reveal_type(shape_type1) # error: Revealed type: `{id: String, name: String} (
 def proc_type1; T.unsafe(nil); end
 T.reveal_type(proc_type1) # error: Revealed type: `T.proc.params(arg0: Integer, arg1: String).returns(String)`
 
-# TODO
-# proc_type -> Proc
-  # self binding
+#: -> ^() [self: Foo] -> void # error: Using `bind` is not permitted here
+def proc_type2; T.unsafe(nil); end
 
 # mixed tests
 

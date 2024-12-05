@@ -110,13 +110,11 @@ def method14(x)
   T.reveal_type(x) # error: Revealed type: `String`
 end
 
-# TODO: should error
 #: (String x) -> void
 def method15(x = nil) # error: Argument does not have asserted type `String`
   T.reveal_type(x) # error: Revealed type: `T.nilable(String)`
 end
 
-# TODO: should error
 #: (String ?x) -> void
 def method16(x = nil)
   T.reveal_type(x) # error: Revealed type: `T.nilable(String)`
@@ -139,7 +137,7 @@ def method18(&block)
 end
 
 class FooProc
-  #: (p: ^() [self: FooProc] -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
+  #: (p: ^() -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
   def initialize(p: -> { 42 }, &block)
     T.reveal_type(p) # error: Revealed type: `T.proc.returns(Integer)`
     T.reveal_type(block) # error: Revealed type: `T.nilable(T.proc.params(arg0: Integer).returns(String))`
