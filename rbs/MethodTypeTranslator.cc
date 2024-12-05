@@ -26,13 +26,17 @@ core::NameRef expressionName(core::MutableContext ctx, const ast::ExpressionPtr 
         [&](const ast::KeywordArg &p) { name = expressionName(ctx, &p.expr); },
         [&](const ast::BlockArg &p) { name = expressionName(ctx, &p.expr); },
         [&](const ast::ExpressionPtr &p) {
-            std::cout << "UNKNOWN EXPRESSION " << p.showRaw(ctx) << std::endl;
-            name = ctx.state.enterNameUTF8("TMP");
+            if (auto e = ctx.beginError(expr->loc(), core::errors::Rewriter::BadAttrArg)) {
+                e.setHeader("Unexpected expression type: {}", p.showRaw(ctx));
+            }
+
+            name = ctx.state.enterNameUTF8("<error>");
         });
 
     return name;
 }
 
+// TODO: merge with AttrReader.cc
 std::pair<core::NameRef, core::LocOffsets> getName(core::MutableContext ctx, ast::ExpressionPtr &name) {
     core::LocOffsets loc;
     core::NameRef res;
@@ -84,24 +88,40 @@ struct RBSArg {
     bool optional;
 };
 
-core::LocOffsets rbsLoc(core::LocOffsets docLoc, rbs_location_t *location) {
-    return core::LocOffsets{
-        docLoc.beginLoc + location->rg.start.byte_pos + 2,
-        docLoc.beginLoc + location->rg.end.byte_pos + 2
-    };
-}
-
-void collectArgs(core::LocOffsets docLoc, rbs_node_list_t *field, std::vector<RBSArg> &args, bool optional) {
+void collectArgs(core::MutableContext ctx, core::LocOffsets docLoc, rbs_node_list_t *field, std::vector<RBSArg> &args,
+                 bool optional) {
     for (rbs_node_list_node_t *list_node = field->head; list_node != nullptr; list_node = list_node->next) {
+        if (list_node->node->type != RBS_TYPES_FUNCTION_PARAM) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+                e.setHeader("Unexpected node type: {}", rbs_node_type_name(list_node->node));
+            }
+            continue;
+        }
+
         auto node = (rbs_types_function_param_t *)list_node->node;
-        auto loc = rbsLoc(docLoc, node->location);
+        auto loc = TypeTranslator::locOffsets(docLoc, node->location);
         auto arg = RBSArg{loc, node->name, node->type, optional};
         args.emplace_back(arg);
     }
 }
 
-void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, std::vector<RBSArg> &args, bool optional) {
+void collectKeywords(core::MutableContext ctx, core::LocOffsets docLoc, rbs_hash_t *field, std::vector<RBSArg> &args,
+                     bool optional) {
     for (rbs_hash_node_t *hash_node = field->head; hash_node != nullptr; hash_node = hash_node->next) {
+        if (hash_node->key->type != RBS_AST_SYMBOL) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+                e.setHeader("Unexpected node type: {}", rbs_node_type_name(hash_node->key));
+            }
+            continue;
+        }
+
+        if (hash_node->value->type != RBS_TYPES_FUNCTION_PARAM) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+                e.setHeader("Unexpected node type: {}", rbs_node_type_name(hash_node->value));
+            }
+            continue;
+        }
+
         rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *) hash_node->key;
         rbs_types_function_param_t *valueNode = (rbs_types_function_param_t *) hash_node->value;
         auto arg = RBSArg{docLoc, keyNode, valueNode->type, optional};
@@ -112,64 +132,72 @@ void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, std::vector<RBS
 } // namespace
 
 sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableContext ctx, core::LocOffsets docLoc,
-                                                                 sorbet::ast::MethodDef *methodDef, rbs_methodtype_t *methodType,
+                                                                 sorbet::ast::MethodDef *methodDef,
+                                                                 rbs_methodtype_t *methodType,
                                                                  std::vector<RBSAnnotation> annotations) {
-    // TODO raise error if methodType is not a MethodType
-    // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
-    // std::cout << rb_obj_classname(methodType) << std::endl;
-    // rb_p(methodType);
-
     if (methodType->type->type != RBS_TYPES_FUNCTION) {
-        std::cout << "METHOD TYPE IS NOT A FUNCTION" << std::endl;
-        return nullptr;
+        if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+            e.setHeader("Unexpected node type: {}", rbs_node_type_name(methodType->type));
+        }
+        return ast::MK::Untyped(docLoc);
     }
 
     rbs_types_function_t *functionType = (rbs_types_function_t *)methodType->type;
     Send::ARGS_store sigArgs;
     std::vector<RBSArg> args;
 
-    collectArgs(docLoc, functionType->required_positionals, args, false);
+    collectArgs(ctx, docLoc, functionType->required_positionals, args, false);
 
     rbs_node_list_t *optionalPositionals = functionType->optional_positionals;
     if (optionalPositionals && optionalPositionals->length > 0) {
-        collectArgs(docLoc, optionalPositionals, args, false);
+        collectArgs(ctx, docLoc, optionalPositionals, args, false);
     }
 
     rbs_node_t *restPositionals = functionType->rest_positionals;
     if (restPositionals) {
-        auto node = (rbs_types_function_param_t *)restPositionals;
-        auto loc = rbsLoc(docLoc, node->location);
-        auto arg = RBSArg{loc, node->name, node->type, false};
-        args.emplace_back(arg);
+        if (restPositionals->type != RBS_TYPES_FUNCTION_PARAM) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+                e.setHeader("Unexpected node type: {}", rbs_node_type_name(restPositionals));
+            }
+        } else {
+            auto node = (rbs_types_function_param_t *)restPositionals;
+            auto loc = TypeTranslator::locOffsets(docLoc, node->location);
+            auto arg = RBSArg{loc, node->name, node->type, false};
+            args.emplace_back(arg);
+        }
     }
 
     rbs_node_list_t *trailingPositionals = functionType->trailing_positionals;
     if (trailingPositionals && trailingPositionals->length > 0) {
-        collectArgs(docLoc, trailingPositionals, args, false);
+        collectArgs(ctx, docLoc, trailingPositionals, args, false);
     }
 
-    collectKeywords(docLoc, functionType->required_keywords, args, false);
-    collectKeywords(docLoc, functionType->optional_keywords, args, false);
+    collectKeywords(ctx, docLoc, functionType->required_keywords, args, false);
+    collectKeywords(ctx, docLoc, functionType->optional_keywords, args, false);
 
     rbs_node_t *restKeywords = functionType->rest_keywords;
     if (restKeywords) {
-        auto node = (rbs_types_function_param_t *)restKeywords;
-        auto loc = rbsLoc(docLoc, node->location);
-        auto arg = RBSArg{loc, node->name, node->type, false};
-        args.emplace_back(arg);
+        if (restKeywords->type != RBS_TYPES_FUNCTION_PARAM) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+                e.setHeader("Unexpected node type: {}", rbs_node_type_name(restKeywords));
+            }
+        } else {
+            auto node = (rbs_types_function_param_t *)restKeywords;
+            auto loc = TypeTranslator::locOffsets(docLoc, node->location);
+            auto arg = RBSArg{loc, node->name, node->type, false};
+            args.emplace_back(arg);
+        }
     }
 
     rbs_types_block_t *block = methodType->block;
     if (block) {
-        // TODO: RBS doesn't have location on blocks?
-        args.emplace_back(RBSArg{docLoc, nullptr, (rbs_node_t *) block, !block->required});
+        // TODO: RBS doesn't have location on blocks yet
+        auto arg = RBSArg{docLoc, nullptr, (rbs_node_t *) block, !block->required};
+        args.emplace_back(arg);
     }
 
     for (int i = 0; i < args.size(); i++) {
         auto &arg = args[i];
-        // std::cout << "PARAM: " << arg.loc.showRaw(ctx) << std::endl;
-        // rb_p(arg.value);
-
         core::NameRef name;
         auto nameSymbol = arg.name;
 
@@ -232,16 +260,11 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
 sorbet::ast::ExpressionPtr MethodTypeTranslator::attrSignature(core::MutableContext ctx, core::LocOffsets docLoc,
                                                                sorbet::ast::Send *send, rbs_node_t *attrType,
                                                                std::vector<RBSAnnotation> annotations) {
-    // TODO raise error if attr is not a Type
-    // std::cout << "METHOD DEF: " << methodDef->showRaw(ctx) << std::endl;
-    // std::cout << rb_obj_classname(methodType) << std::endl;
-
     auto sigBuilder = ast::MK::Self(docLoc);
 
     if (send->fun == core::Names::attrWriter()) {
         ENFORCE(send->numPosArgs() >= 1);
-        auto &arg = send->getPosArg(0);
-        auto name = getName(ctx, arg);
+        auto name = getName(ctx, send->getPosArg(0));
 
         Send::ARGS_store sigArgs;
         sigArgs.emplace_back(ast::MK::Symbol(name.second, name.first));

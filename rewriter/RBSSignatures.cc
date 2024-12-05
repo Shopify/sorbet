@@ -222,19 +222,11 @@ class RBSSignaturesWalk {
             return std::move(stat);
         }
 
-        // std::cout << "insertCast: " << stat.showRaw(ctx) << std::endl;
-        // std::cout << "atLoc: " << stat.loc().showRaw(ctx) << std::endl;
-
         auto loc = stat.loc();
-
         auto trailingComment = getTrailingComment(ctx.file.data(ctx).source(), loc);
         if (!trailingComment) {
-            // std::cout << "no trailing comment" << std::endl;
             return std::move(stat);
         }
-
-        // std::cout << "trailing comment: " << trailingComment->string << std::endl;
-
         auto docLoc = trailingComment->loc;
         auto doc = trailingComment->string;
         auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, loc, doc);
@@ -302,7 +294,6 @@ public:
         }
 
         for (auto &stat : oldRHS) {
-            // std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
             if (auto *methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
                 auto methodLoc = methodDef->loc;
                 auto methodComments = findRBSComments(ctx.file.data(ctx).source(), methodLoc);
@@ -320,15 +311,6 @@ public:
                 }
 
                 if (auto stmts = ast::cast_tree<ast::InsSeq>(methodDef->rhs)) {
-                    // auto oldStats = std::move(stmts->stats);
-                    // stmts->stats.clear();
-                    // stmts->stats.reserve(oldStats.size());
-
-                    // for (auto &s : oldStats) {
-                    //     // std::cout << "s: " << s.showRaw(ctx) << std::endl;
-                    //     auto newStat = insertCast(ctx, s);
-                    //     stmts->stats.emplace_back(std::move(newStat));
-
                     // no-op, let the next pass handle it
                 } else {
                     auto newStat = insertCast(ctx, methodDef->rhs);
@@ -378,7 +360,6 @@ public:
         insSeq->stats.reserve(oldStats.size());
 
         for (auto &stat : oldStats) {
-            // std::cout << "stat: " << stat.showRaw(ctx) << std::endl;
             auto newStat = insertCast(ctx, stat);
             insSeq->stats.emplace_back(std::move(newStat));
         }
@@ -407,7 +388,6 @@ public:
     }
 
     void preTransformIf(core::MutableContext ctx, ast::ExpressionPtr &tree) {
-        // std::cout << "preTransformIf: " << tree.showRaw(ctx) << std::endl;
         auto *ifExpr = ast::cast_tree<ast::If>(tree);
         if (!ifExpr) {
             return;
