@@ -1,18 +1,13 @@
 #include "rewriter/RBSSignatures.h"
+
 #include "absl/strings/match.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/strip.h"
 #include "ast/Helpers.h"
-#include "ast/ast.h"
 #include "ast/treemap/treemap.h"
-#include "core/GlobalState.h"
-#include "core/errors/rewriter.h"
-#include "rbs/MethodTypeTranslator.h"
 #include "rbs/RBSParser.h"
+#include "rbs/MethodTypeTranslator.h"
 #include "rbs/TypeTranslator.h"
-#include "rewriter/rewriter.h"
 #include <optional>
 
 using namespace std;

@@ -1,10 +1,6 @@
 #include "TypeTranslator.h"
 #include "ast/Helpers.h"
-#include "ast/ast.h"
 #include "core/GlobalState.h"
-#include "core/Names.h"
-#include <cstring>
-#include <functional>
 
 using namespace sorbet::ast;
 

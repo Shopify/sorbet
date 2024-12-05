@@ -1,14 +1,9 @@
 #include "MethodTypeTranslator.h"
 #include "TypeTranslator.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/strip.h"
 #include "ast/Helpers.h"
-#include "ast/ast.h"
-#include "core/GlobalState.h"
-#include "core/Names.h"
 #include "core/errors/rewriter.h"
-#include <cstring>
-#include <functional>
+#include "core/GlobalState.h"
+#include "absl/strings/escaping.h"
 
 using namespace sorbet::ast;
 
