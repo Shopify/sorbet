@@ -183,7 +183,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
             name = expressionName(ctx, &methodArg);
         }
 
-        auto type = TypeTranslator::toRBI(ctx, arg.type, arg.loc);
+        auto type = TypeTranslator::toRBI(ctx, arg.type, docLoc);
         if (arg.optional) {
             type = ast::MK::Nilable(arg.loc, std::move(type));
         }
@@ -211,9 +211,10 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
 
     rbs_node_t *returnValue = functionType->return_type;
     if (returnValue->type == RBS_TYPES_BASES_VOID) {
-        sigBuilder = ast::MK::Send0(docLoc, std::move(sigBuilder), core::Names::void_(), docLoc);
+        auto loc = TypeTranslator::locOffsets(docLoc, ((rbs_types_bases_void_t *)returnValue)->location);
+        sigBuilder = ast::MK::Send0(loc, std::move(sigBuilder), core::Names::void_(), loc);
     } else {
-        auto returnType = TypeTranslator::toRBI(ctx, returnValue, methodDef->loc);
+        auto returnType = TypeTranslator::toRBI(ctx, returnValue, docLoc);
         sigBuilder =
             ast::MK::Send1(docLoc, std::move(sigBuilder), core::Names::returns(), docLoc, std::move(returnType));
     }
