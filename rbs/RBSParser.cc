@@ -1,11 +1,5 @@
 #include "RBSParser.h"
-#include "ast/Helpers.h"
-#include "ast/ast.h"
-#include "core/GlobalState.h"
-#include "core/Names.h"
 #include "core/errors/rewriter.h"
-#include <cstring>
-#include <functional>
 
 namespace sorbet::rbs {
 
@@ -19,7 +13,6 @@ rbs_methodtype_t *RBSParser::parseSignature(core::MutableContext ctx, sorbet::co
     };
 
     const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
-
     lexstate *lexer = alloc_lexer(rbsString, encoding, 0, docString.size());
     parserstate *parser = alloc_parser(lexer, 0, docString.size());
 
@@ -27,17 +20,18 @@ rbs_methodtype_t *RBSParser::parseSignature(core::MutableContext ctx, sorbet::co
     parse_method_type(parser, &rbsMethodType);
 
     if (parser->error) {
-        range range = parser->error->token.range;
-        auto startColumn = range.start.char_pos + 2;
-        auto endColumn = range.end.char_pos + 2;
+        core::LocOffsets offset{
+            docLoc.beginPos() + parser->error->token.range.start.char_pos + 2,
+            docLoc.beginPos() + parser->error->token.range.end.char_pos + 2,
+        };
 
-        core::LocOffsets offset{docLoc.beginPos() + startColumn, docLoc.beginPos() + endColumn};
         if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
             e.setHeader("Failed to parse RBS signature ({})", parser->error->message);
         }
-
-        return nullptr;
     }
+
+    free(parser);
+    free(lexer);
 
     return rbsMethodType;
 }
@@ -60,17 +54,18 @@ rbs_node_t *RBSParser::parseType(core::MutableContext ctx, sorbet::core::LocOffs
     parse_type(parser, &rbsType);
 
     if (parser->error) {
-        range range = parser->error->token.range;
-        auto startColumn = range.start.char_pos + 2;
-        auto endColumn = range.end.char_pos + 2;
+        core::LocOffsets offset{
+            docLoc.beginPos() + parser->error->token.range.start.char_pos + 2,
+            docLoc.beginPos() + parser->error->token.range.end.char_pos + 2,
+        };
 
-        core::LocOffsets offset{docLoc.beginPos() + startColumn, docLoc.beginPos() + endColumn};
         if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
-            e.setHeader("Failed to parse RBS signature ({})", parser->error->message);
+            e.setHeader("Failed to parse RBS type ({})", parser->error->message);
         }
-
-        return nullptr;
     }
+
+    free(parser);
+    free(lexer);
 
     return rbsType;
 }
