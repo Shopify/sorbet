@@ -20,7 +20,7 @@ core::LocOffsets locOffsets(core::LocOffsets offset, rbs_location_t *loc) {
 }
 
 sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, rbs_typename_t *typeName, core::LocOffsets loc) {
-    rbs_namespace_t *typeNamespace = typeName->namespace;
+    rbs_namespace_t *typeNamespace = typeName->rbs_namespace;
     rbs_node_list *typePath = typeNamespace->path;
 
     auto parent = ast::MK::EmptyTree();
@@ -136,8 +136,8 @@ sorbet::ast::ExpressionPtr functionType(core::MutableContext ctx, rbs_types_func
         auto argName = ctx.state.enterNameUTF8("arg" + std::to_string(i));
         paramsStore.emplace_back(ast::MK::Symbol(loc, argName));
 
-        rbs_node_t *paramNode = list_node->node;
-        auto innerType = TypeTranslator::toRBI(ctx, paramNode, loc);
+        rbs_types_function_param_t *paramNode = (rbs_types_function_param_t *)list_node->node;
+        auto innerType = TypeTranslator::toRBI(ctx, paramNode->type, loc);
         paramsStore.emplace_back(std::move(innerType));
 
         i++;
@@ -151,7 +151,7 @@ sorbet::ast::ExpressionPtr functionType(core::MutableContext ctx, rbs_types_func
 }
 
 sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, rbs_types_proc_t *node, core::LocOffsets loc) {
-    return functionType(ctx, (rbs_types_function_t *)node, loc);
+    return functionType(ctx, (rbs_types_function_t *)node->type, loc);
 }
 
 sorbet::ast::ExpressionPtr blockType(core::MutableContext ctx, rbs_types_block_t *node, core::LocOffsets loc) {
@@ -189,23 +189,17 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx, rbs_types_record
     auto valuesStore = Hash::ENTRY_store();
 
     for (rbs_hash_node_t *hash_node = entries->head; hash_node != nullptr; hash_node = hash_node->next) {
-        rbs_node_t *keyNode = hash_node->key;
-        rbs_node_t *valueNode = hash_node->value;
+        rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *)hash_node->key;
+        rbs_types_record_fieldtype_t *valueNode = (rbs_types_record_fieldtype_t *)hash_node->value;
 
-        if (keyNode->type != RBS_AST_SYMBOL) {
-            std::cout << "unknown key node type: " << keyNode->type << std::endl;
-            continue;
-        }
-
-        rbs_ast_symbol_t *keySymbol = (rbs_ast_symbol_t *)keyNode;
-        rbs_constant_t *keyString = rbs_constant_pool_id_to_constant(fake_constant_pool, keySymbol->constant_id);
+        rbs_constant_t *keyString = rbs_constant_pool_id_to_constant(fake_constant_pool, keyNode->constant_id);
         std::string keyStr(keyString->start);
         auto keyName = ctx.state.enterNameUTF8(keyStr);
         auto keyLiteral =
             ast::MK::Literal(loc, core::make_type<core::NamedLiteralType>(core::Symbols::Symbol(), keyName));
         keysStore.emplace_back(std::move(keyLiteral));
 
-        auto innerType = TypeTranslator::toRBI(ctx, valueNode, loc);
+        auto innerType = TypeTranslator::toRBI(ctx, valueNode->type, loc);
         valuesStore.emplace_back(std::move(innerType));
     }
 

@@ -9,15 +9,11 @@ namespace sorbet::rbs {
 
 class RBSParser {
 public:
-    static VALUE parseSignature(core::MutableContext ctx, sorbet::core::LocOffsets docLoc,
+    static rbs_methodtype_t *parseSignature(core::MutableContext ctx, sorbet::core::LocOffsets docLoc,
                                 sorbet::core::LocOffsets methodLoc, const std::string_view docString);
 
-    static VALUE parseType(core::MutableContext ctx, sorbet::core::LocOffsets docLoc, sorbet::core::LocOffsets typeLoc,
-                           const std::string_view docString);
-
-private:
-    static VALUE parse_method_type_wrapper(VALUE string);
-    static VALUE parse_type_wrapper(VALUE string);
+    static rbs_node_t *parseType(core::MutableContext ctx, sorbet::core::LocOffsets docLoc,
+                               sorbet::core::LocOffsets typeLoc, const std::string_view docString);
 };
 
 } // namespace sorbet::rbs

@@ -107,9 +107,9 @@ void collectArgs(core::LocOffsets docLoc, rbs_node_list_t *field, std::vector<RB
 
 void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, std::vector<RBSArg> &args, bool optional) {
     for (rbs_hash_node_t *hash_node = field->head; hash_node != nullptr; hash_node = hash_node->next) {
-        rbs_node_t *keyNode = hash_node->key;
-        rbs_node_t *valueNode = hash_node->value;
-        auto arg = RBSArg{docLoc, (rbs_ast_symbol_t *)keyNode, valueNode, optional};
+        rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *) hash_node->key;
+        rbs_types_function_param_t *valueNode = (rbs_types_function_param_t *) hash_node->value;
+        auto arg = RBSArg{docLoc, keyNode, valueNode->type, optional};
         args.emplace_back(arg);
     }
 }
@@ -137,12 +137,15 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
 
     rbs_node_list_t *optionalPositionals = functionType->optional_positionals;
     if (optionalPositionals && optionalPositionals->length > 0) {
-        collectArgs(docLoc, optionalPositionals, args, true);
+        collectArgs(docLoc, optionalPositionals, args, false);
     }
 
-    rbs_node_list_t *restPositionals = functionType->rest_positionals;
-    if (restPositionals && restPositionals->length > 0) {
-        args.emplace_back(rbsArg(docLoc, restPositionals, false));
+    rbs_node_t *restPositionals = functionType->rest_positionals;
+    if (restPositionals) {
+        auto node = (rbs_types_function_param_t *)restPositionals;
+        auto loc = rbsLoc(docLoc, node->location);
+        auto arg = RBSArg{loc, node->name, node->type, false};
+        args.emplace_back(arg);
     }
 
     rbs_node_list_t *trailingPositionals = functionType->trailing_positionals;
@@ -155,16 +158,16 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
 
     rbs_node_t *restKeywords = functionType->rest_keywords;
     if (restKeywords) {
-        args.emplace_back(rbsArg(docLoc, restKeywords, false));
+        auto node = (rbs_types_function_param_t *)restKeywords;
+        auto loc = rbsLoc(docLoc, node->location);
+        auto arg = RBSArg{loc, node->name, node->type, false};
+        args.emplace_back(arg);
     }
 
-    rbs_node_t *block = functionType->block;
+    rbs_types_block_t *block = methodType->block;
     if (block) {
         // TODO: RBS doesn't have location on blocks?
-        auto loc = docLoc;
-        auto name = NULL;
-        auto type = block;
-        args.emplace_back(RBSArg{loc, block, name, type, false});
+        args.emplace_back(RBSArg{docLoc, nullptr, (rbs_node_t *) block, !block->required});
     }
 
     for (int i = 0; i < args.size(); i++) {
@@ -173,12 +176,11 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
         // rb_p(arg.value);
 
         core::NameRef name;
-        auto nameValue = arg.name;
+        auto nameSymbol = arg.name;
 
-        if (nameValue) {
-            // The RBS arg is named in the signature, so we use that name.
-            auto nameString = rb_funcall(nameValue, rb_intern("to_s"), 0);
-            const char *nameStr = StringValueCStr(nameString);
+        if (nameSymbol) {
+            rbs_constant_t *nameConstant = rbs_constant_pool_id_to_constant(fake_constant_pool, nameSymbol->constant_id);
+            std::string nameStr(nameConstant->start);
             name = ctx.state.enterNameUTF8(nameStr);
         } else {
             // The RBS arg is not named in the signature, so we look at the method definition
@@ -212,8 +214,8 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
         sigBuilder = ast::MK::Send(docLoc, std::move(sigBuilder), core::Names::params(), docLoc, 0, std::move(sigArgs));
     }
 
-    VALUE returnValue = rb_funcall(functionType, rb_intern("return_type"), 0);
-    if (strcmp(rb_obj_classname(returnValue), "RBS::Types::Bases::Void") == 0) {
+    rbs_node_t *returnValue = functionType->return_type;
+    if (returnValue->type == RBS_TYPES_BASES_VOID) {
         sigBuilder = ast::MK::Send0(docLoc, std::move(sigBuilder), core::Names::void_(), docLoc);
     } else {
         auto returnType = TypeTranslator::toRBI(ctx, returnValue, methodDef->loc);

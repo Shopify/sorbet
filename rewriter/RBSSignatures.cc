@@ -244,7 +244,7 @@ class RBSSignaturesWalk {
         auto doc = trailingComment->string;
         auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, loc, doc);
 
-        if (rbsType == Qnil) {
+        if (rbsType == nullptr) {
             return std::move(stat);
         }
 
@@ -317,7 +317,7 @@ public:
                     auto doc = signature.signature;
                     auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
 
-                    if (rbsMethodType != Qnil) {
+                    if (rbsMethodType) {
                         auto sig = rbs::MethodTypeTranslator::methodSignature(ctx, docLoc, methodDef, rbsMethodType,
                                                                               methodComments.annotations);
                         classDef->rhs.emplace_back(std::move(sig));
@@ -353,7 +353,7 @@ public:
                     auto doc = signature.signature;
                     auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, attr->loc, doc);
 
-                    if (rbsType != Qnil) {
+                    if (rbsType) {
                         auto sig =
                             rbs::MethodTypeTranslator::attrSignature(ctx, docLoc, attr, rbsType, comments.annotations);
                         classDef->rhs.emplace_back(std::move(sig));

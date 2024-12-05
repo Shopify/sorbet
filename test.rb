@@ -2,8 +2,16 @@
 
 extend T::Sig
 
-#: -> void
-def foo; end
+class FooProc
+  #: (p: ^() [self: Integer] -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
+  def initialize(p: -> { T.reveal_type(self); 42 }, &block)
+  end
+end
+
+FooProc.new do |foo|
+  T.reveal_type(self) # error: Revealed type: `FooProc`
+  "foo"
+end
 
 # #: (String?) -> String
 # def foo(x)
