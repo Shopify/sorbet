@@ -236,6 +236,7 @@ class RBSSignaturesWalk {
         }
 
         auto type = rbs::TypeTranslator::toRBI(ctx, rbsType, loc);
+        free(rbsType);
 
         if (auto *assign = ast::cast_tree<ast::Assign>(stat)) {
             assign->rhs = makeCast(assign->rhs, type, trailingComment->isCast);
@@ -307,6 +308,7 @@ public:
                         auto sig = rbs::MethodTypeTranslator::methodSignature(ctx, docLoc, methodDef, rbsMethodType,
                                                                               methodComments.annotations);
                         classDef->rhs.emplace_back(std::move(sig));
+                        free(rbsMethodType);
                     }
                 }
 
@@ -334,6 +336,7 @@ public:
                         auto sig =
                             rbs::MethodTypeTranslator::attrSignature(ctx, docLoc, attr, rbsType, comments.annotations);
                         classDef->rhs.emplace_back(std::move(sig));
+                        free(rbsType);
                     }
                 }
 
