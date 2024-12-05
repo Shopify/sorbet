@@ -13,8 +13,8 @@ extend T::Sig
 #   "foo"
 # end
 
-#: (String) -> Array[Foo]
-def foo(x); end
+#: -> ::Foo::Bar::Baz
+def foo; end
 
 # #: (String?) -> String
 # def foo(x)
