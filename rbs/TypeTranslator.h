@@ -25,14 +25,9 @@ public:
     static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, rbs_node_t *node, core::LocOffsets loc);
 
     /**
-     * Get the location offset of an RBS node.
-     */
-    static core::LocOffsets nodeLoc(core::MutableContext ctx, core::LocOffsets offset, rbs_node_t *node);
-
-    /**
      * Get the location offset from a RBS location.
      */
-    static core::LocOffsets locOffsets(core::LocOffsets offset, rbs_location_t *docLoc);
+    static core::LocOffsets nodeLoc(core::LocOffsets offset, rbs_node_t *node);
 };
 
 } // namespace sorbet::rbs

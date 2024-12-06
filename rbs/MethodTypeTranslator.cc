@@ -54,8 +54,8 @@ void collectArgs(core::MutableContext ctx, core::LocOffsets docLoc, rbs_node_lis
             continue;
         }
 
+        auto loc = TypeTranslator::nodeLoc(docLoc, list_node->node);
         auto node = (rbs_types_function_param_t *)list_node->node;
-        auto loc = TypeTranslator::locOffsets(docLoc, node->location);
         auto arg = RBSArg{loc, node->name, node->type, optional};
         args.emplace_back(arg);
     }
@@ -116,8 +116,8 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
                 e.setHeader("Unexpected node type: {}", rbs_node_type_name(restPositionals));
             }
         } else {
+            auto loc = TypeTranslator::nodeLoc(docLoc, restPositionals);
             auto node = (rbs_types_function_param_t *)restPositionals;
-            auto loc = TypeTranslator::locOffsets(docLoc, node->location);
             auto arg = RBSArg{loc, node->name, node->type, false};
             args.emplace_back(arg);
         }
@@ -138,8 +138,8 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
                 e.setHeader("Unexpected node type: {}", rbs_node_type_name(restKeywords));
             }
         } else {
+            auto loc = TypeTranslator::nodeLoc(docLoc, restKeywords);
             auto node = (rbs_types_function_param_t *)restKeywords;
-            auto loc = TypeTranslator::locOffsets(docLoc, node->location);
             auto arg = RBSArg{loc, node->name, node->type, false};
             args.emplace_back(arg);
         }
@@ -195,7 +195,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
 
     rbs_node_t *returnValue = functionType->return_type;
     if (returnValue->type == RBS_TYPES_BASES_VOID) {
-        auto loc = TypeTranslator::locOffsets(docLoc, ((rbs_types_bases_void_t *)returnValue)->location);
+        auto loc = TypeTranslator::nodeLoc(docLoc, returnValue);
         sigBuilder = ast::MK::Send0(loc, std::move(sigBuilder), core::Names::void_(), loc);
     } else {
         auto returnType = TypeTranslator::toRBI(ctx, returnValue, docLoc);

@@ -51,7 +51,7 @@ sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, rbs_typename_t
 }
 
 sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, rbs_types_classinstance_t *node, core::LocOffsets loc) {
-    auto offsets = TypeTranslator::locOffsets(loc, node->location);
+    auto offsets = TypeTranslator::nodeLoc(loc, (rbs_node_t *)node);
     auto typeConstant = typeNameType(ctx, node->name, offsets);
 
     rbs_node_list *argsValue = node->args;
@@ -70,7 +70,7 @@ sorbet::ast::ExpressionPtr classInstanceType(core::MutableContext ctx, rbs_types
 }
 
 sorbet::ast::ExpressionPtr classSingletonType(core::MutableContext ctx, rbs_types_classsingleton_t *node, core::LocOffsets loc) {
-    auto offsets = TypeTranslator::locOffsets(loc, node->location);
+    auto offsets = TypeTranslator::nodeLoc(loc, (rbs_node_t *)node);
     auto innerType = typeNameType(ctx, node->name, offsets);
 
     return ast::MK::ClassOf(offsets, std::move(innerType));
@@ -158,7 +158,7 @@ sorbet::ast::ExpressionPtr procType(core::MutableContext ctx, rbs_types_proc_t *
 
     rbs_node_t *selfNode = node->self_type;
     if (selfNode != nullptr) {
-        auto selfLoc = TypeTranslator::nodeLoc(ctx, loc, (rbs_node_t *)selfNode);
+        auto selfLoc = TypeTranslator::nodeLoc(loc, selfNode);
         auto selfType = TypeTranslator::toRBI(ctx, selfNode, selfLoc);
         function = ast::MK::Send1(loc, std::move(function), core::Names::bind(), loc, std::move(selfType));
     }
@@ -178,7 +178,7 @@ sorbet::ast::ExpressionPtr blockType(core::MutableContext ctx, rbs_types_block_t
 
     rbs_node_t *selfNode = node->self_type;
     if (selfNode != nullptr) {
-        auto selfLoc = TypeTranslator::nodeLoc(ctx, loc, (rbs_node_t *)selfNode);
+        auto selfLoc = TypeTranslator::nodeLoc(loc, selfNode);
         auto selfType = TypeTranslator::toRBI(ctx, selfNode, selfLoc);
         function = ast::MK::Send1(selfLoc, std::move(function), core::Names::bind(), selfLoc, std::move(selfType));
     }
@@ -241,128 +241,12 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx, rbs_types_record
 
 } // namespace
 
-core::LocOffsets TypeTranslator::locOffsets(core::LocOffsets offset, rbs_location_t *loc) {
+core::LocOffsets TypeTranslator::nodeLoc(core::LocOffsets offset, rbs_node_t *node) {
+    auto loc = node->location;
     return core::LocOffsets{
         offset.beginPos() + loc->rg.start.char_pos + 2,
         offset.beginPos() + loc->rg.end.char_pos + 2,
     };
-}
-
-core::LocOffsets TypeTranslator::nodeLoc(core::MutableContext ctx, core::LocOffsets offset, rbs_node_t *node) {
-    // Sadly, not all RBS nodes have a location so we have to get it depending on the node type
-    switch (node->type) {
-        case RBS_AST_ANNOTATION:
-            return locOffsets(offset, ((rbs_ast_annotation_t *)node)->location);
-        case RBS_AST_COMMENT:
-            return locOffsets(offset, ((rbs_ast_comment_t *)node)->location);
-        case RBS_AST_DECLARATIONS_CLASS:
-            return locOffsets(offset, ((rbs_ast_declarations_class_t *)node)->location);
-        case RBS_AST_DECLARATIONS_CLASS_SUPER:
-            return locOffsets(offset, ((rbs_ast_declarations_class_super_t *)node)->location);
-        case RBS_AST_DECLARATIONS_CLASSALIAS:
-            return locOffsets(offset, ((rbs_ast_declarations_classalias_t *)node)->location);
-        case RBS_AST_DECLARATIONS_CONSTANT:
-            return locOffsets(offset, ((rbs_ast_declarations_constant_t *)node)->location);
-        case RBS_AST_DECLARATIONS_GLOBAL:
-            return locOffsets(offset, ((rbs_ast_declarations_global_t *)node)->location);
-        case RBS_AST_DECLARATIONS_INTERFACE:
-            return locOffsets(offset, ((rbs_ast_declarations_interface_t *)node)->location);
-        case RBS_AST_DECLARATIONS_MODULE:
-            return locOffsets(offset, ((rbs_ast_declarations_module_t *)node)->location);
-        case RBS_AST_DECLARATIONS_MODULE_SELF:
-            return locOffsets(offset, ((rbs_ast_declarations_module_self_t *)node)->location);
-        case RBS_AST_DECLARATIONS_MODULEALIAS:
-            return locOffsets(offset, ((rbs_ast_declarations_modulealias_t *)node)->location);
-        case RBS_AST_DECLARATIONS_TYPEALIAS:
-            return locOffsets(offset, ((rbs_ast_declarations_typealias_t *)node)->location);
-        case RBS_AST_DIRECTIVES_USE:
-            return locOffsets(offset, ((rbs_ast_directives_use_t *)node)->location);
-        case RBS_AST_DIRECTIVES_USE_SINGLECLAUSE:
-            return locOffsets(offset, ((rbs_ast_directives_use_singleclause_t *)node)->location);
-        case RBS_AST_DIRECTIVES_USE_WILDCARDCLAUSE:
-            return locOffsets(offset, ((rbs_ast_directives_use_wildcardclause_t *)node)->location);
-        case RBS_AST_MEMBERS_ALIAS:
-            return locOffsets(offset, ((rbs_ast_members_alias_t *)node)->location);
-        case RBS_AST_MEMBERS_ATTRACCESSOR:
-            return locOffsets(offset, ((rbs_ast_members_attraccessor_t *)node)->location);
-        case RBS_AST_MEMBERS_ATTRREADER:
-            return locOffsets(offset, ((rbs_ast_members_attrreader_t *)node)->location);
-        case RBS_AST_MEMBERS_ATTRWRITER:
-            return locOffsets(offset, ((rbs_ast_members_attrwriter_t *)node)->location);
-        case RBS_AST_MEMBERS_CLASSINSTANCEVARIABLE:
-            return locOffsets(offset, ((rbs_ast_members_classinstancevariable_t *)node)->location);
-        case RBS_AST_MEMBERS_CLASSVARIABLE:
-            return locOffsets(offset, ((rbs_ast_members_classvariable_t *)node)->location);
-        case RBS_AST_MEMBERS_EXTEND:
-            return locOffsets(offset, ((rbs_ast_members_extend_t *)node)->location);
-        case RBS_AST_MEMBERS_INCLUDE:
-            return locOffsets(offset, ((rbs_ast_members_include_t *)node)->location);
-        case RBS_AST_MEMBERS_INSTANCEVARIABLE:
-            return locOffsets(offset, ((rbs_ast_members_instancevariable_t *)node)->location);
-        case RBS_AST_MEMBERS_METHODDEFINITION:
-            return locOffsets(offset, ((rbs_ast_members_methoddefinition_t *)node)->location);
-        case RBS_AST_MEMBERS_PREPEND:
-            return locOffsets(offset, ((rbs_ast_members_prepend_t *)node)->location);
-        case RBS_AST_MEMBERS_PRIVATE:
-            return locOffsets(offset, ((rbs_ast_members_private_t *)node)->location);
-        case RBS_AST_MEMBERS_PUBLIC:
-            return locOffsets(offset, ((rbs_ast_members_public_t *)node)->location);
-        case RBS_AST_TYPEPARAM:
-            return locOffsets(offset, ((rbs_ast_typeparam_t *)node)->location);
-        case RBS_METHODTYPE:
-            return locOffsets(offset, ((rbs_methodtype_t *)node)->location);
-        case RBS_TYPES_ALIAS:
-            return locOffsets(offset, ((rbs_types_alias_t *)node)->location);
-        case RBS_TYPES_BASES_ANY:
-            return locOffsets(offset, ((rbs_types_bases_any_t *)node)->location);
-        case RBS_TYPES_BASES_BOOL:
-            return locOffsets(offset, ((rbs_types_bases_bool_t *)node)->location);
-        case RBS_TYPES_BASES_BOTTOM:
-            return locOffsets(offset, ((rbs_types_bases_bottom_t *)node)->location);
-        case RBS_TYPES_BASES_CLASS:
-            return locOffsets(offset, ((rbs_types_bases_class_t *)node)->location);
-        case RBS_TYPES_BASES_INSTANCE:
-            return locOffsets(offset, ((rbs_types_bases_instance_t *)node)->location);
-        case RBS_TYPES_BASES_NIL:
-            return locOffsets(offset, ((rbs_types_bases_nil_t *)node)->location);
-        case RBS_TYPES_BASES_SELF:
-            return locOffsets(offset, ((rbs_types_bases_self_t *)node)->location);
-        case RBS_TYPES_BASES_TOP:
-            return locOffsets(offset, ((rbs_types_bases_top_t *)node)->location);
-        case RBS_TYPES_BASES_VOID:
-            return locOffsets(offset, ((rbs_types_bases_void_t *)node)->location);
-        case RBS_TYPES_CLASSINSTANCE:
-            return locOffsets(offset, ((rbs_types_classinstance_t *)node)->location);
-        case RBS_TYPES_CLASSSINGLETON:
-            return locOffsets(offset, ((rbs_types_classsingleton_t *)node)->location);
-        case RBS_TYPES_FUNCTION_PARAM:
-            return locOffsets(offset, ((rbs_types_function_param_t *)node)->location);
-        case RBS_TYPES_INTERFACE:
-            return locOffsets(offset, ((rbs_types_interface_t *)node)->location);
-        case RBS_TYPES_INTERSECTION:
-            return locOffsets(offset, ((rbs_types_intersection_t *)node)->location);
-        case RBS_TYPES_LITERAL:
-            return locOffsets(offset, ((rbs_types_literal_t *)node)->location);
-        case RBS_TYPES_OPTIONAL:
-            return locOffsets(offset, ((rbs_types_optional_t *)node)->location);
-        case RBS_TYPES_PROC:
-            return locOffsets(offset, ((rbs_types_proc_t *)node)->location);
-        case RBS_TYPES_RECORD:
-            return locOffsets(offset, ((rbs_types_record_t *)node)->location);
-        case RBS_TYPES_TUPLE:
-            return locOffsets(offset, ((rbs_types_tuple_t *)node)->location);
-        case RBS_TYPES_UNION:
-            return locOffsets(offset, ((rbs_types_union_t *)node)->location);
-        case RBS_TYPES_VARIABLE:
-            return locOffsets(offset, ((rbs_types_variable_t *)node)->location);
-        default: {
-            if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSError)) {
-                e.setHeader("No location for RBS node type: {}", rbs_node_type_name(node));
-            }
-
-            return offset;
-        }
-    }
 }
 
 sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, rbs_node_t *node, core::LocOffsets docLoc) {
@@ -382,7 +266,7 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, rbs_n
         case RBS_TYPES_BASES_INSTANCE:
             return ast::MK::AttachedClass(docLoc);
         case RBS_TYPES_BASES_CLASS: {
-            auto loc = TypeTranslator::nodeLoc(ctx, docLoc, node);
+            auto loc = TypeTranslator::nodeLoc(docLoc, node);
             if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSError)) {
                 e.setHeader("RBS type `{}` is not supported yet", "class");
             }
@@ -411,7 +295,7 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, rbs_n
         case RBS_TYPES_RECORD:
             return recordType(ctx, (rbs_types_record_t *)node, docLoc);
         default: {
-            auto errLoc = TypeTranslator::nodeLoc(ctx, docLoc, node);
+            auto errLoc = TypeTranslator::nodeLoc(docLoc, node);
             if (auto e = ctx.beginError(errLoc, core::errors::Rewriter::RBSError)) {
                 e.setHeader("Unknown RBS node type: {}", rbs_node_type_name(node));
             }
