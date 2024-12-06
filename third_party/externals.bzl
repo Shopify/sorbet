@@ -313,16 +313,16 @@ def register_sorbet_dependencies():
         strip_prefix = "rules_foreign_cc-d74623f0ad47f4e375de81baa454eb106715a416",
     )
 
-    # http_archive(
-    #     name = "rbs",
-    #     url = "https://github.com/shopify/rbs/archive/v0.0.1.zip",
-    #     sha256 = "fd0be3a52a032974a95414090893de441ba30822df37326228201d08fc891fe4",
-    #     strip_prefix = "rbs-0.0.1",
-    #     build_file = "@com_stripe_ruby_typer//third_party:rbs_parser.BUILD",
-    # )
-
-    native.new_local_repository(
+    http_archive(
         name = "rbs_parser",
-        path = "/Users/at/src/github.com/ruby/rbs",
+        url = "https://github.com/shopify/rbs/archive/6c66d8cdcb3ff70cb401fb6dfba43dd3e45b56aa.zip",
+        sha256 = "6bc124a27fafbe29371318a62dcd289b4cca9b346a7f6c0b52dde1c66ffa5467",
+        strip_prefix = "rbs-6c66d8cdcb3ff70cb401fb6dfba43dd3e45b56aa",
         build_file = "@com_stripe_ruby_typer//third_party:rbs_parser.BUILD",
     )
+
+    # native.new_local_repository(
+    #     name = "rbs_parser",
+    #     path = "/Users/at/src/github.com/ruby/rbs",
+    #     build_file = "@com_stripe_ruby_typer//third_party:rbs_parser.BUILD",
+    # )
