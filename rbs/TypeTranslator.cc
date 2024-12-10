@@ -42,6 +42,8 @@ sorbet::ast::ExpressionPtr typeNameType(core::MutableContext ctx, rbs_typename_t
             return ast::MK::T_Array(loc);
         } else if (nameStr == "Hash") {
             return ast::MK::T_Hash(loc);
+        } else if (nameStr == "Set") {
+            return ast::MK::T_Set(loc);
         }
     }
 

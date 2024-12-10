@@ -464,6 +464,10 @@ public:
         return Send0(loc, std::move(params), core::Names::void_(), loc);
     }
 
+    static ExpressionPtr T_Set(core::LocOffsets loc) {
+        return UnresolvedConstantParts(loc, EmptyTree(), {core::Names::Constants::T(), core::Names::Constants::Set()});
+    }
+
     static ExpressionPtr ZSuper(core::LocOffsets loc, core::NameRef method) {
         Send::Flags flags;
         flags.isPrivateOk = true;
