@@ -253,20 +253,13 @@ core::LocOffsets TypeTranslator::nodeLoc(core::LocOffsets offset, rbs_node_t *no
 
 sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, rbs_node_t *node, core::LocOffsets docLoc) {
     switch (node->type) {
-        case RBS_TYPES_CLASSINSTANCE:
-            return classInstanceType(ctx, (rbs_types_classinstance_t *)node, docLoc);
-        case RBS_TYPES_CLASSSINGLETON:
-            return classSingletonType(ctx, (rbs_types_classsingleton_t *)node, docLoc);
-        case RBS_TYPES_OPTIONAL:
-            return optionalType(ctx, (rbs_types_optional_t *)node, docLoc);
-        case RBS_TYPES_UNION:
-            return unionType(ctx, (rbs_types_union_t *)node, docLoc);
-        case RBS_TYPES_INTERSECTION:
-            return intersectionType(ctx, (rbs_types_intersection_t *)node, docLoc);
-        case RBS_TYPES_BASES_SELF:
-            return ast::MK::SelfType(docLoc);
-        case RBS_TYPES_BASES_INSTANCE:
-            return ast::MK::AttachedClass(docLoc);
+        // TODO: alias?
+        case RBS_TYPES_BASES_ANY:
+            return ast::MK::Untyped(docLoc);
+        case RBS_TYPES_BASES_BOOL:
+            return ast::MK::T_Boolean(docLoc);
+        case RBS_TYPES_BASES_BOTTOM:
+            return ast::MK::NoReturn(docLoc);
         case RBS_TYPES_BASES_CLASS: {
             auto loc = TypeTranslator::nodeLoc(docLoc, node);
             if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSError)) {
@@ -274,28 +267,40 @@ sorbet::ast::ExpressionPtr TypeTranslator::toRBI(core::MutableContext ctx, rbs_n
             }
             return ast::MK::Untyped(docLoc);
         }
-        case RBS_TYPES_BASES_BOOL:
-            return ast::MK::T_Boolean(docLoc);
+        case RBS_TYPES_BASES_INSTANCE:
+            return ast::MK::AttachedClass(docLoc);
         case RBS_TYPES_BASES_NIL:
             return ast::MK::UnresolvedConstant(docLoc, ast::MK::EmptyTree(), core::Names::Constants::NilClass());
-        case RBS_TYPES_BASES_ANY:
-            return ast::MK::Untyped(docLoc);
-        case RBS_TYPES_BASES_BOTTOM:
-            return ast::MK::NoReturn(docLoc);
+        case RBS_TYPES_BASES_SELF:
+            return ast::MK::SelfType(docLoc);
         case RBS_TYPES_BASES_TOP:
             return ast::MK::Anything(docLoc);
         case RBS_TYPES_BASES_VOID:
             return voidType(ctx, (rbs_types_bases_void_t *)node, docLoc);
         case RBS_TYPES_BLOCK:
             return blockType(ctx, (rbs_types_block_t *)node, docLoc);
-        case RBS_TYPES_PROC:
-            return procType(ctx, (rbs_types_proc_t *)node, docLoc);
+        case RBS_TYPES_CLASSINSTANCE:
+            return classInstanceType(ctx, (rbs_types_classinstance_t *)node, docLoc);
+        case RBS_TYPES_CLASSSINGLETON:
+            return classSingletonType(ctx, (rbs_types_classsingleton_t *)node, docLoc);
         case RBS_TYPES_FUNCTION:
             return functionType(ctx, (rbs_types_function_t *)node, docLoc);
-        case RBS_TYPES_TUPLE:
-            return tupleType(ctx, (rbs_types_tuple_t *)node, docLoc);
+        // TODO: interface?
+        case RBS_TYPES_INTERSECTION:
+            return intersectionType(ctx, (rbs_types_intersection_t *)node, docLoc);
+        // TODO: literal?
+        case RBS_TYPES_OPTIONAL:
+            return optionalType(ctx, (rbs_types_optional_t *)node, docLoc);
+        case RBS_TYPES_PROC:
+            return procType(ctx, (rbs_types_proc_t *)node, docLoc);
         case RBS_TYPES_RECORD:
             return recordType(ctx, (rbs_types_record_t *)node, docLoc);
+        case RBS_TYPES_TUPLE:
+            return tupleType(ctx, (rbs_types_tuple_t *)node, docLoc);
+        case RBS_TYPES_UNION:
+            return unionType(ctx, (rbs_types_union_t *)node, docLoc);
+        // TODO: untyped_function?
+        // TODO: variable?
         default: {
             auto errLoc = TypeTranslator::nodeLoc(docLoc, node);
             if (auto e = ctx.beginError(errLoc, core::errors::Rewriter::RBSError)) {
