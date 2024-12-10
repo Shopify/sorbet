@@ -1,45 +1,53 @@
-# typed: strict
+# typed: true
 
-extend T::Sig
+module Prism
+  class Node; end
+  class CallNode < Node; end
+  class AssocNode < Node
+    attr_reader :key, :value
+  end
+  class KeywordHashNode < Node
+    attr_reader :elements
+  end
 
-# class FooProc
-#   #: (p: ^() [self: Integer] -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
-#   def initialize(p: -> { T.reveal_type(self); 42 }, &block)
-#   end
-# end
+  class HashNode < Node
+    attr_reader :elements
+  end
+end
 
-# FooProc.new do |foo|
-#   T.reveal_type(self) # error: Revealed type: `FooProc`
-#   "foo"
-# end
+class Location; end
 
-#: -> ::Foo::Bar::Baz
-def foo; end
+class Send < T::Struct
+  extend T::Sig
 
-# #: (String?) -> String
-# def foo(x)
-#   # if ARGV.first
-#   #   puts x
-#   #   return x #:: String
-#   # end
+  const :node, Prism::CallNode
+  const :name, String
+  const :recv, T.nilable(Prism::Node), default: nil
+  const :args, T::Array[Prism::Node], default: []
+  const :block, T.nilable(Prism::Node), default: nil
+  const :location, Location
 
-#   # x #:: String
-# end
+  # sig do
+  #   type_parameters(:T)
+  #     .params(arg_type: T::Class[T.type_parameter(:T)], block: T.proc.params(arg: T.type_parameter(:T)).void)
+  #     .void
+  # end
+  #: [TYPE_T] (singleton(TYPE_T) arg_type) { (TYPE_T arg) -> void } -> void
+  def each_arg(arg_type, &block)
+    args.each do |arg|
+      yield(T.unsafe(arg)) if arg.is_a?(arg_type)
+    end
+  end
 
-# class Foo
-#   def initialize
-#     @foo = 42 #: Integer
-#   end
-# end
+  # sig { params(block: T.proc.params(key: Prism::Node, value: T.nilable(Prism::Node)).void).void }
+  #: { (Prism::Node key, Prism::Node? value) -> void } -> void
+  def each_arg_assoc(&block)
+    args.each do |arg|
+      next unless arg.is_a?(Prism::KeywordHashNode) || arg.is_a?(Prism::HashNode)
 
-# # @abstract
-# class C
-#   # @abstract
-#   #: (String) -> String
-#   def foo(x); end
-# end
-
-# C.new.foo
-
-
-# x.not
+      arg.elements.each do |assoc|
+        yield(assoc.key, assoc.value) if assoc.is_a?(Prism::AssocNode)
+      end
+    end
+  end
+end

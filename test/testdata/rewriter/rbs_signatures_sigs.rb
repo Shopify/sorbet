@@ -136,6 +136,11 @@ def method18(&block)
   T.reveal_type(block) # error: Revealed type: `T.nilable(T.proc.void)`
 end
 
+#: [X] { (X) -> singleton(X) } -> Array[X]
+def method19(x)
+  T.reveal_type(x) # error: Revealed type: `T::Array[X]`
+end
+
 class FooProc
   #: (p: ^() -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
   def initialize(p: -> { 42 }, &block)
@@ -154,8 +159,8 @@ end
 
 # @abstract
 #: -> Integer
-def method19; end # error: Before declaring an abstract method, you must mark your class/module as abstract using `abstract!` or `interface!`
+def method20; end # error: Before declaring an abstract method, you must mark your class/module as abstract using `abstract!` or `interface!`
 
 # @override
 #: -> Integer
-def method20; T.unsafe(nil); end # error: Method `Object#method20` is marked `override` but does not override anything
+def method21; T.unsafe(nil); end # error: Method `Object#method21` is marked `override` but does not override anything

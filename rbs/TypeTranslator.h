@@ -22,7 +22,8 @@ public:
      * - `Integer?` -> `T.nilable(Integer)`
      * - `(A | B)` -> `T.any(A, B)`
      */
-    static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, rbs_node_t *node, core::LocOffsets loc);
+    static sorbet::ast::ExpressionPtr toRBI(core::MutableContext ctx, std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams,
+                                             rbs_node_t *node, core::LocOffsets loc);
 
     /**
      * Get the location offset from a RBS location.

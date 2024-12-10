@@ -235,7 +235,8 @@ class RBSSignaturesWalk {
             return std::move(stat);
         }
 
-        auto type = rbs::TypeTranslator::toRBI(ctx, rbsType, loc);
+        auto typeParams = std::vector<std::pair<core::LocOffsets, core::NameRef>>();
+        auto type = rbs::TypeTranslator::toRBI(ctx, typeParams, rbsType, loc);
         free(rbsType);
 
         if (auto *assign = ast::cast_tree<ast::Assign>(stat)) {
