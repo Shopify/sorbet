@@ -201,6 +201,8 @@ private:
 };
 
 ast::ExpressionPtr Rewriter::run(core::MutableContext ctx, ast::ExpressionPtr tree) {
+    std::cout << "file: " << ctx.file.data(ctx).path() << std::endl;
+
     auto ast = std::move(tree);
 
     Rewriterer rewriter;

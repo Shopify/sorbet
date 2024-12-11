@@ -91,8 +91,10 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
                                                                  sorbet::ast::MethodDef *methodDef,
                                                                  rbs_methodtype_t *methodType,
                                                                  std::vector<RBSAnnotation> annotations) {
+    auto loc = TypeTranslator::nodeLoc(docLoc, (rbs_node_t *)methodType);
+
     if (methodType->type->type != RBS_TYPES_FUNCTION) {
-        if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSError)) {
+        if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSError)) {
             e.setHeader("Unexpected node type: {}", rbs_node_type_name(methodType->type));
         }
         return ast::MK::Untyped(docLoc);
