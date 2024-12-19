@@ -180,3 +180,20 @@ end
 def method22(&block)
   T.reveal_type(block) # error: Revealed type: `T.untyped`
 end
+
+class Visibility
+  #: (Integer) -> void
+  private def method1(x)
+    T.reveal_type(x) # error: Revealed type: `Integer`
+  end
+
+  #: (Integer) -> void
+  protected def method2(x)
+    T.reveal_type(x) # error: Revealed type: `Integer`
+  end
+
+  #: (Integer) -> void
+  public def method3(x)
+    T.reveal_type(x) # error: Revealed type: `Integer`
+  end
+end

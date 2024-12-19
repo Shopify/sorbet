@@ -125,37 +125,31 @@ class RBSSignaturesWalk {
         return rbs::MethodComments{annotations, signatures};
     }
 
-    bool isAttr(ast::ExpressionPtr &recv) {
-        auto *send = ast::cast_tree<ast::Send>(recv);
-        if (!send) {
-            return false;
-        }
-
+    bool isAttr(ast::Send *send) {
         if (!send->recv.isSelfReference()) {
             return false;
         }
 
         core::NameRef name = send->fun;
-        if (name != core::Names::attrReader() && name != core::Names::attrWriter() &&
-            name != core::Names::attrAccessor()) {
-            return false;
-        }
-
-        return true;
+        return name == core::Names::attrReader() || name == core::Names::attrWriter() ||
+               name == core::Names::attrAccessor();
     }
 
-    bool isUntyped(ast::ExpressionPtr &expr) {
-        auto *send = ast::cast_tree<ast::Send>(expr);
-        if (!send) {
+    bool isVisibility(ast::Send *send) {
+        if (!send->recv.isSelfReference()) {
             return false;
         }
 
-        auto *recv = ast::cast_tree<ast::ConstantLit>(send->recv);
-        if (!recv) {
+        if (send->posArgs().size() != 1) {
             return false;
         }
 
-        return recv->symbol == core::Symbols::T() && send->fun == core::Names::untyped();
+        if (!ast::cast_tree<ast::MethodDef>(send->posArgs()[0])) {
+            return false;
+        }
+
+        core::NameRef name = send->fun;
+        return name == core::Names::public_() || name == core::Names::protected_() || name == core::Names::private_();
     }
 
     std::optional<rbs::RBSInlineAnnotation> getTrailingComment(string_view sourceCode, core::LocOffsets loc) {
@@ -208,7 +202,7 @@ class RBSSignaturesWalk {
 
     ast::ExpressionPtr makeCast(ast::ExpressionPtr &stat, ast::ExpressionPtr &type, bool isCast) {
         if (isCast) {
-            if (isUntyped(type)) {
+            if (ast::MK::isTUntyped(type)) {
                 return ast::MK::Unsafe(stat.loc(), std::move(stat));
             }
             return ast::MK::Cast(stat.loc(), std::move(stat), std::move(type));
@@ -250,6 +244,31 @@ class RBSSignaturesWalk {
         }
 
         return makeCast(stat, type, true);
+    }
+
+    void transformMethodDef(core::MutableContext ctx, ast::ClassDef *classDef, ast::MethodDef *methodDef) {
+        auto methodLoc = methodDef->loc;
+        auto methodComments = findRBSComments(ctx.file.data(ctx).source(), methodLoc);
+
+        for (auto &signature : methodComments.signatures) {
+            auto docLoc = signature.loc;
+            auto doc = signature.signature;
+            auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
+
+            if (rbsMethodType) {
+                auto sig = rbs::MethodTypeTranslator::methodSignature(ctx, docLoc, methodDef, rbsMethodType,
+                                                                      methodComments.annotations);
+                classDef->rhs.emplace_back(std::move(sig));
+                free(rbsMethodType);
+            }
+        }
+
+        if (auto stmts = ast::cast_tree<ast::InsSeq>(methodDef->rhs)) {
+            // no-op, let the next pass handle it
+        } else {
+            auto newStat = insertCast(ctx, methodDef->rhs);
+            methodDef->rhs = std::move(newStat);
+        }
     }
 
 public:
@@ -297,50 +316,28 @@ public:
 
         for (auto &stat : oldRHS) {
             if (auto *methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
-                auto methodLoc = methodDef->loc;
-                auto methodComments = findRBSComments(ctx.file.data(ctx).source(), methodLoc);
+                transformMethodDef(ctx, classDef, methodDef);
+            } else if (auto *send = ast::cast_tree<ast::Send>(stat)) {
+                if (isAttr(send)) {
+                    auto attr = ast::cast_tree<ast::Send>(stat);
+                    auto comments = findRBSComments(ctx.file.data(ctx).source(), attr->loc);
 
-                for (auto &signature : methodComments.signatures) {
-                    auto docLoc = signature.loc;
-                    auto doc = signature.signature;
-                    auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, docLoc, methodLoc, doc);
+                    for (auto &signature : comments.signatures) {
+                        auto docLoc = signature.loc;
+                        auto doc = signature.signature;
+                        auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, attr->loc, doc);
 
-                    if (rbsMethodType) {
-                        auto sig = rbs::MethodTypeTranslator::methodSignature(ctx, docLoc, methodDef, rbsMethodType,
-                                                                              methodComments.annotations);
-                        classDef->rhs.emplace_back(std::move(sig));
-                        free(rbsMethodType);
+                        if (rbsType) {
+                            auto sig = rbs::MethodTypeTranslator::attrSignature(ctx, docLoc, attr, rbsType,
+                                                                                comments.annotations);
+                            classDef->rhs.emplace_back(std::move(sig));
+                            free(rbsType);
+                        }
                     }
+                } else if (isVisibility(send)) {
+                    auto *methodDef = ast::cast_tree<ast::MethodDef>(send->posArgs()[0]);
+                    transformMethodDef(ctx, classDef, methodDef);
                 }
-
-                if (auto stmts = ast::cast_tree<ast::InsSeq>(methodDef->rhs)) {
-                    // no-op, let the next pass handle it
-                } else {
-                    auto newStat = insertCast(ctx, methodDef->rhs);
-                    methodDef->rhs = std::move(newStat);
-                }
-
-                classDef->rhs.emplace_back(std::move(stat));
-                continue;
-            } else if (isAttr(stat)) {
-                auto attr = ast::cast_tree<ast::Send>(stat);
-                auto comments = findRBSComments(ctx.file.data(ctx).source(), attr->loc);
-
-                for (auto &signature : comments.signatures) {
-                    auto docLoc = signature.loc;
-                    auto doc = signature.signature;
-                    auto rbsType = rbs::RBSParser::parseType(ctx, docLoc, attr->loc, doc);
-
-                    if (rbsType) {
-                        auto sig =
-                            rbs::MethodTypeTranslator::attrSignature(ctx, docLoc, attr, rbsType, comments.annotations);
-                        classDef->rhs.emplace_back(std::move(sig));
-                        free(rbsType);
-                    }
-                }
-
-                classDef->rhs.emplace_back(std::move(stat));
-                continue;
             }
 
             auto newStat = insertCast(ctx, stat);
