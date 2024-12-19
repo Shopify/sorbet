@@ -1,10 +1,12 @@
 # typed: strict
 # frozen_string_literal: true
 
-class Foo
-  #: { (?) -> void } -> void
-  def foo(&block); end
+class Final
+  extend T::Helpers
 
-  #: (?) -> void
-  def bar; end
+  final!
+
+  # @final
+  #: -> void
+  def foo; end
 end

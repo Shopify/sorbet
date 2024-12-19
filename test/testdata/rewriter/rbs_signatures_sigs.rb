@@ -165,3 +165,13 @@ def method20; end # error: Before declaring an abstract method, you must mark yo
 # @override
 #: -> Integer
 def method21; T.unsafe(nil); end # error: Method `Object#method21` is marked `override` but does not override anything
+
+class Final
+  extend T::Helpers
+
+  final!
+
+  # @final
+  #: -> void
+  def foo; end
+end

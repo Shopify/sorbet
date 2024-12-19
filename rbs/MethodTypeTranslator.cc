@@ -130,7 +130,6 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
     // Collect positionals
 
     rbs_types_function_t *functionType = (rbs_types_function_t *)methodType->type;
-    Send::ARGS_store sigArgs;
     std::vector<RBSArg> args;
 
     collectArgs(ctx, docLoc, functionType->required_positionals, args, false);
@@ -189,6 +188,7 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
         args.emplace_back(arg);
     }
 
+    Send::ARGS_store sigParams;
     for (int i = 0; i < args.size(); i++) {
         auto &arg = args[i];
         core::NameRef name;
@@ -210,22 +210,31 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
             type = ast::MK::Nilable(arg.loc, std::move(type));
         }
 
-        sigArgs.emplace_back(ast::MK::Symbol(arg.loc, name));
-        sigArgs.emplace_back(std::move(type));
+        sigParams.emplace_back(ast::MK::Symbol(arg.loc, name));
+        sigParams.emplace_back(std::move(type));
     }
 
-    ENFORCE(sigArgs.size() % 2 == 0, "Sig params must be arg name/type pairs");
+    ENFORCE(sigParams.size() % 2 == 0, "Sig params must be arg name/type pairs");
 
     // Build the sig
 
     auto sigBuilder = ast::MK::Self(docLoc);
+    bool isFinal = false;
 
     for (auto &annotation : annotations) {
-        if (annotation.string == "@abstract") {
+        if (annotation.string == "@final") {
+            isFinal = true;
+        } else if (annotation.string == "@abstract") {
             sigBuilder = ast::MK::Send0(annotation.loc, std::move(sigBuilder), core::Names::abstract(), annotation.loc);
         } else if (annotation.string == "@override") {
             sigBuilder =
                 ast::MK::Send0(annotation.loc, std::move(sigBuilder), core::Names::override_(), annotation.loc);
+        } else if (annotation.string == "@override(allow_incompatible: true)") {
+            Send::ARGS_store overrideArgs;
+            overrideArgs.emplace_back(ast::MK::Symbol(annotation.loc, core::Names::allowIncompatible()));
+            overrideArgs.emplace_back(ast::MK::True(annotation.loc));
+            sigBuilder = ast::MK::Send(annotation.loc, std::move(sigBuilder), core::Names::override_(), annotation.loc,
+                                       0, std::move(overrideArgs));
         }
     }
 
@@ -238,8 +247,9 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
                                    typeParamsStore.size(), std::move(typeParamsStore));
     }
 
-    if (sigArgs.size() > 0) {
-        sigBuilder = ast::MK::Send(docLoc, std::move(sigBuilder), core::Names::params(), docLoc, 0, std::move(sigArgs));
+    if (sigParams.size() > 0) {
+        sigBuilder =
+            ast::MK::Send(docLoc, std::move(sigBuilder), core::Names::params(), docLoc, 0, std::move(sigParams));
     }
 
     rbs_node_t *returnValue = functionType->return_type;
@@ -252,9 +262,15 @@ sorbet::ast::ExpressionPtr MethodTypeTranslator::methodSignature(core::MutableCo
             ast::MK::Send1(docLoc, std::move(sigBuilder), core::Names::returns(), docLoc, std::move(returnType));
     }
 
-    auto sig =
-        ast::MK::Send1(docLoc, ast::MK::Constant(docLoc, core::Symbols::Sorbet_Private_Static()), core::Names::sig(),
-                       docLoc, ast::MK::Constant(docLoc, core::Symbols::T_Sig_WithoutRuntime()));
+    auto sigArgs = Send::ARGS_store();
+    sigArgs.emplace_back(ast::MK::Constant(docLoc, core::Symbols::T_Sig_WithoutRuntime()));
+    if (isFinal) {
+        sigArgs.emplace_back(ast::MK::Symbol(docLoc, core::Names::final_()));
+    }
+
+    auto sig = ast::MK::Send(docLoc, ast::MK::Constant(docLoc, core::Symbols::Sorbet_Private_Static()),
+                             core::Names::sig(), docLoc, sigArgs.size(), std::move(sigArgs));
+
     auto sigSend = ast::cast_tree<ast::Send>(sig);
     sigSend->setBlock(ast::MK::Block0(docLoc, std::move(sigBuilder)));
     sigSend->flags.isRewriterSynthesized = true;
