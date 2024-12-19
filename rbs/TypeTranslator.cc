@@ -131,6 +131,10 @@ sorbet::ast::ExpressionPtr optionalType(core::MutableContext ctx,
                                         rbs_types_optional_t *node, core::LocOffsets loc) {
     auto innerType = TypeTranslator::toRBI(ctx, typeParams, node->type, loc);
 
+    if (ast::MK::isTUntyped(innerType)) {
+        return innerType;
+    }
+
     return ast::MK::Nilable(loc, std::move(innerType));
 }
 
@@ -180,12 +184,6 @@ sorbet::ast::ExpressionPtr functionType(core::MutableContext ctx,
     return ast::MK::T_Proc(loc, std::move(paramsStore), std::move(returnType));
 }
 
-sorbet::ast::ExpressionPtr untypedFunctionType(core::MutableContext ctx,
-                                               std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams,
-                                               rbs_types_untypedfunction_t *node, core::LocOffsets loc) {
-    return ast::MK::UnresolvedConstant(loc, ast::MK::EmptyTree(), core::Names::Constants::Proc());
-}
-
 sorbet::ast::ExpressionPtr procType(core::MutableContext ctx,
                                     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams,
                                     rbs_types_proc_t *node, core::LocOffsets docLoc) {
@@ -199,8 +197,7 @@ sorbet::ast::ExpressionPtr procType(core::MutableContext ctx,
             break;
         }
         case RBS_TYPES_UNTYPEDFUNCTION: {
-            function = untypedFunctionType(ctx, typeParams, (rbs_types_untypedfunction_t *)functionTypeNode, loc);
-            break;
+            return function;
         }
         default: {
             auto errLoc = TypeTranslator::nodeLoc(docLoc, functionTypeNode);
@@ -234,8 +231,7 @@ sorbet::ast::ExpressionPtr blockType(core::MutableContext ctx,
             break;
         }
         case RBS_TYPES_UNTYPEDFUNCTION: {
-            function = untypedFunctionType(ctx, typeParams, (rbs_types_untypedfunction_t *)functionTypeNode, docLoc);
-            break;
+            return function;
         }
         default: {
             auto errLoc = TypeTranslator::nodeLoc(docLoc, functionTypeNode);

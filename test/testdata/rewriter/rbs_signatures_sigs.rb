@@ -175,3 +175,8 @@ class Final
   #: -> void
   def foo; end
 end
+
+#: ?{ (?) -> untyped } -> void
+def method22(&block)
+  T.reveal_type(block) # error: Revealed type: `T.untyped`
+end
