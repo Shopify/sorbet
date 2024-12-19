@@ -136,9 +136,10 @@ def method18(&block)
   T.reveal_type(block) # error: Revealed type: `T.nilable(T.proc.void)`
 end
 
-#: [X] { (X) -> singleton(X) } -> Array[X]
+#: [X] (X & Object) -> Class[X]
 def method19(x)
-  T.reveal_type(x) # error: Revealed type: `T::Array[X]`
+  T.reveal_type(x) # error: Revealed type: `T.all(Object, T.type_parameter(:X) (of Object#method19))`
+  x.class
 end
 
 class FooProc

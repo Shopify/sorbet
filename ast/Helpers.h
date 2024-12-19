@@ -448,6 +448,11 @@ public:
                                        {core::Names::Constants::T(), core::Names::Constants::Boolean()});
     }
 
+    static ExpressionPtr T_Class(core::LocOffsets loc) {
+        return UnresolvedConstantParts(loc, EmptyTree(),
+                                       {core::Names::Constants::T(), core::Names::Constants::Class()});
+    }
+
     static ExpressionPtr T_Hash(core::LocOffsets loc) {
         return UnresolvedConstantParts(loc, EmptyTree(), {core::Names::Constants::T(), core::Names::Constants::Hash()});
     }
