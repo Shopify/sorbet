@@ -5,8 +5,8 @@
 #include "absl/strings/strip.h"
 #include "ast/Helpers.h"
 #include "ast/treemap/treemap.h"
-#include "rbs/RBSParser.h"
 #include "rbs/MethodTypeTranslator.h"
+#include "rbs/RBSParser.h"
 #include "rbs/TypeTranslator.h"
 #include <optional>
 
@@ -322,9 +322,7 @@ public:
 
                 classDef->rhs.emplace_back(std::move(stat));
                 continue;
-            }
-
-            if (isAttr(stat)) {
+            } else if (isAttr(stat)) {
                 auto attr = ast::cast_tree<ast::Send>(stat);
                 auto comments = findRBSComments(ctx.file.data(ctx).source(), attr->loc);
 
@@ -340,9 +338,6 @@ public:
                         free(rbsType);
                     }
                 }
-
-                classDef->rhs.emplace_back(std::move(stat));
-                continue;
 
                 classDef->rhs.emplace_back(std::move(stat));
                 continue;
