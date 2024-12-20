@@ -285,11 +285,15 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx,
                 rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *)hash_node->key;
                 rbs_constant_t *keyString = rbs_constant_pool_id_to_constant(fake_constant_pool, keyNode->constant_id);
                 keyStr = std::string(keyString->start);
+                auto keyName = ctx.state.enterNameUTF8(keyStr);
+                keysStore.emplace_back(ast::MK::Symbol(loc, keyName));
                 break;
             }
             case RBS_AST_STRING: {
                 rbs_ast_string_t *keyNode = (rbs_ast_string_t *)hash_node->key;
                 keyStr = std::string(keyNode->string.start);
+                auto keyName = ctx.state.enterNameUTF8(keyStr);
+                keysStore.emplace_back(ast::MK::String(loc, keyName));
                 break;
             }
             default: {
@@ -300,9 +304,6 @@ sorbet::ast::ExpressionPtr recordType(core::MutableContext ctx,
                 continue;
             }
         }
-
-        auto keyName = ctx.state.enterNameUTF8(keyStr);
-        keysStore.emplace_back(ast::MK::Symbol(loc, keyName));
 
         if (hash_node->value->type != RBS_TYPES_RECORD_FIELDTYPE) {
             if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSError)) {

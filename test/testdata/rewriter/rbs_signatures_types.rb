@@ -173,7 +173,18 @@ T.reveal_type(tuple_type2) # error: Revealed type: `[Integer, String, T.untyped]
 
 #: -> { id: String, name: String }
 def shape_type1; T.unsafe(nil); end
-T.reveal_type(shape_type1) # error: Revealed type: `{id: String, name: String} (shape of T::Hash[T.untyped, T.untyped])`
+
+#: -> {"a" => String, "b" => Integer}
+def shape_type1; T.unsafe(nil); end
+T.reveal_type(shape_type1) # error: Revealed type: `{String("a") => String, String("b") => Integer} (shape of T::Hash[T.untyped, T.untyped])`
+
+#: -> {a: String, b: Integer}
+def shape_type2; T.unsafe(nil); end
+T.reveal_type(shape_type2) # error: Revealed type: `{a: String, b: Integer} (shape of T::Hash[T.untyped, T.untyped])`
+
+#: -> {"a" => String, :b => Integer}
+def shape_type3; T.unsafe(nil); end
+T.reveal_type(shape_type3) # error: Revealed type: `{String("a") => String, b: Integer} (shape of T::Hash[T.untyped, T.untyped])`
 
 # Proc types
 
