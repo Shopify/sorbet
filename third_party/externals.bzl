@@ -1,4 +1,4 @@
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
 load("//third_party:ruby_externals.bzl", "register_ruby_dependencies")
 load("//third_party/openssl:system_openssl_repository.bzl", "system_openssl_repository")
 
@@ -16,6 +16,13 @@ def register_sorbet_dependencies():
         sha256 = "f398cdb0ed9e5f9b8f7127a8c180ed6a8a611ad4612dcdae8a91ebfc5ee0ed7c",
         strip_prefix = "prism-1.2.0",
         build_file = "@com_stripe_ruby_typer//third_party:prism.BUILD",
+    )
+
+    http_file(
+        name = "prism_darwin",
+        urls = ["https://github.com/ruby/prism/releases/download/v1.3.0/libprism.dylib"],
+        downloaded_file_path = "libprism.dylib",
+        sha256 = "af07756d75b38ccb6c110cd393b05eabd22b914e7ed94b97e79a0c899e8bf931",
     )
 
     http_archive(
