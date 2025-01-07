@@ -17,8 +17,8 @@ cc_library(
     deps = [
         "//core",
         "//parser", # Legacy parser, needed for translating to its nodes defined in `parser/Node_gen.h`
-        "@prism",
         "//third_party/prism_darwin",
+        "//third_party/prism_headers",
     ],
     data = ["//third_party/prism_darwin:copy_dylib"],
 )
