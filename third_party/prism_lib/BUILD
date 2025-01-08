@@ -2,6 +2,7 @@ cc_import(
   name = "prism_lib",
   hdrs = glob(["include/**/*.h"]),
   includes = ["include"],
-  shared_library = "libprism.dylib",
+  static_library = "libprism.a",
+  alwayslink = 1,
   visibility = ["//visibility:public"],
 )

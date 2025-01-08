@@ -9,10 +9,8 @@ cc_library(
         "Translator.h",
         "Helpers.h",
     ],
-    linkstatic = select({
-        "//tools/config:linkshared": 0,
-        "//conditions:default": 1,
-    }),
+    includes = ["../../third_party/prism_lib/include"],
+    linkstatic = 0,
     visibility = ["//visibility:public"],
     deps = select({
         "@platforms//os:osx": [

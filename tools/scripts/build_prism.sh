@@ -29,10 +29,12 @@ cp -R include/ "${SCRIPT_DIR}/../../${PRISM_DEST_DIR}/include"
 
 # Remove existing binary
 rm -rf "${SCRIPT_DIR}/../../${PRISM_DEST_DIR}/*.dylib"
+rm -rf "${SCRIPT_DIR}/../../${PRISM_DEST_DIR}/*.a"
 
 # Copy binary
 echo "Copying binary..."
 cp -R build/libprism.dylib "${SCRIPT_DIR}/../../${PRISM_DEST_DIR}/"
+cp -R build/libprism.a "${SCRIPT_DIR}/../../${PRISM_DEST_DIR}/"
 
 # Clean up
 rm -rf "${PRISM_TEMP_DIR}"
