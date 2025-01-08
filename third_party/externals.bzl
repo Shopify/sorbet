@@ -11,7 +11,7 @@ def register_sorbet_dependencies():
     )
 
     http_file(
-        name = "prism_darwin",
+        name = "prism_darwin_dylib",
         urls = ["https://github.com/ruby/prism/releases/download/v1.3.0/libprism.dylib"],
         downloaded_file_path = "libprism.dylib",
         sha256 = "af07756d75b38ccb6c110cd393b05eabd22b914e7ed94b97e79a0c899e8bf931",
