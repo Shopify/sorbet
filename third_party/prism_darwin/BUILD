@@ -10,12 +10,13 @@ genrule(
     visibility = ["//visibility:public"],
 )
 
-cc_library(
+cc_import(
     name = "prism_darwin",
-    srcs = [":copy_dylib"],
+    hdrs = glob(["prism_headers/**/*.h"]),
+    includes = ["prism_headers"],
+    shared_library = "lib/libprism.dylib",
     visibility = ["//visibility:public"],
-    linkopts = [
-        "-Wl,-rpath,@loader_path/lib",
-    ],
     data = [":copy_dylib"],
+    deps = ["//third_party/prism_headers"],
 )
+

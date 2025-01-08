@@ -70,14 +70,10 @@ genrule(
 
 genrule(
     name = "generate-state-payload-raw",
-    srcs = ["//third_party/prism_darwin:copy_dylib"],
+    srcs = [],
     outs = [
         "state-payload-raw",
     ],
-    cmd = """
-        mkdir -p $$(dirname $(location //main:sorbet-orig))/lib
-        cp $(location //third_party/prism_darwin:copy_dylib) $$(dirname $(location //main:sorbet-orig))/lib/
-        $(location //main:sorbet-orig) --silence-dev-message --store-state $(location state-payload-raw) --no-error-count
-    """,
+    cmd = "$(location //main:sorbet-orig) --silence-dev-message  --store-state $(location state-payload-raw) --no-error-count",
     tools = ["//main:sorbet-orig"],
 )
