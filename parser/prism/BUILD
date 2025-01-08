@@ -16,7 +16,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = select({
         "@platforms//os:osx": [
-            "//third_party/prism_darwin",
+            "//third_party/prism_lib",
             "//core",
             "//parser", # Legacy parser, needed for translating to its nodes defined in `parser/Node_gen.h`
         ],
