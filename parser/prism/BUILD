@@ -10,11 +10,11 @@ cc_library(
         "Helpers.h",
     ],
     visibility = ["//visibility:public"],
-    deps = select({
-        "@platforms//os:osx": [
-            "@prism_lib",
-            "//core",
-            "//parser", # Legacy parser, needed for translating to its nodes defined in `parser/Node_gen.h`
-        ],
+    deps = [
+        "//core",
+        "//parser",  # Legacy parser, needed for translating to its nodes defined in `parser/Node_gen.h`
+    ] + select({
+        "@platforms//os:osx": ["@prism_darwin"],
+        "@platforms//os:linux": ["@prism_linux"],
     }),
 )

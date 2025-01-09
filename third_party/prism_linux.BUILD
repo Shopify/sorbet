@@ -1,5 +1,5 @@
 cc_library(
-  name = "prism_lib",
+  name = "prism_linux",
   srcs = ["libprism.a"],
   hdrs = glob([
     "include/prism.h",

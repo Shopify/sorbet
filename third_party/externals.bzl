@@ -11,11 +11,19 @@ def register_sorbet_dependencies():
     )
 
     http_archive(
-        name = "prism_lib",
+        name = "prism_darwin",
         url = "https://github.com/Shopify/sorbet/releases/download/test-release-artifacts/prism-130-release-artifacts.zip",
         sha256 = "38d909130618a84d16c9bd3605d4fa1bd7cc4f75fe90cdbc1e95f289933e0c6b",
         strip_prefix = "prism-130-release-artifacts",
-        build_file = "@com_stripe_ruby_typer//third_party:prism_lib.BUILD",
+        build_file = "@com_stripe_ruby_typer//third_party:prism_darwin.BUILD",
+    )
+
+    http_archive(
+        name = "prism_linux",
+        url = "https://github.com/Shopify/sorbet/releases/download/test-release-artifacts/prism-130-release-artifacts-linux.zip",
+        sha256 = "bc981246177b571ba155af4bbd0ea9e396217bf8f699ec1ab55876e0b90cbdc9",
+        strip_prefix = "prism-130-release-artifacts-linux",
+        build_file = "@com_stripe_ruby_typer//third_party:prism_linux.BUILD",
     )
 
     http_archive(
