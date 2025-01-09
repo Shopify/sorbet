@@ -9,7 +9,6 @@ cc_library(
         "Translator.h",
         "Helpers.h",
     ],
-    linkstatic = 0,
     visibility = ["//visibility:public"],
     deps = select({
         "@platforms//os:osx": [
