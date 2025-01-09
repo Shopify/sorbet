@@ -9,7 +9,7 @@ cc_library(
         "Translator.h",
         "Helpers.h",
     ],
-    includes = ["../../third_party/prism_lib/include"],
+    includes = ["../../third_party/prism_lib/include"], # we get prism.h header not found error without this
     linkstatic = 0,
     visibility = ["//visibility:public"],
     deps = select({
