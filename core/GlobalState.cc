@@ -2086,6 +2086,7 @@ unique_ptr<GlobalState> GlobalState::deepCopy(bool keepId) const {
     result->runningUnderAutogen = this->runningUnderAutogen;
     result->censorForSnapshotTests = this->censorForSnapshotTests;
     result->sleepInSlowPathSeconds = this->sleepInSlowPathSeconds;
+    result->rbsSignaturesEnabled = this->rbsSignaturesEnabled;
     result->requiresAncestorEnabled = this->requiresAncestorEnabled;
     result->ruby3KeywordArgs = this->ruby3KeywordArgs;
     result->typedSuper = this->typedSuper;
