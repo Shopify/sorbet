@@ -1037,8 +1037,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             translateMultiInto(params, requireds);
             translateMultiInto(params, optionals);
 
-            if (paramsNode->rest != nullptr)
-                params.emplace_back(translate(paramsNode->rest));
+            auto prismRestNode = paramsNode->rest;
+            // Implicit rest node in parameters don't need to be translated
+            if (prismRestNode != nullptr && !PM_NODE_TYPE_P(prismRestNode, PM_IMPLICIT_REST_NODE)) {
+                params.emplace_back(translate(prismRestNode));
+            }
 
             translateMultiInto(params, posts);
             translateMultiInto(params, keywords);

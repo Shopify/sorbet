@@ -30,6 +30,8 @@ end
 
 foo { |bar; baz, qux| }
 
+foo { |bar, baz,| }
+
 foo(&forwarded_block)
 
 foo&.bar {}

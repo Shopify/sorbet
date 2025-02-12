@@ -198,6 +198,25 @@ Begin {
       }
       body = NULL
     }
+    Block {
+      send = Send {
+        receiver = NULL
+        method = <U foo>
+        args = [
+        ]
+      }
+      args = Args {
+        args = [
+          Arg {
+            name = <U bar>
+          }
+          Arg {
+            name = <U baz>
+          }
+        ]
+      }
+      body = NULL
+    }
     Send {
       receiver = NULL
       method = <U foo>
