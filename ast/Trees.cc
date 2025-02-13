@@ -295,7 +295,7 @@ UnresolvedConstantLit::UnresolvedConstantLit(core::LocOffsets loc, ExpressionPtr
     _sanityCheck();
 }
 
-ConstantLit::ConstantLit(core::LocOffsets loc, core::SymbolRef symbol, ExpressionPtr original)
+ConstantLit::ConstantLit(core::LocOffsets loc, core::SymbolRef symbol, std::unique_ptr<UnresolvedConstantLit> original)
     : loc(loc), symbol(symbol), original(std::move(original)) {
     categoryCounterInc("trees", "resolvedconstantlit");
     _sanityCheck();
@@ -312,7 +312,9 @@ optional<pair<core::SymbolRef, vector<core::NameRef>>> ConstantLit::fullUnresolv
         while (true) {
             if (nested->resolutionScopes == nullptr || nested->resolutionScopes->empty()) [[unlikely]] {
                 ENFORCE(false);
-                fatalLogger->error(R"(msg="Bad fullUnresolvedPath" loc="{}")", ctx.locAt(this->loc).showRaw(ctx));
+                bool hasScopes = nested->resolutionScopes != nullptr;
+                fatalLogger->error(R"(msg="Bad fullUnresolvedPath" loc="{}" hasScopes={})",
+                                   ctx.locAt(this->loc).showRaw(ctx), hasScopes);
                 fatalLogger->error("source=\"{}\"", absl::CEscape(ctx.file.data(ctx).source()));
             }
 
@@ -320,17 +322,15 @@ optional<pair<core::SymbolRef, vector<core::NameRef>>> ConstantLit::fullUnresolv
                 break;
             }
 
-            auto orig = cast_tree<UnresolvedConstantLit>(nested->original);
-            ENFORCE(orig);
-            namesFailedToResolve.emplace_back(orig->cnst);
-            nested = ast::cast_tree<ast::ConstantLit>(orig->scope);
+            auto &orig = *nested->original;
+            namesFailedToResolve.emplace_back(orig.cnst);
+            nested = ast::cast_tree<ast::ConstantLit>(orig.scope);
             ENFORCE(nested);
             ENFORCE(nested->symbol == core::Symbols::StubModule());
             ENFORCE(!nested->resolutionScopes->empty());
         }
-        auto orig = cast_tree<UnresolvedConstantLit>(nested->original);
-        ENFORCE(orig);
-        namesFailedToResolve.emplace_back(orig->cnst);
+        auto &orig = *nested->original;
+        namesFailedToResolve.emplace_back(orig.cnst);
         absl::c_reverse(namesFailedToResolve);
     }
     auto prefix = nested->resolutionScopes->front();
@@ -709,7 +709,7 @@ string ConstantLit::toStringWithTabs(const core::GlobalState &gs, int tabs) cons
     if (symbol.exists() && symbol != core::Symbols::StubModule()) {
         return this->symbol.showFullName(gs);
     }
-    return "Unresolved: " + this->original.toStringWithTabs(gs, tabs);
+    return "Unresolved: " + this->original->toStringWithTabs(gs, tabs);
 }
 
 string ConstantLit::showRaw(const core::GlobalState &gs, int tabs) const {
@@ -721,7 +721,7 @@ string ConstantLit::showRaw(const core::GlobalState &gs, int tabs) const {
                    this->symbol.showFullName(gs));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "orig = {}\n",
-                   this->original ? this->original.showRaw(gs, tabs + 1) : "nullptr");
+                   this->original ? this->original->showRaw(gs, tabs + 1) : "nullptr");
     // If resolutionScopes isn't null, it should not be empty.
     ENFORCE(resolutionScopes == nullptr || !resolutionScopes->empty());
     if (resolutionScopes != nullptr && !resolutionScopes->empty()) {

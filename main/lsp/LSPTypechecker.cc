@@ -127,7 +127,7 @@ void LSPTypechecker::initialize(TaskQueue &queue, std::unique_ptr<core::GlobalSt
         const bool isIncremental = false;
         ErrorEpoch epoch(*errorReporter, updates.epoch, isIncremental, {});
         auto errorFlusher = make_shared<ErrorFlusherLSP>(updates.epoch, errorReporter);
-        committed = runSlowPath(move(updates), workers, errorFlusher, /* cancelable */ false);
+        committed = runSlowPath(move(updates), workers, errorFlusher, SlowPathMode::Init);
         epoch.committed = committed;
     }
     ENFORCE(committed);
@@ -191,7 +191,7 @@ bool LSPTypechecker::typecheck(LSPFileUpdates updates, WorkerPool &workers,
             commitFileUpdates(updates, /* cancelable */ false);
             prodCategoryCounterInc("lsp.updates", "fastpath");
         } else {
-            committed = runSlowPath(move(updates), workers, errorFlusher, /* cancelable */ true);
+            committed = runSlowPath(move(updates), workers, errorFlusher, SlowPathMode::Cancelable);
         }
         epoch.committed = committed;
     }
@@ -259,7 +259,7 @@ vector<core::FileRef> LSPTypechecker::runFastPath(LSPFileUpdates &updates, Worke
             oldFoundHashesForFiles.emplace(fref, move(fref.data(*gs).getFileHash()->foundHashes));
         }
 
-        gs->replaceFile(fref, file);
+        gs->replaceFile(fref, std::move(file));
         // If file doesn't have a typed: sigil, then we need to ensure it's typechecked using typed: false.
         fref.data(*gs).strictLevel = pipeline::decideStrictLevel(*gs, fref, config->opts);
 
@@ -298,9 +298,9 @@ vector<core::FileRef> LSPTypechecker::runFastPath(LSPFileUpdates &updates, Worke
     toTypecheck.erase(std::unique(toTypecheck.begin(), toTypecheck.end()), toTypecheck.end());
 
     config->logger->debug("Running fast path over num_files={}", toTypecheck.size());
-    unique_ptr<ShowOperation> op;
+    std::optional<ShowOperation> op;
     if (toTypecheck.size() > config->opts.lspMaxFilesOnFastPath / 2) {
-        op = make_unique<ShowOperation>(*config, ShowOperation::Kind::FastPath);
+        op.emplace(*config, ShowOperation::Kind::FastPath);
     }
     ENFORCE(gs->errorQueue->isEmpty());
     vector<ast::ParsedFile> updatedIndexed;
@@ -338,12 +338,12 @@ vector<core::FileRef> LSPTypechecker::runFastPath(LSPFileUpdates &updates, Worke
 }
 
 namespace {
-ast::ParsedFile updateFile(core::GlobalState &gs, const shared_ptr<core::File> &file, const options::Options &opts) {
+ast::ParsedFile updateFile(core::GlobalState &gs, shared_ptr<core::File> file, const options::Options &opts) {
     core::FileRef fref = gs.findFileByPath(file->path());
     if (fref.exists()) {
-        gs.replaceFile(fref, file);
+        gs.replaceFile(fref, std::move(file));
     } else {
-        fref = gs.enterFile(file);
+        fref = gs.enterFile(std::move(file));
     }
     fref.data(gs).strictLevel = pipeline::decideStrictLevel(gs, fref, opts);
     return pipeline::indexOne(opts, gs, fref);
@@ -407,12 +407,14 @@ bool LSPTypechecker::copyIndexed(WorkerPool &workers, const UnorderedSet<int> &i
 }
 
 bool LSPTypechecker::runSlowPath(LSPFileUpdates updates, WorkerPool &workers,
-                                 shared_ptr<core::ErrorFlusher> errorFlusher, bool cancelable) {
+                                 shared_ptr<core::ErrorFlusher> errorFlusher, LSPTypechecker::SlowPathMode mode) {
     ENFORCE(this_thread::get_id() == typecheckerThreadId,
             "runSlowPath can only be called from the typechecker thread.");
 
+    bool cancelable = mode == SlowPathMode::Cancelable;
+
     auto &logger = config->logger;
-    unique_ptr<ShowOperation> slowPathOp = make_unique<ShowOperation>(*config, ShowOperation::Kind::SlowPathBlocking);
+    auto slowPathOp = std::make_optional<ShowOperation>(*config, ShowOperation::Kind::SlowPathBlocking);
     Timer timeit(logger, "slow_path");
     ENFORCE(updates.typecheckingPath != TypecheckingPath::Fast || config->disableFastPath);
     ENFORCE(updates.updatedGS.has_value());
@@ -434,11 +436,14 @@ bool LSPTypechecker::runSlowPath(LSPFileUpdates updates, WorkerPool &workers,
         vector<ast::ParsedFile> indexedCopies;
 
         // Index the updated files using finalGS.
-        {
+        if (!updates.updatedFiles.empty()) {
+            // Initialization does its own indexing, so we shouldn't see any file updates from that path.
+            ENFORCE(mode != SlowPathMode::Init);
+
             auto &gs = *finalGS;
             core::UnfreezeFileTable fileTableAccess(gs);
             for (auto &file : updates.updatedFiles) {
-                auto parsedFile = updateFile(gs, file, config->opts);
+                auto parsedFile = updateFile(gs, std::move(file), config->opts);
                 if (parsedFile.tree) {
                     indexedCopies.emplace_back(ast::ParsedFile{parsedFile.tree.deepCopy(), parsedFile.file});
                     updatedFiles.insert(parsedFile.file.id());
@@ -513,8 +518,7 @@ bool LSPTypechecker::runSlowPath(LSPFileUpdates updates, WorkerPool &workers,
         if (cancelable) {
             // Inform users that Sorbet should be responsive now.
             // Explicitly end previous operation before beginning next operation.
-            slowPathOp = nullptr;
-            slowPathOp = make_unique<ShowOperation>(*config, ShowOperation::Kind::SlowPathNonBlocking);
+            slowPathOp.emplace(*config, ShowOperation::Kind::SlowPathNonBlocking);
         }
         // Report how long the slow path blocks preemption.
         timeit.clone("slow_path.blocking_time");
@@ -588,6 +592,25 @@ void LSPTypechecker::commitFileUpdates(LSPFileUpdates &updates, bool couldBeCanc
     ENFORCE(updates.updatedFileIndexes.size() == updates.updatedFiles.size());
     for (auto &ast : updates.updatedFileIndexes) {
         const int id = ast.file.id();
+
+        DEBUG_ONLY({
+            // When typechecking on the fast path, the trees in `updatedFileIndexes` will have been indexed with the
+            // GlobalState that's owned by the indexer and not `this->gs`. As we will be moving those trees into
+            // `this->indexed`, we need to ensure that there is also a version of that tree in the
+            // `this->indexedFinalGS` map that acts as an overlay for `this->indexed`. Ensuring that the overlay is
+            // correctly populated is what allows us to hold on to the indexer's version of the tree for the next
+            // slow path, but also handle fast path requests for modified files.
+            if (updates.typecheckingPath == TypecheckingPath::Fast) {
+                // We don't support package files on the fast path, so package files won't have a tree indexed with
+                // `this->gs` present in `updatedFinalGSFileIndexes`.
+                if (!this->config->opts.stripePackages || !ast.file.data(*this->gs).isPackage()) {
+                    auto indexedForTypechecker = absl::c_any_of(
+                        updates.updatedFinalGSFileIndexes, [id](auto &updated) { return updated.file.id() == id; });
+                    ENFORCE(indexedForTypechecker);
+                }
+            }
+        });
+
         if (id >= indexed.size()) {
             indexed.resize(id + 1);
         }
@@ -715,7 +738,7 @@ const ast::ParsedFile &LSPTypechecker::getIndexed(core::FileRef fref) const {
     return indexed[id];
 }
 
-vector<ast::ParsedFile> LSPTypechecker::getResolved(const vector<core::FileRef> &frefs, WorkerPool &workers) const {
+vector<ast::ParsedFile> LSPTypechecker::getResolved(absl::Span<const core::FileRef> frefs, WorkerPool &workers) const {
     ENFORCE(this_thread::get_id() == typecheckerThreadId, "Typechecker can only be used from the typechecker thread.");
     vector<ast::ParsedFile> updatedIndexed;
 
@@ -804,7 +827,7 @@ const ast::ParsedFile &LSPTypecheckerDelegate::getIndexed(core::FileRef fref) co
     return typechecker.getIndexed(fref);
 }
 
-std::vector<ast::ParsedFile> LSPTypecheckerDelegate::getResolved(const std::vector<core::FileRef> &frefs) const {
+std::vector<ast::ParsedFile> LSPTypecheckerDelegate::getResolved(absl::Span<const core::FileRef> frefs) const {
     return typechecker.getResolved(frefs, workers);
 }
 
