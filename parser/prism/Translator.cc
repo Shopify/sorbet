@@ -278,7 +278,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto loc = location;
 
-            auto name = parser.resolveConstant(callNode->name);
+            auto constantNameString = parser.resolveConstant(callNode->name);
             auto receiver = translate(callNode->receiver);
 
             core::LocOffsets messageLoc;
@@ -293,7 +293,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             // Handle `~[Integer]`, like `~42`
             // Unlike `-[Integer]`, Prism treats `~[Integer]` as a method call
             // But Sorbet's legacy parser treats both `~[Integer]` and `-[Integer]` as integer literals
-            if (name == "~" && parser::cast_node<parser::Integer>(receiver.get())) {
+            if (constantNameString == "~" && parser::cast_node<parser::Integer>(receiver.get())) {
                 std::string valueString(sliceLocation(callNode->base.location));
 
                 return std::make_unique<parser::Integer>(location, std::move(valueString));
@@ -309,11 +309,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 args = translateArguments(callNode->arguments);
             }
 
-            if (name == "[]=") {
+            if (constantNameString == "[]=") {
                 messageLoc.endLoc += 2; // The message includes the closing bracket and equals sign
-            } else if (name == "[]") {
+            } else if (constantNameString == "[]") {
                 messageLoc.endLoc = messageLoc.beginLoc;
-            } else if (name.back() == '=') {
+            } else if (constantNameString.back() == '=') {
                 messageLoc.endLoc = args.front()->loc.beginPos() - 1; // The message ends right before the equals sign
             }
 
@@ -322,11 +322,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unique_ptr<parser::Node> sendNode;
 
             if (flags & PM_CALL_NODE_FLAGS_SAFE_NAVIGATION) { // Handle conditional send, e.g. `a&.b`
-                sendNode =
-                    make_unique<parser::CSend>(loc, move(receiver), gs.enterNameUTF8(name), messageLoc, move(args));
+                sendNode = make_unique<parser::CSend>(loc, move(receiver), gs.enterNameUTF8(constantNameString),
+                                                      messageLoc, move(args));
             } else { // Regular send, e.g. `a.b`
-                sendNode =
-                    make_unique<parser::Send>(loc, move(receiver), gs.enterNameUTF8(name), messageLoc, move(args));
+                sendNode = make_unique<parser::Send>(loc, move(receiver), gs.enterNameUTF8(constantNameString),
+                                                     messageLoc, move(args));
             }
 
             if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
