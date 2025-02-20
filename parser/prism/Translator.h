@@ -23,6 +23,9 @@ class Translator final {
     // Needed for reporting diagnostics
     core::FileRef file;
 
+    // The parse errors that occurred while parsing the root node
+    std::vector<ParseError> parseErrors;
+
     // Context variables
     bool isInMethodDef = false;
 
@@ -52,8 +55,9 @@ public:
 private:
     // Private constructor used only for creating child translators
     // uniqueCounterStorage is passed as the minimum integer value and is never used
-    Translator(Parser parser, core::GlobalState &gs, core::FileRef file, bool isInMethodDef, int *uniqueCounter)
-        : parser(parser), gs(gs), file(file), isInMethodDef(isInMethodDef),
+    Translator(Parser parser, core::GlobalState &gs, core::FileRef file, std::vector<ParseError> parseErrors,
+               bool isInMethodDef, int *uniqueCounter)
+        : parser(parser), gs(gs), file(file), parseErrors(parseErrors), isInMethodDef(isInMethodDef),
           uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(uniqueCounter) {}
     void reportError(core::LocOffsets loc, const std::string &message);
 
