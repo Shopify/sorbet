@@ -6,9 +6,9 @@ pm_parser_t *Parser::getRawParserPointer() {
     return &storage->parser;
 }
 
-ProgramNodeContainer Parser::parse_root() {
+ParseResult Parser::parse_root() {
     pm_node_t *root = pm_parse(getRawParserPointer());
-    return ProgramNodeContainer{*this, root, collectErrors()};
+    return ParseResult{*this, root, collectErrors()};
 };
 
 core::LocOffsets Parser::translateLocation(pm_location_t location) {
