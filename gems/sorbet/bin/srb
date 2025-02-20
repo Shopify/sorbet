@@ -46,6 +46,7 @@ compute_md5() {
 typecheck() {
   args=("$@")
   cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/sorbet/gem-rbis"
+  static_gem_name="${SRB_STATIC_GEM_NAME:-sorbet-static}"
 
   if [ -z "$SRB_SKIP_GEM_RBIS" ] && [ -f Gemfile.lock ]; then
     [ -d "$cache_dir" ] || mkdir -p "$cache_dir"
@@ -73,7 +74,7 @@ typecheck() {
 
     # /path/to/gems/sorbet-static-0.0.1-darwin-17/libexec/sorbet
     # (assumes people only have one platform-dependent gem installed per version)
-    guess_sorbet=("$gems_path/sorbet-static$version_suffix"*/libexec/sorbet)
+    guess_sorbet=("$gems_path/$static_gem_name$version_suffix"*/libexec/sorbet)
 
     if [[ -f "${guess_sorbet[0]}" ]]; then
       sorbet="${guess_sorbet[0]}"
@@ -81,7 +82,7 @@ typecheck() {
       # 0.0.1
       version="${version_suffix#-}"
       # Resort to locating using the GEM_PATH, this takes ~200ms
-      sorbet="$(VISUAL=echo gem open sorbet-static -v "${version}")/libexec/sorbet"
+      sorbet="$(VISUAL=echo gem open "${static_gem_name}" -v "${version}")/libexec/sorbet"
     fi
 
     # if we still don't know the sorbet binary
@@ -97,7 +98,7 @@ typecheck() {
         *)          prefix=""
         esac
 
-        guess_sorbet=("$gems_path/sorbet-static$version_suffix"*/libexec/"${prefix}sorbet")
+        guess_sorbet=("$gems_path/$static_gem_name$version_suffix"*/libexec/"${prefix}sorbet")
         if [[ -f "${guess_sorbet[0]}" ]]; then
           sorbet="${guess_sorbet[0]}"
         fi
