@@ -18,7 +18,7 @@ namespace sorbet::rewriter {
 namespace {
 
 /**
- * A collection of annotations and signatures comments found on a method definition.
+ * A collection of annotation and signature comments found on a method definition.
  */
 struct Comments {
     /**
@@ -36,120 +36,27 @@ struct Comments {
     vector<rbs::Comment> signatures;
 };
 
+// @kaan: Can't create a map because ExpressionPtr is a reference
+// @kaan: Comments& instead?
+// @kaan: This is a vector of pairs of the line number and the comments for that line
+vector<pair<int, Comments>> commentMapping;
+
 class RBSSignaturesWalk {
-    Comments findRBSComments(string_view sourceCode, core::LocOffsets loc) {
+    void findRBSComments(string_view sourceCode) {
         vector<rbs::Comment> annotations;
         vector<rbs::Comment> signatures;
 
-        uint32_t beginIndex = loc.beginPos();
-
-        // Everything in the file before the method definition
-        string_view preDefinition = sourceCode.substr(0, sourceCode.rfind('\n', beginIndex));
-
-        // Get all the lines before it
-        vector<string_view> all_lines = absl::StrSplit(preDefinition, '\n');
-
-        // We compute the current position in the source so we know the location of each comment
-        uint32_t index = beginIndex;
-
-        // NOTE: This is accidentally quadratic.
-        // Instead of looping over all the lines between here and the start of the file, we should
-        // instead track something like the locs of all the expressions in the ClassDef::rhs, and
-        // only scan over the space between the ClassDef::rhs top level items
-
-        // Iterate from the last line, to the first line
-        for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
-            index -= it->size();
-            index -= 1;
-
-            string_view line = absl::StripAsciiWhitespace(*it);
-
-            // Short circuit when line is empty
-            if (line.empty()) {
-                break;
+        auto lines = absl::StrSplit(sourceCode, '\n');
+        for (int i = 0; i < lines.size(); i++) {
+            auto &line = lines[i];
+            if (absl::StartsWith(line, "#:")) {
+                signatures.emplace_back(line);
+            } else if (absl::StartsWith(line, "@")) {
+                annotations.emplace_back(line);
             }
 
-            // Handle single-line sig block
-            else if (absl::StartsWith(line, "sig")) {
-                // Do nothing for a one-line sig block
-                // TODO: Handle single-line sig blocks
-            }
-
-            // Handle multi-line sig block
-            else if (absl::StartsWith(line, "end")) {
-                // ASSUMPTION: We either hit the start of file, a `sig do`/`sig(:final) do` or an `end`
-                // TODO: Handle multi-line sig blocks
-                it++;
-                while (
-                    // SOF
-                    it != all_lines.rend()
-                    // Start of sig block
-                    && !(absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig do") ||
-                         absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig(:final) do"))
-                    // Invalid end keyword
-                    && !absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
-                    it++;
-                };
-
-                // We have either
-                // 1) Reached the start of the file
-                // 2) Found a `sig do`
-                // 3) Found an invalid end keyword
-                if (it == all_lines.rend() || absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
-                    break;
-                }
-
-                // Reached a sig block.
-                line = absl::StripAsciiWhitespace(*it);
-                ENFORCE(absl::StartsWith(line, "sig do") || absl::StartsWith(line, "sig(:final) do"));
-
-                // Stop looking if this is a single-line block e.g `sig do; <block>; end`
-                if ((absl::StartsWith(line, "sig do;") || absl::StartsWith(line, "sig(:final) do;")) &&
-                    absl::EndsWith(line, "end")) {
-                    break;
-                }
-
-                // Else, this is a valid sig block. Move on to any possible documentation.
-            }
-
-            // Handle a RBS sig annotation `#: SomeRBS`
-            else if (absl::StartsWith(line, "#:")) {
-                // Account for whitespace before the annotation e.g
-                // #: abc -> "abc"
-                // #:abc -> "abc"
-                int lineSize = line.size();
-                auto rbsSignature = rbs::Comment{
-                    core::LocOffsets{index, index + lineSize},
-                    line.substr(2),
-                };
-                signatures.emplace_back(rbsSignature);
-            }
-
-            // Handle RDoc annotations `# @abstract`
-            else if (absl::StartsWith(line, "# @")) {
-                int lineSize = line.size();
-                auto annotation = rbs::Comment{
-                    core::LocOffsets{index, index + lineSize},
-                    line.substr(3),
-                };
-                annotations.emplace_back(annotation);
-            }
-
-            // Ignore other comments
-            else if (absl::StartsWith(line, "#")) {
-                continue;
-            }
-
-            // No other cases applied to this line, so stop looking.
-            else {
-                break;
-            }
+            commentMapping.emplace_back(i, Comments{annotations, signatures});
         }
-
-        reverse(annotations.begin(), annotations.end());
-        reverse(signatures.begin(), signatures.end());
-
-        return Comments{annotations, signatures};
     }
 
     // Check if the send is an accessor e.g `attr_reader`, `attr_writer`, `attr_accessor`
@@ -268,5 +175,4 @@ ast::ExpressionPtr RBSSignatures::run(core::MutableContext ctx, ast::ExpressionP
 
     return tree;
 }
-
 }; // namespace sorbet::rewriter
