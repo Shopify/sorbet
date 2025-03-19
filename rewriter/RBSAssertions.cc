@@ -143,7 +143,7 @@ private:
     /**
      * Find the RBS comment for the given assign
      */
-    optional<rbs::Comment> findRBSComments(core::MutableContext ctx, ast::Assign *assign) {
+    optional<rbs::Signature> findRBSComments(core::MutableContext ctx, ast::Assign *assign) {
         auto source = ctx.file.data(ctx).source();
 
         // We want to find the comment right after the end of the assign
@@ -180,19 +180,14 @@ private:
             return nullopt;
         }
 
-        // Adjust the location to be the correct position depending on the number of spaces after the `#:`
-        auto offset = 0;
-        for (auto i = startingLoc + commentStart + 2; i < endOfLine; i++) {
-            if (source[i] == ' ') {
-                offset++;
-            } else {
-                break;
-            }
-        }
+        comment = comment.substr(commentStart);
+        startingLoc += commentStart;
 
-        return rbs::Comment{
-            core::LocOffsets{startingLoc + (uint32_t)commentStart + offset, static_cast<uint32_t>(endOfLine)},
-            absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
+        return rbs::Signature{
+            vector<rbs::Comment>{
+                rbs::Comment{core::LocOffsets{startingLoc, static_cast<uint32_t>(endOfLine)}, std::string(comment)},
+            },
+        };
     }
 
     /**

@@ -87,10 +87,9 @@ ast::ExpressionPtr TypeTranslator::typeNameType(rbs_typename_t *typeName, bool i
 }
 
 ast::ExpressionPtr TypeTranslator::classInstanceType(rbs_types_classinstance_t *node, core::LocOffsets loc) {
-    auto offsets = locFromRange(loc, ((rbs_node_t *)node)->location->rg);
     auto argsValue = node->args;
     auto isGeneric = argsValue != nullptr && argsValue->length > 0;
-    auto typeConstant = typeNameType(node->name, isGeneric, offsets);
+    auto typeConstant = typeNameType(node->name, isGeneric, loc);
 
     if (isGeneric) {
         auto argsStore = ast::Send::ARGS_store();
@@ -99,7 +98,7 @@ ast::ExpressionPtr TypeTranslator::classInstanceType(rbs_types_classinstance_t *
             argsStore.emplace_back(move(argType));
         }
 
-        return ast::MK::Send(offsets, move(typeConstant), core::Names::squareBrackets(), offsets, argsStore.size(),
+        return ast::MK::Send(loc, move(typeConstant), core::Names::squareBrackets(), loc, argsStore.size(),
                              move(argsStore));
     }
 
@@ -107,8 +106,7 @@ ast::ExpressionPtr TypeTranslator::classInstanceType(rbs_types_classinstance_t *
 }
 
 ast::ExpressionPtr TypeTranslator::classSingletonType(rbs_types_classsingleton_t *node, core::LocOffsets loc) {
-    auto offsets = locFromRange(loc, ((rbs_node_t *)node)->location->rg);
-    auto innerType = typeNameType(node->name, false, offsets);
+    auto innerType = typeNameType(node->name, false, loc);
     return ast::MK::Send1(loc, ast::MK::T(loc), core::Names::classOf(), loc, move(innerType));
 }
 
@@ -189,40 +187,7 @@ ast::ExpressionPtr TypeTranslator::functionType(rbs_types_function_t *node, core
 }
 
 ast::ExpressionPtr TypeTranslator::procType(rbs_types_proc_t *node, core::LocOffsets docLoc) {
-    auto loc = locFromRange(docLoc, ((rbs_node_t *)node)->location->rg);
-    auto function = ast::MK::Untyped(loc);
-
-    rbs_node_t *functionTypeNode = node->type;
-    switch (functionTypeNode->type) {
-        case RBS_TYPES_FUNCTION: {
-            function = functionType((rbs_types_function_t *)functionTypeNode, loc);
-            break;
-        }
-        case RBS_TYPES_UNTYPEDFUNCTION: {
-            return function;
-        }
-        default: {
-            auto errLoc = locFromRange(docLoc, functionTypeNode->location->rg);
-            if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
-                e.setHeader("Unexpected node type `{}` in proc type, expected `{}`",
-                            rbs_node_type_name(functionTypeNode), "Function");
-            }
-        }
-    }
-
-    rbs_node_t *selfNode = node->self_type;
-    if (selfNode != nullptr) {
-        auto selfLoc = locFromRange(loc, selfNode->location->rg);
-        auto selfType = toExpressionPtr(selfNode, selfLoc);
-        function = ast::MK::Send1(loc, move(function), core::Names::bind(), loc, move(selfType));
-    }
-
-    return function;
-}
-
-ast::ExpressionPtr TypeTranslator::blockType(rbs_types_block_t *node, core::LocOffsets docLoc) {
-    auto loc = locFromRange(docLoc, ((rbs_node_t *)node)->location->rg);
-    auto function = ast::MK::Untyped(loc);
+    auto function = ast::MK::Untyped(docLoc);
 
     rbs_node_t *functionTypeNode = node->type;
     switch (functionTypeNode->type) {
@@ -234,8 +199,36 @@ ast::ExpressionPtr TypeTranslator::blockType(rbs_types_block_t *node, core::LocO
             return function;
         }
         default: {
-            auto errLoc = locFromRange(docLoc, functionTypeNode->location->rg);
-            if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Internal::InternalError)) {
+                e.setHeader("Unexpected node type `{}` in proc type, expected `{}`",
+                            rbs_node_type_name(functionTypeNode), "Function");
+            }
+        }
+    }
+
+    rbs_node_t *selfNode = node->self_type;
+    if (selfNode != nullptr) {
+        auto selfType = toExpressionPtr(selfNode, docLoc);
+        function = ast::MK::Send1(docLoc, move(function), core::Names::bind(), docLoc, move(selfType));
+    }
+
+    return function;
+}
+
+ast::ExpressionPtr TypeTranslator::blockType(rbs_types_block_t *node, core::LocOffsets docLoc) {
+    auto function = ast::MK::Untyped(docLoc);
+
+    rbs_node_t *functionTypeNode = node->type;
+    switch (functionTypeNode->type) {
+        case RBS_TYPES_FUNCTION: {
+            function = functionType((rbs_types_function_t *)functionTypeNode, docLoc);
+            break;
+        }
+        case RBS_TYPES_UNTYPEDFUNCTION: {
+            return function;
+        }
+        default: {
+            if (auto e = ctx.beginError(docLoc, core::errors::Internal::InternalError)) {
                 e.setHeader("Unexpected node type `{}` in block type, expected `{}`",
                             rbs_node_type_name(functionTypeNode), "Function");
             }
@@ -246,13 +239,12 @@ ast::ExpressionPtr TypeTranslator::blockType(rbs_types_block_t *node, core::LocO
 
     rbs_node_t *selfNode = node->self_type;
     if (selfNode != nullptr) {
-        auto selfLoc = locFromRange(docLoc, selfNode->location->rg);
-        auto selfType = toExpressionPtr(selfNode, selfLoc);
-        function = ast::MK::Send1(selfLoc, move(function), core::Names::bind(), selfLoc, move(selfType));
+        auto selfType = toExpressionPtr(selfNode, docLoc);
+        function = ast::MK::Send1(docLoc, move(function), core::Names::bind(), docLoc, move(selfType));
     }
 
     if (!node->required) {
-        return ast::MK::Nilable(loc, move(function));
+        return ast::MK::Nilable(docLoc, move(function));
     }
 
     return function;
@@ -325,8 +317,7 @@ ast::ExpressionPtr TypeTranslator::variableType(rbs_types_variable_t *node, core
 ast::ExpressionPtr TypeTranslator::toExpressionPtr(rbs_node_t *node, core::LocOffsets docLoc) {
     switch (node->type) {
         case RBS_TYPES_ALIAS: {
-            auto loc = locFromRange(docLoc, node->location->rg);
-            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS aliases are not supported");
             }
             return ast::MK::Untyped(docLoc);
@@ -338,8 +329,7 @@ ast::ExpressionPtr TypeTranslator::toExpressionPtr(rbs_node_t *node, core::LocOf
         case RBS_TYPES_BASES_BOTTOM:
             return ast::MK::NoReturn(docLoc);
         case RBS_TYPES_BASES_CLASS: {
-            auto loc = locFromRange(docLoc, node->location->rg);
-            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS type `{}` is not supported", "class");
             }
             return ast::MK::Untyped(docLoc);
@@ -363,8 +353,7 @@ ast::ExpressionPtr TypeTranslator::toExpressionPtr(rbs_node_t *node, core::LocOf
         case RBS_TYPES_FUNCTION:
             return functionType((rbs_types_function_t *)node, docLoc);
         case RBS_TYPES_INTERFACE: {
-            auto loc = locFromRange(docLoc, node->location->rg);
-            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS interfaces are not supported");
             }
             return ast::MK::Untyped(docLoc);
@@ -372,8 +361,7 @@ ast::ExpressionPtr TypeTranslator::toExpressionPtr(rbs_node_t *node, core::LocOf
         case RBS_TYPES_INTERSECTION:
             return intersectionType((rbs_types_intersection_t *)node, docLoc);
         case RBS_TYPES_LITERAL: {
-            auto loc = locFromRange(docLoc, node->location->rg);
-            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS literal types are not supported");
             }
             return ast::MK::Untyped(docLoc);
@@ -391,8 +379,7 @@ ast::ExpressionPtr TypeTranslator::toExpressionPtr(rbs_node_t *node, core::LocOf
         case RBS_TYPES_VARIABLE:
             return variableType((rbs_types_variable_t *)node, docLoc);
         default: {
-            auto errLoc = locFromRange(docLoc, node->location->rg);
-            if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
+            if (auto e = ctx.beginError(docLoc, core::errors::Internal::InternalError)) {
                 e.setHeader("Unexpected node type `{}`", rbs_node_type_name(node));
             }
 

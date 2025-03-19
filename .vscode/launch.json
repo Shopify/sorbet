@@ -28,7 +28,7 @@
             "request": "launch",
             "name": "Debug Sorbet pipeline in LLDB",
             "program": "${workspaceFolder}/bazel-bin/main/sorbet",
-            "args": ["--enable-experimental-rbs-signatures", "test.rb"],
+            "args": ["--enable-experimental-rbs-signatures", "--enable-experimental-rbs-assertions", "test.rb"],
             "preLaunchTask": "Build",
             "stopOnEntry": false,
             "sourceMap": {

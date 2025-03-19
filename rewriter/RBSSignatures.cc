@@ -30,13 +30,13 @@ struct Comments {
      *
      * Signatures are formatted as `#: () -> void`.
      */
-    vector<rbs::Comment> signatures;
+    vector<rbs::Signature> signatures;
 };
 
 class RBSSignaturesWalk {
     Comments findRBSComments(string_view sourceCode, core::LocOffsets loc) {
         vector<rbs::Comment> annotations;
-        vector<rbs::Comment> signatures;
+        vector<rbs::Signature> signatures;
 
         uint32_t beginIndex = loc.beginPos();
 
@@ -114,11 +114,41 @@ class RBSSignaturesWalk {
                 // Account for whitespace before the annotation e.g
                 // #: abc -> "abc"
                 // #:abc -> "abc"
-                int lineSize = line.size();
-                auto rbsSignature = rbs::Comment{
-                    core::LocOffsets{index, index + lineSize},
-                    line.substr(2),
+                // Or a multi-line annotation e.g
+                // #: abc
+                // #|
+                //
+                // int lineSize = line.size();
+                // int sigEnd = index + lineSize;
+                // int sigStart = index;
+                auto comments = vector<rbs::Comment>();
+
+                auto firstComment = rbs::Comment{
+                    core::LocOffsets{index, (uint32_t)(index + line.size())},
+                    std::string(line),
                 };
+                comments.emplace_back(firstComment);
+
+                uint32_t continueIndex = index + line.size();
+
+                // Look downwards (later lines) for continuation lines starting with "#|"
+                auto forwardIt = all_lines.begin() + 1 + distance(it, all_lines.rend()) -
+                                 1; // convert reverse iterator to forward iterator
+                for (; forwardIt != all_lines.end(); forwardIt++) {
+                    auto continuationLine = *forwardIt;
+                    if (absl::StartsWith(continuationLine, "#|")) {
+                        continueIndex += 1;
+                        comments.emplace_back(rbs::Comment{
+                            core::LocOffsets{continueIndex, (uint32_t)(continueIndex + continuationLine.size())},
+                            std::string(continuationLine),
+                        });
+                        continueIndex += continuationLine.size();
+                    } else {
+                        break;
+                    }
+                }
+
+                auto rbsSignature = rbs::Signature{comments};
                 signatures.emplace_back(rbsSignature);
             }
 
@@ -127,7 +157,7 @@ class RBSSignaturesWalk {
                 int lineSize = line.size();
                 auto annotation = rbs::Comment{
                     core::LocOffsets{index, index + lineSize},
-                    line.substr(3),
+                    std::string(line.substr(3)),
                 };
                 annotations.emplace_back(annotation);
             }

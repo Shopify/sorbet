@@ -62,7 +62,7 @@ core::NameRef expressionName(const ast::ExpressionPtr *expr) {
     return name;
 }
 
-void collectArgs(core::LocOffsets docLoc, rbs_node_list_t *field, vector<RBSArg> &args) {
+void collectArgs(const Signature &signature, rbs_node_list_t *field, vector<RBSArg> &args) {
     if (field == nullptr || field->length == 0) {
         return;
     }
@@ -72,14 +72,14 @@ void collectArgs(core::LocOffsets docLoc, rbs_node_list_t *field, vector<RBSArg>
                 "Unexpected node type `{}` in function parameter list, expected `{}`",
                 rbs_node_type_name(list_node->node), "FunctionParam");
 
-        auto loc = locFromRange(docLoc, list_node->node->location->rg);
+        auto loc = signature.mapLocForRange(list_node->node->location->rg);
         auto node = (rbs_types_function_param_t *)list_node->node;
         auto arg = RBSArg{loc, node->name, node->type};
         args.emplace_back(arg);
     }
 }
 
-void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, vector<RBSArg> &args) {
+void collectKeywords(const Signature &signature, rbs_hash_t *field, vector<RBSArg> &args) {
     if (field == nullptr) {
         return;
     }
@@ -93,7 +93,7 @@ void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, vector<RBSArg> 
                 "Unexpected node type `{}` in keyword argument value, expected `{}`",
                 rbs_node_type_name(hash_node->value), "FunctionParam");
 
-        auto loc = locFromRange(docLoc, hash_node->key->location->rg);
+        auto loc = signature.mapLocForRange(hash_node->key->location->rg);
         rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *)hash_node->key;
         rbs_types_function_param_t *valueNode = (rbs_types_function_param_t *)hash_node->value;
         auto arg = RBSArg{loc, keyNode, valueNode->type};
@@ -104,13 +104,12 @@ void collectKeywords(core::LocOffsets docLoc, rbs_hash_t *field, vector<RBSArg> 
 } // namespace
 
 ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *methodDef,
-                                                         const rbs_methodtype_t *methodType,
-                                                         const core::LocOffsets methodTypeLoc,
+                                                         const rbs_methodtype_t *methodType, const Signature &signature,
                                                          const vector<Comment> &annotations) {
     const auto &node = *methodType;
 
     if (node.type->type != RBS_TYPES_FUNCTION) {
-        auto errLoc = locFromRange(methodTypeLoc, node.type->location->rg);
+        auto errLoc = signature.mapLocForRange(node.type->location->rg);
         if (auto e = ctx.beginError(errLoc, core::errors::Rewriter::RBSUnsupported)) {
             e.setHeader("Unexpected node type `{}` in method signature, expected `{}`", rbs_node_type_name(node.type),
                         "Function");
@@ -124,7 +123,7 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
 
     vector<pair<core::LocOffsets, core::NameRef>> typeParams;
     for (rbs_node_list_node_t *list_node = node.type_params->head; list_node != nullptr; list_node = list_node->next) {
-        auto loc = locFromRange(methodTypeLoc, list_node->node->location->rg);
+        auto loc = signature.mapLocForRange(list_node->node->location->rg);
 
         ENFORCE(list_node->node->type == RBS_AST_TYPEPARAM,
                 "Unexpected node type `{}` in type parameter list, expected `{}`", rbs_node_type_name(list_node->node),
@@ -139,8 +138,8 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
 
     vector<RBSArg> args;
 
-    collectArgs(methodTypeLoc, functionType->required_positionals, args);
-    collectArgs(methodTypeLoc, functionType->optional_positionals, args);
+    collectArgs(signature, functionType->required_positionals, args);
+    collectArgs(signature, functionType->optional_positionals, args);
 
     rbs_node_t *restPositionals = functionType->rest_positionals;
     if (restPositionals) {
@@ -148,18 +147,18 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
                 "Unexpected node type `{}` in rest positional argument, expected `{}`",
                 rbs_node_type_name(restPositionals), "FunctionParam");
 
-        auto loc = locFromRange(methodTypeLoc, restPositionals->location->rg);
+        auto loc = signature.mapLocForRange(restPositionals->location->rg);
         auto node = (rbs_types_function_param_t *)restPositionals;
         auto arg = RBSArg{loc, node->name, node->type};
         args.emplace_back(arg);
     }
 
-    collectArgs(methodTypeLoc, functionType->trailing_positionals, args);
+    collectArgs(signature, functionType->trailing_positionals, args);
 
     // Collect keywords
 
-    collectKeywords(methodTypeLoc, functionType->required_keywords, args);
-    collectKeywords(methodTypeLoc, functionType->optional_keywords, args);
+    collectKeywords(signature, functionType->required_keywords, args);
+    collectKeywords(signature, functionType->optional_keywords, args);
 
     rbs_node_t *restKeywords = functionType->rest_keywords;
     if (restKeywords) {
@@ -167,7 +166,7 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
                 "Unexpected node type `{}` in rest keyword argument, expected `{}`", rbs_node_type_name(restKeywords),
                 "FunctionParam");
 
-        auto loc = locFromRange(methodTypeLoc, restKeywords->location->rg);
+        auto loc = signature.mapLocForRange(restKeywords->location->rg);
         auto node = (rbs_types_function_param_t *)restKeywords;
         auto arg = RBSArg{loc, node->name, node->type};
         args.emplace_back(arg);
@@ -178,7 +177,7 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
     auto *block = node.block;
     if (block) {
         // TODO: RBS doesn't have location on blocks yet
-        auto arg = RBSArg{methodTypeLoc, nullptr, (rbs_node_t *)block};
+        auto arg = RBSArg{signature.loc(), nullptr, (rbs_node_t *)block};
         args.emplace_back(arg);
     }
 
@@ -196,7 +195,7 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
             name = ctx.state.enterNameUTF8(nameStr);
         } else {
             if (i >= methodDef->args.size()) {
-                if (auto e = ctx.beginError(methodTypeLoc, core::errors::Rewriter::RBSParameterMismatch)) {
+                if (auto e = ctx.beginError(signature.loc(), core::errors::Rewriter::RBSParameterMismatch)) {
                     e.setHeader("RBS signature has more parameters than in the method definition");
                 }
 
@@ -208,7 +207,7 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
         }
 
         auto typeTranslator = TypeTranslator(ctx, typeParams, parser);
-        auto type = typeTranslator.toExpressionPtr(arg.type, methodTypeLoc);
+        auto type = typeTranslator.toExpressionPtr(arg.type, signature.mapLocForRange(arg.type->location->rg));
         sigParams.emplace_back(ast::MK::Symbol(arg.loc, name));
         sigParams.emplace_back(move(type));
     }
@@ -217,7 +216,7 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
 
     // Build the sig
 
-    auto sigBuilder = ast::MK::Self(methodTypeLoc);
+    auto sigBuilder = ast::MK::Self(signature.loc());
     sigBuilder = handleAnnotations(std::move(sigBuilder), annotations);
 
     if (typeParams.size() > 0) {
@@ -227,50 +226,51 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
         for (auto &param : typeParams) {
             typeParamsStore.emplace_back(ast::MK::Symbol(param.first, param.second));
         }
-        sigBuilder = ast::MK::Send(methodTypeLoc, move(sigBuilder), core::Names::typeParameters(), methodTypeLoc,
+        sigBuilder = ast::MK::Send(signature.loc(), move(sigBuilder), core::Names::typeParameters(), signature.loc(),
                                    typeParamsStore.size(), move(typeParamsStore));
     }
 
     if (sigParams.size() > 0) {
-        sigBuilder =
-            ast::MK::Send(methodTypeLoc, move(sigBuilder), core::Names::params(), methodTypeLoc, 0, move(sigParams));
+        sigBuilder = ast::MK::Send(signature.loc(), move(sigBuilder), core::Names::params(), signature.loc(), 0,
+                                   move(sigParams));
     }
 
     rbs_node_t *returnValue = functionType->return_type;
     if (returnValue->type == RBS_TYPES_BASES_VOID) {
-        auto loc = locFromRange(methodTypeLoc, returnValue->location->rg);
+        auto loc = signature.mapLocForRange(returnValue->location->rg);
         sigBuilder = ast::MK::Send0(loc, move(sigBuilder), core::Names::void_(), loc);
     } else {
         auto typeTranslator = TypeTranslator(ctx, typeParams, parser);
-        auto returnType = typeTranslator.toExpressionPtr(returnValue, methodTypeLoc);
-        sigBuilder =
-            ast::MK::Send1(methodTypeLoc, move(sigBuilder), core::Names::returns(), methodTypeLoc, move(returnType));
+        auto returnType =
+            typeTranslator.toExpressionPtr(returnValue, signature.mapLocForRange(returnValue->location->rg));
+        sigBuilder = ast::MK::Send1(signature.loc(), move(sigBuilder), core::Names::returns(), signature.loc(),
+                                    move(returnType));
     }
 
     auto sigArgs = ast::Send::ARGS_store();
-    sigArgs.emplace_back(ast::MK::Constant(methodTypeLoc, core::Symbols::T_Sig_WithoutRuntime()));
+    sigArgs.emplace_back(ast::MK::Constant(signature.loc(), core::Symbols::T_Sig_WithoutRuntime()));
 
     bool isFinal = absl::c_any_of(annotations, [](const Comment &annotation) { return annotation.string == "final"; });
 
     if (isFinal) {
-        sigArgs.emplace_back(ast::MK::Symbol(methodTypeLoc, core::Names::final_()));
+        sigArgs.emplace_back(ast::MK::Symbol(signature.loc(), core::Names::final_()));
     }
 
-    auto sig = ast::MK::Send(methodTypeLoc, ast::MK::Constant(methodTypeLoc, core::Symbols::Sorbet_Private_Static()),
-                             core::Names::sig(), methodTypeLoc, sigArgs.size(), move(sigArgs));
+    auto sig =
+        ast::MK::Send(signature.loc(), ast::MK::Constant(signature.loc(), core::Symbols::Sorbet_Private_Static()),
+                      core::Names::sig(), signature.loc(), sigArgs.size(), move(sigArgs));
 
     auto sigSend = ast::cast_tree<ast::Send>(sig);
-    sigSend->setBlock(ast::MK::Block0(methodTypeLoc, move(sigBuilder)));
+    sigSend->setBlock(ast::MK::Block0(signature.loc(), move(sigBuilder)));
     sigSend->flags.isRewriterSynthesized = true;
 
     return sig;
 }
 
 ast::ExpressionPtr MethodTypeTranslator::attrSignature(const ast::Send *send, rbs_node_t *type,
-                                                       const core::LocOffsets typeLoc,
-                                                       const vector<Comment> &annotations) {
+                                                       const Signature &signature, const vector<Comment> &annotations) {
     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
-    auto sigBuilder = ast::MK::Self(typeLoc.copyWithZeroLength());
+    auto sigBuilder = ast::MK::Self(signature.loc());
     sigBuilder = handleAnnotations(std::move(sigBuilder), annotations);
 
     if (send->numPosArgs() == 0) {
@@ -282,7 +282,7 @@ ast::ExpressionPtr MethodTypeTranslator::attrSignature(const ast::Send *send, rb
     }
 
     auto typeTranslator = TypeTranslator(ctx, typeParams, parser);
-    auto returnType = typeTranslator.toExpressionPtr(type, typeLoc);
+    auto returnType = typeTranslator.toExpressionPtr(type, signature.loc());
 
     if (send->fun == core::Names::attrWriter()) {
         if (send->numPosArgs() > 1) {
@@ -298,16 +298,18 @@ ast::ExpressionPtr MethodTypeTranslator::attrSignature(const ast::Send *send, rb
         ast::Send::ARGS_store sigArgs;
         sigArgs.emplace_back(ast::MK::Symbol(name.second, name.first));
         sigArgs.emplace_back(returnType.deepCopy());
-        sigBuilder = ast::MK::Send(typeLoc, move(sigBuilder), core::Names::params(), typeLoc, 0, move(sigArgs));
+        sigBuilder =
+            ast::MK::Send(signature.loc(), move(sigBuilder), core::Names::params(), signature.loc(), 0, move(sigArgs));
     }
 
-    sigBuilder = ast::MK::Send1(typeLoc, move(sigBuilder), core::Names::returns(), typeLoc, move(returnType));
+    sigBuilder =
+        ast::MK::Send1(signature.loc(), move(sigBuilder), core::Names::returns(), signature.loc(), move(returnType));
 
-    auto sig =
-        ast::MK::Send1(typeLoc, ast::MK::Constant(typeLoc, core::Symbols::Sorbet_Private_Static()), core::Names::sig(),
-                       typeLoc, ast::MK::Constant(typeLoc, core::Symbols::T_Sig_WithoutRuntime()));
+    auto sig = ast::MK::Send1(
+        signature.loc(), ast::MK::Constant(signature.loc(), core::Symbols::Sorbet_Private_Static()), core::Names::sig(),
+        signature.loc(), ast::MK::Constant(signature.loc(), core::Symbols::T_Sig_WithoutRuntime()));
     auto sigSend = ast::cast_tree<ast::Send>(sig);
-    sigSend->setBlock(ast::MK::Block0(typeLoc, move(sigBuilder)));
+    sigSend->setBlock(ast::MK::Block0(signature.loc(), move(sigBuilder)));
     sigSend->flags.isRewriterSynthesized = true;
 
     return sig;

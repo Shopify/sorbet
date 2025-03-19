@@ -16,12 +16,33 @@ namespace sorbet::rbs {
  * RBS type comments are formatted as `#: () -> void` for methods or `#: Integer` for attributes.
  */
 struct Comment {
-    core::LocOffsets loc;    // The location of the comment in the file
-    std::string_view string; // The type string (excluding the `#: ` prefix)
-                             // this is only a view on the string owned by the File.source() data.
+    core::LocOffsets loc; // Full location of the multi-line comment (including #: and #|)
+    std::string string;   // Concatenated single-line signature
 };
 
-core::LocOffsets locFromRange(core::LocOffsets loc, const range &range);
+class Signature {
+public:
+    std::vector<Comment> comments;
+
+    Signature(std::vector<Comment> comments) : comments(comments) {}
+
+    core::LocOffsets loc() const {
+        return {
+            comments.front().loc.beginPos() + 2,
+            comments.back().loc.endPos(),
+        };
+    }
+
+    std::string string() const {
+        std::string result;
+        for (const auto &comment : comments) {
+            result += comment.string.substr(2);
+        }
+        return result;
+    }
+
+    core::LocOffsets mapLocForRange(const range &range) const;
+};
 
 } // namespace sorbet::rbs
 
