@@ -3,6 +3,10 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
     <emptyTree>::<C T>.unsafe(nil)
   end
 
+  def parse_error2<<todo method>>(&<blk>)
+    <emptyTree>::<C T>.unsafe(nil)
+  end
+
   def parse_error4<<todo method>>(p1, p2, &<blk>)
     <emptyTree>
   end
@@ -52,6 +56,14 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   def method4<<todo method>>(&<blk>)
+    <emptyTree>::<C T>.unsafe(nil)
+  end
+
+  ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+    <self>.returns(<emptyTree>::<C String>)
+  end
+
+  def method5<<todo method>>(&<blk>)
     <emptyTree>::<C T>.unsafe(nil)
   end
 
@@ -234,6 +246,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
   <runtime method definition of parse_error1>
 
+  <runtime method definition of parse_error2>
+
   class <emptyTree>::<C ParseError2><<C <todo sym>>> < (::<todo sym>)
     def parse_error2<<todo method>>(p1, p2, &<blk>)
       <emptyTree>
@@ -271,6 +285,10 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   <runtime method definition of method4>
 
   <emptyTree>::<C T>.reveal_type(<self>.method4())
+
+  <runtime method definition of method5>
+
+  <emptyTree>::<C T>.reveal_type(<self>.method5())
 
   <runtime method definition of method5>
 

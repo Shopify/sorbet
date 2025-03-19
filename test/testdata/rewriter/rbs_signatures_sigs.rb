@@ -16,6 +16,12 @@ class P6; end
 #          ^^ error: Failed to parse RBS signature (unexpected token for function parameter name)
 def parse_error1; T.unsafe(nil); end # error: The method `parse_error1` does not have a `sig`
 
+
+#: (P1, P2
+#| -> void
+#  ^^ error: Failed to parse RBS signature (unexpected token for function parameter name)
+def parse_error2; T.unsafe(nil); end # error: The method `parse_error2` does not have a `sig`
+
 class ParseError2
   #: void
   #  ^^^^ error: Failed to parse RBS signature (expected a token `pARROW`)
@@ -63,6 +69,11 @@ T.reveal_type(method3) # error: Revealed type: `String`
 #:      -> String
 def method4; T.unsafe(nil); end
 T.reveal_type(method4) # error: Revealed type: `String`
+
+#: ->
+#| String
+def method5; T.unsafe(nil); end
+T.reveal_type(method5) # error: Revealed type: `String`
 
 # some comment
 #: -> String

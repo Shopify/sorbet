@@ -20,6 +20,8 @@ struct Comment {
     std::string string;   // Concatenated single-line signature
 };
 
+core::LocOffsets locFromRange(core::LocOffsets loc, const range &range);
+
 class Signature {
 public:
     std::vector<Comment> comments;
@@ -40,9 +42,29 @@ public:
         }
         return result;
     }
+
+    core::LocOffsets mapLocForRange(const range &range) const {
+        if (comments.size() == 1) {
+            return locFromRange(loc(), range);
+        }
+
+        unsigned int cursor = 0;
+        for (const auto &comment : comments) {
+            auto commentStartChar = cursor;
+            auto commentEndChar = cursor + comment.loc.endPos() - comment.loc.beginPos() - 2;
+            if (commentStartChar <= range.start.char_pos && commentEndChar >= range.start.char_pos) {
+                auto offset = range.start.char_pos - commentStartChar + 3;
+                return {
+                    comment.loc.beginPos() + offset,
+                    comment.loc.beginPos() + offset + range.end.char_pos - range.start.char_pos,
+                };
+            }
+            cursor += commentEndChar;
+        }
+        return core::LocOffsets::none();
+    }
 };
 
-core::LocOffsets locFromRange(core::LocOffsets loc, const range &range);
 } // namespace sorbet::rbs
 
 #endif // SORBET_RBS_COMMON_H
