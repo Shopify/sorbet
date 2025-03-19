@@ -192,7 +192,7 @@ private:
 
         return rbs::Comment{
             core::LocOffsets{startingLoc + (uint32_t)commentStart + offset, static_cast<uint32_t>(endOfLine)},
-            absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
+            std::string(absl::StripAsciiWhitespace(comment.substr(commentStart + 2)))};
     }
 
     /**

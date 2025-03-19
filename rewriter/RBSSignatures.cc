@@ -114,10 +114,30 @@ class RBSSignaturesWalk {
                 // Account for whitespace before the annotation e.g
                 // #: abc -> "abc"
                 // #:abc -> "abc"
-                int lineSize = line.size();
+                // Or a multi-line annotation e.g
+                // #: abc
+                // #|
+                //
+                // int lineSize = line.size();
+                // int sigEnd = index + lineSize;
+                // int sigStart = index;
+                std::string concatenated(line.substr(2));
+
+                // Look downwards (later lines) for continuation lines starting with "#|"
+                auto forwardIt = all_lines.begin() + 1 + distance(it, all_lines.rend()) -
+                                 1; // convert reverse iterator to forward iterator
+                for (; forwardIt != all_lines.end(); forwardIt++) {
+                    auto continuationLine = *forwardIt;
+                    if (absl::StartsWith(continuationLine, "#|")) {
+                        concatenated += " " + std::string(continuationLine).substr(2);
+                    } else {
+                        break;
+                    }
+                }
+
                 auto rbsSignature = rbs::Comment{
-                    core::LocOffsets{index, index + lineSize},
-                    line.substr(2),
+                    core::LocOffsets{index, (uint32_t)(index + concatenated.size() + 2)},
+                    concatenated,
                 };
                 signatures.emplace_back(rbsSignature);
             }
@@ -127,7 +147,7 @@ class RBSSignaturesWalk {
                 int lineSize = line.size();
                 auto annotation = rbs::Comment{
                     core::LocOffsets{index, index + lineSize},
-                    line.substr(3),
+                    std::string(line.substr(3)),
                 };
                 annotations.emplace_back(annotation);
             }
