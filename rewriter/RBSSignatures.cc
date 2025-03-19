@@ -36,8 +36,6 @@ struct Comments {
     vector<rbs::Comment> signatures;
 };
 
-static uint32_t prevExprLoc = core::INVALID_POS_LOC; // @kaan: opted for explicit static
-
 /**
  * Strip ASCII whitespace from the beginning and end of a string_view, but keep track of
  * how many whitespace characters were removed from the beginning.
@@ -59,9 +57,8 @@ string_view StripAsciiWhitespaceWithCount(string_view str, uint32_t &prefixWhite
 }
 
 class RBSSignaturesWalk {
-    // @kaan: This assumes it's working on a file once, but it's called for every class definition
-    // as a result "prevExprLoc" is null multiple times per file, inefficient.
-    // We could improve it by detecting "root" class and iterating over the nested classes in the RHS ourselves.
+    uint32_t prevExprLoc = core::INVALID_POS_LOC;
+
     Comments findRBSComments(string_view sourceCode, core::LocOffsets loc) {
         vector<rbs::Comment> annotations;
         vector<rbs::Comment> signatures;
@@ -88,13 +85,6 @@ class RBSSignaturesWalk {
 
         // We compute the current position in the source so we know the location of each comment
         uint32_t index = beginIndex;
-
-        // NOTE: This is accidentally quadratic.
-        // Instead of looping over all the lines between here and the start of the file, we should
-        // instead track something like the locs of all the expressions in the ClassDef::rhs, and
-        // only scan over the space between the ClassDef::rhs top level items
-
-        // @kaan: Why were there TODOs?
 
         // Iterate in reverse
         for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
@@ -249,36 +239,59 @@ class RBSSignaturesWalk {
         prevExprLoc = send->loc.endPos();
     }
 
+    void transformRHS(core::MutableContext ctx, ast::ClassDef::RHS_store &newRHS, ast::ClassDef::RHS_store &oldRHS) {
+        for (auto &stat : oldRHS) {
+            // Make a copy of the original stat before we potentially modify it
+            ast::ExpressionPtr statCopy;
+
+            if (auto classDef = ast::cast_tree<ast::ClassDef>(stat)) {
+                // Process nested class definitions by recursively transforming their RHS
+                auto nestedNewRHS = ast::ClassDef::RHS_store();
+                nestedNewRHS.reserve(classDef->rhs.size());
+
+                transformRHS(ctx, nestedNewRHS, classDef->rhs);
+                classDef->rhs = move(nestedNewRHS);
+                prevExprLoc = classDef->loc.endPos();
+
+                statCopy = move(stat);
+            } else if (auto methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
+                transformMethodDef(ctx, newRHS, methodDef);
+                statCopy = move(stat);
+            } else if (auto send = ast::cast_tree<ast::Send>(stat)) {
+                if (isAccessor(send)) {
+                    transformAccessor(ctx, newRHS, send);
+                    statCopy = move(stat);
+                } else if (auto methodDef = asVisibilityWrappedMethod(send)) {
+                    transformMethodDef(ctx, newRHS, methodDef);
+                    statCopy = move(stat);
+                }
+            }
+
+            if (statCopy == nullptr) {
+                statCopy = move(stat);
+            }
+
+            newRHS.emplace_back(move(statCopy));
+        }
+    }
+
 public:
     RBSSignaturesWalk(core::MutableContext ctx) {}
 
     void preTransformClassDef(core::MutableContext ctx, ast::ExpressionPtr &tree) {
         auto &classDef = ast::cast_tree_nonnull<ast::ClassDef>(tree);
 
+        // Root classes iterate over their nested classes
+        if (classDef.symbol != core::Symbols::root()) {
+            return;
+        }
+
+        prevExprLoc = core::INVALID_POS_LOC;
+
         auto newRHS = ast::ClassDef::RHS_store();
         newRHS.reserve(classDef.rhs.size());
 
-        if (classDef.symbol == core::Symbols::root()) { // Reset for next file
-            prevExprLoc = core::INVALID_POS_LOC;
-        } else { // Don't go outside of the class def (above), no need
-            prevExprLoc = classDef.loc.beginPos();
-        }
-
-        // fmt::print("prevExprLoc: {}\n", prevExprLoc);
-
-        for (auto &stat : classDef.rhs) {
-            if (auto methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
-                transformMethodDef(ctx, newRHS, methodDef);
-            } else if (auto send = ast::cast_tree<ast::Send>(stat)) {
-                if (isAccessor(send)) {
-                    transformAccessor(ctx, newRHS, send);
-                } else if (auto methodDef = asVisibilityWrappedMethod(send)) {
-                    transformMethodDef(ctx, newRHS, methodDef);
-                }
-            }
-
-            newRHS.emplace_back(move(stat));
-        }
+        transformRHS(ctx, newRHS, classDef.rhs);
 
         classDef.rhs = move(newRHS);
     }
