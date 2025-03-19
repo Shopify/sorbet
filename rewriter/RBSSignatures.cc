@@ -30,13 +30,13 @@ struct Comments {
      *
      * Signatures are formatted as `#: () -> void`.
      */
-    vector<rbs::Comment> signatures;
+    vector<rbs::Signature> signatures;
 };
 
 class RBSSignaturesWalk {
     Comments findRBSComments(string_view sourceCode, core::LocOffsets loc) {
         vector<rbs::Comment> annotations;
-        vector<rbs::Comment> signatures;
+        vector<rbs::Signature> signatures;
 
         uint32_t beginIndex = loc.beginPos();
 
@@ -121,24 +121,31 @@ class RBSSignaturesWalk {
                 // int lineSize = line.size();
                 // int sigEnd = index + lineSize;
                 // int sigStart = index;
-                std::string concatenated(line.substr(2));
+                auto comments = vector<rbs::Comment>();
+
+                auto firstComment = rbs::Comment{
+                    core::LocOffsets{index, (uint32_t)(index + line.size())},
+                    std::string(line.substr(2)),
+                };
+                comments.emplace_back(firstComment);
 
                 // Look downwards (later lines) for continuation lines starting with "#|"
                 auto forwardIt = all_lines.begin() + 1 + distance(it, all_lines.rend()) -
                                  1; // convert reverse iterator to forward iterator
                 for (; forwardIt != all_lines.end(); forwardIt++) {
                     auto continuationLine = *forwardIt;
+                    index += continuationLine.size();
                     if (absl::StartsWith(continuationLine, "#|")) {
-                        concatenated += " " + std::string(continuationLine).substr(2);
+                        comments.emplace_back(rbs::Comment{
+                            core::LocOffsets{index, (uint32_t)(index + continuationLine.size())},
+                            std::string(continuationLine.substr(2)),
+                        });
                     } else {
                         break;
                     }
                 }
 
-                auto rbsSignature = rbs::Comment{
-                    core::LocOffsets{index, (uint32_t)(index + concatenated.size() + 2)},
-                    concatenated,
-                };
+                auto rbsSignature = rbs::Signature{comments};
                 signatures.emplace_back(rbsSignature);
             }
 

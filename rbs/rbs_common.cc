@@ -8,5 +8,4 @@ core::LocOffsets locFromRange(core::LocOffsets loc, const range &range) {
         loc.beginPos() + range.end.char_pos + 2,
     };
 }
-
 } // namespace sorbet::rbs

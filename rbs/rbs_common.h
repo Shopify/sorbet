@@ -20,8 +20,29 @@ struct Comment {
     std::string string;   // Concatenated single-line signature
 };
 
-core::LocOffsets locFromRange(core::LocOffsets loc, const range &range);
+class Signature {
+public:
+    std::vector<Comment> comments;
 
+    Signature(std::vector<Comment> comments) : comments(comments) {}
+
+    core::LocOffsets loc() const {
+        return {
+            comments.front().loc.beginPos(),
+            comments.back().loc.endPos(),
+        };
+    }
+
+    std::string string() const {
+        std::string result;
+        for (const auto &comment : comments) {
+            result += comment.string;
+        }
+        return result;
+    }
+};
+
+core::LocOffsets locFromRange(core::LocOffsets loc, const range &range);
 } // namespace sorbet::rbs
 
 #endif // SORBET_RBS_COMMON_H

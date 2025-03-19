@@ -15,9 +15,9 @@ public:
     ast::ExpressionPtr translateAssertionType(std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams,
                                               const rbs::Comment &assertion);
 
-    ast::ExpressionPtr translateType(const ast::Send *send, const rbs::Comment &signature,
+    ast::ExpressionPtr translateType(const ast::Send *send, const rbs::Signature &signature,
                                      const std::vector<Comment> &annotations);
-    ast::ExpressionPtr translateSignature(const ast::MethodDef *methodDef, const rbs::Comment &signature,
+    ast::ExpressionPtr translateSignature(const ast::MethodDef *methodDef, const rbs::Signature &signature,
                                           const std::vector<Comment> &annotations);
 
 private:
