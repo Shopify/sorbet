@@ -22,6 +22,18 @@
                     "ignoreFailures": false
                 }
             ]
-        }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Sorbet pipeline in LLDB",
+            "program": "${workspaceFolder}/bazel-bin/main/sorbet",
+            "args": ["--enable-experimental-rbs-signatures", "test.rb"],
+            "preLaunchTask": "Build",
+            "stopOnEntry": false,
+            "sourceMap": {
+                "": "${workspaceFolder}",
+            },
+        },
     ]
 }
