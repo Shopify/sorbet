@@ -18,7 +18,7 @@ namespace sorbet::rewriter {
 namespace {
 
 /**
- * A collection of annotations and signatures comments found on a method definition.
+ * A collection of annotation and signature comments found on a method definition.
  */
 struct Comments {
     /**
@@ -36,18 +36,55 @@ struct Comments {
     vector<rbs::Comment> signatures;
 };
 
+static uint32_t prevExprLoc = core::INVALID_POS_LOC; // @kaan: opted for explicit static
+
+/**
+ * Strip ASCII whitespace from the beginning and end of a string_view, but keep track of
+ * how many whitespace characters were removed from the beginning.
+ */
+string_view StripAsciiWhitespaceWithCount(string_view str, uint32_t &prefixWhitespaceCount) {
+    prefixWhitespaceCount = 0;
+    size_t start = 0;
+    while (start < str.size() && absl::ascii_isspace(str[start])) {
+        ++start;
+        ++prefixWhitespaceCount;
+    }
+
+    size_t end = str.size();
+    while (end > start && absl::ascii_isspace(str[end - 1])) {
+        --end;
+    }
+
+    return str.substr(start, end - start);
+}
+
 class RBSSignaturesWalk {
+    // @kaan: This assumes it's working on a file once, but it's called for every class definition
+    // as a result "prevExprLoc" is null multiple times per file, inefficient.
+    // We could improve it by detecting "root" class and iterating over the nested classes in the RHS ourselves.
     Comments findRBSComments(string_view sourceCode, core::LocOffsets loc) {
         vector<rbs::Comment> annotations;
         vector<rbs::Comment> signatures;
 
         uint32_t beginIndex = loc.beginPos();
+        uint32_t endIndex = prevExprLoc;
+        if (prevExprLoc == core::INVALID_POS_LOC) {
+            endIndex = 0;
+        }
 
-        // Everything in the file before the method definition
-        string_view preDefinition = sourceCode.substr(0, sourceCode.rfind('\n', beginIndex));
+        if (beginIndex == endIndex) {
+            return Comments{annotations, signatures};
+        }
+
+        // We iterate in reverse, so beginIndex > endIndex
+        ENFORCE(beginIndex > endIndex);
+
+        // Section we're interested in
+        string_view preDefinition = sourceCode.substr(endIndex, beginIndex - endIndex);
 
         // Get all the lines before it
         vector<string_view> all_lines = absl::StrSplit(preDefinition, '\n');
+        // fmt::print("all_lines: {}\n", all_lines);
 
         // We compute the current position in the source so we know the location of each comment
         uint32_t index = beginIndex;
@@ -57,92 +94,69 @@ class RBSSignaturesWalk {
         // instead track something like the locs of all the expressions in the ClassDef::rhs, and
         // only scan over the space between the ClassDef::rhs top level items
 
-        // Iterate from the last line, to the first line
-        for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
-            index -= it->size();
-            index -= 1;
+        // @kaan: Why were there TODOs?
 
-            string_view line = absl::StripAsciiWhitespace(*it);
+        // Iterate in reverse
+        for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
+            // fmt::print("LOOP index: {}, endIndex: {}\n", index, endIndex);
+            // fmt::print("it->size(): {}\n", it->size());
+            // fmt::print("*it:{}\n", *it);
+            if (it->size() == 0) {
+                index -= 1;
+                continue;
+            } else {
+                index -= it->size();
+            }
+
+            uint32_t leadingWhitespaceCount = 0;
+            string_view line = StripAsciiWhitespaceWithCount(*it, leadingWhitespaceCount);
+            // fmt::print("leadingWhitespaceCount: {}\n", leadingWhitespaceCount);
+            // fmt::print("line:{}\n", line);
 
             // Short circuit when line is empty
             if (line.empty()) {
-                break;
+                // fmt::print("empty line\n");
+                index -= 1;
             }
 
-            // Handle single-line sig block
-            else if (absl::StartsWith(line, "sig")) {
-                // Do nothing for a one-line sig block
-                // TODO: Handle single-line sig blocks
-            }
-
-            // Handle multi-line sig block
-            else if (absl::StartsWith(line, "end")) {
-                // ASSUMPTION: We either hit the start of file, a `sig do`/`sig(:final) do` or an `end`
-                // TODO: Handle multi-line sig blocks
-                it++;
-                while (
-                    // SOF
-                    it != all_lines.rend()
-                    // Start of sig block
-                    && !(absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig do") ||
-                         absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig(:final) do"))
-                    // Invalid end keyword
-                    && !absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
-                    it++;
-                };
-
-                // We have either
-                // 1) Reached the start of the file
-                // 2) Found a `sig do`
-                // 3) Found an invalid end keyword
-                if (it == all_lines.rend() || absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
-                    break;
-                }
-
-                // Reached a sig block.
-                line = absl::StripAsciiWhitespace(*it);
-                ENFORCE(absl::StartsWith(line, "sig do") || absl::StartsWith(line, "sig(:final) do"));
-
-                // Stop looking if this is a single-line block e.g `sig do; <block>; end`
-                if ((absl::StartsWith(line, "sig do;") || absl::StartsWith(line, "sig(:final) do;")) &&
-                    absl::EndsWith(line, "end")) {
-                    break;
-                }
-
-                // Else, this is a valid sig block. Move on to any possible documentation.
-            }
-
-            // Handle a RBS sig annotation `#: SomeRBS`
+            // Handle an RBS sig annotation `#: SomeRBS`
             else if (absl::StartsWith(line, "#:")) {
                 // Account for whitespace before the annotation e.g
                 // #: abc -> "abc"
                 // #:abc -> "abc"
+                // fmt::print("encountered rbs signature\n");
                 int lineSize = line.size();
+                // fmt::print("index + leadingWhitespaceCount: {}, index + leadingWhitespaceCount + lineSize: {}\n",
+                //            index + leadingWhitespaceCount, index + leadingWhitespaceCount + lineSize);
                 auto rbsSignature = rbs::Comment{
-                    core::LocOffsets{index, index + lineSize},
+                    core::LocOffsets{index + leadingWhitespaceCount, index + leadingWhitespaceCount + lineSize},
                     line.substr(2),
                 };
                 signatures.emplace_back(rbsSignature);
+                index -= 1;
             }
 
             // Handle RDoc annotations `# @abstract`
             else if (absl::StartsWith(line, "# @")) {
                 int lineSize = line.size();
                 auto annotation = rbs::Comment{
-                    core::LocOffsets{index, index + lineSize},
+                    core::LocOffsets{index + leadingWhitespaceCount, index + leadingWhitespaceCount + lineSize},
                     line.substr(3),
                 };
+                // fmt::print("encountered rdoc annotation\n");
                 annotations.emplace_back(annotation);
+                index -= 1;
             }
 
             // Ignore other comments
             else if (absl::StartsWith(line, "#")) {
-                continue;
+                // fmt::print("encountered other comment\n");
+                index -= 1;
             }
 
-            // No other cases applied to this line, so stop looking.
+            // Not interested in this line, e.g `class Foo`
             else {
-                break;
+                index -= 1;
             }
         }
 
@@ -204,6 +218,7 @@ class RBSSignaturesWalk {
                 }
             }
         }
+        prevExprLoc = methodDef->loc.endPos();
     }
 
     void transformAccessor(core::MutableContext ctx, ast::ClassDef::RHS_store &newRHS, ast::Send *send) {
@@ -231,6 +246,7 @@ class RBSSignaturesWalk {
                 }
             }
         }
+        prevExprLoc = send->loc.endPos();
     }
 
 public:
@@ -241,6 +257,14 @@ public:
 
         auto newRHS = ast::ClassDef::RHS_store();
         newRHS.reserve(classDef.rhs.size());
+
+        if (classDef.symbol == core::Symbols::root()) { // Reset for next file
+            prevExprLoc = core::INVALID_POS_LOC;
+        } else { // Don't go outside of the class def (above), no need
+            prevExprLoc = classDef.loc.beginPos();
+        }
+
+        // fmt::print("prevExprLoc: {}\n", prevExprLoc);
 
         for (auto &stat : classDef.rhs) {
             if (auto methodDef = ast::cast_tree<ast::MethodDef>(stat)) {
