@@ -298,6 +298,9 @@ ast::ExpressionPtr desugarOne(const options::Options &opts, core::GlobalState &g
             return ast::MK::EmptyTree();
         }
         auto parseTree = runParser(gs, file, print, opts.traceLexer, opts.traceParser);
+
+        parseTree = runRBSRewrite(gs, file, move(parseTree), print);
+
         return runDesugar(gs, file, move(parseTree), print, preserveConcreteSyntax);
     } catch (SorbetException &) {
         Exception::failInFuzzer();

@@ -46,9 +46,9 @@ public:
 
         auto isClass = classDef->kind == ast::ClassDef::Kind::Class;
 
-        if (ctx.state.rbsAssertionsEnabled) {
-            RBSAssertions::run(ctx, classDef);
-        }
+        // if (ctx.state.rbsAssertionsEnabled) {
+        //     RBSAssertions::run(ctx, classDef);
+        // }
 
         Command::run(ctx, classDef);
         Rails::run(ctx, classDef);
