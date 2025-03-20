@@ -127,8 +127,8 @@ bool isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc, const uniqu
     return result;
 }
 
-optional<rbs::Comment> findRBSComments(core::MutableContext ctx, unique_ptr<parser::Node> &node,
-                                       core::LocOffsets fromLoc) {
+optional<rbs::Comment> findRBSTrailingComment(core::MutableContext ctx, unique_ptr<parser::Node> &node,
+                                              core::LocOffsets fromLoc) {
     // std::cerr << "Finding RBS comments for node: " << node->toString(ctx) << std::endl;
 
     auto source = ctx.file.data(ctx).source();
@@ -187,7 +187,7 @@ optional<rbs::Comment> findRBSComments(core::MutableContext ctx, unique_ptr<pars
  */
 unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node,
                                              core::LocOffsets fromLoc) {
-    auto assertion = findRBSComments(ctx, node, fromLoc);
+    auto assertion = findRBSTrailingComment(ctx, node, fromLoc);
 
     if (!assertion) {
         return nullptr;
