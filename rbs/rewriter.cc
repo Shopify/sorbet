@@ -290,7 +290,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             csend->args = rewriteNodes(ctx, move(csend->args));
             result = move(node);
         },
-        //[&](parser::Self *self) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::Self *self) { result = move(node); },
         //[&](parser::DSymbol *dsymbol) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::FileLiteral *fileLiteral) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
         //},
