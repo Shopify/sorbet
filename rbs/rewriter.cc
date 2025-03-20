@@ -2,6 +2,7 @@
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
+#include "absl/strings/str_split.h"
 #include "common/typecase.h"
 #include "core/errors/rewriter.h"
 #include "parser/Builder.h"
@@ -10,6 +11,7 @@
 #include "parser/parser/include/ruby_parser/builder.hh"
 #include "parser/parser/include/ruby_parser/driver.hh"
 #include "parser/parser/include/ruby_parser/token.hh"
+#include "rbs/MethodTypeTranslator.h"
 #include "rbs/RBSParser.h"
 #include "rbs/TypeTranslator.h"
 #include "rbs/rbs_common.h"
@@ -20,6 +22,170 @@ using namespace std;
 namespace sorbet::rbs {
 
 namespace {
+
+/**
+ * A collection of annotations and signatures comments found on a method definition.
+ */
+struct Comments {
+    /**
+     * RBS annotation comments found on a method definition.
+     *
+     * Annotations are formatted as `@some_annotation`.
+     */
+    vector<rbs::Comment> annotations;
+
+    /**
+     * RBS signature comments found on a method definition.
+     *
+     * Signatures are formatted as `#: () -> void`.
+     */
+    vector<rbs::Comment> signatures;
+};
+
+Comments findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) {
+    vector<rbs::Comment> annotations;
+    vector<rbs::Comment> signatures;
+
+    uint32_t beginIndex = loc.beginPos();
+
+    // Everything in the file before the method definition
+    string_view preDefinition = sourceCode.substr(0, sourceCode.rfind('\n', beginIndex));
+
+    // Get all the lines before it
+    vector<string_view> all_lines = absl::StrSplit(preDefinition, '\n');
+
+    // We compute the current position in the source so we know the location of each comment
+    uint32_t index = beginIndex;
+
+    // NOTE: This is accidentally quadratic.
+    // Instead of looping over all the lines between here and the start of the file, we should
+    // instead track something like the locs of all the expressions in the ClassDef::rhs, and
+    // only scan over the space between the ClassDef::rhs top level items
+
+    // Iterate from the last line, to the first line
+    for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
+        index -= it->size();
+        index -= 1;
+
+        string_view line = absl::StripAsciiWhitespace(*it);
+
+        // Short circuit when line is empty
+        if (line.empty()) {
+            break;
+        }
+
+        // Handle single-line sig block
+        else if (absl::StartsWith(line, "sig")) {
+            // Do nothing for a one-line sig block
+            // TODO: Handle single-line sig blocks
+        }
+
+        // Handle multi-line sig block
+        else if (absl::StartsWith(line, "end")) {
+            // ASSUMPTION: We either hit the start of file, a `sig do`/`sig(:final) do` or an `end`
+            // TODO: Handle multi-line sig blocks
+            it++;
+            while (
+                // SOF
+                it != all_lines.rend()
+                // Start of sig block
+                && !(absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig do") ||
+                     absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig(:final) do"))
+                // Invalid end keyword
+                && !absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
+                it++;
+            };
+
+            // We have either
+            // 1) Reached the start of the file
+            // 2) Found a `sig do`
+            // 3) Found an invalid end keyword
+            if (it == all_lines.rend() || absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
+                break;
+            }
+
+            // Reached a sig block.
+            line = absl::StripAsciiWhitespace(*it);
+            ENFORCE(absl::StartsWith(line, "sig do") || absl::StartsWith(line, "sig(:final) do"));
+
+            // Stop looking if this is a single-line block e.g `sig do; <block>; end`
+            if ((absl::StartsWith(line, "sig do;") || absl::StartsWith(line, "sig(:final) do;")) &&
+                absl::EndsWith(line, "end")) {
+                break;
+            }
+
+            // Else, this is a valid sig block. Move on to any possible documentation.
+        }
+
+        // Handle a RBS sig annotation `#: SomeRBS`
+        else if (absl::StartsWith(line, "#:")) {
+            // Account for whitespace before the annotation e.g
+            // #: abc -> "abc"
+            // #:abc -> "abc"
+            int lineSize = line.size();
+            auto rbsSignature = rbs::Comment{
+                core::LocOffsets{index, index + lineSize},
+                line.substr(2),
+            };
+            signatures.emplace_back(rbsSignature);
+        }
+
+        // Handle RDoc annotations `# @abstract`
+        else if (absl::StartsWith(line, "# @")) {
+            int lineSize = line.size();
+            auto annotation = rbs::Comment{
+                core::LocOffsets{index, index + lineSize},
+                line.substr(3),
+            };
+            annotations.emplace_back(annotation);
+        }
+
+        // Ignore other comments
+        else if (absl::StartsWith(line, "#")) {
+            continue;
+        }
+
+        // No other cases applied to this line, so stop looking.
+        else {
+            break;
+        }
+    }
+
+    reverse(annotations.begin(), annotations.end());
+    reverse(signatures.begin(), signatures.end());
+
+    return Comments{annotations, signatures};
+}
+
+unique_ptr<parser::NodeVec> getRBSSignatures(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
+    auto methodComments = findRBSSignatureComments(ctx.file.data(ctx).source(), node->loc);
+
+    if (methodComments.signatures.empty()) {
+        return nullptr;
+    }
+
+    auto signatures = make_unique<parser::NodeVec>();
+
+    for (auto &signature : methodComments.signatures) {
+        auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
+        if (rbsMethodType.first) {
+            unique_ptr<parser::Node> sig;
+            if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
+                sig = rbs::MethodTypeTranslator::methodSignatureNode(ctx, node.get(), move(rbsMethodType.first.value()),
+                                                                     methodComments.annotations);
+            } else {
+                Exception::raise("Unimplemented node type: {}", node->nodeName());
+            }
+            signatures->emplace_back(move(sig));
+        } else {
+            ENFORCE(rbsMethodType.second);
+            if (auto e = ctx.beginError(rbsMethodType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+                e.setHeader("Failed to parse RBS signature ({})", rbsMethodType.second->message);
+            }
+        }
+    }
+    return signatures;
+}
 
 /**
  * Check if the given range contains a heredoc marker `<<-` or `<<~`
@@ -207,11 +373,76 @@ unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_pt
 }
 
 parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
-    for (auto &node : nodes) {
-        node = rewriteNode(ctx, move(node));
+    std::cerr << "Rewriting nodes" << std::endl;
+
+    auto oldStmts = move(nodes);
+    auto newStmts = parser::NodeVec();
+
+    for (auto &node : oldStmts) {
+        newStmts.emplace_back(rewriteNode(ctx, move(node)));
     }
 
-    return nodes;
+    return newStmts;
+}
+
+unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+    std::cerr << "Rewriting begin" << std::endl;
+
+    auto begin = parser::cast_node<parser::Begin>(node.get());
+    auto oldStmts = move(begin->stmts);
+    auto newStmts = parser::NodeVec();
+
+    for (auto &stmt : oldStmts) {
+        if (auto def = parser::cast_node<parser::DefMethod>(stmt.get())) {
+            if (auto comments = getRBSSignatures(ctx, stmt)) {
+                for (auto &signature : *comments) {
+                    newStmts.emplace_back(move(signature));
+                }
+            }
+        } else if (auto def = parser::cast_node<parser::DefS>(stmt.get())) {
+            if (auto comments = getRBSSignatures(ctx, stmt)) {
+                for (auto &signature : *comments) {
+                    newStmts.emplace_back(move(signature));
+                }
+            }
+        }
+
+        newStmts.emplace_back(rewriteNode(ctx, move(stmt)));
+    }
+
+    begin->stmts = move(newStmts);
+    return node;
+}
+
+unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+    std::cerr << "Rewriting body" << std::endl;
+    if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
+        return rewriteBegin(ctx, move(node));
+    } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
+        if (auto comments = getRBSSignatures(ctx, node)) {
+            auto newStmts = parser::NodeVec();
+            for (auto &signature : *comments) {
+                newStmts.emplace_back(move(signature));
+            }
+            newStmts.emplace_back(rewriteNode(ctx, move(node)));
+            return make_unique<parser::Begin>(def->loc, move(newStmts));
+        }
+    } else if (auto def = parser::cast_node<parser::DefS>(node.get())) {
+        std::cerr << "Rewriting defs" << std::endl;
+        if (auto comments = getRBSSignatures(ctx, node)) {
+            std::cerr << "Got comments: " << comments->size() << std::endl;
+            auto newStmts = parser::NodeVec();
+            for (auto &signature : *comments) {
+                std::cerr << "Adding signature: " << std::endl;
+                newStmts.emplace_back(move(signature));
+            }
+            std::cerr << "Adding node: " << std::endl;
+            newStmts.emplace_back(rewriteNode(ctx, move(node)));
+            return make_unique<parser::Begin>(def->loc, move(newStmts));
+        }
+    }
+
+    return rewriteNode(ctx, move(node));
 }
 
 }; // namespace
@@ -238,10 +469,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             block->body = rewriteNode(ctx, move(block->body));
             result = move(node);
         },
-        [&](parser::Begin *begin) {
-            begin->stmts = rewriteNodes(ctx, move(begin->stmts));
-            result = move(node);
-        },
+        [&](parser::Begin *begin) { result = rewriteBegin(ctx, move(node)); },
         [&](parser::Assign *asgn) {
             if (auto rbsType = getRBSAssertionType(ctx, asgn->rhs, asgn->lhs->loc)) {
                 auto rhs = rewriteNode(ctx, move(asgn->rhs));
@@ -298,11 +526,12 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         //[&](parser::Cbase *cbase) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Kwbegin *kwbegin) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::Module *module) {
-            module->body = rewriteNode(ctx, move(module->body));
+            module->body = rewriteBody(ctx, move(module->body));
             result = move(node);
         },
         [&](parser::Class *klass) {
-            klass->body = rewriteNode(ctx, move(klass->body));
+            std::cerr << "Rewriting class: " << std::endl;
+            klass->body = rewriteBody(ctx, move(klass->body));
             result = move(node);
         },
         // [&](parser::Args *args) {
@@ -324,7 +553,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             result = move(node);
         },
         [&](parser::SClass *sclass) {
-            sclass->body = rewriteNode(ctx, move(sclass->body));
+            sclass->body = rewriteBody(ctx, move(sclass->body));
             result = move(node);
         },
         //[&](parser::NumBlock *block) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },

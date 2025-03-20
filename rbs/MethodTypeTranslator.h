@@ -2,6 +2,7 @@
 #define RBS_METHOD_TYPE_TRANSLATOR_H
 
 #include "ast/ast.h"
+#include "parser/parser.h"
 #include "rbs/rbs_common.h"
 
 namespace sorbet::rbs {
@@ -15,6 +16,15 @@ public:
      */
     static ast::ExpressionPtr methodSignature(core::MutableContext ctx, const ast::MethodDef *methodDef,
                                               const MethodType type, const std::vector<Comment> &annotations);
+
+    /**
+     * Convert an RBS method signature comment to a Sorbet signature.
+     *
+     * For example the signature comment `#: () -> void` will be translated as `sig { void }`.
+     */
+    static std::unique_ptr<parser::Node> methodSignatureNode(core::MutableContext ctx, parser::Node *def,
+                                                             const MethodType type,
+                                                             const std::vector<Comment> &annotations);
 
     /**
      * Convert an RBS attribute type comment to a Sorbet signature.

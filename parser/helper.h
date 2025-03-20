@@ -27,6 +27,10 @@ public:
         return make_unique<parser::Hash>(loc, kwargs, move(pairs));
     }
 
+    static unique_ptr<parser::Node> Self(core::LocOffsets loc) {
+        return make_unique<parser::Self>(loc);
+    }
+
     static unique_ptr<parser::Node> Send(core::LocOffsets loc, unique_ptr<parser::Node> recv, core::NameRef name,
                                          core::LocOffsets nameLoc, parser::NodeVec args) {
         return make_unique<parser::Send>(loc, move(recv), name, nameLoc, move(args));
@@ -61,6 +65,10 @@ public:
 
     static unique_ptr<parser::Node> Symbol(core::LocOffsets loc, core::NameRef name) {
         return make_unique<parser::Symbol>(loc, name);
+    }
+
+    static unique_ptr<parser::Node> True(core::LocOffsets loc) {
+        return make_unique<parser::True>(loc);
     }
 
     /* T Classes */
@@ -146,15 +154,28 @@ public:
 
     static unique_ptr<parser::Node> TProc(core::LocOffsets loc, unique_ptr<parser::Hash> args,
                                           unique_ptr<parser::Node> ret) {
-        return Send1(loc,
-                     Send1(loc, Send0(loc, T(loc), core::Names::proc(), loc), core::Names::params(), loc, move(args)),
-                     core::Names::returns(), loc, move(ret));
+        auto builder = T(loc);
+        builder = Send0(loc, move(builder), core::Names::proc(), loc);
+        if (args != nullptr && !args->pairs.empty()) {
+            auto argsVec = parser::NodeVec();
+            argsVec.reserve(1);
+            argsVec.push_back(move(args));
+            builder = Send(loc, move(builder), core::Names::params(), loc, move(argsVec));
+        }
+        builder = Send1(loc, move(builder), core::Names::returns(), loc, move(ret));
+        return builder;
     }
 
     static unique_ptr<parser::Node> TProcVoid(core::LocOffsets loc, unique_ptr<parser::Hash> args) {
-        return Send0(loc,
-                     Send1(loc, Send0(loc, T(loc), core::Names::proc(), loc), core::Names::params(), loc, move(args)),
-                     core::Names::void_(), loc);
+        auto builder = T(loc);
+        builder = Send0(loc, move(builder), core::Names::proc(), loc);
+        if (args != nullptr && !args->pairs.empty()) {
+            auto argsVec = parser::NodeVec();
+            argsVec.reserve(1);
+            argsVec.push_back(move(args));
+            builder = Send(loc, move(builder), core::Names::params(), loc, move(argsVec));
+        }
+        return Send0(loc, move(builder), core::Names::void_(), loc);
     }
 
     static unique_ptr<parser::Node> TSelfType(core::LocOffsets loc) {
