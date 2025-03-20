@@ -373,8 +373,6 @@ unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_pt
 }
 
 parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
-    std::cerr << "Rewriting nodes" << std::endl;
-
     auto oldStmts = move(nodes);
     auto newStmts = parser::NodeVec();
 
@@ -386,8 +384,6 @@ parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
 }
 
 unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, unique_ptr<parser::Node> node) {
-    std::cerr << "Rewriting begin" << std::endl;
-
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
     auto newStmts = parser::NodeVec();
@@ -415,7 +411,6 @@ unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, unique_ptr<parse
 }
 
 unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, unique_ptr<parser::Node> node) {
-    std::cerr << "Rewriting body" << std::endl;
     if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(ctx, move(node));
     } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
@@ -428,15 +423,11 @@ unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, unique_ptr<parser
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
     } else if (auto def = parser::cast_node<parser::DefS>(node.get())) {
-        std::cerr << "Rewriting defs" << std::endl;
         if (auto comments = getRBSSignatures(ctx, node)) {
-            std::cerr << "Got comments: " << comments->size() << std::endl;
             auto newStmts = parser::NodeVec();
             for (auto &signature : *comments) {
-                std::cerr << "Adding signature: " << std::endl;
                 newStmts.emplace_back(move(signature));
             }
-            std::cerr << "Adding node: " << std::endl;
             newStmts.emplace_back(rewriteNode(ctx, move(node)));
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
@@ -530,7 +521,6 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             result = move(node);
         },
         [&](parser::Class *klass) {
-            std::cerr << "Rewriting class: " << std::endl;
             klass->body = rewriteBody(ctx, move(klass->body));
             result = move(node);
         },
