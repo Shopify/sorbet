@@ -299,7 +299,9 @@ ast::ExpressionPtr desugarOne(const options::Options &opts, core::GlobalState &g
         }
         auto parseTree = runParser(gs, file, print, opts.traceLexer, opts.traceParser);
 
-        parseTree = runRBSRewrite(gs, file, move(parseTree), print);
+        if (opts.rbsAssertionsEnabled) {
+            parseTree = runRBSRewrite(gs, file, move(parseTree), print);
+        }
 
         return runDesugar(gs, file, move(parseTree), print, preserveConcreteSyntax);
     } catch (SorbetException &) {
@@ -329,9 +331,11 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                 return emptyParsedFile(file);
             }
 
-            parseTree = runRBSRewrite(lgs, file, move(parseTree), print);
-            if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
-                return emptyParsedFile(file);
+            if (opts.rbsAssertionsEnabled) {
+                parseTree = runRBSRewrite(lgs, file, move(parseTree), print);
+                if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
+                    return emptyParsedFile(file);
+                }
             }
 
             tree = runDesugar(lgs, file, move(parseTree), print);

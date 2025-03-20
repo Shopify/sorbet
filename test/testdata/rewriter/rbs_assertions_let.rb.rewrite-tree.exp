@@ -71,7 +71,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
   j = <cast:let>(42, <todo sym>, <emptyTree>::<C Integer>)
 
-  j = <cast:let>(j.+(42), <todo sym>, <emptyTree>::<C String>)
+  j = j.+(<cast:let>(42, <todo sym>, <emptyTree>::<C String>))
 
   <emptyTree>::<C T>.reveal_type(j)
 
@@ -165,8 +165,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
         else
           begin
             @x = <cast:let>(@x, <todo sym>, ::<root>::<C T>.nilable(<emptyTree>::<C Integer>))
-            <statTemp> = 42
-            @x = <statTemp>
+            <statTemp>$2 = 42
+            @x = <statTemp>$2
           end
         end
         <emptyTree>::<C T>.reveal_type(@x)
@@ -184,8 +184,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
         else
           begin
             @y = <cast:let>(@y, <todo sym>, ::<root>::<C T>.nilable(<emptyTree>::<C Integer>))
-            <statTemp> = nil
-            @y = <statTemp>
+            <statTemp>$2 = nil
+            @y = <statTemp>$2
           end
         end
         if @y

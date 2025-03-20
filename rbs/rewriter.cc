@@ -13,6 +13,7 @@
 #include "rbs/RBSParser.h"
 #include "rbs/TypeTranslator.h"
 #include "rbs/rbs_common.h"
+#include <regex>
 
 using namespace std;
 
@@ -20,15 +21,136 @@ namespace sorbet::rbs {
 
 namespace {
 
-// core::LocOffsets tokLoc(const ruby_parser::token *tok) {
-//     return core::LocOffsets(tok->start(), tok->end());
-// }
+/**
+ * Check if the given range contains a heredoc marker `<<-` or `<<~`
+ */
+bool hasHeredocMarker(core::MutableContext ctx, const uint32_t fromPos, const uint32_t toPos) {
+    string source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
+    regex heredoc_pattern("(\\s+=\\s<<-|~)");
+    smatch matches;
+    return regex_search(source, matches, heredoc_pattern);
+}
 
-optional<rbs::Comment> findRBSComments(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
+/**
+ * Check if the given expression is a heredoc
+ */
+bool isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
+    if (node == nullptr) {
+        return false;
+    }
+
+    auto result = false;
+    typecase(
+        node.get(),
+        [&](parser::String *lit) {
+            // For some reason, heredoc strings are parser differently if they contain a single line or more.
+            //
+            // Single line heredocs do not contain the `<<-` or `<<~` markers inside their location.
+            //
+            // For example, this heredoc:
+            //
+            //     <<~MSG
+            //       foo
+            //     MSG
+
+            // has the `<<-` or `<<~` markers **outside** its location.
+            //
+            // While this heredoc:
+            //
+            //     <<~MSG
+            //       foo
+            //     MSG
+            //
+            // has the `<<-` or `<<~` markers **inside** its location.
+
+            auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.beginLoc).line;
+            auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.endLoc).line;
+
+            if (lineEnd - lineStart <= 1) {
+                // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
+                // and the begining of the string.
+                if (hasHeredocMarker(ctx, assignLoc.endPos(), lit->loc.beginPos())) {
+                    result = true;
+                }
+            } else {
+                // Multi-line heredoc, we look for the heredoc marker inside the string itself.
+                if (hasHeredocMarker(ctx, lit->loc.beginPos(), lit->loc.endPos())) {
+                    result = true;
+                }
+            }
+        },
+        [&](parser::DString *lit) {
+            // For some reason, heredoc strings are parser differently if they contain a single line or more.
+            //
+            // Single line heredocs do not contain the `<<-` or `<<~` markers inside their location.
+            //
+            // For example, this heredoc:
+            //
+            //     <<~MSG
+            //       foo
+            //     MSG
+
+            // has the `<<-` or `<<~` markers **outside** its location.
+            //
+            // While this heredoc:
+            //
+            //     <<~MSG
+            //       foo
+            //     MSG
+            //
+            // has the `<<-` or `<<~` markers **inside** its location.
+
+            auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.beginLoc).line;
+            auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.endLoc).line;
+
+            if (lineEnd - lineStart <= 1) {
+                // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
+                // and the begining of the string.
+                if (hasHeredocMarker(ctx, assignLoc.endPos(), lit->loc.beginPos())) {
+                    result = true;
+                }
+            } else {
+                // Multi-line heredoc, we look for the heredoc marker inside the string itself.
+                if (hasHeredocMarker(ctx, lit->loc.beginPos(), lit->loc.endPos())) {
+                    result = true;
+                }
+            }
+        },
+        [&](parser::Send *send) {
+            result = isHeredoc(ctx, assignLoc, send->receiver) ||
+                     absl::c_any_of(send->args, [&](const unique_ptr<parser::Node> &arg) {
+                         return isHeredoc(ctx, assignLoc, arg);
+                     });
+        },
+        [&](parser::Node *expr) { result = false; });
+
+    return result;
+}
+
+optional<rbs::Comment> findRBSComments(core::MutableContext ctx, unique_ptr<parser::Node> &node,
+                                       core::LocOffsets fromLoc) {
+    // std::cerr << "Finding RBS comments for node: " << node->toString(ctx) << std::endl;
+
     auto source = ctx.file.data(ctx).source();
 
     // We want to find the comment right after the end of the assign
     auto startingLoc = node->loc.endPos();
+
+    // On heredocs, adding the comment at the end of the assign won't work because this is invalid Ruby syntax:
+    // ```
+    // <<~MSG
+    //   foo
+    // MSG #: String
+    // ```
+    // We add a special case for heredocs to allow adding the comment at the end of the assign:
+    // ```
+    // <<~MSG #: String
+    //   foo
+    // MSG
+    // ```
+    if (isHeredoc(ctx, fromLoc, node)) {
+        startingLoc = fromLoc.beginPos();
+    }
 
     // Get the position of the end of the line from the startingLoc
     auto endOfLine = source.find('\n', startingLoc);
@@ -63,8 +185,9 @@ optional<rbs::Comment> findRBSComments(core::MutableContext ctx, unique_ptr<pars
 /**
  * Get the RBS type from the given assign
  */
-unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
-    auto assertion = findRBSComments(ctx, node);
+unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node,
+                                             core::LocOffsets fromLoc) {
+    auto assertion = findRBSComments(ctx, node, fromLoc);
 
     if (!assertion) {
         return nullptr;
@@ -120,7 +243,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             result = move(node);
         },
         [&](parser::Assign *asgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, node)) {
+            if (auto rbsType = getRBSAssertionType(ctx, asgn->rhs, asgn->lhs->loc)) {
                 auto rhs = rewriteNode(ctx, move(asgn->rhs));
                 asgn->rhs = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
@@ -139,7 +262,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             result = move(node);
         },
         [&](parser::AndAsgn *andAsgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, node)) {
+            if (auto rbsType = getRBSAssertionType(ctx, andAsgn->right, andAsgn->left->loc)) {
                 auto rhs = rewriteNode(ctx, move(andAsgn->right));
                 andAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
@@ -147,7 +270,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             result = move(node);
         },
         [&](parser::OrAsgn *orAsgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, node)) {
+            if (auto rbsType = getRBSAssertionType(ctx, orAsgn->right, orAsgn->left->loc)) {
                 auto rhs = rewriteNode(ctx, move(orAsgn->right));
                 orAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
@@ -155,7 +278,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
             result = move(node);
         },
         [&](parser::OpAsgn *opAsgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, node)) {
+            if (auto rbsType = getRBSAssertionType(ctx, opAsgn->right, opAsgn->left->loc)) {
                 auto rhs = rewriteNode(ctx, move(opAsgn->right));
                 opAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
@@ -219,8 +342,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         //[&](parser::Super *super) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::ZSuper *zuper) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::For *for_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        [&](parser::Integer *integer) { result = move(node); },
-        //[&](parser::DString *dstring) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::Integer *integer) { result = move(node); }, [&](parser::DString *dstring) { result = move(node); },
         //[&](parser::Float *floatNode) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Complex *complex) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Rational *complex) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
@@ -239,7 +361,7 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         //[&](parser::Ensure *ensure) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::If *if_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::Masgn *masgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, node)) {
+            if (auto rbsType = getRBSAssertionType(ctx, node, masgn->rhs->loc)) {
                 auto rhs = rewriteNode(ctx, move(masgn->rhs));
                 masgn->rhs = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }

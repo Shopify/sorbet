@@ -569,14 +569,35 @@ ClassDef::RHS_store scopeNodeToBody(DesugarContext dctx, unique_ptr<parser::Node
     return body;
 }
 
+bool isT(ExpressionPtr &exp) {
+    auto recv = cast_tree<UnresolvedConstantLit>(exp);
+
+    if (recv == nullptr) {
+        return false;
+    }
+
+    if (recv->cnst != core::Names::Constants::T()) {
+        return false;
+    }
+
+    if (isa_tree<EmptyTree>(recv->scope)) {
+        return true;
+    }
+
+    if (auto root = cast_tree<ConstantLit>(recv->scope)) {
+        return root->symbol() == core::Symbols::root();
+    }
+
+    return false;
+}
+
 Send *asTLet(ExpressionPtr &arg) {
     auto send = cast_tree<Send>(arg);
     if (send == nullptr || send->fun != core::Names::let() || send->numPosArgs() < 2) {
         return nullptr;
     }
 
-    auto recv = cast_tree<UnresolvedConstantLit>(send->recv);
-    if (recv == nullptr || recv->cnst != core::Names::Constants::T() || !isa_tree<EmptyTree>(recv->scope)) {
+    if (!isT(send->recv)) {
         return nullptr;
     }
 
