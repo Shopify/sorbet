@@ -1,11 +1,17 @@
 #include "rbs/rewriter.h"
 
+#include "absl/strings/ascii.h"
 #include "common/typecase.h"
+#include "core/errors/rewriter.h"
 #include "parser/Builder.h"
+#include "parser/helper.h"
 #include "parser/parser.h"
 #include "parser/parser/include/ruby_parser/builder.hh"
 #include "parser/parser/include/ruby_parser/driver.hh"
 #include "parser/parser/include/ruby_parser/token.hh"
+#include "rbs/RBSParser.h"
+#include "rbs/TypeTranslator.h"
+#include "rbs/rbs_common.h"
 
 using namespace std;
 
@@ -16,6 +22,73 @@ namespace {
 // core::LocOffsets tokLoc(const ruby_parser::token *tok) {
 //     return core::LocOffsets(tok->start(), tok->end());
 // }
+
+optional<rbs::Comment> findRBSComments(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
+    auto source = ctx.file.data(ctx).source();
+
+    // We want to find the comment right after the end of the assign
+    auto startingLoc = node->loc.endPos();
+
+    // Get the position of the end of the line from the startingLoc
+    auto endOfLine = source.find('\n', startingLoc);
+    if (endOfLine == string::npos) {
+        return nullopt;
+    }
+
+    // Check between the startingLoc and the end of the line for a `#: ...` comment
+    auto comment = source.substr(startingLoc, endOfLine - startingLoc);
+
+    // Find the position of the `#:` in the comment
+    auto commentStart = comment.find("#:");
+    if (commentStart == string::npos) {
+        return nullopt;
+    }
+
+    // Adjust the location to be the correct position depending on the number of spaces after the `#:`
+    auto offset = 0;
+    for (auto i = startingLoc + commentStart + 2; i < endOfLine; i++) {
+        if (source[i] == ' ') {
+            offset++;
+        } else {
+            break;
+        }
+    }
+
+    return rbs::Comment{
+        core::LocOffsets{startingLoc + (uint32_t)commentStart + offset, static_cast<uint32_t>(endOfLine)},
+        absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
+}
+
+/**
+ * Get the RBS type from the given assign
+ */
+unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
+    auto assertion = findRBSComments(ctx, node);
+
+    if (!assertion) {
+        return nullptr;
+    }
+
+    auto result = rbs::RBSParser::parseType(ctx, *assertion);
+    if (result.second) {
+        if (auto e = ctx.beginError(result.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("Failed to parse RBS type ({})", result.second->message);
+        }
+        return nullptr;
+    }
+
+    auto rbsType = move(result.first.value());
+    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
+    return rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), assertion->loc);
+}
+
+parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
+    for (auto &node : nodes) {
+        node = rewriteNode(ctx, move(node));
+    }
+
+    return nodes;
+}
 
 }; // namespace
 
@@ -35,8 +108,12 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
     typecase(
         node.get(),
         // Nodes are ordered as in desugar
-        [&](parser::Const *const_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        [&](parser::Send *send) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::Const *const_) { result = move(node); },
+        [&](parser::Send *send) {
+            send->receiver = rewriteNode(ctx, move(send->receiver));
+            send->args = rewriteNodes(ctx, move(send->args));
+            result = move(node);
+        },
         [&](parser::String *string) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::Symbol *symbol) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::LVar *var) { result = std::move(node); },
@@ -44,34 +121,20 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         [&](parser::Block *block) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::Begin *begin) {
             std::cerr << "Rewrite begin" << std::endl;
-            std::vector<unique_ptr<parser::Node>> oldStmts;
-            for (auto &stmt : begin->stmts) {
-                oldStmts.push_back(std::move(stmt));
-            }
-
-            begin->stmts.clear();
-            for (auto &stmt : oldStmts) {
-                begin->stmts.push_back(rewriteNode(ctx, move(stmt)));
-            }
+            begin->stmts = rewriteNodes(ctx, move(begin->stmts));
             result = move(node);
         },
         [&](parser::Assign *asgn) {
             std::cerr << "Rewrite assign" << std::endl;
+
             asgn->lhs = rewriteNode(ctx, move(asgn->lhs));
+            asgn->rhs = rewriteNode(ctx, move(asgn->rhs));
 
-            auto cbase = make_unique<parser::Cbase>(asgn->rhs->loc);
-            auto recv = make_unique<parser::Const>(asgn->rhs->loc, move(cbase), core::Names::Constants::T());
-            auto method = core::Names::cast();
-
-            auto args = parser::NodeVec();
-            auto value = rewriteNode(ctx, move(asgn->rhs));
-            args.push_back(move(value));
-            auto type = make_unique<parser::Const>(asgn->lhs->loc, nullptr, core::Names::Constants::String());
-            args.push_back(move(type));
-
-            auto send = make_unique<parser::Send>(asgn->lhs->loc, move(recv), method, asgn->lhs->loc, move(args));
-
-            asgn->rhs = move(send);
+            auto rbsType = getRBSAssertionType(ctx, node);
+            if (rbsType) {
+                std::cerr << "RBS type: found" << std::endl;
+                asgn->rhs = parser::MK::TLet(asgn->rhs->loc, move(asgn->rhs), move(rbsType));
+            }
 
             result = move(node);
         },
