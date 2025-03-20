@@ -3,6 +3,7 @@
 #include "core/GlobalState.h"
 #include "core/errors/internal.h"
 #include "core/errors/rewriter.h"
+#include "parser/helper.h"
 
 using namespace std;
 
@@ -421,6 +422,87 @@ ast::ExpressionPtr TypeTranslator::toExpressionPtr(core::MutableContext ctx,
             }
 
             return ast::MK::Untyped(docLoc);
+        }
+    }
+}
+
+unique_ptr<parser::Node> TypeTranslator::toParserNode(core::MutableContext ctx,
+                                                      const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                                      rbs_node_t *node, core::LocOffsets docLoc) {
+    switch (node->type) {
+        case RBS_TYPES_ALIAS: {
+            auto loc = locFromRange(docLoc, node->location->rg);
+            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS aliases are not supported");
+            }
+            return parser::MK::TUntyped(docLoc);
+        }
+        /*case RBS_TYPES_BASES_ANY:
+            return ast::MK::Untyped(docLoc);
+        case RBS_TYPES_BASES_BOOL:
+            return ast::MK::T_Boolean(docLoc);
+        case RBS_TYPES_BASES_BOTTOM:
+            return ast::MK::NoReturn(docLoc);
+        case RBS_TYPES_BASES_CLASS: {
+            auto loc = locFromRange(docLoc, node->location->rg);
+            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS type `{}` is not supported", "class");
+            }
+            return ast::MK::Untyped(docLoc);
+        }
+        case RBS_TYPES_BASES_INSTANCE:
+            return ast::MK::AttachedClass(docLoc);
+        case RBS_TYPES_BASES_NIL:
+            return ast::MK::UnresolvedConstant(docLoc, ast::MK::EmptyTree(), core::Names::Constants::NilClass());
+        case RBS_TYPES_BASES_SELF:
+            return ast::MK::SelfType(docLoc);
+        case RBS_TYPES_BASES_TOP:
+            return ast::MK::Anything(docLoc);
+        case RBS_TYPES_BASES_VOID:
+            return voidType(ctx, (rbs_types_bases_void_t *)node, docLoc);
+        case RBS_TYPES_BLOCK:
+            return blockType(ctx, typeParams, (rbs_types_block_t *)node, docLoc);
+        case RBS_TYPES_CLASSINSTANCE:
+            return classInstanceType(ctx, typeParams, (rbs_types_classinstance_t *)node, docLoc);
+        case RBS_TYPES_CLASSSINGLETON:
+            return classSingletonType(ctx, typeParams, (rbs_types_classsingleton_t *)node, docLoc);
+        case RBS_TYPES_FUNCTION:
+            return functionType(ctx, typeParams, (rbs_types_function_t *)node, docLoc);
+        case RBS_TYPES_INTERFACE: {
+            auto loc = locFromRange(docLoc, node->location->rg);
+            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS interfaces are not supported");
+            }
+            return ast::MK::Untyped(docLoc);
+        }
+        case RBS_TYPES_INTERSECTION:
+            return intersectionType(ctx, typeParams, (rbs_types_intersection_t *)node, docLoc);
+        case RBS_TYPES_LITERAL: {
+            auto loc = locFromRange(docLoc, node->location->rg);
+            if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS literal types are not supported");
+            }
+            return ast::MK::Untyped(docLoc);
+        }
+        case RBS_TYPES_OPTIONAL:
+            return optionalType(ctx, typeParams, (rbs_types_optional_t *)node, docLoc);
+        case RBS_TYPES_PROC:
+            return procType(ctx, typeParams, (rbs_types_proc_t *)node, docLoc);
+        case RBS_TYPES_RECORD:
+            return recordType(ctx, typeParams, (rbs_types_record_t *)node, docLoc);
+        case RBS_TYPES_TUPLE:
+            return tupleType(ctx, typeParams, (rbs_types_tuple_t *)node, docLoc);
+        case RBS_TYPES_UNION:
+            return unionType(ctx, typeParams, (rbs_types_union_t *)node, docLoc);
+        case RBS_TYPES_VARIABLE:
+            return variableType(ctx, (rbs_types_variable_t *)node, docLoc);*/
+        default: {
+            auto errLoc = locFromRange(docLoc, node->location->rg);
+            if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
+                e.setHeader("Unexpected node type `{}`", rbs_node_type_name(node));
+            }
+
+            return parser::MK::TUntyped(docLoc);
         }
     }
 }

@@ -2,6 +2,7 @@
 #define RBS_TYPE_TRANSLATOR_H
 
 #include "ast/ast.h"
+#include "parser/parser.h"
 #include "rbs/rbs_common.h"
 #include <memory>
 
@@ -19,6 +20,10 @@ public:
     static ast::ExpressionPtr toExpressionPtr(core::MutableContext ctx,
                                               const std::vector<std::pair<core::LocOffsets, core::NameRef>> &typeParams,
                                               rbs_node_t *node, core::LocOffsets loc);
+
+    static std::unique_ptr<parser::Node>
+    toParserNode(core::MutableContext ctx, const std::vector<std::pair<core::LocOffsets, core::NameRef>> &typeParams,
+                 rbs_node_t *node, core::LocOffsets loc);
 };
 
 } // namespace sorbet::rbs
