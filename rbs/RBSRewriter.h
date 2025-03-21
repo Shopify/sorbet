@@ -40,12 +40,13 @@ struct InlineComment {
 class RBSRewriter {
 public:
     RBSRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};
-    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
+    std::unique_ptr<parser::Node> run(std::unique_ptr<parser::Node> tree);
 
 private:
     core::MutableContext ctx;
     parser::Node *lastSignature;
 
+    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
     parser::NodeVec rewriteNodes(parser::NodeVec nodes);

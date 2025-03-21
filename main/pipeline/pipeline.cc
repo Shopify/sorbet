@@ -234,7 +234,7 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     {
         core::UnfreezeNameTable nameTableAccess(gs); // creates temporaries during desugaring
         auto rewriter = rbs::RBSRewriter(ctx);
-        node = rewriter.rewriteNode(move(node));
+        node = rewriter.run(move(node));
     }
     if (print.RBSTree.enabled) {
         print.ParseTree.fmt("{}\n", node->toStringWithTabs(gs, 0));

@@ -225,7 +225,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
             std::cerr << "run rbs rewrite" << std::endl;
             auto rewriter = rbs::RBSRewriter(ctx);
-            nodes = rewriter.rewriteNode(move(nodes));
+            nodes = rewriter.run(move(nodes));
 
             desugared = testSerialize(gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file});
         }
@@ -395,7 +395,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
                 std::cerr << "run rbs rewrite" << std::endl;
                 auto rewriter = rbs::RBSRewriter(ctx);
-                nodes = rewriter.rewriteNode(move(nodes));
+                nodes = rewriter.run(move(nodes));
 
                 auto tree = ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file};
                 tree = ast::ParsedFile{rewriter::Rewriter::run(ctx, move(tree.tree)), tree.file};
@@ -738,7 +738,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
         std::cerr << "run rbs rewrite" << std::endl;
         auto rewriter = rbs::RBSRewriter(ctx);
-        nodes = rewriter.rewriteNode(move(nodes));
+        nodes = rewriter.run(move(nodes));
 
         ast::ParsedFile file = testSerialize(*gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), f.file});
         handler.addObserved(*gs, "desguar-tree", [&]() { return file.tree.toString(*gs); });
