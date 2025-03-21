@@ -44,18 +44,15 @@ public:
 
 private:
     core::MutableContext ctx;
-    parser::NodeVec statements;
 
-    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
+    Comments signaturesForLoc(core::LocOffsets loc);
+    std::unique_ptr<parser::NodeVec> signaturesForNode(std::unique_ptr<parser::Node> &node);
+
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
-    parser::NodeVec rewriteNodes(parser::NodeVec nodes);
-    std::unique_ptr<parser::NodeVec> getRBSSignatures(std::unique_ptr<parser::Node> &node);
-    Comments findRBSSignatureComments(std::string_view sourceCode, core::LocOffsets loc);
+    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
+
     void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
-    std::unique_ptr<parser::Node> wrapInBegin(std::unique_ptr<parser::Node> node, parser::NodeVec &signatures);
-    parser::NodeVec getStatements(parser::Node *node);
-    void maybeInsertSignatures(parser::NodeVec &stmts, std::unique_ptr<parser::Node> node);
 };
 
 } // namespace sorbet::rbs
