@@ -28,19 +28,20 @@ struct Comments {
 
 class RBSRewriter {
 public:
-    std::unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, std::unique_ptr<parser::Node> tree);
+    RBSRewriter(core::MutableContext ctx) : ctx(ctx){};
+    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
 
 private:
-    std::unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, std::unique_ptr<parser::Node> tree);
-    std::unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, std::unique_ptr<parser::Node> tree);
-    parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes);
-    std::unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, std::unique_ptr<parser::Node> &node,
-                                                      core::LocOffsets fromLoc);
-    std::optional<rbs::Comment> findRBSTrailingComment(core::MutableContext ctx, std::unique_ptr<parser::Node> &node,
-                                                       core::LocOffsets fromLoc);
-    bool isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc, const std::unique_ptr<parser::Node> &node);
-    bool hasHeredocMarker(core::MutableContext ctx, const uint32_t fromPos, const uint32_t toPos);
-    std::unique_ptr<parser::NodeVec> getRBSSignatures(core::MutableContext ctx, std::unique_ptr<parser::Node> &node);
+    core::MutableContext ctx;
+
+    std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
+    std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
+    parser::NodeVec rewriteNodes(parser::NodeVec nodes);
+    std::unique_ptr<parser::Node> getRBSAssertionType(std::unique_ptr<parser::Node> &node, core::LocOffsets fromLoc);
+    std::optional<rbs::Comment> findRBSTrailingComment(std::unique_ptr<parser::Node> &node, core::LocOffsets fromLoc);
+    bool isHeredoc(core::LocOffsets assignLoc, const std::unique_ptr<parser::Node> &node);
+    bool hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos);
+    std::unique_ptr<parser::NodeVec> getRBSSignatures(std::unique_ptr<parser::Node> &node);
     Comments findRBSSignatureComments(std::string_view sourceCode, core::LocOffsets loc);
 };
 

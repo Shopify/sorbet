@@ -136,7 +136,7 @@ Comments RBSRewriter::findRBSSignatureComments(string_view sourceCode, core::Loc
     return Comments{annotations, signatures};
 }
 
-unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
+unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Node> &node) {
     auto comments = findRBSSignatureComments(ctx.file.data(ctx).source(), node->loc);
 
     if (comments.signatures.empty()) {
@@ -193,7 +193,7 @@ unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(core::MutableContext c
 /**
  * Check if the given range contains a heredoc marker `<<-` or `<<~`
  */
-bool RBSRewriter::hasHeredocMarker(core::MutableContext ctx, const uint32_t fromPos, const uint32_t toPos) {
+bool RBSRewriter::hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos) {
     string source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
     regex heredoc_pattern("(\\s+=\\s<<-|~)");
     smatch matches;
@@ -203,8 +203,7 @@ bool RBSRewriter::hasHeredocMarker(core::MutableContext ctx, const uint32_t from
 /**
  * Check if the given expression is a heredoc
  */
-bool RBSRewriter::isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc,
-                            const unique_ptr<parser::Node> &node) {
+bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
     if (node == nullptr) {
         return false;
     }
@@ -239,12 +238,12 @@ bool RBSRewriter::isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc
             if (lineEnd - lineStart <= 1) {
                 // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
                 // and the begining of the string.
-                if (hasHeredocMarker(ctx, assignLoc.endPos(), lit->loc.beginPos())) {
+                if (hasHeredocMarker(assignLoc.endPos(), lit->loc.beginPos())) {
                     result = true;
                 }
             } else {
                 // Multi-line heredoc, we look for the heredoc marker inside the string itself.
-                if (hasHeredocMarker(ctx, lit->loc.beginPos(), lit->loc.endPos())) {
+                if (hasHeredocMarker(lit->loc.beginPos(), lit->loc.endPos())) {
                     result = true;
                 }
             }
@@ -276,29 +275,27 @@ bool RBSRewriter::isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc
             if (lineEnd - lineStart <= 1) {
                 // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
                 // and the begining of the string.
-                if (hasHeredocMarker(ctx, assignLoc.endPos(), lit->loc.beginPos())) {
+                if (hasHeredocMarker(assignLoc.endPos(), lit->loc.beginPos())) {
                     result = true;
                 }
             } else {
                 // Multi-line heredoc, we look for the heredoc marker inside the string itself.
-                if (hasHeredocMarker(ctx, lit->loc.beginPos(), lit->loc.endPos())) {
+                if (hasHeredocMarker(lit->loc.beginPos(), lit->loc.endPos())) {
                     result = true;
                 }
             }
         },
         [&](parser::Send *send) {
-            result = isHeredoc(ctx, assignLoc, send->receiver) ||
-                     absl::c_any_of(send->args, [&](const unique_ptr<parser::Node> &arg) {
-                         return isHeredoc(ctx, assignLoc, arg);
-                     });
+            result = isHeredoc(assignLoc, send->receiver) ||
+                     absl::c_any_of(send->args,
+                                    [&](const unique_ptr<parser::Node> &arg) { return isHeredoc(assignLoc, arg); });
         },
         [&](parser::Node *expr) { result = false; });
 
     return result;
 }
 
-optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(core::MutableContext ctx, unique_ptr<parser::Node> &node,
-                                                           core::LocOffsets fromLoc) {
+optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
     // std::cerr << "Finding RBS comments for node: " << node->toString(ctx) << std::endl;
 
     auto source = ctx.file.data(ctx).source();
@@ -318,7 +315,7 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(core::MutableContext 
     //   foo
     // MSG
     // ```
-    if (isHeredoc(ctx, fromLoc, node)) {
+    if (isHeredoc(fromLoc, node)) {
         startingLoc = fromLoc.beginPos();
     }
 
@@ -355,9 +352,8 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(core::MutableContext 
 /**
  * Get the RBS type from the given assign
  */
-unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node,
-                                                          core::LocOffsets fromLoc) {
-    auto assertion = findRBSTrailingComment(ctx, node, fromLoc);
+unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
+    auto assertion = findRBSTrailingComment(node, fromLoc);
 
     if (!assertion) {
         return nullptr;
@@ -376,31 +372,31 @@ unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(core::MutableContext c
     return rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), assertion->loc);
 }
 
-parser::NodeVec RBSRewriter::rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
+parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
     auto oldStmts = move(nodes);
     auto newStmts = parser::NodeVec();
 
     for (auto &node : oldStmts) {
-        newStmts.emplace_back(rewriteNode(ctx, move(node)));
+        newStmts.emplace_back(rewriteNode(move(node)));
     }
 
     return newStmts;
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteBegin(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
     auto newStmts = parser::NodeVec();
 
     for (auto &stmt : oldStmts) {
         if (auto def = parser::cast_node<parser::DefMethod>(stmt.get())) {
-            if (auto comments = getRBSSignatures(ctx, stmt)) {
+            if (auto comments = getRBSSignatures(stmt)) {
                 for (auto &signature : *comments) {
                     newStmts.emplace_back(move(signature));
                 }
             }
         } else if (auto def = parser::cast_node<parser::DefS>(stmt.get())) {
-            if (auto comments = getRBSSignatures(ctx, stmt)) {
+            if (auto comments = getRBSSignatures(stmt)) {
                 for (auto &signature : *comments) {
                     newStmts.emplace_back(move(signature));
                 }
@@ -414,13 +410,13 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(core::MutableContext ctx, uni
                 auto &arg = send->args[0];
 
                 if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
-                    if (auto comments = getRBSSignatures(ctx, arg)) {
+                    if (auto comments = getRBSSignatures(arg)) {
                         for (auto &signature : *comments) {
                             newStmts.emplace_back(move(signature));
                         }
                     }
                 } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
-                    if (auto comments = getRBSSignatures(ctx, arg)) {
+                    if (auto comments = getRBSSignatures(arg)) {
                         for (auto &signature : *comments) {
                             newStmts.emplace_back(move(signature));
                         }
@@ -429,7 +425,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(core::MutableContext ctx, uni
             } else if (send->receiver == nullptr &&
                        (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
                         send->method == core::Names::attrAccessor())) {
-                if (auto comments = getRBSSignatures(ctx, stmt)) {
+                if (auto comments = getRBSSignatures(stmt)) {
                     for (auto &signature : *comments) {
                         newStmts.emplace_back(move(signature));
                     }
@@ -437,32 +433,32 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(core::MutableContext ctx, uni
             }
         }
 
-        newStmts.emplace_back(rewriteNode(ctx, move(stmt)));
+        newStmts.emplace_back(rewriteNode(move(stmt)));
     }
 
     begin->stmts = move(newStmts);
     return node;
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteBody(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node) {
     if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
-        return rewriteBegin(ctx, move(node));
+        return rewriteBegin(move(node));
     } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
-        if (auto comments = getRBSSignatures(ctx, node)) {
+        if (auto comments = getRBSSignatures(node)) {
             auto newStmts = parser::NodeVec();
             for (auto &signature : *comments) {
                 newStmts.emplace_back(move(signature));
             }
-            newStmts.emplace_back(rewriteNode(ctx, move(node)));
+            newStmts.emplace_back(rewriteNode(move(node)));
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
     } else if (auto def = parser::cast_node<parser::DefS>(node.get())) {
-        if (auto comments = getRBSSignatures(ctx, node)) {
+        if (auto comments = getRBSSignatures(node)) {
             auto newStmts = parser::NodeVec();
             for (auto &signature : *comments) {
                 newStmts.emplace_back(move(signature));
             }
-            newStmts.emplace_back(rewriteNode(ctx, move(node)));
+            newStmts.emplace_back(rewriteNode(move(node)));
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
@@ -474,42 +470,42 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(core::MutableContext ctx, uniq
             auto &arg = send->args[0];
 
             if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
-                if (auto comments = getRBSSignatures(ctx, arg)) {
+                if (auto comments = getRBSSignatures(arg)) {
                     auto newStmts = parser::NodeVec();
                     for (auto &signature : *comments) {
                         newStmts.emplace_back(move(signature));
                     }
-                    newStmts.emplace_back(rewriteNode(ctx, move(node)));
+                    newStmts.emplace_back(rewriteNode(move(node)));
                     return make_unique<parser::Begin>(def->loc, move(newStmts));
                 }
             } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
-                if (auto comments = getRBSSignatures(ctx, arg)) {
+                if (auto comments = getRBSSignatures(arg)) {
                     auto newStmts = parser::NodeVec();
                     for (auto &signature : *comments) {
                         newStmts.emplace_back(move(signature));
                     }
-                    newStmts.emplace_back(rewriteNode(ctx, move(node)));
+                    newStmts.emplace_back(rewriteNode(move(node)));
                     return make_unique<parser::Begin>(def->loc, move(newStmts));
                 }
             }
         } else if (send->receiver == nullptr &&
                    (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
                     send->method == core::Names::attrAccessor())) {
-            if (auto comments = getRBSSignatures(ctx, node)) {
+            if (auto comments = getRBSSignatures(node)) {
                 auto newStmts = parser::NodeVec();
                 for (auto &signature : *comments) {
                     newStmts.emplace_back(move(signature));
                 }
-                newStmts.emplace_back(rewriteNode(ctx, move(node)));
+                newStmts.emplace_back(rewriteNode(move(node)));
                 return make_unique<parser::Begin>(send->loc, move(newStmts));
             }
         }
     }
 
-    return rewriteNode(ctx, move(node));
+    return rewriteNode(move(node));
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
@@ -521,20 +517,20 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, uniq
         // Nodes are ordered as in desugar
         [&](parser::Const *const_) { result = move(node); },
         [&](parser::Send *send) {
-            send->receiver = rewriteNode(ctx, move(send->receiver));
-            send->args = rewriteNodes(ctx, move(send->args));
+            send->receiver = rewriteNode(move(send->receiver));
+            send->args = rewriteNodes(move(send->args));
             result = move(node);
         },
         [&](parser::String *string) { result = move(node); }, [&](parser::Symbol *symbol) { result = move(node); },
         [&](parser::LVar *var) { result = std::move(node); }, [&](parser::Hash *hash) { result = move(node); },
         [&](parser::Block *block) {
-            block->body = rewriteNode(ctx, move(block->body));
+            block->body = rewriteNode(move(block->body));
             result = move(node);
         },
-        [&](parser::Begin *begin) { result = rewriteBegin(ctx, move(node)); },
+        [&](parser::Begin *begin) { result = rewriteBegin(move(node)); },
         [&](parser::Assign *asgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, asgn->rhs, asgn->lhs->loc)) {
-                auto rhs = rewriteNode(ctx, move(asgn->rhs));
+            if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
+                auto rhs = rewriteNode(move(asgn->rhs));
                 asgn->rhs = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
 
@@ -542,42 +538,42 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, uniq
         },
         // END hand-ordered clauses
         [&](parser::And *and_) {
-            and_->left = rewriteNode(ctx, move(and_->left));
-            and_->right = rewriteNode(ctx, move(and_->right));
+            and_->left = rewriteNode(move(and_->left));
+            and_->right = rewriteNode(move(and_->right));
             result = move(node);
         },
         [&](parser::Or *or_) {
-            or_->left = rewriteNode(ctx, move(or_->left));
-            or_->right = rewriteNode(ctx, move(or_->right));
+            or_->left = rewriteNode(move(or_->left));
+            or_->right = rewriteNode(move(or_->right));
             result = move(node);
         },
         [&](parser::AndAsgn *andAsgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, andAsgn->right, andAsgn->left->loc)) {
-                auto rhs = rewriteNode(ctx, move(andAsgn->right));
+            if (auto rbsType = getRBSAssertionType(andAsgn->right, andAsgn->left->loc)) {
+                auto rhs = rewriteNode(move(andAsgn->right));
                 andAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
 
             result = move(node);
         },
         [&](parser::OrAsgn *orAsgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, orAsgn->right, orAsgn->left->loc)) {
-                auto rhs = rewriteNode(ctx, move(orAsgn->right));
+            if (auto rbsType = getRBSAssertionType(orAsgn->right, orAsgn->left->loc)) {
+                auto rhs = rewriteNode(move(orAsgn->right));
                 orAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
 
             result = move(node);
         },
         [&](parser::OpAsgn *opAsgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, opAsgn->right, opAsgn->left->loc)) {
-                auto rhs = rewriteNode(ctx, move(opAsgn->right));
+            if (auto rbsType = getRBSAssertionType(opAsgn->right, opAsgn->left->loc)) {
+                auto rhs = rewriteNode(move(opAsgn->right));
                 opAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
 
             result = move(node);
         },
         [&](parser::CSend *csend) {
-            csend->receiver = rewriteNode(ctx, move(csend->receiver));
-            csend->args = rewriteNodes(ctx, move(csend->args));
+            csend->receiver = rewriteNode(move(csend->receiver));
+            csend->args = rewriteNodes(move(csend->args));
             result = move(node);
         },
         [&](parser::Self *self) { result = move(node); },
@@ -589,15 +585,15 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, uniq
         //[&](parser::Cbase *cbase) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Kwbegin *kwbegin) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::Module *module) {
-            module->body = rewriteBody(ctx, move(module->body));
+            module->body = rewriteBody(move(module->body));
             result = move(node);
         },
         [&](parser::Class *klass) {
-            klass->body = rewriteBody(ctx, move(klass->body));
+            klass->body = rewriteBody(move(klass->body));
             result = move(node);
         },
         // [&](parser::Args *args) {
-        //     args->args = rewriteNodes(ctx, move(args->args));
+        //     args->args = rewriteNodes(move(args->args));
         //     result = move(node);
         // },
         // [&](parser::Arg *arg) { result = move(node); }, [&](parser::Restarg *arg) { result = move(node); },
@@ -605,17 +601,17 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, uniq
         // [&](parser::Blockarg *arg) { result = move(node); }, [&](parser::Kwoptarg *arg) { result = move(node); },
         // [&](parser::Optarg *arg) { result = move(node); }, [&](parser::Shadowarg *arg) { result = move(node); },
         [&](parser::DefMethod *method) {
-            // method->args = rewriteNode(ctx, move(method->args));
-            method->body = rewriteNode(ctx, move(method->body));
+            // method->args = rewriteNode(move(method->args));
+            method->body = rewriteNode(move(method->body));
             result = move(node);
         },
         [&](parser::DefS *method) {
-            // method->args = rewriteNode(ctx, move(method->args));
-            method->body = rewriteNode(ctx, move(method->body));
+            // method->args = rewriteNode(move(method->args));
+            method->body = rewriteNode(move(method->body));
             result = move(node);
         },
         [&](parser::SClass *sclass) {
-            sclass->body = rewriteBody(ctx, move(sclass->body));
+            sclass->body = rewriteBody(move(sclass->body));
             result = move(node);
         },
         //[&](parser::NumBlock *block) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
@@ -650,8 +646,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, uniq
         //[&](parser::Ensure *ensure) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::If *if_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         [&](parser::Masgn *masgn) {
-            if (auto rbsType = getRBSAssertionType(ctx, node, masgn->rhs->loc)) {
-                auto rhs = rewriteNode(ctx, move(masgn->rhs));
+            if (auto rbsType = getRBSAssertionType(node, masgn->rhs->loc)) {
+                auto rhs = rewriteNode(move(masgn->rhs));
                 masgn->rhs = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
             }
 
