@@ -10,17 +10,6 @@ namespace sorbet::rbs {
 
 class TypeTranslator {
 public:
-    /**
-     * Convert an RBS type to a Sorbet compatible expression ptr.
-     *
-     * For example:
-     * - `Integer?` -> `T.nilable(Integer)`
-     * - `(A | B)` -> `T.any(A, B)`
-     */
-    static ast::ExpressionPtr toExpressionPtr(core::MutableContext ctx,
-                                              const std::vector<std::pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                              rbs_node_t *node, core::LocOffsets loc);
-
     static std::unique_ptr<parser::Node>
     toParserNode(core::MutableContext ctx, const std::vector<std::pair<core::LocOffsets, core::NameRef>> &typeParams,
                  rbs_node_t *node, core::LocOffsets loc);
