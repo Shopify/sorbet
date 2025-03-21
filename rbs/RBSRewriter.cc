@@ -651,14 +651,10 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             csend->args = rewriteNodes(move(csend->args));
             result = move(node);
         },
-        [&](parser::Self *self) { result = move(node); },
-        //[&](parser::DSymbol *dsymbol) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::FileLiteral *fileLiteral) { Exception::raise("Unimplemented Parser Node: {}",
-        // node->nodeName());
-        //},
-        [&](parser::ConstLhs *constLhs) { result = move(node); },
-        //[&](parser::Cbase *cbase) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Kwbegin *kwbegin) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::Self *self) { result = move(node); }, [&](parser::DSymbol *dsymbol) { result = move(node); },
+        [&](parser::FileLiteral *fileLiteral) { result = move(node); },
+        [&](parser::ConstLhs *constLhs) { result = move(node); }, [&](parser::Cbase *cbase) { result = move(node); },
+        [&](parser::Kwbegin *kwbegin) { result = move(node); },
         [&](parser::Module *module) {
             module->body = rewriteBody(move(module->body));
             result = move(node);
@@ -689,37 +685,77 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             sclass->body = rewriteBody(move(sclass->body));
             result = move(node);
         },
-        //[&](parser::NumBlock *block) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::While *wl) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::WhilePost *wl) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Until *wl) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::UntilPost *wl) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::NumBlock *block) { result = move(node); },
+
+        [&](parser::When *when) {
+            when->body = rewriteNode(move(when->body));
+            result = move(node);
+        },
+
+        [&](parser::While *wl) {
+            wl->body = rewriteNode(move(wl->body));
+            result = move(node);
+        },
+
+        [&](parser::WhilePost *wl) {
+            wl->body = rewriteNode(move(wl->body));
+            result = move(node);
+        },
+
+        [&](parser::Until *until) {
+            until->body = rewriteNode(move(until->body));
+            result = move(node);
+        },
+
+        [&](parser::UntilPost *until) {
+            until->body = rewriteNode(move(until->body));
+            result = move(node);
+        },
+
         [&](parser::Nil *wl) { result = move(node); }, [&](parser::IVar *var) { result = move(node); },
         [&](parser::GVar *var) { result = move(node); }, [&](parser::CVar *var) { result = move(node); },
         [&](parser::LVarLhs *var) { result = move(node); }, [&](parser::GVarLhs *var) { result = move(node); },
         [&](parser::CVarLhs *var) { result = move(node); }, [&](parser::IVarLhs *var) { result = move(node); },
-        //[&](parser::NthRef *var) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Super *super) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::ZSuper *zuper) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::For *for_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::NthRef *var) { result = move(node); }, [&](parser::Super *super) { result = move(node); },
+        [&](parser::ZSuper *zuper) { result = move(node); },
+
+        [&](parser::For *for_) {
+            for_->body = rewriteNode(move(for_->body));
+            result = move(node);
+        },
+
         [&](parser::Integer *integer) { result = move(node); }, [&](parser::DString *dstring) { result = move(node); },
-        //[&](parser::Float *floatNode) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Complex *complex) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Rational *complex) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        [&](parser::Array *array) { result = move(node); },
-        //[&](parser::IRange *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::ERange *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Regexp *regexpNode) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Regopt *regopt) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Return *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Break *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Next *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Retry *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Yield *ret) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Rescue *rescue) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Resbody *resbody) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Ensure *ensure) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::If *if_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        [&](parser::Float *floatNode) { result = move(node); }, [&](parser::Complex *complex) { result = move(node); },
+        [&](parser::Rational *complex) { result = move(node); }, [&](parser::Array *array) { result = move(node); },
+        [&](parser::IRange *ret) { result = move(node); }, [&](parser::ERange *ret) { result = move(node); },
+        [&](parser::Regexp *regexpNode) { result = move(node); }, [&](parser::Regopt *regopt) { result = move(node); },
+        [&](parser::Return *ret) { result = move(node); }, [&](parser::Break *ret) { result = move(node); },
+        [&](parser::Next *ret) { result = move(node); }, [&](parser::Retry *ret) { result = move(node); },
+        [&](parser::Yield *ret) { result = move(node); },
+
+        [&](parser::Rescue *rescue) {
+            rescue->body = rewriteNode(move(rescue->body));
+            rescue->else_ = rewriteNode(move(rescue->else_));
+            result = move(node);
+        },
+
+        [&](parser::Resbody *resbody) {
+            resbody->body = rewriteNode(move(resbody->body));
+            result = move(node);
+        },
+
+        [&](parser::Ensure *ensure) {
+            ensure->body = rewriteNode(move(ensure->body));
+            result = move(node);
+        },
+
+        [&](parser::If *if_) {
+            if_->condition = rewriteNode(move(if_->condition));
+            if_->then_ = rewriteNode(move(if_->then_));
+            if_->else_ = rewriteNode(move(if_->else_));
+            result = move(node);
+        },
+
         [&](parser::Masgn *masgn) {
             if (auto rbsType = getRBSAssertionType(node, masgn->rhs->loc)) {
                 auto rhs = rewriteNode(move(masgn->rhs));
@@ -728,39 +764,30 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
 
             result = move(node);
         },
-        //[&](parser::True *t) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::False *t) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Case *case_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Splat *splat) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::ForwardedRestArg *fra) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::Alias *alias) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Defined *defined) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::LineLiteral *line) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::XString *xstring) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Preexe *preexe) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Postexe *postexe) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::Undef *undef) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::CaseMatch *caseMatch) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::Backref *backref) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::EFlipflop *eflipflop) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::IFlipflop *iflipflop) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::MatchCurLine *matchCurLine) {
-        //    Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::Redo *redo) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::EncodingLiteral *encodingLiteral) {
-        //    Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::MatchPattern *pattern) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::MatchPatternP *pattern) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-        //},
-        //[&](parser::EmptyElse *else_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
+        [&](parser::True *t) { result = move(node); }, [&](parser::False *t) { result = move(node); },
+
+        [&](parser::Case *case_) {
+            case_->condition = rewriteNode(move(case_->condition));
+            case_->whens = rewriteNodes(move(case_->whens));
+            case_->else_ = rewriteNode(move(case_->else_));
+            result = move(node);
+        },
+
+        [&](parser::Splat *splat) { result = move(node); }, [&](parser::ForwardedRestArg *fra) { result = move(node); },
+        [&](parser::Alias *alias) { result = move(node); }, [&](parser::Defined *defined) { result = move(node); },
+        [&](parser::LineLiteral *line) { result = move(node); }, [&](parser::XString *xstring) { result = move(node); },
+        [&](parser::Preexe *preexe) { result = move(node); }, [&](parser::Postexe *postexe) { result = move(node); },
+        [&](parser::Undef *undef) { result = move(node); }, [&](parser::CaseMatch *caseMatch) { result = move(node); },
+        [&](parser::Backref *backref) { result = move(node); },
+        [&](parser::EFlipflop *eflipflop) { result = move(node); },
+        [&](parser::IFlipflop *iflipflop) { result = move(node); },
+        [&](parser::MatchCurLine *matchCurLine) { result = move(node); },
+        [&](parser::Redo *redo) { result = move(node); },
+        [&](parser::EncodingLiteral *encodingLiteral) { result = move(node); },
+        [&](parser::MatchPattern *pattern) { result = move(node); },
+        [&](parser::MatchPatternP *pattern) { result = move(node); },
+        [&](parser::EmptyElse *else_) { result = move(node); },
+        [&](parser::BlockPass *blockPass) { result = move(node); },
         [&](parser::Node *other) {
             std::cerr << "Unimplemented Parser Node: " << node->nodeName() << std::endl;
             Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
