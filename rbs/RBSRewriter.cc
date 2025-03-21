@@ -297,7 +297,8 @@ bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser:
     return result;
 }
 
-optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
+optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
+                                                                 core::LocOffsets fromLoc) {
     // std::cerr << "Finding RBS comments for node: " << node->toString(ctx) << std::endl;
 
     auto source = ctx.file.data(ctx).source();
@@ -348,23 +349,39 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
     }
 
     auto content = source.substr(contentStart, endPos - contentStart);
+    auto kind = InlineComment::Kind::LET;
 
-    return rbs::Comment{core::LocOffsets{(uint32_t)commentStart, static_cast<uint32_t>(endPos)},
-                        core::LocOffsets{(uint32_t)contentStart, static_cast<uint32_t>(endPos)},
-                        absl::StripAsciiWhitespace(content)};
+    if (absl::StartsWith(content, "as ")) {
+        // We found a `as` keyword, this is a `cast` comment
+        kind = InlineComment::Kind::CAST;
+        contentStart += 3;
+        content = content.substr(3);
+
+        const regex not_nil_pattern("^\\s*!nil\\s*(#.*)?$");
+        if (regex_match(content.begin(), content.end(), not_nil_pattern)) {
+            // We found a `as !nil`, so a must
+            kind = InlineComment::Kind::MUST;
+        }
+    }
+
+    return InlineComment{
+        rbs::Comment{core::LocOffsets{(uint32_t)commentStart, static_cast<uint32_t>(endPos)},
+                     core::LocOffsets{(uint32_t)contentStart, static_cast<uint32_t>(endPos)}, content},
+        kind,
+    };
 }
 
 /**
  * Get the RBS type from the given assign
  */
 unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
-    auto assertion = findRBSTrailingComment(node, fromLoc);
+    auto inlineComment = findRBSTrailingComment(node, fromLoc);
 
-    if (!assertion) {
+    if (!inlineComment) {
         return nullptr;
     }
 
-    auto result = rbs::RBSParser::parseType(ctx, *assertion);
+    auto result = rbs::RBSParser::parseType(ctx, inlineComment->comment);
     if (result.second) {
         if (auto e = ctx.beginError(result.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
             e.setHeader("Failed to parse RBS type ({})", result.second->message);
@@ -374,7 +391,7 @@ unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(unique_ptr<parser::Nod
 
     auto rbsType = move(result.first.value());
     auto typeParams = lastTypeParams();
-    return rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), assertion->loc);
+    return rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), inlineComment->comment.loc);
 }
 
 /**

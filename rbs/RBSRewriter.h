@@ -50,7 +50,8 @@ private:
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
     parser::NodeVec rewriteNodes(parser::NodeVec nodes);
     std::unique_ptr<parser::Node> getRBSAssertionType(std::unique_ptr<parser::Node> &node, core::LocOffsets fromLoc);
-    std::optional<rbs::Comment> findRBSTrailingComment(std::unique_ptr<parser::Node> &node, core::LocOffsets fromLoc);
+    std::optional<rbs::InlineComment> findRBSTrailingComment(std::unique_ptr<parser::Node> &node,
+                                                             core::LocOffsets fromLoc);
     bool isHeredoc(core::LocOffsets assignLoc, const std::unique_ptr<parser::Node> &node);
     bool hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos);
     std::unique_ptr<parser::NodeVec> getRBSSignatures(std::unique_ptr<parser::Node> &node);
