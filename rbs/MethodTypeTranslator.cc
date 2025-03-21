@@ -119,7 +119,7 @@ void collectKeywords(core::MutableContext ctx, core::LocOffsets docLoc, rbs_hash
 } // namespace
 
 unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableContext ctx, parser::Node *methodDef,
-                                                               const MethodType methodType,
+                                                               core::LocOffsets commentLoc, const MethodType methodType,
                                                                const vector<Comment> &annotations) {
     const auto &node = *methodType.node;
 
@@ -289,7 +289,8 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableCont
 }
 
 unique_ptr<parser::Node> MethodTypeTranslator::attrSignature(core::MutableContext ctx, const parser::Send *send,
-                                                             const Type attrType, const vector<Comment> &annotations) {
+                                                             core::LocOffsets commentLoc, const Type attrType,
+                                                             const vector<Comment> &annotations) {
     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
     auto sigBuilder = parser::MK::Self(attrType.loc.copyWithZeroLength());
     sigBuilder = handleAnnotationsNode(std::move(sigBuilder), annotations);

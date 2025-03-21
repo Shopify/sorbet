@@ -26,6 +26,17 @@ struct Comments {
     std::vector<rbs::Comment> signatures;
 };
 
+struct InlineComment {
+    enum class Kind {
+        LET,
+        CAST,
+        MUST,
+    };
+
+    rbs::Comment comment;
+    Kind kind;
+};
+
 class RBSRewriter {
 public:
     RBSRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};

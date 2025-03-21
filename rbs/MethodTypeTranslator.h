@@ -15,7 +15,7 @@ public:
      * For example the signature comment `#: () -> void` will be translated as `sig { void }`.
      */
     static std::unique_ptr<parser::Node> methodSignature(core::MutableContext ctx, parser::Node *def,
-                                                         const MethodType type,
+                                                         core::LocOffsets commentLoc, const MethodType type,
                                                          const std::vector<Comment> &annotations);
 
     /**
@@ -24,7 +24,8 @@ public:
      * For example the attribute type comment `#: Integer` will be translated as `sig { returns(Integer) }`.
      */
     static std::unique_ptr<parser::Node> attrSignature(core::MutableContext ctx, const parser::Send *send,
-                                                       const Type type, const std::vector<Comment> &annotations);
+                                                       core::LocOffsets commentLoc, const Type type,
+                                                       const std::vector<Comment> &annotations);
 };
 
 } // namespace sorbet::rbs

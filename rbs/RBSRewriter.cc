@@ -104,6 +104,7 @@ Comments RBSRewriter::findRBSSignatureComments(string_view sourceCode, core::Loc
             int lineSize = line.size();
             auto rbsSignature = rbs::Comment{
                 core::LocOffsets{index, index + lineSize},
+                core::LocOffsets{index + 2, index + lineSize},
                 line.substr(2),
             };
             signatures.emplace_back(rbsSignature);
@@ -114,6 +115,7 @@ Comments RBSRewriter::findRBSSignatureComments(string_view sourceCode, core::Loc
             int lineSize = line.size();
             auto annotation = rbs::Comment{
                 core::LocOffsets{index, index + lineSize},
+                core::LocOffsets{index + 3, index + lineSize},
                 line.substr(3),
             };
             annotations.emplace_back(annotation);
@@ -151,8 +153,8 @@ unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Nod
             if (rbsMethodType.first) {
                 unique_ptr<parser::Node> sig;
 
-                sig = rbs::MethodTypeTranslator::methodSignature(ctx, node.get(), move(rbsMethodType.first.value()),
-                                                                 comments.annotations);
+                sig = rbs::MethodTypeTranslator::methodSignature(
+                    ctx, node.get(), signature.commentLoc, move(rbsMethodType.first.value()), comments.annotations);
 
                 signatures->emplace_back(move(sig));
             } else {
@@ -164,8 +166,8 @@ unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Nod
         } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
             auto rbsType = rbs::RBSParser::parseType(ctx, signature);
             if (rbsType.first) {
-                auto sig = rbs::MethodTypeTranslator::attrSignature(ctx, send, move(rbsType.first.value()),
-                                                                    comments.annotations);
+                auto sig = rbs::MethodTypeTranslator::attrSignature(ctx, send, signature.commentLoc,
+                                                                    move(rbsType.first.value()), comments.annotations);
                 signatures->emplace_back(move(sig));
             } else {
                 ENFORCE(rbsType.second);
@@ -345,7 +347,8 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
     }
 
     return rbs::Comment{
-        core::LocOffsets{startingLoc + (uint32_t)commentStart + offset, static_cast<uint32_t>(endOfLine)},
+        core::LocOffsets{startingLoc + (uint32_t)commentStart, static_cast<uint32_t>(endOfLine)},
+        core::LocOffsets{startingLoc + (uint32_t)commentStart + offset + 2, static_cast<uint32_t>(endOfLine)},
         absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
 }
 
