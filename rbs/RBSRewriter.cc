@@ -689,12 +689,12 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         // [&](parser::Optarg *arg) { result = move(node); }, [&](parser::Shadowarg *arg) { result = move(node); },
         [&](parser::DefMethod *method) {
             // method->args = rewriteNode(move(method->args));
-            method->body = rewriteNode(move(method->body));
+            method->body = rewriteBody(move(method->body));
             result = move(node);
         },
         [&](parser::DefS *method) {
             // method->args = rewriteNode(move(method->args));
-            method->body = rewriteNode(move(method->body));
+            method->body = rewriteBody(move(method->body));
             result = move(node);
         },
         [&](parser::SClass *sclass) {
@@ -704,27 +704,27 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::NumBlock *block) { result = move(node); },
 
         [&](parser::When *when) {
-            when->body = rewriteNode(move(when->body));
+            when->body = rewriteBody(move(when->body));
             result = move(node);
         },
 
         [&](parser::While *wl) {
-            wl->body = rewriteNode(move(wl->body));
+            wl->body = rewriteBody(move(wl->body));
             result = move(node);
         },
 
         [&](parser::WhilePost *wl) {
-            wl->body = rewriteNode(move(wl->body));
+            wl->body = rewriteBody(move(wl->body));
             result = move(node);
         },
 
         [&](parser::Until *until) {
-            until->body = rewriteNode(move(until->body));
+            until->body = rewriteBody(move(until->body));
             result = move(node);
         },
 
         [&](parser::UntilPost *until) {
-            until->body = rewriteNode(move(until->body));
+            until->body = rewriteBody(move(until->body));
             result = move(node);
         },
 
@@ -736,7 +736,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::ZSuper *zuper) { result = move(node); },
 
         [&](parser::For *for_) {
-            for_->body = rewriteNode(move(for_->body));
+            for_->body = rewriteBody(move(for_->body));
             result = move(node);
         },
 
@@ -750,25 +750,24 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Yield *ret) { result = move(node); },
 
         [&](parser::Rescue *rescue) {
-            rescue->body = rewriteNode(move(rescue->body));
-            rescue->else_ = rewriteNode(move(rescue->else_));
+            rescue->body = rewriteBody(move(rescue->body));
+            rescue->else_ = rewriteBody(move(rescue->else_));
             result = move(node);
         },
 
         [&](parser::Resbody *resbody) {
-            resbody->body = rewriteNode(move(resbody->body));
+            resbody->body = rewriteBody(move(resbody->body));
             result = move(node);
         },
 
         [&](parser::Ensure *ensure) {
-            ensure->body = rewriteNode(move(ensure->body));
+            ensure->body = rewriteBody(move(ensure->body));
             result = move(node);
         },
 
         [&](parser::If *if_) {
-            if_->condition = rewriteNode(move(if_->condition));
-            if_->then_ = rewriteNode(move(if_->then_));
-            if_->else_ = rewriteNode(move(if_->else_));
+            if_->then_ = rewriteBody(move(if_->then_));
+            if_->else_ = rewriteBody(move(if_->else_));
             result = move(node);
         },
 
@@ -783,9 +782,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::True *t) { result = move(node); }, [&](parser::False *t) { result = move(node); },
 
         [&](parser::Case *case_) {
-            case_->condition = rewriteNode(move(case_->condition));
             case_->whens = rewriteNodes(move(case_->whens));
-            case_->else_ = rewriteNode(move(case_->else_));
+            case_->else_ = rewriteBody(move(case_->else_));
             result = move(node);
         },
 
