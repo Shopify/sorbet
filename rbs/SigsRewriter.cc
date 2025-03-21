@@ -25,6 +25,8 @@ namespace {
 
 bool isVisibilitySend(parser::Send *send) {
     return send->receiver == nullptr && send->args.size() == 1 &&
+           (parser::isa_node<parser::DefMethod>(send->args[0].get()) ||
+            parser::isa_node<parser::DefS>(send->args[0].get())) &&
            (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
             send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
             send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
@@ -241,13 +243,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
     auto newStmts = parser::NodeVec();
 
     for (auto &stmt : oldStmts) {
-        if (auto def = parser::cast_node<parser::DefMethod>(stmt.get())) {
-            if (auto comments = getRBSSignatures(stmt)) {
-                insertSignatures(newStmts, *comments);
-            }
-            newStmts.emplace_back(rewriteNode(move(stmt)));
-            continue;
-        } else if (auto def = parser::cast_node<parser::DefS>(stmt.get())) {
+        if (parser::isa_node<parser::DefMethod>(stmt.get()) || parser::cast_node<parser::DefS>(stmt.get())) {
             if (auto comments = getRBSSignatures(stmt)) {
                 insertSignatures(newStmts, *comments);
             }
@@ -256,20 +252,11 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (isVisibilitySend(send)) {
                 auto &arg = send->args[0];
-
-                if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
-                    if (auto comments = getRBSSignatures(arg)) {
-                        insertSignatures(newStmts, *comments);
-                    }
-                    newStmts.emplace_back(rewriteNode(move(stmt)));
-                    continue;
-                } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
-                    if (auto comments = getRBSSignatures(arg)) {
-                        insertSignatures(newStmts, *comments);
-                    }
-                    newStmts.emplace_back(rewriteNode(move(stmt)));
-                    continue;
+                if (auto comments = getRBSSignatures(arg)) {
+                    insertSignatures(newStmts, *comments);
                 }
+                newStmts.emplace_back(rewriteNode(move(stmt)));
+                continue;
             } else if (isAttrAccessorSend(send)) {
                 if (auto comments = getRBSSignatures(stmt)) {
                     insertSignatures(newStmts, *comments);
@@ -291,26 +278,15 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
         return node;
     } else if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(move(node));
-    } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
-        if (auto comments = getRBSSignatures(node)) {
-            return wrapInBegin(move(node), *comments);
-        }
-    } else if (auto def = parser::cast_node<parser::DefS>(node.get())) {
+    } else if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
             return wrapInBegin(move(node), *comments);
         }
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
         if (isVisibilitySend(send)) {
             auto &arg = send->args[0];
-
-            if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
-                if (auto comments = getRBSSignatures(arg)) {
-                    return wrapInBegin(move(node), *comments);
-                }
-            } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
-                if (auto comments = getRBSSignatures(arg)) {
-                    return wrapInBegin(move(node), *comments);
-                }
+            if (auto comments = getRBSSignatures(arg)) {
+                return wrapInBegin(move(node), *comments);
             }
         } else if (isAttrAccessorSend(send)) {
             if (auto comments = getRBSSignatures(node)) {
