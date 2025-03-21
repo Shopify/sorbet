@@ -481,6 +481,14 @@ bool isAttrAccessorSend(parser::Send *send) {
             send->method == core::Names::attrAccessor());
 }
 
+unique_ptr<parser::Node> RBSRewriter::wrapInBegin(unique_ptr<parser::Node> node, parser::NodeVec &signatures) {
+    auto loc = node->loc;
+    auto newStmts = parser::NodeVec();
+    insertSignatures(newStmts, signatures);
+    newStmts.emplace_back(rewriteNode(move(node)));
+    return make_unique<parser::Begin>(loc, move(newStmts));
+}
+
 unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
@@ -527,17 +535,11 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
         return rewriteBegin(move(node));
     } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
-            auto newStmts = parser::NodeVec();
-            insertSignatures(newStmts, *comments);
-            newStmts.emplace_back(rewriteNode(move(node)));
-            return make_unique<parser::Begin>(def->loc, move(newStmts));
+            return wrapInBegin(move(node), *comments);
         }
     } else if (auto def = parser::cast_node<parser::DefS>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
-            auto newStmts = parser::NodeVec();
-            insertSignatures(newStmts, *comments);
-            newStmts.emplace_back(rewriteNode(move(node)));
-            return make_unique<parser::Begin>(def->loc, move(newStmts));
+            return wrapInBegin(move(node), *comments);
         }
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
         if (isVisibilitySend(send)) {
@@ -545,25 +547,16 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
 
             if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
                 if (auto comments = getRBSSignatures(arg)) {
-                    auto newStmts = parser::NodeVec();
-                    insertSignatures(newStmts, *comments);
-                    newStmts.emplace_back(rewriteNode(move(node)));
-                    return make_unique<parser::Begin>(def->loc, move(newStmts));
+                    return wrapInBegin(move(node), *comments);
                 }
             } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
                 if (auto comments = getRBSSignatures(arg)) {
-                    auto newStmts = parser::NodeVec();
-                    insertSignatures(newStmts, *comments);
-                    newStmts.emplace_back(rewriteNode(move(node)));
-                    return make_unique<parser::Begin>(def->loc, move(newStmts));
+                    return wrapInBegin(move(node), *comments);
                 }
             }
         } else if (isAttrAccessorSend(send)) {
             if (auto comments = getRBSSignatures(node)) {
-                auto newStmts = parser::NodeVec();
-                insertSignatures(newStmts, *comments);
-                newStmts.emplace_back(rewriteNode(move(node)));
-                return make_unique<parser::Begin>(send->loc, move(newStmts));
+                return wrapInBegin(move(node), *comments);
             }
         }
     }

@@ -63,6 +63,7 @@ private:
     std::unique_ptr<parser::Node> addRBSCast(std::unique_ptr<parser::Node> node, std::unique_ptr<parser::Node> type,
                                              InlineComment::Kind kind);
     void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
+    std::unique_ptr<parser::Node> wrapInBegin(std::unique_ptr<parser::Node> node, parser::NodeVec &signatures);
 };
 
 } // namespace sorbet::rbs
