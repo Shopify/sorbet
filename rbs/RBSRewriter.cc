@@ -613,7 +613,13 @@ unique_ptr<parser::Node> insertRBSCast(unique_ptr<parser::Node> node, unique_ptr
 unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node> node) {
     unique_ptr<parser::Node> result;
 
-    if (auto asgn = parser::cast_node<parser::Assign>(node.get())) {
+    if (auto klass = parser::cast_node<parser::Class>(node.get())) {
+        result = move(node);
+    } else if (auto module = parser::cast_node<parser::Module>(node.get())) {
+        result = move(node);
+    } else if (auto sclass = parser::cast_node<parser::SClass>(node.get())) {
+        result = move(node);
+    } else if (auto asgn = parser::cast_node<parser::Assign>(node.get())) {
         if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
             asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
         }
@@ -682,8 +688,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         // Nodes are ordered as in desugar
         [&](parser::Const *const_) { result = move(node); },
         [&](parser::Send *send) {
-            send->receiver = rewriteNode(move(send->receiver));
-            send->args = rewriteNodes(move(send->args));
+            // send->receiver = rewriteNode(move(send->receiver));
+            // send->args = rewriteNodes(move(send->args));
             result = move(node);
         },
         [&](parser::String *string) { result = move(node); }, [&](parser::Symbol *symbol) { result = move(node); },
