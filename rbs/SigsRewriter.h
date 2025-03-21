@@ -16,14 +16,14 @@ struct Comments {
      *
      * Annotations are formatted as `@some_annotation`.
      */
-    std::vector<rbs::Comment> annotations;
+    std::vector<Comment> annotations;
 
     /**
      * RBS signature comments found on a method definition.
      *
      * Signatures are formatted as `#: () -> void`.
      */
-    std::vector<rbs::Comment> signatures;
+    std::vector<Comment> signatures;
 };
 
 struct InlineComment {
@@ -33,7 +33,7 @@ struct InlineComment {
         MUST,
     };
 
-    rbs::Comment comment;
+    Comment comment;
     Kind kind;
 };
 

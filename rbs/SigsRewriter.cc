@@ -15,7 +15,7 @@ namespace sorbet::rbs {
 
 namespace {
 
-bool isVisibilitySend(parser::Send *send) {
+bool isVisibilitySend(const parser::Send *send) {
     return send->receiver == nullptr && send->args.size() == 1 &&
            (parser::isa_node<parser::DefMethod>(send->args[0].get()) ||
             parser::isa_node<parser::DefS>(send->args[0].get())) &&
@@ -25,7 +25,7 @@ bool isVisibilitySend(parser::Send *send) {
             send->method == core::Names::packagePrivateClassMethod());
 }
 
-bool isAttrAccessorSend(parser::Send *send) {
+bool isAttrAccessorSend(const parser::Send *send) {
     return send->receiver == nullptr &&
            (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
             send->method == core::Names::attrAccessor());
