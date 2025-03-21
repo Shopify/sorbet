@@ -303,7 +303,7 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
     auto source = ctx.file.data(ctx).source();
 
     // We want to find the comment right after the end of the assign
-    auto startingLoc = node->loc.endPos();
+    auto fromPos = node->loc.endPos();
 
     // On heredocs, adding the comment at the end of the assign won't work because this is invalid Ruby syntax:
     // ```
@@ -318,17 +318,21 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
     // MSG
     // ```
     if (isHeredoc(fromLoc, node)) {
-        startingLoc = fromLoc.beginPos();
+        fromPos = fromLoc.beginPos();
     }
 
     // Get the position of the end of the line from the startingLoc
-    auto endOfLine = source.find('\n', startingLoc);
-    if (endOfLine == string::npos) {
+    auto endPos = source.find('\n', fromPos);
+    if (endPos == string::npos) {
+        return nullopt;
+    }
+
+    if (fromPos == endPos) {
         return nullopt;
     }
 
     // Check between the startingLoc and the end of the line for a `#: ...` comment
-    auto comment = source.substr(startingLoc, endOfLine - startingLoc);
+    auto comment = source.substr(fromPos, endPos - fromPos);
 
     // Find the position of the `#:` in the comment
     auto commentStart = comment.find("#:");
@@ -338,7 +342,7 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
 
     // Adjust the location to be the correct position depending on the number of spaces after the `#:`
     auto offset = 0;
-    for (auto i = startingLoc + commentStart + 2; i < endOfLine; i++) {
+    for (auto i = fromPos + commentStart + 2; i < endPos; i++) {
         if (source[i] == ' ') {
             offset++;
         } else {
@@ -346,10 +350,9 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
         }
     }
 
-    return rbs::Comment{
-        core::LocOffsets{startingLoc + (uint32_t)commentStart, static_cast<uint32_t>(endOfLine)},
-        core::LocOffsets{startingLoc + (uint32_t)commentStart + offset + 2, static_cast<uint32_t>(endOfLine)},
-        absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
+    return rbs::Comment{core::LocOffsets{fromPos + (uint32_t)commentStart, static_cast<uint32_t>(endPos)},
+                        core::LocOffsets{fromPos + (uint32_t)commentStart + offset + 2, static_cast<uint32_t>(endPos)},
+                        absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
 }
 
 /**
