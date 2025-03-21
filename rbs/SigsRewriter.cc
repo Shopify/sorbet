@@ -226,8 +226,6 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
                     newStmts.emplace_back(move(signature));
                 }
             }
-            newStmts.emplace_back(rewriteNode(move(stmt)));
-            continue;
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (isVisibilitySend(send)) {
                 auto &arg = send->args[0];
@@ -236,16 +234,12 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
                         newStmts.emplace_back(move(signature));
                     }
                 }
-                newStmts.emplace_back(rewriteNode(move(stmt)));
-                continue;
             } else if (isAttrAccessorSend(send)) {
                 if (auto signatures = signaturesForNode(stmt.get())) {
                     for (auto &signature : *signatures) {
                         newStmts.emplace_back(move(signature));
                     }
                 }
-                newStmts.emplace_back(rewriteNode(move(stmt)));
-                continue;
             }
         }
 
