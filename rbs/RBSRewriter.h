@@ -62,6 +62,7 @@ private:
     std::vector<std::pair<core::LocOffsets, core::NameRef>> lastTypeParams();
     std::unique_ptr<parser::Node> addRBSCast(std::unique_ptr<parser::Node> node, std::unique_ptr<parser::Node> type,
                                              InlineComment::Kind kind);
+    void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
 };
 
 } // namespace sorbet::rbs

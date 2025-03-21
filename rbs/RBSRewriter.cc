@@ -460,6 +460,13 @@ parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
     return newStmts;
 }
 
+void RBSRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures) {
+    for (auto &signature : signatures) {
+        lastSignature = signature.get();
+        stmts.emplace_back(move(signature));
+    }
+}
+
 unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
@@ -468,17 +475,11 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
     for (auto &stmt : oldStmts) {
         if (auto def = parser::cast_node<parser::DefMethod>(stmt.get())) {
             if (auto comments = getRBSSignatures(stmt)) {
-                for (auto &signature : *comments) {
-                    lastSignature = signature.get();
-                    newStmts.emplace_back(move(signature));
-                }
+                insertSignatures(newStmts, *comments);
             }
         } else if (auto def = parser::cast_node<parser::DefS>(stmt.get())) {
             if (auto comments = getRBSSignatures(stmt)) {
-                for (auto &signature : *comments) {
-                    lastSignature = signature.get();
-                    newStmts.emplace_back(move(signature));
-                }
+                insertSignatures(newStmts, *comments);
             }
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (send->receiver == nullptr && send->args.size() == 1 &&
@@ -490,27 +491,18 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
 
                 if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
                     if (auto comments = getRBSSignatures(arg)) {
-                        for (auto &signature : *comments) {
-                            lastSignature = signature.get();
-                            newStmts.emplace_back(move(signature));
-                        }
+                        insertSignatures(newStmts, *comments);
                     }
                 } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
                     if (auto comments = getRBSSignatures(arg)) {
-                        for (auto &signature : *comments) {
-                            lastSignature = signature.get();
-                            newStmts.emplace_back(move(signature));
-                        }
+                        insertSignatures(newStmts, *comments);
                     }
                 }
             } else if (send->receiver == nullptr &&
                        (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
                         send->method == core::Names::attrAccessor())) {
                 if (auto comments = getRBSSignatures(stmt)) {
-                    for (auto &signature : *comments) {
-                        lastSignature = signature.get();
-                        newStmts.emplace_back(move(signature));
-                    }
+                    insertSignatures(newStmts, *comments);
                 }
             }
         }
@@ -528,20 +520,14 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
     } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
             auto newStmts = parser::NodeVec();
-            for (auto &signature : *comments) {
-                lastSignature = signature.get();
-                newStmts.emplace_back(move(signature));
-            }
+            insertSignatures(newStmts, *comments);
             newStmts.emplace_back(rewriteNode(move(node)));
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
     } else if (auto def = parser::cast_node<parser::DefS>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
             auto newStmts = parser::NodeVec();
-            for (auto &signature : *comments) {
-                lastSignature = signature.get();
-                newStmts.emplace_back(move(signature));
-            }
+            insertSignatures(newStmts, *comments);
             newStmts.emplace_back(rewriteNode(move(node)));
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
@@ -556,20 +542,14 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
             if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
                 if (auto comments = getRBSSignatures(arg)) {
                     auto newStmts = parser::NodeVec();
-                    for (auto &signature : *comments) {
-                        lastSignature = signature.get();
-                        newStmts.emplace_back(move(signature));
-                    }
+                    insertSignatures(newStmts, *comments);
                     newStmts.emplace_back(rewriteNode(move(node)));
                     return make_unique<parser::Begin>(def->loc, move(newStmts));
                 }
             } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
                 if (auto comments = getRBSSignatures(arg)) {
                     auto newStmts = parser::NodeVec();
-                    for (auto &signature : *comments) {
-                        lastSignature = signature.get();
-                        newStmts.emplace_back(move(signature));
-                    }
+                    insertSignatures(newStmts, *comments);
                     newStmts.emplace_back(rewriteNode(move(node)));
                     return make_unique<parser::Begin>(def->loc, move(newStmts));
                 }
@@ -579,10 +559,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
                     send->method == core::Names::attrAccessor())) {
             if (auto comments = getRBSSignatures(node)) {
                 auto newStmts = parser::NodeVec();
-                for (auto &signature : *comments) {
-                    lastSignature = signature.get();
-                    newStmts.emplace_back(move(signature));
-                }
+                insertSignatures(newStmts, *comments);
                 newStmts.emplace_back(rewriteNode(move(node)));
                 return make_unique<parser::Begin>(send->loc, move(newStmts));
             }
