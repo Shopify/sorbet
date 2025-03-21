@@ -29,23 +29,22 @@ T.reveal_type(as5) # error: Revealed type: `String`
 
 # classes
 
-# TODO:
-# class ClassErr1 #: as String # error Unexpected RBS assertion comment found after `class` declaration
-# end
+class ClassErr1 #: as String # error: Unexpected RBS assertion comment found after `class` declaration
+end
 
-# class ClassErr2
-# end #: as String # error Unexpected RBS assertion comment found after `class` end
+class ClassErr2
+end #: as String # error: Unexpected RBS assertion comment found after `class` end
 
 # TODO:
 # class ClassErr3
 #   #: as String
 # end
 
-# module ModuleErr1 #: as String # error Unexpected RBS assertion comment found after `module` declaration
-# end
+module ModuleErr1 #: as String # error: Unexpected RBS assertion comment found after `module` declaration
+end
 
-# module ModuleErr2
-# end #: as String # error Unexpected RBS assertion comment found after `module` end
+module ModuleErr2
+end #: as String # error: Unexpected RBS assertion comment found after `module` end
 
 # TODO:
 # module ModuleErr3
