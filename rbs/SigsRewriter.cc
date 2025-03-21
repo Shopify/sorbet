@@ -55,13 +55,46 @@ parser::Node *signaturesTarget(parser::Node *node) {
     return nullptr;
 }
 
+optional<MethodType> parseMethodType(core::Context ctx, Comment signature) {
+    auto type = RBSParser::parseSignature(ctx, signature);
+    if (type.second) {
+        if (auto e = ctx.beginError(type.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("Failed to parse RBS signature ({})", type.second->message);
+        }
+
+        return nullopt;
+    }
+
+    return move(type.first);
+}
+
+optional<Type> parseAttrType(core::Context ctx, Comment signature) {
+    auto type = RBSParser::parseType(ctx, signature);
+    if (type.second) {
+        // Before raising a parse error, let's check if the user tried to use a method signature on an accessor
+        auto methodType = RBSParser::parseSignature(ctx, signature);
+        if (methodType.first) {
+            if (auto e = ctx.beginError(type.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+                e.setHeader("Using a method signature on an accessor is not allowed, use a bare type instead");
+            }
+        } else {
+            if (auto e = ctx.beginError(type.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+                e.setHeader("Failed to parse RBS type ({})", type.second->message);
+            }
+        }
+        return nullopt;
+    }
+
+    return move(type.first);
+}
+
 } // namespace
 
 Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
     auto source = ctx.file.data(ctx).source();
 
-    vector<rbs::Comment> annotations;
-    vector<rbs::Comment> signatures;
+    vector<Comment> annotations;
+    vector<Comment> signatures;
 
     uint32_t beginIndex = loc.beginPos();
 
@@ -140,7 +173,7 @@ Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
             // #: abc -> "abc"
             // #:abc -> "abc"
             int lineSize = line.size();
-            auto rbsSignature = rbs::Comment{
+            auto rbsSignature = Comment{
                 core::LocOffsets{index, index + lineSize},
                 core::LocOffsets{index + 2, index + lineSize},
                 line.substr(2),
@@ -151,7 +184,7 @@ Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
         // Handle RDoc annotations `# @abstract`
         else if (absl::StartsWith(line, "# @")) {
             int lineSize = line.size();
-            auto annotation = rbs::Comment{
+            auto annotation = Comment{
                 core::LocOffsets{index, index + lineSize},
                 core::LocOffsets{index + 3, index + lineSize},
                 line.substr(3),
@@ -187,40 +220,17 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) 
 
     for (auto &signature : comments.signatures) {
         if (parser::isa_node<parser::DefMethod>(node) || parser::isa_node<parser::DefS>(node)) {
-            auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
-            if (rbsMethodType.first) {
-                unique_ptr<parser::Node> sig;
-
-                sig = rbs::MethodTypeTranslator::methodSignature(
-                    ctx, node, signature.commentLoc, move(rbsMethodType.first.value()), comments.annotations);
+            if (auto type = parseMethodType(ctx, signature)) {
+                auto sig = MethodTypeTranslator::methodSignature(ctx, node, signature.commentLoc, move(type.value()),
+                                                                 comments.annotations);
 
                 signatures->emplace_back(move(sig));
-            } else {
-                ENFORCE(rbsMethodType.second);
-                if (auto e = ctx.beginError(rbsMethodType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
-                    e.setHeader("Failed to parse RBS signature ({})", rbsMethodType.second->message);
-                }
             }
         } else if (auto send = parser::cast_node<parser::Send>(node)) {
-            auto rbsType = rbs::RBSParser::parseType(ctx, signature);
-            if (rbsType.first) {
-                auto sig = rbs::MethodTypeTranslator::attrSignature(ctx, send, signature.commentLoc,
-                                                                    move(rbsType.first.value()), comments.annotations);
+            if (auto type = parseAttrType(ctx, signature)) {
+                auto sig = MethodTypeTranslator::attrSignature(ctx, send, signature.commentLoc, move(type.value()),
+                                                               comments.annotations);
                 signatures->emplace_back(move(sig));
-            } else {
-                ENFORCE(rbsType.second);
-
-                // Before raising a parse error, let's check if the user tried to use a method signature on an accessor
-                auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
-                if (rbsMethodType.first) {
-                    if (auto e = ctx.beginError(rbsType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
-                        e.setHeader("Using a method signature on an accessor is not allowed, use a bare type instead");
-                    }
-                } else {
-                    if (auto e = ctx.beginError(rbsType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
-                        e.setHeader("Failed to parse RBS type ({})", rbsType.second->message);
-                    }
-                }
             }
         } else {
             Exception::raise("Unimplemented node type: {}", node->nodeName());
