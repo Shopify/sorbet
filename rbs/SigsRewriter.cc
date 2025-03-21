@@ -39,7 +39,7 @@ bool isAttrAccessorSend(parser::Send *send) {
             send->method == core::Names::attrAccessor());
 }
 
-parser::Node *signatureTarget(parser::Node *node) {
+parser::Node *signaturesTarget(parser::Node *node) {
     if (parser::isa_node<parser::DefMethod>(node) || parser::cast_node<parser::DefS>(node)) {
         return node;
     }
@@ -210,8 +210,7 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) 
             } else {
                 ENFORCE(rbsType.second);
 
-                // Before raising a parse error, let's check if the user tried to use a method signature on an
-                // accessor
+                // Before raising a parse error, let's check if the user tried to use a method signature on an accessor
                 auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
                 if (rbsMethodType.first) {
                     if (auto e = ctx.beginError(rbsType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
@@ -238,7 +237,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
     begin->stmts = parser::NodeVec();
 
     for (auto &stmt : oldStmts) {
-        if (auto target = signatureTarget(stmt.get())) {
+        if (auto target = signaturesTarget(stmt.get())) {
             if (auto signatures = signaturesForNode(target)) {
                 for (auto &signature : *signatures) {
                     begin->stmts.emplace_back(move(signature));
@@ -261,7 +260,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
         return rewriteBegin(move(node));
     }
 
-    if (auto target = signatureTarget(node.get())) {
+    if (auto target = signaturesTarget(node.get())) {
         if (auto signatures = signaturesForNode(target)) {
             auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
             for (auto &signature : *signatures) {
