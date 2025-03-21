@@ -16,9 +16,9 @@ bool hasTypeParam(core::MutableContext ctx, const vector<pair<core::LocOffsets, 
     return absl::c_any_of(typeParams, [&](const auto &param) { return param.second == name; });
 }
 
-unique_ptr<parser::Node> typeNameNode(core::MutableContext ctx,
-                                      const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                      rbs_typename_t *typeName, bool isGeneric, core::LocOffsets loc) {
+unique_ptr<parser::Node> typeName(core::MutableContext ctx,
+                                  const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                  rbs_typename_t *typeName, bool isGeneric, core::LocOffsets loc) {
     rbs_node_list *typePath = typeName->rbs_namespace->path;
 
     unique_ptr<parser::Node> parent;
@@ -88,13 +88,13 @@ unique_ptr<parser::Node> typeNameNode(core::MutableContext ctx,
     return parser::MK::Const(loc, move(parent), nameConstant);
 }
 
-unique_ptr<parser::Node> classInstanceTypeNode(core::MutableContext ctx,
-                                               const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                               rbs_types_classinstance_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> classInstanceType(core::MutableContext ctx,
+                                           const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                           rbs_types_classinstance_t *node, core::LocOffsets loc) {
     auto offsets = locFromRange(loc, ((rbs_node_t *)node)->location->rg);
     auto argsValue = node->args;
     auto isGeneric = argsValue != nullptr && argsValue->length > 0;
-    auto typeConstant = typeNameNode(ctx, typeParams, node->name, isGeneric, offsets);
+    auto typeConstant = typeName(ctx, typeParams, node->name, isGeneric, offsets);
 
     if (isGeneric) {
         auto args = parser::NodeVec();
@@ -110,17 +110,17 @@ unique_ptr<parser::Node> classInstanceTypeNode(core::MutableContext ctx,
     return typeConstant;
 }
 
-unique_ptr<parser::Node> classSingletonTypeNode(core::MutableContext ctx,
-                                                const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                                rbs_types_classsingleton_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> classSingletonType(core::MutableContext ctx,
+                                            const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                            rbs_types_classsingleton_t *node, core::LocOffsets loc) {
     auto offsets = locFromRange(loc, ((rbs_node_t *)node)->location->rg);
-    auto innerType = typeNameNode(ctx, typeParams, node->name, false, offsets);
+    auto innerType = typeName(ctx, typeParams, node->name, false, offsets);
     return parser::MK::TClassOf(loc, move(innerType));
 }
 
-unique_ptr<parser::Node> unionTypeNode(core::MutableContext ctx,
-                                       const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                       rbs_types_union_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> unionType(core::MutableContext ctx,
+                                   const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                   rbs_types_union_t *node, core::LocOffsets loc) {
     auto args = parser::NodeVec();
 
     for (rbs_node_list_node *list_node = node->types->head; list_node != nullptr; list_node = list_node->next) {
@@ -131,9 +131,9 @@ unique_ptr<parser::Node> unionTypeNode(core::MutableContext ctx,
     return parser::MK::TAny(loc, move(args));
 }
 
-unique_ptr<parser::Node> intersectionTypeNode(core::MutableContext ctx,
-                                              const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                              rbs_types_intersection_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> intersectionType(core::MutableContext ctx,
+                                          const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                          rbs_types_intersection_t *node, core::LocOffsets loc) {
     auto args = parser::NodeVec();
 
     for (rbs_node_list_node *list_node = node->types->head; list_node != nullptr; list_node = list_node->next) {
@@ -144,9 +144,9 @@ unique_ptr<parser::Node> intersectionTypeNode(core::MutableContext ctx,
     return parser::MK::TAll(loc, move(args));
 }
 
-unique_ptr<parser::Node> optionalTypeNode(core::MutableContext ctx,
-                                          const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                          rbs_types_optional_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> optionalType(core::MutableContext ctx,
+                                      const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                      rbs_types_optional_t *node, core::LocOffsets loc) {
     auto innerType = TypeTranslator::toParserNode(ctx, typeParams, node->type, loc);
 
     if (parser::MK::isTUntyped(innerType)) {
@@ -156,7 +156,7 @@ unique_ptr<parser::Node> optionalTypeNode(core::MutableContext ctx,
     return parser::MK::TNilable(loc, move(innerType));
 }
 
-unique_ptr<parser::Node> voidTypeNode(core::MutableContext ctx, rbs_types_bases_void_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> voidType(core::MutableContext ctx, rbs_types_bases_void_t *node, core::LocOffsets loc) {
     auto cSorbet = parser::MK::Const(loc, parser::MK::Cbase(loc), core::Names::Constants::Sorbet());
     auto cPrivate = parser::MK::Const(loc, move(cSorbet), core::Names::Constants::Private());
     auto cStatic = parser::MK::Const(loc, move(cPrivate), core::Names::Constants::Static());
@@ -164,9 +164,9 @@ unique_ptr<parser::Node> voidTypeNode(core::MutableContext ctx, rbs_types_bases_
     return parser::MK::Const(loc, move(cStatic), core::Names::Constants::Void());
 }
 
-unique_ptr<parser::Node> functionTypeNode(core::MutableContext ctx,
-                                          const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                          rbs_types_function_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> functionType(core::MutableContext ctx,
+                                      const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                      rbs_types_function_t *node, core::LocOffsets loc) {
     auto pairs = parser::NodeVec();
     int i = 0;
     for (rbs_node_list_node *list_node = node->required_positionals->head; list_node != nullptr;
@@ -203,26 +203,26 @@ unique_ptr<parser::Node> functionTypeNode(core::MutableContext ctx,
     return parser::MK::TProc(loc, make_unique<parser::Hash>(loc, true, move(pairs)), move(returnType));
 }
 
-unique_ptr<parser::Node> procTypeNode(core::MutableContext ctx,
-                                      const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                      rbs_types_proc_t *node, core::LocOffsets docLoc) {
+unique_ptr<parser::Node> procType(core::MutableContext ctx,
+                                  const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                  rbs_types_proc_t *node, core::LocOffsets docLoc) {
     auto loc = locFromRange(docLoc, ((rbs_node_t *)node)->location->rg);
     auto function = parser::MK::TUntyped(loc);
 
-    rbs_node_t *functionType = node->type;
-    switch (functionType->type) {
+    rbs_node_t *functionTypeNode = node->type;
+    switch (functionTypeNode->type) {
         case RBS_TYPES_FUNCTION: {
-            function = functionTypeNode(ctx, typeParams, (rbs_types_function_t *)functionType, loc);
+            function = functionType(ctx, typeParams, (rbs_types_function_t *)functionTypeNode, loc);
             break;
         }
         case RBS_TYPES_UNTYPEDFUNCTION: {
             return function;
         }
         default: {
-            auto errLoc = locFromRange(docLoc, functionType->location->rg);
+            auto errLoc = locFromRange(docLoc, functionTypeNode->location->rg);
             if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
-                e.setHeader("Unexpected node type `{}` in proc type, expected `{}`", rbs_node_type_name(functionType),
-                            "Function");
+                e.setHeader("Unexpected node type `{}` in proc type, expected `{}`",
+                            rbs_node_type_name(functionTypeNode), "Function");
             }
         }
     }
@@ -237,26 +237,26 @@ unique_ptr<parser::Node> procTypeNode(core::MutableContext ctx,
     return function;
 }
 
-unique_ptr<parser::Node> blockTypeNode(core::MutableContext ctx,
-                                       const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                       rbs_types_block_t *node, core::LocOffsets docLoc) {
+unique_ptr<parser::Node> blockType(core::MutableContext ctx,
+                                   const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                   rbs_types_block_t *node, core::LocOffsets docLoc) {
     auto loc = locFromRange(docLoc, ((rbs_node_t *)node)->location->rg);
     auto function = parser::MK::TUntyped(loc);
 
-    rbs_node_t *functionType = node->type;
-    switch (functionType->type) {
+    rbs_node_t *functionTypeNode = node->type;
+    switch (functionTypeNode->type) {
         case RBS_TYPES_FUNCTION: {
-            function = functionTypeNode(ctx, typeParams, (rbs_types_function_t *)functionType, docLoc);
+            function = functionType(ctx, typeParams, (rbs_types_function_t *)functionTypeNode, docLoc);
             break;
         }
         case RBS_TYPES_UNTYPEDFUNCTION: {
             return function;
         }
         default: {
-            auto errLoc = locFromRange(docLoc, functionType->location->rg);
+            auto errLoc = locFromRange(docLoc, functionTypeNode->location->rg);
             if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
-                e.setHeader("Unexpected node type `{}` in block type, expected `{}`", rbs_node_type_name(functionType),
-                            "Function");
+                e.setHeader("Unexpected node type `{}` in block type, expected `{}`",
+                            rbs_node_type_name(functionTypeNode), "Function");
             }
 
             return function;
@@ -277,9 +277,9 @@ unique_ptr<parser::Node> blockTypeNode(core::MutableContext ctx,
     return function;
 }
 
-unique_ptr<parser::Node> tupleTypeNode(core::MutableContext ctx,
-                                       const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                       rbs_types_tuple_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> tupleType(core::MutableContext ctx,
+                                   const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                   rbs_types_tuple_t *node, core::LocOffsets loc) {
     auto args = parser::NodeVec();
 
     for (rbs_node_list_node *list_node = node->types->head; list_node != nullptr; list_node = list_node->next) {
@@ -290,9 +290,9 @@ unique_ptr<parser::Node> tupleTypeNode(core::MutableContext ctx,
     return parser::MK::Array(loc, move(args));
 }
 
-unique_ptr<parser::Node> recordTypeNode(core::MutableContext ctx,
-                                        const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
-                                        rbs_types_record_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> recordType(core::MutableContext ctx,
+                                    const vector<pair<core::LocOffsets, core::NameRef>> &typeParams,
+                                    rbs_types_record_t *node, core::LocOffsets loc) {
     auto pairs = parser::NodeVec();
 
     for (rbs_hash_node_t *hash_node = node->all_fields->head; hash_node != nullptr; hash_node = hash_node->next) {
@@ -340,7 +340,7 @@ unique_ptr<parser::Node> recordTypeNode(core::MutableContext ctx,
     return parser::MK::Hash(loc, false, move(pairs));
 }
 
-unique_ptr<parser::Node> variableTypeNode(core::MutableContext ctx, rbs_types_variable_t *node, core::LocOffsets loc) {
+unique_ptr<parser::Node> variableType(core::MutableContext ctx, rbs_types_variable_t *node, core::LocOffsets loc) {
     rbs_ast_symbol_t *symbol = (rbs_ast_symbol_t *)node->name;
     rbs_constant_t *constant = rbs_constant_pool_id_to_constant(fake_constant_pool, symbol->constant_id);
     string_view str(constant->start, constant->length);
@@ -383,15 +383,15 @@ unique_ptr<parser::Node> TypeTranslator::toParserNode(core::MutableContext ctx,
         case RBS_TYPES_BASES_TOP:
             return parser::MK::TAnything(docLoc);
         case RBS_TYPES_BASES_VOID:
-            return voidTypeNode(ctx, (rbs_types_bases_void_t *)node, docLoc);
+            return voidType(ctx, (rbs_types_bases_void_t *)node, docLoc);
         case RBS_TYPES_BLOCK:
-            return blockTypeNode(ctx, typeParams, (rbs_types_block_t *)node, docLoc);
+            return blockType(ctx, typeParams, (rbs_types_block_t *)node, docLoc);
         case RBS_TYPES_CLASSINSTANCE:
-            return classInstanceTypeNode(ctx, typeParams, (rbs_types_classinstance_t *)node, docLoc);
+            return classInstanceType(ctx, typeParams, (rbs_types_classinstance_t *)node, docLoc);
         case RBS_TYPES_CLASSSINGLETON:
-            return classSingletonTypeNode(ctx, typeParams, (rbs_types_classsingleton_t *)node, docLoc);
+            return classSingletonType(ctx, typeParams, (rbs_types_classsingleton_t *)node, docLoc);
         case RBS_TYPES_FUNCTION:
-            return functionTypeNode(ctx, typeParams, (rbs_types_function_t *)node, docLoc);
+            return functionType(ctx, typeParams, (rbs_types_function_t *)node, docLoc);
         case RBS_TYPES_INTERFACE: {
             auto loc = locFromRange(docLoc, node->location->rg);
             if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
@@ -400,7 +400,7 @@ unique_ptr<parser::Node> TypeTranslator::toParserNode(core::MutableContext ctx,
             return parser::MK::TUntyped(docLoc);
         }
         case RBS_TYPES_INTERSECTION:
-            return intersectionTypeNode(ctx, typeParams, (rbs_types_intersection_t *)node, docLoc);
+            return intersectionType(ctx, typeParams, (rbs_types_intersection_t *)node, docLoc);
         case RBS_TYPES_LITERAL: {
             auto loc = locFromRange(docLoc, node->location->rg);
             if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSUnsupported)) {
@@ -409,17 +409,17 @@ unique_ptr<parser::Node> TypeTranslator::toParserNode(core::MutableContext ctx,
             return parser::MK::TUntyped(docLoc);
         }
         case RBS_TYPES_OPTIONAL:
-            return optionalTypeNode(ctx, typeParams, (rbs_types_optional_t *)node, docLoc);
+            return optionalType(ctx, typeParams, (rbs_types_optional_t *)node, docLoc);
         case RBS_TYPES_PROC:
-            return procTypeNode(ctx, typeParams, (rbs_types_proc_t *)node, docLoc);
+            return procType(ctx, typeParams, (rbs_types_proc_t *)node, docLoc);
         case RBS_TYPES_RECORD:
-            return recordTypeNode(ctx, typeParams, (rbs_types_record_t *)node, docLoc);
+            return recordType(ctx, typeParams, (rbs_types_record_t *)node, docLoc);
         case RBS_TYPES_TUPLE:
-            return tupleTypeNode(ctx, typeParams, (rbs_types_tuple_t *)node, docLoc);
+            return tupleType(ctx, typeParams, (rbs_types_tuple_t *)node, docLoc);
         case RBS_TYPES_UNION:
-            return unionTypeNode(ctx, typeParams, (rbs_types_union_t *)node, docLoc);
+            return unionType(ctx, typeParams, (rbs_types_union_t *)node, docLoc);
         case RBS_TYPES_VARIABLE:
-            return variableTypeNode(ctx, (rbs_types_variable_t *)node, docLoc);
+            return variableType(ctx, (rbs_types_variable_t *)node, docLoc);
         default: {
             auto errLoc = locFromRange(docLoc, node->location->rg);
             if (auto e = ctx.beginError(errLoc, core::errors::Internal::InternalError)) {
