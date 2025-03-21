@@ -634,6 +634,27 @@ unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node
             asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
         }
         result = move(node);
+    } else if (auto ret = parser::cast_node<parser::Return>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(node, ret->loc)) {
+            for (auto &expr : ret->exprs) {
+                expr = insertRBSCast(move(expr), move(rbsType->first), rbsType->second);
+            }
+        }
+        result = move(node);
+    } else if (auto br = parser::cast_node<parser::Break>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(node, br->loc)) {
+            for (auto &expr : br->exprs) {
+                expr = insertRBSCast(move(expr), move(rbsType->first), rbsType->second);
+            }
+        }
+        result = move(node);
+    } else if (auto next = parser::cast_node<parser::Next>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(node, next->loc)) {
+            for (auto &expr : next->exprs) {
+                expr = insertRBSCast(move(expr), move(rbsType->first), rbsType->second);
+            }
+        }
+        result = move(node);
     } else {
         if (auto rbsType = getRBSAssertionType(node, node->loc)) {
             result = insertRBSCast(move(node), move(rbsType->first), rbsType->second);
@@ -670,7 +691,10 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             result = move(node);
         },
         [&](parser::Begin *begin) { result = rewriteBegin(move(node)); },
-        [&](parser::Assign *asgn) { result = move(node); },
+        [&](parser::Assign *asgn) {
+            asgn->rhs = rewriteNode(move(asgn->rhs));
+            result = move(node);
+        },
         // END hand-ordered clauses
         [&](parser::And *and_) {
             and_->left = rewriteNode(move(and_->left));
@@ -682,8 +706,18 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             or_->right = rewriteNode(move(or_->right));
             result = move(node);
         },
-        [&](parser::AndAsgn *andAsgn) { result = move(node); }, [&](parser::OrAsgn *orAsgn) { result = move(node); },
-        [&](parser::OpAsgn *opAsgn) { result = move(node); },
+        [&](parser::AndAsgn *andAsgn) {
+            andAsgn->right = rewriteNode(move(andAsgn->right));
+            result = move(node);
+        },
+        [&](parser::OrAsgn *orAsgn) {
+            orAsgn->right = rewriteNode(move(orAsgn->right));
+            result = move(node);
+        },
+        [&](parser::OpAsgn *opAsgn) {
+            opAsgn->right = rewriteNode(move(opAsgn->right));
+            result = move(node);
+        },
         [&](parser::CSend *csend) {
             csend->receiver = rewriteNode(move(csend->receiver));
             csend->args = rewriteNodes(move(csend->args));
@@ -695,10 +729,48 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Kwbegin *kwbegin) { result = move(node); },
         [&](parser::Module *module) {
             module->body = rewriteBody(move(module->body));
+
+            if (auto assertion = findRBSTrailingComment(node, module->loc)) {
+                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                            core::errors::Rewriter::RBSAssertionError)) {
+                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "module");
+                }
+            }
+
+            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), module->declLoc.endLoc).line;
+            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), module->loc.endLoc).line;
+            if ((endLine > decLine)) {
+                if (auto assertion = findRBSTrailingComment(node, module->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "module");
+                    }
+                }
+            }
+
             result = move(node);
         },
         [&](parser::Class *klass) {
             klass->body = rewriteBody(move(klass->body));
+
+            if (auto assertion = findRBSTrailingComment(node, klass->loc)) {
+                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                            core::errors::Rewriter::RBSAssertionError)) {
+                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "class");
+                }
+            }
+
+            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), klass->declLoc.endLoc).line;
+            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), klass->loc.endLoc).line;
+            if ((endLine > decLine)) {
+                if (auto assertion = findRBSTrailingComment(node, klass->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "class");
+                    }
+                }
+            }
+
             result = move(node);
         },
         // [&](parser::Args *args) {
@@ -712,11 +784,50 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::DefMethod *method) {
             // method->args = rewriteNode(move(method->args));
             method->body = rewriteBody(move(method->body));
+
+            if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                            core::errors::Rewriter::RBSAssertionError)) {
+                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "method");
+                }
+            }
+
+            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->declLoc.endLoc).line;
+            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->loc.endLoc).line;
+            if (endLine > decLine) {
+                std::cerr << "method: " << endLine << " > " << decLine << std::endl;
+                if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "method");
+                    }
+                }
+            }
+
             result = move(node);
         },
         [&](parser::DefS *method) {
             // method->args = rewriteNode(move(method->args));
             method->body = rewriteBody(move(method->body));
+
+            if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                            core::errors::Rewriter::RBSAssertionError)) {
+                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "method");
+                }
+            }
+
+            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->declLoc.endLoc).line;
+            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->loc.endLoc).line;
+            if (endLine > decLine) {
+                if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "method");
+                    }
+                }
+            }
+
             result = move(node);
         },
         [&](parser::SClass *sclass) {
@@ -767,9 +878,43 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Rational *complex) { result = move(node); }, [&](parser::Array *array) { result = move(node); },
         [&](parser::IRange *ret) { result = move(node); }, [&](parser::ERange *ret) { result = move(node); },
         [&](parser::Regexp *regexpNode) { result = move(node); }, [&](parser::Regopt *regopt) { result = move(node); },
-        [&](parser::Return *ret) { result = move(node); }, [&](parser::Break *ret) { result = move(node); },
-        [&](parser::Next *ret) { result = move(node); }, [&](parser::Retry *ret) { result = move(node); },
-        [&](parser::Yield *ret) { result = move(node); },
+        [&](parser::Return *ret) {
+            if (ret->exprs.empty()) {
+                if (auto assertion = findRBSTrailingComment(node, ret->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "return");
+                    }
+                }
+            }
+
+            result = move(node);
+        },
+        [&](parser::Break *break_) {
+            if (break_->exprs.empty()) {
+                if (auto assertion = findRBSTrailingComment(node, break_->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "break");
+                    }
+                }
+            }
+
+            result = move(node);
+        },
+        [&](parser::Next *next) {
+            if (next->exprs.empty()) {
+                if (auto assertion = findRBSTrailingComment(node, next->loc)) {
+                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
+                                                core::errors::Rewriter::RBSAssertionError)) {
+                        e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "next");
+                    }
+                }
+            }
+
+            result = move(node);
+        },
+        [&](parser::Retry *ret) { result = move(node); }, [&](parser::Yield *ret) { result = move(node); },
 
         [&](parser::Rescue *rescue) {
             rescue->body = rewriteBody(move(rescue->body));
@@ -793,8 +938,11 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             result = move(node);
         },
 
-        [&](parser::Masgn *masgn) { result = move(node); }, [&](parser::True *t) { result = move(node); },
-        [&](parser::False *t) { result = move(node); },
+        [&](parser::Masgn *masgn) {
+            masgn->rhs = rewriteNode(move(masgn->rhs));
+            result = move(node);
+        },
+        [&](parser::True *t) { result = move(node); }, [&](parser::False *t) { result = move(node); },
 
         [&](parser::Case *case_) {
             case_->whens = rewriteNodes(move(case_->whens));
