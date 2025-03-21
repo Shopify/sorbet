@@ -33,6 +33,14 @@ public:
      */
     static ast::ExpressionPtr attrSignature(core::MutableContext ctx, const ast::Send *send, const Type type,
                                             const std::vector<Comment> &annotations);
+
+    /**
+     * Convert an RBS attribute type comment to a Sorbet signature.
+     *
+     * For example the attribute type comment `#: Integer` will be translated as `sig { returns(Integer) }`.
+     */
+    static std::unique_ptr<parser::Node> attrSignatureNode(core::MutableContext ctx, const parser::Send *send,
+                                                           const Type type, const std::vector<Comment> &annotations);
 };
 
 } // namespace sorbet::rbs

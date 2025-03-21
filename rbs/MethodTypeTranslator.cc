@@ -52,8 +52,9 @@ unique_ptr<parser::Node> handleAnnotationsNode(unique_ptr<parser::Node> sigBuild
             sigBuilder = parser::MK::Send0(annotation.loc, move(sigBuilder), core::Names::override_(), annotation.loc);
         } else if (annotation.string == "override(allow_incompatible: true)") {
             auto pairs = parser::NodeVec();
-            pairs.emplace_back(parser::MK::Symbol(annotation.loc, core::Names::allowIncompatible()));
-            pairs.emplace_back(parser::MK::True(annotation.loc));
+            auto key = parser::MK::Symbol(annotation.loc, core::Names::allowIncompatible());
+            auto value = parser::MK::True(annotation.loc);
+            pairs.emplace_back(make_unique<parser::Pair>(annotation.loc, move(key), move(value)));
             auto hash = parser::MK::Hash(annotation.loc, true, move(pairs));
 
             auto args = parser::NodeVec();
@@ -93,7 +94,8 @@ core::NameRef nodeName(parser::Node &node) {
         &node, [&](const parser::Arg *a) { name = a->name; }, [&](const parser::Restarg *a) { name = a->name; },
         [&](const parser::Kwarg *a) { name = a->name; }, [&](const parser::Blockarg *a) { name = a->name; },
         [&](const parser::Kwoptarg *a) { name = a->name; }, [&](const parser::Optarg *a) { name = a->name; },
-        [&](const parser::Shadowarg *a) { name = a->name; },
+        [&](const parser::Kwrestarg *a) { name = a->name; }, [&](const parser::Shadowarg *a) { name = a->name; },
+        [&](const parser::Symbol *s) { name = s->val; },
         [&](const parser::Node *other) { Exception::raise("Unexpected expression type: {}", node.nodeName()); });
 
     return name;
@@ -402,6 +404,7 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignatureNode(core::Mutable
     auto sigParams = parser::NodeVec();
     sigParams.reserve(args.size());
 
+    auto methodArgs = getMethodArgs(*methodDef);
     for (int i = 0; i < args.size(); i++) {
         auto &arg = args[i];
         core::NameRef name;
@@ -414,8 +417,7 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignatureNode(core::Mutable
             string_view nameStr(nameConstant->start, nameConstant->length);
             name = ctx.state.enterNameUTF8(nameStr);
         } else {
-            auto methodArgs = getMethodArgs(*methodDef);
-            if (i >= methodArgs->args.size()) {
+            if (!methodArgs || i >= methodArgs->args.size()) {
                 if (auto e = ctx.beginError(methodType.loc, core::errors::Rewriter::RBSParameterMismatch)) {
                     e.setHeader("RBS signature has more parameters than in the method definition");
                 }
@@ -467,7 +469,6 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignatureNode(core::Mutable
     }
 
     auto sigArgs = parser::NodeVec();
-
     auto t = parser::MK::T(methodType.loc);
     auto t_sig = parser::MK::Const(methodType.loc, move(t), core::Names::Constants::Sig());
     auto t_sig_withoutRuntime =
@@ -535,6 +536,62 @@ ast::ExpressionPtr MethodTypeTranslator::attrSignature(core::MutableContext ctx,
     sigSend->flags.isRewriterSynthesized = true;
 
     return sig;
+}
+
+unique_ptr<parser::Node> MethodTypeTranslator::attrSignatureNode(core::MutableContext ctx, const parser::Send *send,
+                                                                 const Type attrType,
+                                                                 const vector<Comment> &annotations) {
+    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
+    auto sigBuilder = parser::MK::Self(attrType.loc.copyWithZeroLength());
+    sigBuilder = handleAnnotationsNode(std::move(sigBuilder), annotations);
+
+    if (send->args.size() == 0) {
+        if (auto e = ctx.beginError(send->loc, core::errors::Rewriter::RBSUnsupported)) {
+            e.setHeader("RBS signatures do not support accessor without arguments");
+        }
+
+        return nullptr;
+    }
+
+    if (send->method == core::Names::attrWriter()) {
+        if (send->args.size() > 1) {
+            if (auto e = ctx.beginError(send->loc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS signatures for attr_writer do not support multiple arguments");
+            }
+
+            return nullptr;
+        }
+
+        // For attr writer, we need to add the param to the sig
+        auto name = nodeName(*send->args[0].get());
+        auto pairs = parser::NodeVec();
+        pairs.emplace_back(make_unique<parser::Pair>(
+            send->args[0]->loc, parser::MK::Symbol(send->args[0]->loc, name),
+            TypeTranslator::toParserNode(ctx, typeParams, attrType.node.get(), attrType.loc)));
+        auto hash = parser::MK::Hash(send->loc, true, move(pairs));
+        auto sigArgs = parser::NodeVec();
+        sigArgs.emplace_back(move(hash));
+        sigBuilder =
+            parser::MK::Send(attrType.loc, move(sigBuilder), core::Names::params(), attrType.loc, move(sigArgs));
+    }
+
+    sigBuilder = parser::MK::Send1(attrType.loc, move(sigBuilder), core::Names::returns(), attrType.loc,
+                                   TypeTranslator::toParserNode(ctx, typeParams, attrType.node.get(), attrType.loc));
+
+    auto sigArgs = parser::NodeVec();
+    auto t = parser::MK::T(attrType.loc);
+    auto t_sig = parser::MK::Const(attrType.loc, move(t), core::Names::Constants::Sig());
+    auto t_sig_withoutRuntime = parser::MK::Const(attrType.loc, move(t_sig), core::Names::Constants::WithoutRuntime());
+    sigArgs.emplace_back(move(t_sig_withoutRuntime));
+
+    auto sorbet = parser::MK::Const(attrType.loc, parser::MK::Cbase(attrType.loc), core::Names::Constants::Sorbet());
+    auto sorbet_private = parser::MK::Const(attrType.loc, move(sorbet), core::Names::Constants::Private());
+    auto sorbet_private_static =
+        parser::MK::Const(attrType.loc, move(sorbet_private), core::Names::Constants::Static());
+    auto sig =
+        parser::MK::Send(attrType.loc, move(sorbet_private_static), core::Names::sig(), attrType.loc, move(sigArgs));
+
+    return make_unique<parser::Block>(attrType.loc, move(sig), nullptr, move(sigBuilder));
 }
 
 } // namespace sorbet::rbs

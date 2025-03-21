@@ -158,30 +158,53 @@ Comments findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) 
 }
 
 unique_ptr<parser::NodeVec> getRBSSignatures(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
-    auto methodComments = findRBSSignatureComments(ctx.file.data(ctx).source(), node->loc);
+    auto comments = findRBSSignatureComments(ctx.file.data(ctx).source(), node->loc);
 
-    if (methodComments.signatures.empty()) {
+    if (comments.signatures.empty()) {
         return nullptr;
     }
 
     auto signatures = make_unique<parser::NodeVec>();
 
-    for (auto &signature : methodComments.signatures) {
-        auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
-        if (rbsMethodType.first) {
-            unique_ptr<parser::Node> sig;
-            if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
+    for (auto &signature : comments.signatures) {
+        if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
+            auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
+            if (rbsMethodType.first) {
+                unique_ptr<parser::Node> sig;
+
                 sig = rbs::MethodTypeTranslator::methodSignatureNode(ctx, node.get(), move(rbsMethodType.first.value()),
-                                                                     methodComments.annotations);
+                                                                     comments.annotations);
+
+                signatures->emplace_back(move(sig));
             } else {
-                Exception::raise("Unimplemented node type: {}", node->nodeName());
+                ENFORCE(rbsMethodType.second);
+                if (auto e = ctx.beginError(rbsMethodType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+                    e.setHeader("Failed to parse RBS signature ({})", rbsMethodType.second->message);
+                }
             }
-            signatures->emplace_back(move(sig));
+        } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
+            auto rbsType = rbs::RBSParser::parseType(ctx, signature);
+            if (rbsType.first) {
+                auto sig = rbs::MethodTypeTranslator::attrSignatureNode(ctx, send, move(rbsType.first.value()),
+                                                                        comments.annotations);
+                signatures->emplace_back(move(sig));
+            } else {
+                ENFORCE(rbsType.second);
+
+                // Before raising a parse error, let's check if the user tried to use a method signature on an accessor
+                auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
+                if (rbsMethodType.first) {
+                    if (auto e = ctx.beginError(rbsType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+                        e.setHeader("Using a method signature on an accessor is not allowed, use a bare type instead");
+                    }
+                } else {
+                    if (auto e = ctx.beginError(rbsType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
+                        e.setHeader("Failed to parse RBS type ({})", rbsType.second->message);
+                    }
+                }
+            }
         } else {
-            ENFORCE(rbsMethodType.second);
-            if (auto e = ctx.beginError(rbsMethodType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
-                e.setHeader("Failed to parse RBS signature ({})", rbsMethodType.second->message);
-            }
+            Exception::raise("Unimplemented node type: {}", node->nodeName());
         }
     }
     return signatures;
@@ -401,6 +424,36 @@ unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, unique_ptr<parse
                     newStmts.emplace_back(move(signature));
                 }
             }
+        } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
+            if (send->receiver == nullptr && send->args.size() == 1 &&
+                (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
+                 send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
+                 send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
+                 send->method == core::Names::packagePrivateClassMethod())) {
+                auto &arg = send->args[0];
+
+                if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
+                    if (auto comments = getRBSSignatures(ctx, arg)) {
+                        for (auto &signature : *comments) {
+                            newStmts.emplace_back(move(signature));
+                        }
+                    }
+                } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
+                    if (auto comments = getRBSSignatures(ctx, arg)) {
+                        for (auto &signature : *comments) {
+                            newStmts.emplace_back(move(signature));
+                        }
+                    }
+                }
+            } else if (send->receiver == nullptr &&
+                       (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
+                        send->method == core::Names::attrAccessor())) {
+                if (auto comments = getRBSSignatures(ctx, stmt)) {
+                    for (auto &signature : *comments) {
+                        newStmts.emplace_back(move(signature));
+                    }
+                }
+            }
         }
 
         newStmts.emplace_back(rewriteNode(ctx, move(stmt)));
@@ -430,6 +483,45 @@ unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, unique_ptr<parser
             }
             newStmts.emplace_back(rewriteNode(ctx, move(node)));
             return make_unique<parser::Begin>(def->loc, move(newStmts));
+        }
+    } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
+        if (send->receiver == nullptr && send->args.size() == 1 &&
+            (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
+             send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
+             send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
+             send->method == core::Names::packagePrivateClassMethod())) {
+            auto &arg = send->args[0];
+
+            if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
+                if (auto comments = getRBSSignatures(ctx, arg)) {
+                    auto newStmts = parser::NodeVec();
+                    for (auto &signature : *comments) {
+                        newStmts.emplace_back(move(signature));
+                    }
+                    newStmts.emplace_back(rewriteNode(ctx, move(node)));
+                    return make_unique<parser::Begin>(def->loc, move(newStmts));
+                }
+            } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
+                if (auto comments = getRBSSignatures(ctx, arg)) {
+                    auto newStmts = parser::NodeVec();
+                    for (auto &signature : *comments) {
+                        newStmts.emplace_back(move(signature));
+                    }
+                    newStmts.emplace_back(rewriteNode(ctx, move(node)));
+                    return make_unique<parser::Begin>(def->loc, move(newStmts));
+                }
+            }
+        } else if (send->receiver == nullptr &&
+                   (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
+                    send->method == core::Names::attrAccessor())) {
+            if (auto comments = getRBSSignatures(ctx, node)) {
+                auto newStmts = parser::NodeVec();
+                for (auto &signature : *comments) {
+                    newStmts.emplace_back(move(signature));
+                }
+                newStmts.emplace_back(rewriteNode(ctx, move(node)));
+                return make_unique<parser::Begin>(send->loc, move(newStmts));
+            }
         }
     }
 
