@@ -1,21 +1,13 @@
 #include "rbs/SigsRewriter.h"
 
-#include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_split.h"
 #include "common/typecase.h"
 #include "core/errors/rewriter.h"
-#include "parser/Builder.h"
 #include "parser/helper.h"
-#include "parser/parser.h"
-#include "parser/parser/include/ruby_parser/builder.hh"
-#include "parser/parser/include/ruby_parser/driver.hh"
-#include "parser/parser/include/ruby_parser/token.hh"
 #include "rbs/MethodTypeTranslator.h"
 #include "rbs/RBSParser.h"
 #include "rbs/TypeTranslator.h"
-#include "rbs/rbs_common.h"
-#include <regex>
 
 using namespace std;
 
