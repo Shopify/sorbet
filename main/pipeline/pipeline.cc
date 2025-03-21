@@ -331,7 +331,7 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                 return emptyParsedFile(file);
             }
 
-            if (opts.rbsAssertionsEnabled) {
+            if (opts.rbsSignaturesEnabled || opts.rbsAssertionsEnabled) {
                 parseTree = runRBSRewrite(lgs, file, move(parseTree), print);
                 if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
                     return emptyParsedFile(file);

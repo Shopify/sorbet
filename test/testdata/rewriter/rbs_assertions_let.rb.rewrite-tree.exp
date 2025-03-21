@@ -1,6 +1,6 @@
 class <emptyTree><<C <root>>> < (::<todo sym>)
-  ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
-    <self>.returns(<emptyTree>::<C T>::<C Hash>.[](<emptyTree>::<C Symbol>, ::T.untyped()))
+  ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+    <self>.returns(::<root>::<C T>::<C Hash>.[](<emptyTree>::<C Symbol>, ::<root>::<C T>.untyped()))
   end
 
   def foo_params<<todo method>>(&<blk>)
@@ -118,7 +118,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   <emptyTree>::<C T>.reveal_type($a)
 
   class <emptyTree>::<C LetAccessor><<C <todo sym>>> < (::<todo sym>)
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
       <self>.returns(<emptyTree>::<C Integer>)
     end
 
@@ -126,7 +126,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
       @x
     end
 
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
       <self>.params(:x, <emptyTree>::<C Integer>).returns(<emptyTree>::<C Integer>)
     end
 
@@ -134,8 +134,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
       @x = x
     end
 
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
-      <self>.params(:something, ::T.untyped()).void()
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+      <self>.params(:something, ::<root>::<C T>.untyped()).void()
     end
 
     def initialize<<todo method>>(something, &<blk>)
@@ -154,7 +154,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   class <emptyTree>::<C DesugaredLetNilable><<C <todo sym>>> < (::<todo sym>)
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
       <self>.returns(<emptyTree>::<C Integer>)
     end
 
@@ -173,7 +173,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
       end
     end
 
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
       <self>.void()
     end
 
@@ -197,7 +197,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
       end
     end
 
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
       <self>.void()
     end
 
@@ -216,8 +216,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   class <emptyTree>::<C TypeParams><<C <todo sym>>> < (::<todo sym>)
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
-      <self>.type_parameters(:A, :B, :C).params(:a, ::T.type_parameter(:A), :b, ::T.nilable(::T.type_parameter(:B)), :c, ::T.type_parameter(:C)).void()
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+      <self>.type_parameters(:A, :B, :C).params(:a, ::<root>::<C T>.type_parameter(:A), :b, ::<root>::<C T>.nilable(::<root>::<C T>.type_parameter(:B)), :c, ::<root>::<C T>.type_parameter(:C)).void()
     end
 
     def foo<<todo method>>(a, b, c, &<blk>)
@@ -255,12 +255,12 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC4>)
 
   class <emptyTree>::<C Foo><<C <todo sym>>> < (::<todo sym>)
-    ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
-      <self>.params(:x, ::T.untyped()).void()
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+      <self>.params(:x, ::<root>::<C T>.untyped()).void()
     end
 
     def initialize<<todo method>>(x, &<blk>)
-      @x = <cast:let>(x, <todo sym>, ::T.untyped())
+      @x = <cast:let>(x, <todo sym>, ::<root>::<C T>.untyped())
     end
 
     <runtime method definition of initialize>
