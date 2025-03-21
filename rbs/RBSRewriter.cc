@@ -818,7 +818,7 @@ unique_ptr<parser::Node> RBSRewriter::run(unique_ptr<parser::Node> node) {
         return node;
     }
 
-    return rewriteNode(move(node));
+    return rewriteBody(move(node));
 }
 
 } // namespace sorbet::rbs
