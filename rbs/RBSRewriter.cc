@@ -467,6 +467,20 @@ void RBSRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &sign
     }
 }
 
+bool isVisibilitySend(parser::Send *send) {
+    return send->receiver == nullptr && send->args.size() == 1 &&
+           (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
+            send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
+            send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
+            send->method == core::Names::packagePrivateClassMethod());
+}
+
+bool isAttrAccessorSend(parser::Send *send) {
+    return send->receiver == nullptr &&
+           (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
+            send->method == core::Names::attrAccessor());
+}
+
 unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
@@ -482,11 +496,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
                 insertSignatures(newStmts, *comments);
             }
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
-            if (send->receiver == nullptr && send->args.size() == 1 &&
-                (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
-                 send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
-                 send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
-                 send->method == core::Names::packagePrivateClassMethod())) {
+            if (isVisibilitySend(send)) {
                 auto &arg = send->args[0];
 
                 if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
@@ -498,9 +508,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
                         insertSignatures(newStmts, *comments);
                     }
                 }
-            } else if (send->receiver == nullptr &&
-                       (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
-                        send->method == core::Names::attrAccessor())) {
+            } else if (isAttrAccessorSend(send)) {
                 if (auto comments = getRBSSignatures(stmt)) {
                     insertSignatures(newStmts, *comments);
                 }
@@ -532,11 +540,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
             return make_unique<parser::Begin>(def->loc, move(newStmts));
         }
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
-        if (send->receiver == nullptr && send->args.size() == 1 &&
-            (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
-             send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
-             send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
-             send->method == core::Names::packagePrivateClassMethod())) {
+        if (isVisibilitySend(send)) {
             auto &arg = send->args[0];
 
             if (auto def = parser::cast_node<parser::DefMethod>(arg.get())) {
@@ -554,9 +558,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
                     return make_unique<parser::Begin>(def->loc, move(newStmts));
                 }
             }
-        } else if (send->receiver == nullptr &&
-                   (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
-                    send->method == core::Names::attrAccessor())) {
+        } else if (isAttrAccessorSend(send)) {
             if (auto comments = getRBSSignatures(node)) {
                 auto newStmts = parser::NodeVec();
                 insertSignatures(newStmts, *comments);
