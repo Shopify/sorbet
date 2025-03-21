@@ -299,8 +299,6 @@ bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser:
 
 optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
                                                                  core::LocOffsets fromLoc) {
-    // std::cerr << "Finding RBS comments for node: " << node->toString(ctx) << std::endl;
-
     auto source = ctx.file.data(ctx).source();
 
     // We want to find the comment right after the end of the assign
@@ -499,10 +497,14 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
             if (auto comments = getRBSSignatures(stmt)) {
                 insertSignatures(newStmts, *comments);
             }
+            newStmts.emplace_back(rewriteNode(move(stmt)));
+            continue;
         } else if (auto def = parser::cast_node<parser::DefS>(stmt.get())) {
             if (auto comments = getRBSSignatures(stmt)) {
                 insertSignatures(newStmts, *comments);
             }
+            newStmts.emplace_back(rewriteNode(move(stmt)));
+            continue;
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (isVisibilitySend(send)) {
                 auto &arg = send->args[0];
@@ -511,18 +513,25 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
                     if (auto comments = getRBSSignatures(arg)) {
                         insertSignatures(newStmts, *comments);
                     }
+                    newStmts.emplace_back(rewriteNode(move(stmt)));
+                    continue;
                 } else if (auto def = parser::cast_node<parser::DefS>(arg.get())) {
                     if (auto comments = getRBSSignatures(arg)) {
                         insertSignatures(newStmts, *comments);
                     }
+                    newStmts.emplace_back(rewriteNode(move(stmt)));
+                    continue;
                 }
             } else if (isAttrAccessorSend(send)) {
                 if (auto comments = getRBSSignatures(stmt)) {
                     insertSignatures(newStmts, *comments);
                 }
+                newStmts.emplace_back(rewriteNode(move(stmt)));
+                continue;
             }
         }
 
+        stmt = maybeInsertRBSCast(move(stmt));
         newStmts.emplace_back(rewriteNode(move(stmt)));
     }
 
@@ -531,7 +540,9 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
 }
 
 unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node) {
-    if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
+    if (node == nullptr) {
+        return node;
+    } else if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(move(node));
     } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
@@ -561,6 +572,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
         }
     }
 
+    node = maybeInsertRBSCast(move(node));
     return rewriteNode(move(node));
 }
 
@@ -581,8 +593,8 @@ void RBSRewriter::maybeSaveSignature(parser::Block *block) {
     lastSignature = block;
 }
 
-unique_ptr<parser::Node> RBSRewriter::addRBSCast(unique_ptr<parser::Node> node, unique_ptr<parser::Node> type,
-                                                 InlineComment::Kind kind) {
+unique_ptr<parser::Node> insertRBSCast(unique_ptr<parser::Node> node, unique_ptr<parser::Node> type,
+                                       InlineComment::Kind kind) {
     if (kind == InlineComment::Kind::LET) {
         return parser::MK::TLet(type->loc, move(node), move(type));
     } else if (kind == InlineComment::Kind::CAST) {
@@ -592,6 +604,45 @@ unique_ptr<parser::Node> RBSRewriter::addRBSCast(unique_ptr<parser::Node> node, 
     } else {
         Exception::raise("Unknown assertion kind");
     }
+}
+
+unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node> node) {
+    unique_ptr<parser::Node> result;
+
+    if (auto asgn = parser::cast_node<parser::Assign>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
+            asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
+        }
+        result = move(node);
+    } else if (auto asgn = parser::cast_node<parser::AndAsgn>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(asgn->right, asgn->left->loc)) {
+            asgn->right = insertRBSCast(move(asgn->right), move(rbsType->first), rbsType->second);
+        }
+        result = move(node);
+    } else if (auto asgn = parser::cast_node<parser::OpAsgn>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(asgn->right, asgn->left->loc)) {
+            asgn->right = insertRBSCast(move(asgn->right), move(rbsType->first), rbsType->second);
+        }
+        result = move(node);
+    } else if (auto asgn = parser::cast_node<parser::OrAsgn>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(asgn->right, asgn->left->loc)) {
+            asgn->right = insertRBSCast(move(asgn->right), move(rbsType->first), rbsType->second);
+        }
+        result = move(node);
+    } else if (auto asgn = parser::cast_node<parser::Masgn>(node.get())) {
+        if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
+            asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
+        }
+        result = move(node);
+    } else {
+        if (auto rbsType = getRBSAssertionType(node, node->loc)) {
+            result = insertRBSCast(move(node), move(rbsType->first), rbsType->second);
+        } else {
+            result = move(node);
+        }
+    }
+
+    return result;
 }
 
 unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node) {
@@ -619,14 +670,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             result = move(node);
         },
         [&](parser::Begin *begin) { result = rewriteBegin(move(node)); },
-        [&](parser::Assign *asgn) {
-            if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
-                auto rhs = rewriteNode(move(asgn->rhs));
-                asgn->rhs = addRBSCast(move(rhs), move(rbsType->first), rbsType->second);
-            }
-
-            result = move(node);
-        },
+        [&](parser::Assign *asgn) { result = move(node); },
         // END hand-ordered clauses
         [&](parser::And *and_) {
             and_->left = rewriteNode(move(and_->left));
@@ -638,30 +682,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             or_->right = rewriteNode(move(or_->right));
             result = move(node);
         },
-        [&](parser::AndAsgn *andAsgn) {
-            if (auto rbsType = getRBSAssertionType(andAsgn->right, andAsgn->left->loc)) {
-                auto rhs = rewriteNode(move(andAsgn->right));
-                andAsgn->right = addRBSCast(move(rhs), move(rbsType->first), rbsType->second);
-            }
-
-            result = move(node);
-        },
-        [&](parser::OrAsgn *orAsgn) {
-            if (auto rbsType = getRBSAssertionType(orAsgn->right, orAsgn->left->loc)) {
-                auto rhs = rewriteNode(move(orAsgn->right));
-                orAsgn->right = addRBSCast(move(rhs), move(rbsType->first), rbsType->second);
-            }
-
-            result = move(node);
-        },
-        [&](parser::OpAsgn *opAsgn) {
-            if (auto rbsType = getRBSAssertionType(opAsgn->right, opAsgn->left->loc)) {
-                auto rhs = rewriteNode(move(opAsgn->right));
-                opAsgn->right = addRBSCast(move(rhs), move(rbsType->first), rbsType->second);
-            }
-
-            result = move(node);
-        },
+        [&](parser::AndAsgn *andAsgn) { result = move(node); }, [&](parser::OrAsgn *orAsgn) { result = move(node); },
+        [&](parser::OpAsgn *opAsgn) { result = move(node); },
         [&](parser::CSend *csend) {
             csend->receiver = rewriteNode(move(csend->receiver));
             csend->args = rewriteNodes(move(csend->args));
@@ -771,15 +793,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             result = move(node);
         },
 
-        [&](parser::Masgn *masgn) {
-            if (auto rbsType = getRBSAssertionType(node, masgn->rhs->loc)) {
-                auto rhs = rewriteNode(move(masgn->rhs));
-                masgn->rhs = addRBSCast(move(rhs), move(rbsType->first), rbsType->second);
-            }
-
-            result = move(node);
-        },
-        [&](parser::True *t) { result = move(node); }, [&](parser::False *t) { result = move(node); },
+        [&](parser::Masgn *masgn) { result = move(node); }, [&](parser::True *t) { result = move(node); },
+        [&](parser::False *t) { result = move(node); },
 
         [&](parser::Case *case_) {
             case_->whens = rewriteNodes(move(case_->whens));
