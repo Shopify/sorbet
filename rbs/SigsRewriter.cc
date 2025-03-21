@@ -160,7 +160,7 @@ Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
     return Comments{annotations, signatures};
 }
 
-unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(unique_ptr<parser::Node> &node) {
+unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) {
     auto comments = signaturesForLoc(node->loc);
 
     if (comments.signatures.empty()) {
@@ -170,13 +170,13 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(unique_ptr<parser::N
     auto signatures = make_unique<parser::NodeVec>();
 
     for (auto &signature : comments.signatures) {
-        if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
+        if (parser::isa_node<parser::DefMethod>(node) || parser::isa_node<parser::DefS>(node)) {
             auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
             if (rbsMethodType.first) {
                 unique_ptr<parser::Node> sig;
 
                 sig = rbs::MethodTypeTranslator::methodSignature(
-                    ctx, node.get(), signature.commentLoc, move(rbsMethodType.first.value()), comments.annotations);
+                    ctx, node, signature.commentLoc, move(rbsMethodType.first.value()), comments.annotations);
 
                 signatures->emplace_back(move(sig));
             } else {
@@ -185,7 +185,7 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(unique_ptr<parser::N
                     e.setHeader("Failed to parse RBS signature ({})", rbsMethodType.second->message);
                 }
             }
-        } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
+        } else if (auto send = parser::cast_node<parser::Send>(node)) {
             auto rbsType = rbs::RBSParser::parseType(ctx, signature);
             if (rbsType.first) {
                 auto sig = rbs::MethodTypeTranslator::attrSignature(ctx, send, signature.commentLoc,
@@ -221,7 +221,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
 
     for (auto &stmt : oldStmts) {
         if (parser::isa_node<parser::DefMethod>(stmt.get()) || parser::cast_node<parser::DefS>(stmt.get())) {
-            if (auto signatures = signaturesForNode(stmt)) {
+            if (auto signatures = signaturesForNode(stmt.get())) {
                 for (auto &signature : *signatures) {
                     newStmts.emplace_back(move(signature));
                 }
@@ -231,7 +231,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (isVisibilitySend(send)) {
                 auto &arg = send->args[0];
-                if (auto signatures = signaturesForNode(arg)) {
+                if (auto signatures = signaturesForNode(arg.get())) {
                     for (auto &signature : *signatures) {
                         newStmts.emplace_back(move(signature));
                     }
@@ -239,7 +239,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
                 newStmts.emplace_back(rewriteNode(move(stmt)));
                 continue;
             } else if (isAttrAccessorSend(send)) {
-                if (auto signatures = signaturesForNode(stmt)) {
+                if (auto signatures = signaturesForNode(stmt.get())) {
                     for (auto &signature : *signatures) {
                         newStmts.emplace_back(move(signature));
                     }
@@ -262,7 +262,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
     } else if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(move(node));
     } else if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
-        if (auto signatures = signaturesForNode(node)) {
+        if (auto signatures = signaturesForNode(node.get())) {
             auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
             for (auto &signature : *signatures) {
                 begin->stmts.emplace_back(move(signature));
@@ -273,7 +273,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
         if (isVisibilitySend(send)) {
             auto &arg = send->args[0];
-            if (auto signatures = signaturesForNode(arg)) {
+            if (auto signatures = signaturesForNode(arg.get())) {
                 auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
                 for (auto &signature : *signatures) {
                     begin->stmts.emplace_back(move(signature));
@@ -282,7 +282,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
                 return move(begin);
             }
         } else if (isAttrAccessorSend(send)) {
-            if (auto signatures = signaturesForNode(node)) {
+            if (auto signatures = signaturesForNode(node.get())) {
                 auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
                 for (auto &signature : *signatures) {
                     begin->stmts.emplace_back(move(signature));
