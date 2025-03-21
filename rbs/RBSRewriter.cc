@@ -151,8 +151,8 @@ unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Nod
             if (rbsMethodType.first) {
                 unique_ptr<parser::Node> sig;
 
-                sig = rbs::MethodTypeTranslator::methodSignatureNode(ctx, node.get(), move(rbsMethodType.first.value()),
-                                                                     comments.annotations);
+                sig = rbs::MethodTypeTranslator::methodSignature(ctx, node.get(), move(rbsMethodType.first.value()),
+                                                                 comments.annotations);
 
                 signatures->emplace_back(move(sig));
             } else {
@@ -164,8 +164,8 @@ unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Nod
         } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
             auto rbsType = rbs::RBSParser::parseType(ctx, signature);
             if (rbsType.first) {
-                auto sig = rbs::MethodTypeTranslator::attrSignatureNode(ctx, send, move(rbsType.first.value()),
-                                                                        comments.annotations);
+                auto sig = rbs::MethodTypeTranslator::attrSignature(ctx, send, move(rbsType.first.value()),
+                                                                    comments.annotations);
                 signatures->emplace_back(move(sig));
             } else {
                 ENFORCE(rbsType.second);
