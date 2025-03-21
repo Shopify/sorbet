@@ -619,6 +619,8 @@ unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node
         result = move(node);
     } else if (auto sclass = parser::cast_node<parser::SClass>(node.get())) {
         result = move(node);
+    } else if (auto const_ = parser::cast_node<parser::Const>(node.get())) {
+        result = move(node);
     } else if (auto asgn = parser::cast_node<parser::Assign>(node.get())) {
         if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
             asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
