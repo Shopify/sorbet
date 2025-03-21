@@ -39,6 +39,22 @@ bool isAttrAccessorSend(parser::Send *send) {
             send->method == core::Names::attrAccessor());
 }
 
+parser::Node *signatureTarget(parser::Node *node) {
+    if (parser::isa_node<parser::DefMethod>(node) || parser::cast_node<parser::DefS>(node)) {
+        return node;
+    }
+
+    if (auto send = parser::cast_node<parser::Send>(node)) {
+        if (isVisibilitySend(send)) {
+            return send->args[0].get();
+        } else if (isAttrAccessorSend(send)) {
+            return node;
+        }
+    }
+
+    return nullptr;
+}
+
 } // namespace
 
 Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
@@ -220,19 +236,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
     auto newStmts = parser::NodeVec();
 
     for (auto &stmt : oldStmts) {
-        parser::Node *target = nullptr;
-
-        if (parser::isa_node<parser::DefMethod>(stmt.get()) || parser::cast_node<parser::DefS>(stmt.get())) {
-            target = stmt.get();
-        } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
-            if (isVisibilitySend(send)) {
-                target = send->args[0].get();
-            } else if (isAttrAccessorSend(send)) {
-                target = stmt.get();
-            }
-        }
-
-        if (target) {
+        if (auto target = signatureTarget(stmt.get())) {
             if (auto signatures = signaturesForNode(target)) {
                 for (auto &signature : *signatures) {
                     newStmts.emplace_back(move(signature));
@@ -250,37 +254,20 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
 unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
-    } else if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
+    }
+
+    if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(move(node));
-    } else if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
-        if (auto signatures = signaturesForNode(node.get())) {
+    }
+
+    if (auto target = signatureTarget(node.get())) {
+        if (auto signatures = signaturesForNode(target)) {
             auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
             for (auto &signature : *signatures) {
                 begin->stmts.emplace_back(move(signature));
             }
             begin->stmts.emplace_back(move(node));
             return move(begin);
-        }
-    } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
-        if (isVisibilitySend(send)) {
-            auto &arg = send->args[0];
-            if (auto signatures = signaturesForNode(arg.get())) {
-                auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
-                for (auto &signature : *signatures) {
-                    begin->stmts.emplace_back(move(signature));
-                }
-                begin->stmts.emplace_back(move(node));
-                return move(begin);
-            }
-        } else if (isAttrAccessorSend(send)) {
-            if (auto signatures = signaturesForNode(node.get())) {
-                auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
-                for (auto &signature : *signatures) {
-                    begin->stmts.emplace_back(move(signature));
-                }
-                begin->stmts.emplace_back(move(node));
-                return move(begin);
-            }
         }
     }
 
