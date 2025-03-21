@@ -232,7 +232,7 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableCont
 
     // Build the sig
 
-    auto sigBuilder = parser::MK::Self(methodType.loc);
+    auto sigBuilder = parser::MK::Self(commentLoc);
     sigBuilder = handleAnnotationsNode(std::move(sigBuilder), annotations);
 
     if (typeParams.size() > 0) {
@@ -242,7 +242,7 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableCont
         for (auto &param : typeParams) {
             typeParamsVector.emplace_back(parser::MK::Symbol(param.first, param.second));
         }
-        sigBuilder = parser::MK::Send(methodType.loc, move(sigBuilder), core::Names::typeParameters(), methodType.loc,
+        sigBuilder = parser::MK::Send(commentLoc, move(sigBuilder), core::Names::typeParameters(), commentLoc,
                                       move(typeParamsVector));
     }
 
@@ -250,8 +250,7 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableCont
         auto hash = parser::MK::Hash(methodType.loc, true, move(sigParams));
         auto args = parser::NodeVec();
         args.emplace_back(move(hash));
-        sigBuilder =
-            parser::MK::Send(methodType.loc, move(sigBuilder), core::Names::params(), methodType.loc, move(args));
+        sigBuilder = parser::MK::Send(commentLoc, move(sigBuilder), core::Names::params(), commentLoc, move(args));
     }
 
     rbs_node_t *returnValue = functionType->return_type;
@@ -260,15 +259,14 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableCont
         sigBuilder = parser::MK::Send0(loc, move(sigBuilder), core::Names::void_(), loc);
     } else {
         auto returnType = TypeTranslator::toParserNode(ctx, typeParams, returnValue, methodType.loc);
-        sigBuilder = parser::MK::Send1(methodType.loc, move(sigBuilder), core::Names::returns(), methodType.loc,
-                                       move(returnType));
+        sigBuilder =
+            parser::MK::Send1(commentLoc, move(sigBuilder), core::Names::returns(), commentLoc, move(returnType));
     }
 
     auto sigArgs = parser::NodeVec();
-    auto t = parser::MK::T(methodType.loc);
-    auto t_sig = parser::MK::Const(methodType.loc, move(t), core::Names::Constants::Sig());
-    auto t_sig_withoutRuntime =
-        parser::MK::Const(methodType.loc, move(t_sig), core::Names::Constants::WithoutRuntime());
+    auto t = parser::MK::T(commentLoc);
+    auto t_sig = parser::MK::Const(commentLoc, move(t), core::Names::Constants::Sig());
+    auto t_sig_withoutRuntime = parser::MK::Const(commentLoc, move(t_sig), core::Names::Constants::WithoutRuntime());
     sigArgs.emplace_back(move(t_sig_withoutRuntime));
 
     bool isFinal = absl::c_any_of(annotations, [](const Comment &annotation) { return annotation.string == "final"; });
@@ -277,22 +275,19 @@ unique_ptr<parser::Node> MethodTypeTranslator::methodSignature(core::MutableCont
         sigArgs.emplace_back(parser::MK::Symbol(methodType.loc, core::Names::final_()));
     }
 
-    auto sorbet =
-        parser::MK::Const(methodType.loc, parser::MK::Cbase(methodType.loc), core::Names::Constants::Sorbet());
-    auto sorbet_private = parser::MK::Const(methodType.loc, move(sorbet), core::Names::Constants::Private());
-    auto sorbet_private_static =
-        parser::MK::Const(methodType.loc, move(sorbet_private), core::Names::Constants::Static());
-    auto sig = parser::MK::Send(methodType.loc, move(sorbet_private_static), core::Names::sig(), methodType.loc,
-                                move(sigArgs));
+    auto sorbet = parser::MK::Const(commentLoc, parser::MK::Cbase(commentLoc), core::Names::Constants::Sorbet());
+    auto sorbet_private = parser::MK::Const(commentLoc, move(sorbet), core::Names::Constants::Private());
+    auto sorbet_private_static = parser::MK::Const(commentLoc, move(sorbet_private), core::Names::Constants::Static());
+    auto sig = parser::MK::Send(commentLoc, move(sorbet_private_static), core::Names::sig(), commentLoc, move(sigArgs));
 
-    return make_unique<parser::Block>(methodType.loc, move(sig), nullptr, move(sigBuilder));
+    return make_unique<parser::Block>(commentLoc, move(sig), nullptr, move(sigBuilder));
 }
 
 unique_ptr<parser::Node> MethodTypeTranslator::attrSignature(core::MutableContext ctx, const parser::Send *send,
                                                              core::LocOffsets commentLoc, const Type attrType,
                                                              const vector<Comment> &annotations) {
     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
-    auto sigBuilder = parser::MK::Self(attrType.loc.copyWithZeroLength());
+    auto sigBuilder = parser::MK::Self(commentLoc);
     sigBuilder = handleAnnotationsNode(std::move(sigBuilder), annotations);
 
     if (send->args.size() == 0) {
@@ -322,27 +317,24 @@ unique_ptr<parser::Node> MethodTypeTranslator::attrSignature(core::MutableContex
         auto hash = parser::MK::Hash(send->loc, true, move(pairs));
         auto sigArgs = parser::NodeVec();
         sigArgs.emplace_back(move(hash));
-        sigBuilder =
-            parser::MK::Send(attrType.loc, move(sigBuilder), core::Names::params(), attrType.loc, move(sigArgs));
+        sigBuilder = parser::MK::Send(commentLoc, move(sigBuilder), core::Names::params(), commentLoc, move(sigArgs));
     }
 
-    sigBuilder = parser::MK::Send1(attrType.loc, move(sigBuilder), core::Names::returns(), attrType.loc,
+    sigBuilder = parser::MK::Send1(commentLoc, move(sigBuilder), core::Names::returns(), commentLoc,
                                    TypeTranslator::toParserNode(ctx, typeParams, attrType.node.get(), attrType.loc));
 
     auto sigArgs = parser::NodeVec();
-    auto t = parser::MK::T(attrType.loc);
-    auto t_sig = parser::MK::Const(attrType.loc, move(t), core::Names::Constants::Sig());
-    auto t_sig_withoutRuntime = parser::MK::Const(attrType.loc, move(t_sig), core::Names::Constants::WithoutRuntime());
+    auto t = parser::MK::T(commentLoc);
+    auto t_sig = parser::MK::Const(commentLoc, move(t), core::Names::Constants::Sig());
+    auto t_sig_withoutRuntime = parser::MK::Const(commentLoc, move(t_sig), core::Names::Constants::WithoutRuntime());
     sigArgs.emplace_back(move(t_sig_withoutRuntime));
 
-    auto sorbet = parser::MK::Const(attrType.loc, parser::MK::Cbase(attrType.loc), core::Names::Constants::Sorbet());
-    auto sorbet_private = parser::MK::Const(attrType.loc, move(sorbet), core::Names::Constants::Private());
-    auto sorbet_private_static =
-        parser::MK::Const(attrType.loc, move(sorbet_private), core::Names::Constants::Static());
-    auto sig =
-        parser::MK::Send(attrType.loc, move(sorbet_private_static), core::Names::sig(), attrType.loc, move(sigArgs));
+    auto sorbet = parser::MK::Const(commentLoc, parser::MK::Cbase(commentLoc), core::Names::Constants::Sorbet());
+    auto sorbet_private = parser::MK::Const(commentLoc, move(sorbet), core::Names::Constants::Private());
+    auto sorbet_private_static = parser::MK::Const(commentLoc, move(sorbet_private), core::Names::Constants::Static());
+    auto sig = parser::MK::Send(commentLoc, move(sorbet_private_static), core::Names::sig(), commentLoc, move(sigArgs));
 
-    return make_unique<parser::Block>(attrType.loc, move(sig), nullptr, move(sigBuilder));
+    return make_unique<parser::Block>(commentLoc, move(sig), nullptr, move(sigBuilder));
 }
 
 } // namespace sorbet::rbs

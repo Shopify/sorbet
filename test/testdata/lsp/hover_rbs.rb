@@ -77,7 +77,7 @@ def hover_keyword_params_1(x, y, z); T.unsafe(nil); end
 # Block params hover
 
 #: () { -> String } -> void
-#     ^ hover: # T::Sig::WithoutRuntime.sig:
+#     ^ hover: # T.proc:
 #              ^ TODO: RBS blocks do not have location yet
 #          ^ hover: T.class_of(String)
 #               ^ hover: T.class_of(String)
