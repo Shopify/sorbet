@@ -232,9 +232,16 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     Timer timeit(gs.tracer(), "runRBSTranslation", {{"file", string(file.data(gs).path())}});
     core::MutableContext ctx(gs, core::Symbols::root(), file);
     {
-        core::UnfreezeNameTable nameTableAccess(gs); // creates temporaries during desugaring
-        auto rewriter = rbs::RBSRewriter(ctx);
-        node = rewriter.run(move(node));
+        core::UnfreezeNameTable nameTableAccess(gs);
+
+        // if (gs.rbsSignaturesEnabled) {
+        // auto rewriter = rbs::SigsRewriter(ctx);
+        // node = rewriter.run(move(node));
+        // }
+        if (gs.rbsAssertionsEnabled || gs.rbsSignaturesEnabled) {
+            auto rewriter = rbs::RBSRewriter(ctx);
+            node = rewriter.run(move(node));
+        }
     }
     if (print.RBSTree.enabled) {
         print.ParseTree.fmt("{}\n", node->toStringWithTabs(gs, 0));
@@ -332,11 +339,9 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                 return emptyParsedFile(file);
             }
 
-            if (opts.rbsSignaturesEnabled || opts.rbsAssertionsEnabled) {
-                parseTree = runRBSRewrite(lgs, file, move(parseTree), print);
-                if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
-                    return emptyParsedFile(file);
-                }
+            parseTree = runRBSRewrite(lgs, file, move(parseTree), print);
+            if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
+                return emptyParsedFile(file);
             }
 
             tree = runDesugar(lgs, file, move(parseTree), print);

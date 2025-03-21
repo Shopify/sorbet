@@ -1,15 +1,45 @@
-#ifndef SORBET_RBS_REWRITER_H
-#define SORBET_RBS_REWRITER_H
+#ifndef SORBET_RBS_SIGS_REWRITER_H
+#define SORBET_RBS_SIGS_REWRITER_H
 
-#include "rbs/SigsRewriter.h"
+#include "parser/parser.h"
 #include "rbs/rbs_common.h"
 #include <memory>
 
 namespace sorbet::rbs {
 
-class RBSRewriter {
+/**
+ * A collection of annotations and signatures comments found on a method definition.
+ */
+struct Comments {
+    /**
+     * RBS annotation comments found on a method definition.
+     *
+     * Annotations are formatted as `@some_annotation`.
+     */
+    std::vector<rbs::Comment> annotations;
+
+    /**
+     * RBS signature comments found on a method definition.
+     *
+     * Signatures are formatted as `#: () -> void`.
+     */
+    std::vector<rbs::Comment> signatures;
+};
+
+struct InlineComment {
+    enum class Kind {
+        LET,
+        CAST,
+        MUST,
+    };
+
+    rbs::Comment comment;
+    Kind kind;
+};
+
+class SigsRewriter {
 public:
-    RBSRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};
+    SigsRewriter(core::MutableContext ctx) : ctx(ctx){};
     std::unique_ptr<parser::Node> run(std::unique_ptr<parser::Node> tree);
 
 private:
@@ -34,12 +64,8 @@ private:
     std::unique_ptr<parser::Node> maybeInsertRBSCast(std::unique_ptr<parser::Node> node);
     void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
     std::unique_ptr<parser::Node> wrapInBegin(std::unique_ptr<parser::Node> node, parser::NodeVec &signatures);
-    std::unique_ptr<parser::Node> insertRBSCast(std::unique_ptr<parser::Node> node, std::unique_ptr<parser::Node> type,
-                                                InlineComment::Kind kind);
-    bool isVisibilitySend(parser::Send *send);
-    bool isAttrAccessorSend(parser::Send *send);
 };
 
 } // namespace sorbet::rbs
 
-#endif // SORBET_RBS_REWRITER_H
+#endif // SORBET_RBS_SIGS_REWRITER_H

@@ -1,4 +1,4 @@
-#include "rbs/RBSRewriter.h"
+#include "rbs/SigsRewriter.h"
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
@@ -21,7 +21,7 @@ using namespace std;
 
 namespace sorbet::rbs {
 
-Comments RBSRewriter::findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) {
+Comments SigsRewriter::findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) {
     vector<rbs::Comment> annotations;
     vector<rbs::Comment> signatures;
 
@@ -138,7 +138,7 @@ Comments RBSRewriter::findRBSSignatureComments(string_view sourceCode, core::Loc
     return Comments{annotations, signatures};
 }
 
-unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Node> &node) {
+unique_ptr<parser::NodeVec> SigsRewriter::getRBSSignatures(unique_ptr<parser::Node> &node) {
     auto comments = findRBSSignatureComments(ctx.file.data(ctx).source(), node->loc);
 
     if (comments.signatures.empty()) {
@@ -195,7 +195,7 @@ unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(unique_ptr<parser::Nod
 /**
  * Check if the given range contains a heredoc marker `<<-` or `<<~`
  */
-bool RBSRewriter::hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos) {
+bool SigsRewriter::hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos) {
     string source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
     regex heredoc_pattern("(\\s+=\\s<<-|~)");
     smatch matches;
@@ -205,7 +205,7 @@ bool RBSRewriter::hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos)
 /**
  * Check if the given expression is a heredoc
  */
-bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
+bool SigsRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
     if (node == nullptr) {
         return false;
     }
@@ -297,7 +297,7 @@ bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser:
     return result;
 }
 
-optional<rbs::InlineComment> RBSRewriter::findRBSTrailingCommentFromPos(uint32_t fromPos) {
+optional<rbs::InlineComment> SigsRewriter::findRBSTrailingCommentFromPos(uint32_t fromPos) {
     auto source = ctx.file.data(ctx).source();
 
     // Get the position of the end of the line from the startingLoc
@@ -349,8 +349,8 @@ optional<rbs::InlineComment> RBSRewriter::findRBSTrailingCommentFromPos(uint32_t
     };
 }
 
-optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
-                                                                 core::LocOffsets fromLoc) {
+optional<rbs::InlineComment> SigsRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
+                                                                  core::LocOffsets fromLoc) {
     // We want to find the comment right after the end of the assign
     auto fromPos = node->loc.endPos();
 
@@ -377,7 +377,7 @@ optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<pars
  * Get the RBS type from the given assign
  */
 optional<pair<unique_ptr<parser::Node>, InlineComment::Kind>>
-RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
+SigsRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
     auto inlineComment = findRBSTrailingComment(node, fromLoc);
 
     if (!inlineComment) {
@@ -417,7 +417,7 @@ RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffset
  *
  * We need to be aware of the type parameter `X` so we can use it to resolve the type of `y`.
  */
-vector<pair<core::LocOffsets, core::NameRef>> RBSRewriter::lastTypeParams() {
+vector<pair<core::LocOffsets, core::NameRef>> SigsRewriter::lastTypeParams() {
     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
 
     // Do we have a previous signature?
@@ -451,7 +451,7 @@ vector<pair<core::LocOffsets, core::NameRef>> RBSRewriter::lastTypeParams() {
     return typeParams;
 }
 
-parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
+parser::NodeVec SigsRewriter::rewriteNodes(parser::NodeVec nodes) {
     auto oldStmts = move(nodes);
     auto newStmts = parser::NodeVec();
 
@@ -462,14 +462,14 @@ parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
     return newStmts;
 }
 
-void RBSRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures) {
+void SigsRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures) {
     for (auto &signature : signatures) {
         lastSignature = signature.get();
         stmts.emplace_back(move(signature));
     }
 }
 
-bool RBSRewriter::isVisibilitySend(parser::Send *send) {
+bool isVisibilitySend(parser::Send *send) {
     return send->receiver == nullptr && send->args.size() == 1 &&
            (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
             send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
@@ -477,13 +477,13 @@ bool RBSRewriter::isVisibilitySend(parser::Send *send) {
             send->method == core::Names::packagePrivateClassMethod());
 }
 
-bool RBSRewriter::isAttrAccessorSend(parser::Send *send) {
+bool isAttrAccessorSend(parser::Send *send) {
     return send->receiver == nullptr &&
            (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
             send->method == core::Names::attrAccessor());
 }
 
-unique_ptr<parser::Node> RBSRewriter::wrapInBegin(unique_ptr<parser::Node> node, parser::NodeVec &signatures) {
+unique_ptr<parser::Node> SigsRewriter::wrapInBegin(unique_ptr<parser::Node> node, parser::NodeVec &signatures) {
     auto loc = node->loc;
     auto newStmts = parser::NodeVec();
     insertSignatures(newStmts, signatures);
@@ -491,7 +491,7 @@ unique_ptr<parser::Node> RBSRewriter::wrapInBegin(unique_ptr<parser::Node> node,
     return make_unique<parser::Begin>(loc, move(newStmts));
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
     auto newStmts = parser::NodeVec();
@@ -543,7 +543,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
     return node;
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     } else if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
@@ -580,7 +580,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
     return rewriteNode(move(node));
 }
 
-void RBSRewriter::maybeSaveSignature(parser::Block *block) {
+void SigsRewriter::maybeSaveSignature(parser::Block *block) {
     if (block->body == nullptr) {
         return;
     }
@@ -597,8 +597,8 @@ void RBSRewriter::maybeSaveSignature(parser::Block *block) {
     lastSignature = block;
 }
 
-unique_ptr<parser::Node> RBSRewriter::insertRBSCast(unique_ptr<parser::Node> node, unique_ptr<parser::Node> type,
-                                                    InlineComment::Kind kind) {
+unique_ptr<parser::Node> insertRBSCast(unique_ptr<parser::Node> node, unique_ptr<parser::Node> type,
+                                       InlineComment::Kind kind) {
     if (kind == InlineComment::Kind::LET) {
         return parser::MK::TLet(type->loc, move(node), move(type));
     } else if (kind == InlineComment::Kind::CAST) {
@@ -610,7 +610,7 @@ unique_ptr<parser::Node> RBSRewriter::insertRBSCast(unique_ptr<parser::Node> nod
     }
 }
 
-unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> SigsRewriter::maybeInsertRBSCast(unique_ptr<parser::Node> node) {
     unique_ptr<parser::Node> result;
 
     if (auto klass = parser::cast_node<parser::Class>(node.get())) {
@@ -678,7 +678,7 @@ unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node
     return result;
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
@@ -985,7 +985,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
     return result;
 }
 
-unique_ptr<parser::Node> RBSRewriter::run(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> SigsRewriter::run(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
