@@ -324,35 +324,34 @@ optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::No
     // Get the position of the end of the line from the startingLoc
     auto endPos = source.find('\n', fromPos);
     if (endPos == string::npos) {
-        return nullopt;
+        // If we don't find a newline, we just use the rest of the file
+        endPos = source.size();
     }
 
     if (fromPos == endPos) {
+        // If the start and end of the comment are the same, we don't have a comment
         return nullopt;
     }
 
-    // Check between the startingLoc and the end of the line for a `#: ...` comment
-    auto comment = source.substr(fromPos, endPos - fromPos);
-
-    // Find the position of the `#:` in the comment
-    auto commentStart = comment.find("#:");
+    // Find the position of the `#:` between the fromPos and the end of the line
+    auto commentStart = source.substr(0, endPos).find("#:", fromPos);
     if (commentStart == string::npos) {
         return nullopt;
     }
 
     // Adjust the location to be the correct position depending on the number of spaces after the `#:`
-    auto offset = 0;
-    for (auto i = fromPos + commentStart + 2; i < endPos; i++) {
-        if (source[i] == ' ') {
-            offset++;
-        } else {
-            break;
-        }
+    auto contentStart = commentStart + 2;
+    char c = source[contentStart];
+    while (c == ' ' && contentStart < endPos) {
+        contentStart++;
+        c = source[contentStart];
     }
 
-    return rbs::Comment{core::LocOffsets{fromPos + (uint32_t)commentStart, static_cast<uint32_t>(endPos)},
-                        core::LocOffsets{fromPos + (uint32_t)commentStart + offset + 2, static_cast<uint32_t>(endPos)},
-                        absl::StripAsciiWhitespace(comment.substr(commentStart + 2))};
+    auto content = source.substr(contentStart, endPos - contentStart);
+
+    return rbs::Comment{core::LocOffsets{(uint32_t)commentStart, static_cast<uint32_t>(endPos)},
+                        core::LocOffsets{(uint32_t)contentStart, static_cast<uint32_t>(endPos)},
+                        absl::StripAsciiWhitespace(content)};
 }
 
 /**
