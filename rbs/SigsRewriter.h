@@ -45,9 +45,6 @@ public:
 private:
     core::MutableContext ctx;
 
-    Comments signaturesForLoc(core::LocOffsets loc);
-    std::unique_ptr<parser::NodeVec> signaturesForNode(parser::Node *node);
-
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);

@@ -55,7 +55,7 @@ parser::Node *signaturesTarget(parser::Node *node) {
     return nullptr;
 }
 
-optional<MethodType> parseMethodType(core::Context ctx, Comment signature) {
+optional<MethodType> parseMethodType(core::MutableContext ctx, Comment signature) {
     auto type = RBSParser::parseSignature(ctx, signature);
     if (type.second) {
         if (auto e = ctx.beginError(type.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
@@ -68,7 +68,7 @@ optional<MethodType> parseMethodType(core::Context ctx, Comment signature) {
     return move(type.first);
 }
 
-optional<Type> parseAttrType(core::Context ctx, Comment signature) {
+optional<Type> parseAttrType(core::MutableContext ctx, Comment signature) {
     auto type = RBSParser::parseType(ctx, signature);
     if (type.second) {
         // Before raising a parse error, let's check if the user tried to use a method signature on an accessor
@@ -88,9 +88,7 @@ optional<Type> parseAttrType(core::Context ctx, Comment signature) {
     return move(type.first);
 }
 
-} // namespace
-
-Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
+Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc) {
     auto source = ctx.file.data(ctx).source();
 
     vector<Comment> annotations;
@@ -209,8 +207,8 @@ Comments SigsRewriter::signaturesForLoc(core::LocOffsets loc) {
     return Comments{annotations, signatures};
 }
 
-unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) {
-    auto comments = signaturesForLoc(node->loc);
+unique_ptr<parser::NodeVec> signaturesForNode(core::MutableContext ctx, parser::Node *node) {
+    auto comments = signaturesForLoc(ctx, node->loc);
 
     if (comments.signatures.empty()) {
         return nullptr;
@@ -239,6 +237,8 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) 
     return signatures;
 }
 
+} // namespace
+
 unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     ENFORCE(begin != nullptr);
@@ -248,7 +248,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
 
     for (auto &stmt : oldStmts) {
         if (auto target = signaturesTarget(stmt.get())) {
-            if (auto signatures = signaturesForNode(target)) {
+            if (auto signatures = signaturesForNode(ctx, target)) {
                 for (auto &signature : *signatures) {
                     begin->stmts.emplace_back(move(signature));
                 }
@@ -271,7 +271,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
     }
 
     if (auto target = signaturesTarget(node.get())) {
-        if (auto signatures = signaturesForNode(target)) {
+        if (auto signatures = signaturesForNode(ctx, target)) {
             auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
             for (auto &signature : *signatures) {
                 begin->stmts.emplace_back(move(signature));
