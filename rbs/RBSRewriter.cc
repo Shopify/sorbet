@@ -21,6 +21,30 @@ using namespace std;
 
 namespace sorbet::rbs {
 
+namespace {
+
+unique_ptr<parser::Node> insertCast(unique_ptr<parser::Node> node,
+                                    optional<pair<unique_ptr<parser::Node>, InlineComment::Kind>> pair) {
+    if (!pair) {
+        return node;
+    }
+
+    auto type = move(pair->first);
+    auto kind = pair->second;
+
+    if (kind == InlineComment::Kind::LET) {
+        return parser::MK::TLet(type->loc, move(node), move(type));
+    } else if (kind == InlineComment::Kind::CAST) {
+        return parser::MK::TCast(type->loc, move(node), move(type));
+    } else if (kind == InlineComment::Kind::MUST) {
+        return parser::MK::TMust(type->loc, move(node));
+    } else {
+        Exception::raise("Unknown assertion kind");
+    }
+}
+
+} // namespace
+
 /**
  * Check if the given range contains a heredoc marker `<<-` or `<<~`
  */
@@ -126,7 +150,7 @@ bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser:
     return result;
 }
 
-optional<rbs::InlineComment> RBSRewriter::findRBSTrailingCommentFromPos(uint32_t fromPos) {
+optional<rbs::InlineComment> RBSRewriter::commentForPos(uint32_t fromPos) {
     auto source = ctx.file.data(ctx).source();
 
     // Get the position of the end of the line from the startingLoc
@@ -178,8 +202,7 @@ optional<rbs::InlineComment> RBSRewriter::findRBSTrailingCommentFromPos(uint32_t
     };
 }
 
-optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
-                                                                 core::LocOffsets fromLoc) {
+optional<rbs::InlineComment> RBSRewriter::commentForNode(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
     // We want to find the comment right after the end of the assign
     auto fromPos = node->loc.endPos();
 
@@ -199,15 +222,15 @@ optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<pars
         fromPos = fromLoc.beginPos();
     }
 
-    return findRBSTrailingCommentFromPos(fromPos);
+    return commentForPos(fromPos);
 }
 
 /**
  * Get the RBS type from the given assign
  */
 optional<pair<unique_ptr<parser::Node>, InlineComment::Kind>>
-RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
-    auto inlineComment = findRBSTrailingComment(node, fromLoc);
+RBSRewriter::assertionForNode(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
+    auto inlineComment = commentForNode(node, fromLoc);
 
     if (!inlineComment) {
         return nullopt;
@@ -280,60 +303,22 @@ vector<pair<core::LocOffsets, core::NameRef>> RBSRewriter::lastTypeParams() {
     return typeParams;
 }
 
-parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
-    auto oldStmts = move(nodes);
-    auto newStmts = parser::NodeVec();
-
-    for (auto &node : oldStmts) {
-        newStmts.emplace_back(rewriteNode(move(node)));
+void RBSRewriter::maybeSaveSignature(parser::Block *block) {
+    if (block->body == nullptr) {
+        return;
     }
 
-    return newStmts;
-}
-
-unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
-    auto begin = parser::cast_node<parser::Begin>(node.get());
-    auto oldStmts = move(begin->stmts);
-    auto newStmts = parser::NodeVec();
-
-    for (auto &stmt : oldStmts) {
-        // stmt = maybeInsertRBSCast(move(stmt));
-        newStmts.emplace_back(rewriteNode(move(stmt)));
+    auto send = parser::cast_node<parser::Send>(block->send.get());
+    if (send == nullptr) {
+        return;
     }
 
-    begin->stmts = move(newStmts);
-    return node;
+    if (send->method != core::Names::sig()) {
+        return;
+    }
+
+    lastSignature = block;
 }
-
-// void RBSRewriter::maybeSaveSignature(parser::Block *block) {
-//     if (block->body == nullptr) {
-//         return;
-//     }
-
-//     auto send = parser::cast_node<parser::Send>(block->send.get());
-//     if (send == nullptr) {
-//         return;
-//     }
-
-//     if (send->method != core::Names::sig()) {
-//         return;
-//     }
-
-//     lastSignature = block;
-// }
-
-// unique_ptr<parser::Node> RBSRewriter::insertRBSCast(unique_ptr<parser::Node> node, unique_ptr<parser::Node> type,
-//                                                     InlineComment::Kind kind) {
-//     if (kind == InlineComment::Kind::LET) {
-//         return parser::MK::TLet(type->loc, move(node), move(type));
-//     } else if (kind == InlineComment::Kind::CAST) {
-//         return parser::MK::TCast(type->loc, move(node), move(type));
-//     } else if (kind == InlineComment::Kind::MUST) {
-//         return parser::MK::TMust(type->loc, move(node));
-//     } else {
-//         Exception::raise("Unknown assertion kind");
-//     }
-// }
 
 // unique_ptr<parser::Node> RBSRewriter::maybeInsertRBSCast(unique_ptr<parser::Node> node) {
 //     unique_ptr<parser::Node> result;
@@ -403,12 +388,83 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
 //     return result;
 // }
 
+unique_ptr<parser::Node> RBSRewriter::maybeInsertCast(unique_ptr<parser::Node> node) {
+    unique_ptr<parser::Node> result;
+
+    typecase(
+        node.get(),
+        [&](parser::Assign *asgn) {
+            if (auto type = assertionForNode(asgn->rhs, asgn->lhs->loc)) {
+                asgn->rhs = insertCast(move(asgn->rhs), move(type));
+            }
+            result = move(node);
+        },
+        [&](parser::AndAsgn *andAsgn) {
+            if (auto type = assertionForNode(andAsgn->right, andAsgn->left->loc)) {
+                andAsgn->right = insertCast(move(andAsgn->right), move(type));
+            }
+            result = move(node);
+        },
+        [&](parser::OpAsgn *opAsgn) {
+            if (auto type = assertionForNode(opAsgn->right, opAsgn->left->loc)) {
+                opAsgn->right = insertCast(move(opAsgn->right), move(type));
+            }
+            result = move(node);
+        },
+        [&](parser::OrAsgn *orAsgn) {
+            if (auto type = assertionForNode(orAsgn->right, orAsgn->left->loc)) {
+                orAsgn->right = insertCast(move(orAsgn->right), move(type));
+            }
+            result = move(node);
+        },
+        [&](parser::Masgn *masgn) {
+            if (auto type = assertionForNode(masgn->rhs, masgn->lhs->loc)) {
+                masgn->rhs = insertCast(move(masgn->rhs), move(type));
+            }
+            result = move(node);
+        },
+
+        [&](parser::Node *other) { result = move(node); });
+
+    return result;
+}
+
+parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
+    auto oldStmts = move(nodes);
+    auto newStmts = parser::NodeVec();
+
+    for (auto &node : oldStmts) {
+        newStmts.emplace_back(rewriteNode(move(node)));
+    }
+
+    return newStmts;
+}
+
+unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
+    auto begin = parser::cast_node<parser::Begin>(node.get());
+    ENFORCE(begin != nullptr);
+
+    auto oldStmts = move(begin->stmts);
+    begin->stmts = parser::NodeVec();
+
+    for (auto &stmt : oldStmts) {
+        stmt = maybeInsertCast(move(stmt));
+        begin->stmts.emplace_back(rewriteNode(move(stmt)));
+    }
+
+    return node;
+}
+
 unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
 
-    // node = maybeInsertRBSCast(move(node));
+    if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
+        return rewriteBegin(move(node));
+    }
+
+    node = maybeInsertCast(move(node));
     return rewriteNode(move(node));
 }
 
@@ -432,7 +488,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             result = move(node);
         },
         [&](parser::Block *block) {
-            // maybeSaveSignature(block);
+            maybeSaveSignature(block);
             block->body = rewriteBody(move(block->body));
             result = move(node);
         },
@@ -624,7 +680,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             //     if (auto assertion = findRBSTrailingCommentFromPos(break_->loc.endPos())) {
             //         if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
             //                                     core::errors::Rewriter::RBSAssertionError)) {
-            //             e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "break");
+            //             e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression",
+            //             "break");
             //         }
             //     }
             // }
@@ -636,7 +693,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             //     if (auto assertion = findRBSTrailingCommentFromPos(next->loc.endPos())) {
             //         if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
             //                                     core::errors::Rewriter::RBSAssertionError)) {
-            //             e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "next");
+            //             e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression",
+            //             "next");
             //         }
             //     }
             // }
