@@ -44,6 +44,7 @@ public:
 
 private:
     core::MutableContext ctx;
+    parser::NodeVec statements;
 
     std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);

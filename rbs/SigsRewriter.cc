@@ -21,6 +21,24 @@ using namespace std;
 
 namespace sorbet::rbs {
 
+namespace {
+
+bool isVisibilitySend(parser::Send *send) {
+    return send->receiver == nullptr && send->args.size() == 1 &&
+           (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
+            send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
+            send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
+            send->method == core::Names::packagePrivateClassMethod());
+}
+
+bool isAttrAccessorSend(parser::Send *send) {
+    return send->receiver == nullptr &&
+           (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
+            send->method == core::Names::attrAccessor());
+}
+
+} // namespace
+
 Comments SigsRewriter::findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) {
     vector<rbs::Comment> annotations;
     vector<rbs::Comment> signatures;
@@ -209,20 +227,6 @@ void SigsRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &sig
     }
 }
 
-bool isVisibilitySend(parser::Send *send) {
-    return send->receiver == nullptr && send->args.size() == 1 &&
-           (send->method == core::Names::private_() || send->method == core::Names::protected_() ||
-            send->method == core::Names::public_() || send->method == core::Names::privateClassMethod() ||
-            send->method == core::Names::publicClassMethod() || send->method == core::Names::packagePrivate() ||
-            send->method == core::Names::packagePrivateClassMethod());
-}
-
-bool isAttrAccessorSend(parser::Send *send) {
-    return send->receiver == nullptr &&
-           (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
-            send->method == core::Names::attrAccessor());
-}
-
 unique_ptr<parser::Node> SigsRewriter::wrapInBegin(unique_ptr<parser::Node> node, parser::NodeVec &signatures) {
     auto loc = node->loc;
     auto newStmts = parser::NodeVec();
@@ -327,56 +331,20 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
 
     typecase(
         node.get(),
-        // Nodes are ordered as in desugar
-        [&](parser::Const *const_) { result = move(node); },
-        [&](parser::Send *send) {
-            // send->receiver = rewriteNode(move(send->receiver));
-            // send->args = rewriteNodes(move(send->args));
-            result = move(node);
-        },
-        [&](parser::String *string) { result = move(node); }, [&](parser::Symbol *symbol) { result = move(node); },
-        [&](parser::LVar *var) { result = std::move(node); }, [&](parser::Hash *hash) { result = move(node); },
         [&](parser::Block *block) {
             block->body = rewriteBody(move(block->body));
             result = move(node);
         },
-        [&](parser::Begin *begin) { result = rewriteBegin(move(node)); },
-        [&](parser::Assign *asgn) {
-            asgn->rhs = rewriteNode(move(asgn->rhs));
+        [&](parser::Begin *begin) {
+            auto oldStmts = move(begin->stmts);
+            begin->stmts = parser::NodeVec();
+
+            for (auto &node : oldStmts) {
+                begin->stmts.emplace_back(rewriteNode(move(node)));
+            }
+
             result = move(node);
         },
-        // END hand-ordered clauses
-        [&](parser::And *and_) {
-            and_->left = rewriteNode(move(and_->left));
-            and_->right = rewriteNode(move(and_->right));
-            result = move(node);
-        },
-        [&](parser::Or *or_) {
-            or_->left = rewriteNode(move(or_->left));
-            or_->right = rewriteNode(move(or_->right));
-            result = move(node);
-        },
-        [&](parser::AndAsgn *andAsgn) {
-            andAsgn->right = rewriteNode(move(andAsgn->right));
-            result = move(node);
-        },
-        [&](parser::OrAsgn *orAsgn) {
-            orAsgn->right = rewriteNode(move(orAsgn->right));
-            result = move(node);
-        },
-        [&](parser::OpAsgn *opAsgn) {
-            opAsgn->right = rewriteNode(move(opAsgn->right));
-            result = move(node);
-        },
-        [&](parser::CSend *csend) {
-            csend->receiver = rewriteNode(move(csend->receiver));
-            csend->args = rewriteNodes(move(csend->args));
-            result = move(node);
-        },
-        [&](parser::Self *self) { result = move(node); }, [&](parser::DSymbol *dsymbol) { result = move(node); },
-        [&](parser::FileLiteral *fileLiteral) { result = move(node); },
-        [&](parser::ConstLhs *constLhs) { result = move(node); }, [&](parser::Cbase *cbase) { result = move(node); },
-        [&](parser::Kwbegin *kwbegin) { result = move(node); },
         [&](parser::Module *module) {
             module->body = rewriteBody(move(module->body));
             result = move(node);
@@ -385,130 +353,12 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
             klass->body = rewriteBody(move(klass->body));
             result = move(node);
         },
-        // [&](parser::Args *args) {
-        //     args->args = rewriteNodes(move(args->args));
-        //     result = move(node);
-        // },
-        // [&](parser::Arg *arg) { result = move(node); }, [&](parser::Restarg *arg) { result = move(node); },
-        // [&](parser::Kwrestarg *arg) { result = move(node); }, [&](parser::Kwarg *arg) { result = move(node); },
-        // [&](parser::Blockarg *arg) { result = move(node); }, [&](parser::Kwoptarg *arg) { result = move(node); },
-        // [&](parser::Optarg *arg) { result = move(node); }, [&](parser::Shadowarg *arg) { result = move(node); },
-        [&](parser::DefMethod *method) {
-            // method->args = rewriteNode(move(method->args));
-            method->body = rewriteBody(move(method->body));
-            result = move(node);
-        },
-        [&](parser::DefS *method) {
-            // method->args = rewriteNode(move(method->args));
-            method->body = rewriteBody(move(method->body));
-            result = move(node);
-        },
         [&](parser::SClass *sclass) {
             sclass->body = rewriteBody(move(sclass->body));
             result = move(node);
         },
-        [&](parser::NumBlock *block) { result = move(node); },
-
-        [&](parser::When *when) {
-            when->body = rewriteBody(move(when->body));
-            result = move(node);
-        },
-
-        [&](parser::While *wl) {
-            wl->body = rewriteBody(move(wl->body));
-            result = move(node);
-        },
-
-        [&](parser::WhilePost *wl) {
-            wl->body = rewriteBody(move(wl->body));
-            result = move(node);
-        },
-
-        [&](parser::Until *until) {
-            until->body = rewriteBody(move(until->body));
-            result = move(node);
-        },
-
-        [&](parser::UntilPost *until) {
-            until->body = rewriteBody(move(until->body));
-            result = move(node);
-        },
-
-        [&](parser::Nil *wl) { result = move(node); }, [&](parser::IVar *var) { result = move(node); },
-        [&](parser::GVar *var) { result = move(node); }, [&](parser::CVar *var) { result = move(node); },
-        [&](parser::LVarLhs *var) { result = move(node); }, [&](parser::GVarLhs *var) { result = move(node); },
-        [&](parser::CVarLhs *var) { result = move(node); }, [&](parser::IVarLhs *var) { result = move(node); },
-        [&](parser::NthRef *var) { result = move(node); }, [&](parser::Super *super) { result = move(node); },
-        [&](parser::ZSuper *zuper) { result = move(node); },
-
-        [&](parser::For *for_) {
-            for_->body = rewriteBody(move(for_->body));
-            result = move(node);
-        },
-
-        [&](parser::Integer *integer) { result = move(node); }, [&](parser::DString *dstring) { result = move(node); },
-        [&](parser::Float *floatNode) { result = move(node); }, [&](parser::Complex *complex) { result = move(node); },
-        [&](parser::Rational *complex) { result = move(node); }, [&](parser::Array *array) { result = move(node); },
-        [&](parser::IRange *ret) { result = move(node); }, [&](parser::ERange *ret) { result = move(node); },
-        [&](parser::Regexp *regexpNode) { result = move(node); }, [&](parser::Regopt *regopt) { result = move(node); },
-        [&](parser::Return *ret) { result = move(node); }, [&](parser::Break *break_) { result = move(node); },
-        [&](parser::Next *next) { result = move(node); }, [&](parser::Retry *ret) { result = move(node); },
-        [&](parser::Yield *ret) { result = move(node); },
-
-        [&](parser::Rescue *rescue) {
-            rescue->body = rewriteBody(move(rescue->body));
-            rescue->else_ = rewriteBody(move(rescue->else_));
-            result = move(node);
-        },
-
-        [&](parser::Resbody *resbody) {
-            resbody->body = rewriteBody(move(resbody->body));
-            result = move(node);
-        },
-
-        [&](parser::Ensure *ensure) {
-            ensure->body = rewriteBody(move(ensure->body));
-            result = move(node);
-        },
-
-        [&](parser::If *if_) {
-            if_->then_ = rewriteBody(move(if_->then_));
-            if_->else_ = rewriteBody(move(if_->else_));
-            result = move(node);
-        },
-
-        [&](parser::Masgn *masgn) {
-            masgn->rhs = rewriteNode(move(masgn->rhs));
-            result = move(node);
-        },
-        [&](parser::True *t) { result = move(node); }, [&](parser::False *t) { result = move(node); },
-
-        [&](parser::Case *case_) {
-            case_->whens = rewriteNodes(move(case_->whens));
-            case_->else_ = rewriteBody(move(case_->else_));
-            result = move(node);
-        },
-
-        [&](parser::Splat *splat) { result = move(node); }, [&](parser::ForwardedRestArg *fra) { result = move(node); },
-        [&](parser::Alias *alias) { result = move(node); }, [&](parser::Defined *defined) { result = move(node); },
-        [&](parser::LineLiteral *line) { result = move(node); }, [&](parser::XString *xstring) { result = move(node); },
-        [&](parser::Preexe *preexe) { result = move(node); }, [&](parser::Postexe *postexe) { result = move(node); },
-        [&](parser::Undef *undef) { result = move(node); }, [&](parser::CaseMatch *caseMatch) { result = move(node); },
-        [&](parser::Backref *backref) { result = move(node); },
-        [&](parser::EFlipflop *eflipflop) { result = move(node); },
-        [&](parser::IFlipflop *iflipflop) { result = move(node); },
-        [&](parser::MatchCurLine *matchCurLine) { result = move(node); },
-        [&](parser::Redo *redo) { result = move(node); },
-        [&](parser::EncodingLiteral *encodingLiteral) { result = move(node); },
-        [&](parser::MatchPattern *pattern) { result = move(node); },
-        [&](parser::MatchPatternP *pattern) { result = move(node); },
-        [&](parser::EmptyElse *else_) { result = move(node); },
-        [&](parser::BlockPass *blockPass) { result = move(node); },
-        [&](parser::Node *other) {
-            std::cerr << "Unimplemented Parser Node: " << node->nodeName() << std::endl;
-            Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
-            exit(1);
-        });
+        // Just copy all other nodes
+        [&](parser::Node *other) { result = move(node); });
 
     return result;
 }
