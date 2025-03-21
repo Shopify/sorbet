@@ -232,22 +232,23 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) 
 
 unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
+    ENFORCE(begin != nullptr);
+
     auto oldStmts = move(begin->stmts);
-    auto newStmts = parser::NodeVec();
+    begin->stmts = parser::NodeVec();
 
     for (auto &stmt : oldStmts) {
         if (auto target = signatureTarget(stmt.get())) {
             if (auto signatures = signaturesForNode(target)) {
                 for (auto &signature : *signatures) {
-                    newStmts.emplace_back(move(signature));
+                    begin->stmts.emplace_back(move(signature));
                 }
             }
         }
 
-        newStmts.emplace_back(rewriteNode(move(stmt)));
+        begin->stmts.emplace_back(rewriteNode(move(stmt)));
     }
 
-    begin->stmts = move(newStmts);
     return node;
 }
 
@@ -283,14 +284,6 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
 
     typecase(
         node.get(),
-        [&](parser::Block *block) {
-            block->body = rewriteBody(move(block->body));
-            result = move(node);
-        },
-        [&](parser::Begin *begin) {
-            node = rewriteBegin(move(node));
-            result = move(node);
-        },
         [&](parser::Module *module) {
             module->body = rewriteBody(move(module->body));
             result = move(node);
@@ -303,17 +296,20 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
             sclass->body = rewriteBody(move(sclass->body));
             result = move(node);
         },
-        // Just copy all other nodes
+        [&](parser::Block *block) {
+            block->body = rewriteBody(move(block->body));
+            result = move(node);
+        },
+        [&](parser::Begin *begin) {
+            node = rewriteBegin(move(node));
+            result = move(node);
+        },
         [&](parser::Node *other) { result = move(node); });
 
     return result;
 }
 
 unique_ptr<parser::Node> SigsRewriter::run(unique_ptr<parser::Node> node) {
-    if (node == nullptr) {
-        return node;
-    }
-
     return rewriteBody(move(node));
 }
 
