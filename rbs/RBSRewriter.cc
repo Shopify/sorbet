@@ -1,4 +1,4 @@
-#include "rbs/rewriter.h"
+#include "rbs/RBSRewriter.h"
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
@@ -21,28 +21,7 @@ using namespace std;
 
 namespace sorbet::rbs {
 
-namespace {
-
-/**
- * A collection of annotations and signatures comments found on a method definition.
- */
-struct Comments {
-    /**
-     * RBS annotation comments found on a method definition.
-     *
-     * Annotations are formatted as `@some_annotation`.
-     */
-    vector<rbs::Comment> annotations;
-
-    /**
-     * RBS signature comments found on a method definition.
-     *
-     * Signatures are formatted as `#: () -> void`.
-     */
-    vector<rbs::Comment> signatures;
-};
-
-Comments findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) {
+Comments RBSRewriter::findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) {
     vector<rbs::Comment> annotations;
     vector<rbs::Comment> signatures;
 
@@ -157,7 +136,7 @@ Comments findRBSSignatureComments(string_view sourceCode, core::LocOffsets loc) 
     return Comments{annotations, signatures};
 }
 
-unique_ptr<parser::NodeVec> getRBSSignatures(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
+unique_ptr<parser::NodeVec> RBSRewriter::getRBSSignatures(core::MutableContext ctx, unique_ptr<parser::Node> &node) {
     auto comments = findRBSSignatureComments(ctx.file.data(ctx).source(), node->loc);
 
     if (comments.signatures.empty()) {
@@ -191,7 +170,8 @@ unique_ptr<parser::NodeVec> getRBSSignatures(core::MutableContext ctx, unique_pt
             } else {
                 ENFORCE(rbsType.second);
 
-                // Before raising a parse error, let's check if the user tried to use a method signature on an accessor
+                // Before raising a parse error, let's check if the user tried to use a method signature on an
+                // accessor
                 auto rbsMethodType = rbs::RBSParser::parseSignature(ctx, signature);
                 if (rbsMethodType.first) {
                     if (auto e = ctx.beginError(rbsType.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
@@ -213,7 +193,7 @@ unique_ptr<parser::NodeVec> getRBSSignatures(core::MutableContext ctx, unique_pt
 /**
  * Check if the given range contains a heredoc marker `<<-` or `<<~`
  */
-bool hasHeredocMarker(core::MutableContext ctx, const uint32_t fromPos, const uint32_t toPos) {
+bool RBSRewriter::hasHeredocMarker(core::MutableContext ctx, const uint32_t fromPos, const uint32_t toPos) {
     string source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
     regex heredoc_pattern("(\\s+=\\s<<-|~)");
     smatch matches;
@@ -223,7 +203,8 @@ bool hasHeredocMarker(core::MutableContext ctx, const uint32_t fromPos, const ui
 /**
  * Check if the given expression is a heredoc
  */
-bool isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
+bool RBSRewriter::isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc,
+                            const unique_ptr<parser::Node> &node) {
     if (node == nullptr) {
         return false;
     }
@@ -316,8 +297,8 @@ bool isHeredoc(core::MutableContext ctx, core::LocOffsets assignLoc, const uniqu
     return result;
 }
 
-optional<rbs::Comment> findRBSTrailingComment(core::MutableContext ctx, unique_ptr<parser::Node> &node,
-                                              core::LocOffsets fromLoc) {
+optional<rbs::Comment> RBSRewriter::findRBSTrailingComment(core::MutableContext ctx, unique_ptr<parser::Node> &node,
+                                                           core::LocOffsets fromLoc) {
     // std::cerr << "Finding RBS comments for node: " << node->toString(ctx) << std::endl;
 
     auto source = ctx.file.data(ctx).source();
@@ -374,8 +355,8 @@ optional<rbs::Comment> findRBSTrailingComment(core::MutableContext ctx, unique_p
 /**
  * Get the RBS type from the given assign
  */
-unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node,
-                                             core::LocOffsets fromLoc) {
+unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(core::MutableContext ctx, unique_ptr<parser::Node> &node,
+                                                          core::LocOffsets fromLoc) {
     auto assertion = findRBSTrailingComment(ctx, node, fromLoc);
 
     if (!assertion) {
@@ -395,7 +376,7 @@ unique_ptr<parser::Node> getRBSAssertionType(core::MutableContext ctx, unique_pt
     return rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), assertion->loc);
 }
 
-parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
+parser::NodeVec RBSRewriter::rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
     auto oldStmts = move(nodes);
     auto newStmts = parser::NodeVec();
 
@@ -406,7 +387,7 @@ parser::NodeVec rewriteNodes(core::MutableContext ctx, parser::NodeVec nodes) {
     return newStmts;
 }
 
-unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> RBSRewriter::rewriteBegin(core::MutableContext ctx, unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
     auto newStmts = parser::NodeVec();
@@ -463,7 +444,7 @@ unique_ptr<parser::Node> rewriteBegin(core::MutableContext ctx, unique_ptr<parse
     return node;
 }
 
-unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> RBSRewriter::rewriteBody(core::MutableContext ctx, unique_ptr<parser::Node> node) {
     if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(ctx, move(node));
     } else if (auto def = parser::cast_node<parser::DefMethod>(node.get())) {
@@ -528,9 +509,7 @@ unique_ptr<parser::Node> rewriteBody(core::MutableContext ctx, unique_ptr<parser
     return rewriteNode(ctx, move(node));
 }
 
-}; // namespace
-
-unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> RBSRewriter::rewriteNode(core::MutableContext ctx, unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
@@ -603,7 +582,8 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         },
         [&](parser::Self *self) { result = move(node); },
         //[&](parser::DSymbol *dsymbol) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::FileLiteral *fileLiteral) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //[&](parser::FileLiteral *fileLiteral) { Exception::raise("Unimplemented Parser Node: {}",
+        // node->nodeName());
         //},
         [&](parser::ConstLhs *constLhs) { result = move(node); },
         //[&](parser::Cbase *cbase) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
@@ -681,7 +661,8 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         //[&](parser::False *t) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Case *case_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Splat *splat) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::ForwardedRestArg *fra) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        //[&](parser::ForwardedRestArg *fra) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //},
         //[&](parser::Alias *alias) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Defined *defined) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::LineLiteral *line) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
@@ -689,10 +670,13 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         //[&](parser::Preexe *preexe) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Postexe *postexe) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::Undef *undef) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::CaseMatch *caseMatch) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        //[&](parser::CaseMatch *caseMatch) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //},
         //[&](parser::Backref *backref) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::EFlipflop *eflipflop) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::IFlipflop *iflipflop) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        //[&](parser::EFlipflop *eflipflop) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //},
+        //[&](parser::IFlipflop *iflipflop) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //},
         //[&](parser::MatchCurLine *matchCurLine) {
         //    Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
         //},
@@ -700,8 +684,10 @@ unique_ptr<parser::Node> rewriteNode(core::MutableContext ctx, unique_ptr<parser
         //[&](parser::EncodingLiteral *encodingLiteral) {
         //    Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
         //},
-        //[&](parser::MatchPattern *pattern) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
-        //[&](parser::MatchPatternP *pattern) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
+        //[&](parser::MatchPattern *pattern) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //},
+        //[&](parser::MatchPatternP *pattern) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName());
+        //},
         //[&](parser::EmptyElse *else_) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); },
         //[&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
         [&](parser::Node *other) {

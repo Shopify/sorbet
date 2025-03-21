@@ -40,7 +40,7 @@
 #include "parser/parser.h"
 #include "payload/binary/binary.h"
 #include "payload/payload.h"
-#include "rbs/rewriter.h"
+#include "rbs/RBSRewriter.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -224,7 +224,8 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             core::MutableContext ctx(gs, core::Symbols::root(), file);
 
             std::cerr << "run rbs rewrite" << std::endl;
-            nodes = rbs::rewriteNode(ctx, move(nodes));
+            auto rewriter = rbs::RBSRewriter();
+            nodes = rewriter.rewriteNode(ctx, move(nodes));
 
             desugared = testSerialize(gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file});
         }
@@ -393,7 +394,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 core::MutableContext ctx(*rbiGenGs, core::Symbols::root(), file);
 
                 std::cerr << "run rbs rewrite" << std::endl;
-                nodes = rbs::rewriteNode(ctx, move(nodes));
+                auto rewriter = rbs::RBSRewriter();
+                nodes = rewriter.rewriteNode(ctx, move(nodes));
 
                 auto tree = ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file};
                 tree = ast::ParsedFile{rewriter::Rewriter::run(ctx, move(tree.tree)), tree.file};
@@ -735,7 +737,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
 
         std::cerr << "run rbs rewrite" << std::endl;
-        nodes = rbs::rewriteNode(ctx, move(nodes));
+        auto rewriter = rbs::RBSRewriter();
+        nodes = rewriter.rewriteNode(ctx, move(nodes));
 
         ast::ParsedFile file = testSerialize(*gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), f.file});
         handler.addObserved(*gs, "desguar-tree", [&]() { return file.tree.toString(*gs); });

@@ -41,7 +41,7 @@
 #include "namer/namer.h"
 #include "parser/parser.h"
 #include "pipeline.h"
-#include "rbs/rewriter.h"
+#include "rbs/RBSRewriter.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 
@@ -233,7 +233,8 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     core::MutableContext ctx(gs, core::Symbols::root(), file);
     {
         core::UnfreezeNameTable nameTableAccess(gs); // creates temporaries during desugaring
-        node = rbs::rewriteNode(ctx, move(node));
+        auto rewriter = rbs::RBSRewriter();
+        node = rewriter.rewriteNode(ctx, move(node));
     }
     if (print.RBSTree.enabled) {
         print.ParseTree.fmt("{}\n", node->toStringWithTabs(gs, 0));
