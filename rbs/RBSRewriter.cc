@@ -374,11 +374,19 @@ optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<pars
 /**
  * Get the RBS type from the given assign
  */
-unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
+optional<pair<unique_ptr<parser::Node>, InlineComment::Kind>>
+RBSRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
     auto inlineComment = findRBSTrailingComment(node, fromLoc);
 
     if (!inlineComment) {
-        return nullptr;
+        return nullopt;
+    }
+
+    if (inlineComment->kind == InlineComment::Kind::MUST) {
+        return pair<unique_ptr<parser::Node>, InlineComment::Kind>{
+            make_unique<parser::Nil>(inlineComment->comment.loc),
+            inlineComment->kind,
+        };
     }
 
     auto result = rbs::RBSParser::parseType(ctx, inlineComment->comment);
@@ -386,12 +394,13 @@ unique_ptr<parser::Node> RBSRewriter::getRBSAssertionType(unique_ptr<parser::Nod
         if (auto e = ctx.beginError(result.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
             e.setHeader("Failed to parse RBS type ({})", result.second->message);
         }
-        return nullptr;
+        return nullopt;
     }
 
     auto rbsType = move(result.first.value());
     auto typeParams = lastTypeParams();
-    return rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), inlineComment->comment.loc);
+    return pair{rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), inlineComment->comment.loc),
+                inlineComment->kind};
 }
 
 /**
@@ -628,7 +637,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Assign *asgn) {
             if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
                 auto rhs = rewriteNode(move(asgn->rhs));
-                asgn->rhs = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
+                asgn->rhs = parser::MK::TLet(rbsType->first->loc, move(rhs), move(rbsType->first));
             }
 
             result = move(node);
@@ -647,7 +656,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::AndAsgn *andAsgn) {
             if (auto rbsType = getRBSAssertionType(andAsgn->right, andAsgn->left->loc)) {
                 auto rhs = rewriteNode(move(andAsgn->right));
-                andAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
+                andAsgn->right = parser::MK::TLet(rbsType->first->loc, move(rhs), move(rbsType->first));
             }
 
             result = move(node);
@@ -655,7 +664,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::OrAsgn *orAsgn) {
             if (auto rbsType = getRBSAssertionType(orAsgn->right, orAsgn->left->loc)) {
                 auto rhs = rewriteNode(move(orAsgn->right));
-                orAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
+                orAsgn->right = parser::MK::TLet(rbsType->first->loc, move(rhs), move(rbsType->first));
             }
 
             result = move(node);
@@ -663,7 +672,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::OpAsgn *opAsgn) {
             if (auto rbsType = getRBSAssertionType(opAsgn->right, opAsgn->left->loc)) {
                 auto rhs = rewriteNode(move(opAsgn->right));
-                opAsgn->right = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
+                opAsgn->right = parser::MK::TLet(rbsType->first->loc, move(rhs), move(rbsType->first));
             }
 
             result = move(node);
@@ -781,7 +790,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Masgn *masgn) {
             if (auto rbsType = getRBSAssertionType(node, masgn->rhs->loc)) {
                 auto rhs = rewriteNode(move(masgn->rhs));
-                masgn->rhs = parser::MK::TLet(rbsType->loc, move(rhs), move(rbsType));
+                masgn->rhs = parser::MK::TLet(rbsType->first->loc, move(rhs), move(rbsType->first));
             }
 
             result = move(node);
