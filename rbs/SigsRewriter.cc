@@ -220,25 +220,22 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
     auto newStmts = parser::NodeVec();
 
     for (auto &stmt : oldStmts) {
+        parser::Node *target = nullptr;
+
         if (parser::isa_node<parser::DefMethod>(stmt.get()) || parser::cast_node<parser::DefS>(stmt.get())) {
-            if (auto signatures = signaturesForNode(stmt.get())) {
-                for (auto &signature : *signatures) {
-                    newStmts.emplace_back(move(signature));
-                }
-            }
+            target = stmt.get();
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (isVisibilitySend(send)) {
-                auto &arg = send->args[0];
-                if (auto signatures = signaturesForNode(arg.get())) {
-                    for (auto &signature : *signatures) {
-                        newStmts.emplace_back(move(signature));
-                    }
-                }
+                target = send->args[0].get();
             } else if (isAttrAccessorSend(send)) {
-                if (auto signatures = signaturesForNode(stmt.get())) {
-                    for (auto &signature : *signatures) {
-                        newStmts.emplace_back(move(signature));
-                    }
+                target = stmt.get();
+            }
+        }
+
+        if (target) {
+            if (auto signatures = signaturesForNode(target)) {
+                for (auto &signature : *signatures) {
+                    newStmts.emplace_back(move(signature));
                 }
             }
         }
