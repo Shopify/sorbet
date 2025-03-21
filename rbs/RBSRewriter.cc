@@ -615,7 +615,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Block *block) {
             maybeSaveSignature(block);
 
-            block->body = rewriteNode(move(block->body));
+            block->body = rewriteBody(move(block->body));
             result = move(node);
         },
         [&](parser::Begin *begin) { result = rewriteBegin(move(node)); },
