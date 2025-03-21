@@ -51,8 +51,6 @@ private:
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
-
-    void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
 };
 
 } // namespace sorbet::rbs

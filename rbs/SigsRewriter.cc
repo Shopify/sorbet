@@ -214,12 +214,6 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(unique_ptr<parser::N
     return signatures;
 }
 
-void SigsRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures) {
-    for (auto &signature : signatures) {
-        stmts.emplace_back(move(signature));
-    }
-}
-
 unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
@@ -227,22 +221,28 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
 
     for (auto &stmt : oldStmts) {
         if (parser::isa_node<parser::DefMethod>(stmt.get()) || parser::cast_node<parser::DefS>(stmt.get())) {
-            if (auto comments = signaturesForNode(stmt)) {
-                insertSignatures(newStmts, *comments);
+            if (auto signatures = signaturesForNode(stmt)) {
+                for (auto &signature : *signatures) {
+                    newStmts.emplace_back(move(signature));
+                }
             }
             newStmts.emplace_back(rewriteNode(move(stmt)));
             continue;
         } else if (auto send = parser::cast_node<parser::Send>(stmt.get())) {
             if (isVisibilitySend(send)) {
                 auto &arg = send->args[0];
-                if (auto comments = signaturesForNode(arg)) {
-                    insertSignatures(newStmts, *comments);
+                if (auto signatures = signaturesForNode(arg)) {
+                    for (auto &signature : *signatures) {
+                        newStmts.emplace_back(move(signature));
+                    }
                 }
                 newStmts.emplace_back(rewriteNode(move(stmt)));
                 continue;
             } else if (isAttrAccessorSend(send)) {
-                if (auto comments = signaturesForNode(stmt)) {
-                    insertSignatures(newStmts, *comments);
+                if (auto signatures = signaturesForNode(stmt)) {
+                    for (auto &signature : *signatures) {
+                        newStmts.emplace_back(move(signature));
+                    }
                 }
                 newStmts.emplace_back(rewriteNode(move(stmt)));
                 continue;
@@ -262,25 +262,31 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
     } else if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
         return rewriteBegin(move(node));
     } else if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
-        if (auto comments = signaturesForNode(node)) {
+        if (auto signatures = signaturesForNode(node)) {
             auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
-            insertSignatures(begin->stmts, *comments);
+            for (auto &signature : *signatures) {
+                begin->stmts.emplace_back(move(signature));
+            }
             begin->stmts.emplace_back(move(node));
             return move(begin);
         }
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
         if (isVisibilitySend(send)) {
             auto &arg = send->args[0];
-            if (auto comments = signaturesForNode(arg)) {
+            if (auto signatures = signaturesForNode(arg)) {
                 auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
-                insertSignatures(begin->stmts, *comments);
+                for (auto &signature : *signatures) {
+                    begin->stmts.emplace_back(move(signature));
+                }
                 begin->stmts.emplace_back(move(node));
                 return move(begin);
             }
         } else if (isAttrAccessorSend(send)) {
-            if (auto comments = signaturesForNode(node)) {
+            if (auto signatures = signaturesForNode(node)) {
                 auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
-                insertSignatures(begin->stmts, *comments);
+                for (auto &signature : *signatures) {
+                    begin->stmts.emplace_back(move(signature));
+                }
                 begin->stmts.emplace_back(move(node));
                 return move(begin);
             }
