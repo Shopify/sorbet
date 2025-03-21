@@ -59,6 +59,8 @@ private:
     Comments findRBSSignatureComments(std::string_view sourceCode, core::LocOffsets loc);
     void maybeSaveSignature(parser::Block *block);
     std::vector<std::pair<core::LocOffsets, core::NameRef>> lastTypeParams();
+    std::unique_ptr<parser::Node> addRBSCast(std::unique_ptr<parser::Node> node, std::unique_ptr<parser::Node> type,
+                                             InlineComment::Kind kind);
 };
 
 } // namespace sorbet::rbs

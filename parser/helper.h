@@ -135,6 +135,11 @@ public:
         return Send0(loc, T(loc), core::Names::attachedClass(), loc);
     }
 
+    static unique_ptr<parser::Node> TCast(core::LocOffsets loc, unique_ptr<parser::Node> value,
+                                          unique_ptr<parser::Node> type) {
+        return Send2(loc, T(loc), core::Names::cast(), loc, move(value), move(type));
+    }
+
     static unique_ptr<parser::Node> TClassOf(core::LocOffsets loc, unique_ptr<parser::Node> inner) {
         return Send1(loc, T(loc), core::Names::classOf(), loc, move(inner));
     }
@@ -142,6 +147,10 @@ public:
     static unique_ptr<parser::Node> TLet(core::LocOffsets loc, unique_ptr<parser::Node> value,
                                          unique_ptr<parser::Node> type) {
         return Send2(loc, T(loc), core::Names::let(), loc, move(value), move(type));
+    }
+
+    static unique_ptr<parser::Node> TMust(core::LocOffsets loc, unique_ptr<parser::Node> value) {
+        return Send1(loc, T(loc), core::Names::must(), loc, move(value));
     }
 
     static unique_ptr<parser::Node> TNilable(core::LocOffsets loc, unique_ptr<parser::Node> inner) {
