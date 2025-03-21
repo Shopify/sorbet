@@ -28,11 +28,12 @@ struct Comments {
 
 class RBSRewriter {
 public:
-    RBSRewriter(core::MutableContext ctx) : ctx(ctx){};
+    RBSRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};
     std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
 
 private:
     core::MutableContext ctx;
+    parser::Node *lastSignature;
 
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
@@ -43,6 +44,8 @@ private:
     bool hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos);
     std::unique_ptr<parser::NodeVec> getRBSSignatures(std::unique_ptr<parser::Node> &node);
     Comments findRBSSignatureComments(std::string_view sourceCode, core::LocOffsets loc);
+    void maybeSaveSignature(parser::Block *block);
+    std::vector<std::pair<core::LocOffsets, core::NameRef>> lastTypeParams();
 };
 
 } // namespace sorbet::rbs

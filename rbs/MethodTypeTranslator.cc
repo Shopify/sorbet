@@ -564,6 +564,7 @@ unique_ptr<parser::Node> MethodTypeTranslator::attrSignatureNode(core::MutableCo
 
         // For attr writer, we need to add the param to the sig
         auto name = nodeName(*send->args[0].get());
+        std::cerr << "name: " << name.show(ctx) << " kind: " << std::endl;
         auto pairs = parser::NodeVec();
         pairs.emplace_back(make_unique<parser::Pair>(
             send->args[0]->loc, parser::MK::Symbol(send->args[0]->loc, name),
