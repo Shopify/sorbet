@@ -221,12 +221,12 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
             core::MutableContext ctx(gs, core::Symbols::root(), file);
 
-            // if (gs.rbsSignaturesEnabled) {
-            //     auto rewriter = rbs::SigsRewriter(ctx);
-            //     nodes = rewriter.run(move(nodes));
-            // }
+            if (gs.rbsSignaturesEnabled) {
+                auto rewriter = rbs::SigsRewriter(ctx);
+                nodes = rewriter.run(move(nodes));
+            }
 
-            if (gs.rbsAssertionsEnabled || gs.rbsSignaturesEnabled) {
+            if (gs.rbsAssertionsEnabled) {
                 auto rewriter = rbs::RBSRewriter(ctx);
                 nodes = rewriter.run(move(nodes));
             }
@@ -405,12 +405,12 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
                 core::MutableContext ctx(*rbiGenGs, core::Symbols::root(), file);
 
-                // if (ctx.state.rbsSignaturesEnabled) {
-                //     auto rewriter = rbs::SigsRewriter(ctx);
-                //     nodes = rewriter.run(move(nodes));
-                // }
+                if (ctx.state.rbsSignaturesEnabled) {
+                    auto rewriter = rbs::SigsRewriter(ctx);
+                    nodes = rewriter.run(move(nodes));
+                }
 
-                if (ctx.state.rbsAssertionsEnabled || ctx.state.rbsSignaturesEnabled) {
+                if (ctx.state.rbsAssertionsEnabled) {
                     auto rewriter = rbs::RBSRewriter(ctx);
                     nodes = rewriter.run(move(nodes));
                 }
@@ -754,12 +754,12 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
         core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
 
-        // if (gs->rbsSignaturesEnabled) {
-        //     auto rewriter = rbs::SigsRewriter(ctx);
-        //     nodes = rewriter.run(move(nodes));
-        // }
+        if (gs->rbsSignaturesEnabled) {
+            auto rewriter = rbs::SigsRewriter(ctx);
+            nodes = rewriter.run(move(nodes));
+        }
 
-        if (gs->rbsAssertionsEnabled || gs->rbsSignaturesEnabled) {
+        if (gs->rbsAssertionsEnabled) {
             auto rewriter = rbs::RBSRewriter(ctx);
             nodes = rewriter.run(move(nodes));
         }

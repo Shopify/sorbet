@@ -234,11 +234,12 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     {
         core::UnfreezeNameTable nameTableAccess(gs);
 
-        // if (gs.rbsSignaturesEnabled) {
-        // auto rewriter = rbs::SigsRewriter(ctx);
-        // node = rewriter.run(move(node));
-        // }
-        if (gs.rbsAssertionsEnabled || gs.rbsSignaturesEnabled) {
+        if (gs.rbsSignaturesEnabled) {
+            auto rewriter = rbs::SigsRewriter(ctx);
+            node = rewriter.run(move(node));
+        }
+
+        if (gs.rbsAssertionsEnabled) {
             auto rewriter = rbs::RBSRewriter(ctx);
             node = rewriter.run(move(node));
         }

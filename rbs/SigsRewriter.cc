@@ -192,265 +192,6 @@ unique_ptr<parser::NodeVec> SigsRewriter::getRBSSignatures(unique_ptr<parser::No
     return signatures;
 }
 
-/**
- * Check if the given range contains a heredoc marker `<<-` or `<<~`
- */
-bool SigsRewriter::hasHeredocMarker(const uint32_t fromPos, const uint32_t toPos) {
-    string source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
-    regex heredoc_pattern("(\\s+=\\s<<-|~)");
-    smatch matches;
-    return regex_search(source, matches, heredoc_pattern);
-}
-
-/**
- * Check if the given expression is a heredoc
- */
-bool SigsRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
-    if (node == nullptr) {
-        return false;
-    }
-
-    auto result = false;
-    typecase(
-        node.get(),
-        [&](parser::String *lit) {
-            // For some reason, heredoc strings are parser differently if they contain a single line or more.
-            //
-            // Single line heredocs do not contain the `<<-` or `<<~` markers inside their location.
-            //
-            // For example, this heredoc:
-            //
-            //     <<~MSG
-            //       foo
-            //     MSG
-
-            // has the `<<-` or `<<~` markers **outside** its location.
-            //
-            // While this heredoc:
-            //
-            //     <<~MSG
-            //       foo
-            //     MSG
-            //
-            // has the `<<-` or `<<~` markers **inside** its location.
-
-            auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.beginLoc).line;
-            auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.endLoc).line;
-
-            if (lineEnd - lineStart <= 1) {
-                // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
-                // and the begining of the string.
-                if (hasHeredocMarker(assignLoc.endPos(), lit->loc.beginPos())) {
-                    result = true;
-                }
-            } else {
-                // Multi-line heredoc, we look for the heredoc marker inside the string itself.
-                if (hasHeredocMarker(lit->loc.beginPos(), lit->loc.endPos())) {
-                    result = true;
-                }
-            }
-        },
-        [&](parser::DString *lit) {
-            // For some reason, heredoc strings are parser differently if they contain a single line or more.
-            //
-            // Single line heredocs do not contain the `<<-` or `<<~` markers inside their location.
-            //
-            // For example, this heredoc:
-            //
-            //     <<~MSG
-            //       foo
-            //     MSG
-
-            // has the `<<-` or `<<~` markers **outside** its location.
-            //
-            // While this heredoc:
-            //
-            //     <<~MSG
-            //       foo
-            //     MSG
-            //
-            // has the `<<-` or `<<~` markers **inside** its location.
-
-            auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.beginLoc).line;
-            auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.endLoc).line;
-
-            if (lineEnd - lineStart <= 1) {
-                // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
-                // and the begining of the string.
-                if (hasHeredocMarker(assignLoc.endPos(), lit->loc.beginPos())) {
-                    result = true;
-                }
-            } else {
-                // Multi-line heredoc, we look for the heredoc marker inside the string itself.
-                if (hasHeredocMarker(lit->loc.beginPos(), lit->loc.endPos())) {
-                    result = true;
-                }
-            }
-        },
-        [&](parser::Send *send) {
-            result = isHeredoc(assignLoc, send->receiver) ||
-                     absl::c_any_of(send->args,
-                                    [&](const unique_ptr<parser::Node> &arg) { return isHeredoc(assignLoc, arg); });
-        },
-        [&](parser::Node *expr) { result = false; });
-
-    return result;
-}
-
-optional<rbs::InlineComment> SigsRewriter::findRBSTrailingCommentFromPos(uint32_t fromPos) {
-    auto source = ctx.file.data(ctx).source();
-
-    // Get the position of the end of the line from the startingLoc
-    auto endPos = source.find('\n', fromPos);
-    if (endPos == string::npos) {
-        // If we don't find a newline, we just use the rest of the file
-        endPos = source.size();
-    }
-
-    if (fromPos == endPos) {
-        // If the start and end of the comment are the same, we don't have a comment
-        return nullopt;
-    }
-
-    // Find the position of the `#:` between the fromPos and the end of the line
-    auto commentStart = source.substr(0, endPos).find("#:", fromPos);
-    if (commentStart == string::npos) {
-        return nullopt;
-    }
-
-    // Adjust the location to be the correct position depending on the number of spaces after the `#:`
-    auto contentStart = commentStart + 2;
-    char c = source[contentStart];
-    while (c == ' ' && contentStart < endPos) {
-        contentStart++;
-        c = source[contentStart];
-    }
-
-    auto content = source.substr(contentStart, endPos - contentStart);
-    auto kind = InlineComment::Kind::LET;
-
-    if (absl::StartsWith(content, "as ")) {
-        // We found a `as` keyword, this is a `cast` comment
-        kind = InlineComment::Kind::CAST;
-        contentStart += 3;
-        content = content.substr(3);
-
-        const regex not_nil_pattern("^\\s*!nil\\s*(#.*)?$");
-        if (regex_match(content.begin(), content.end(), not_nil_pattern)) {
-            // We found a `as !nil`, so a must
-            kind = InlineComment::Kind::MUST;
-        }
-    }
-
-    return InlineComment{
-        rbs::Comment{core::LocOffsets{(uint32_t)commentStart, static_cast<uint32_t>(endPos)},
-                     core::LocOffsets{(uint32_t)contentStart, static_cast<uint32_t>(endPos)}, content},
-        kind,
-    };
-}
-
-optional<rbs::InlineComment> SigsRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
-                                                                  core::LocOffsets fromLoc) {
-    // We want to find the comment right after the end of the assign
-    auto fromPos = node->loc.endPos();
-
-    // On heredocs, adding the comment at the end of the assign won't work because this is invalid Ruby syntax:
-    // ```
-    // <<~MSG
-    //   foo
-    // MSG #: String
-    // ```
-    // We add a special case for heredocs to allow adding the comment at the end of the assign:
-    // ```
-    // <<~MSG #: String
-    //   foo
-    // MSG
-    // ```
-    if (isHeredoc(fromLoc, node)) {
-        fromPos = fromLoc.beginPos();
-    }
-
-    return findRBSTrailingCommentFromPos(fromPos);
-}
-
-/**
- * Get the RBS type from the given assign
- */
-optional<pair<unique_ptr<parser::Node>, InlineComment::Kind>>
-SigsRewriter::getRBSAssertionType(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
-    auto inlineComment = findRBSTrailingComment(node, fromLoc);
-
-    if (!inlineComment) {
-        return nullopt;
-    }
-
-    if (inlineComment->kind == InlineComment::Kind::MUST) {
-        return pair<unique_ptr<parser::Node>, InlineComment::Kind>{
-            make_unique<parser::Nil>(inlineComment->comment.loc),
-            inlineComment->kind,
-        };
-    }
-
-    auto result = rbs::RBSParser::parseType(ctx, inlineComment->comment);
-    if (result.second) {
-        if (auto e = ctx.beginError(result.second->loc, core::errors::Rewriter::RBSSyntaxError)) {
-            e.setHeader("Failed to parse RBS type ({})", result.second->message);
-        }
-        return nullopt;
-    }
-
-    auto rbsType = move(result.first.value());
-    auto typeParams = lastTypeParams();
-    return pair{rbs::TypeTranslator::toParserNode(ctx, typeParams, rbsType.node.get(), inlineComment->comment.loc),
-                inlineComment->kind};
-}
-
-/**
- * Parse the type parameters from the previous statement
- *
- * Given a case like this one:
- *
- *     #: [X] (X) -> void
- *     def foo(x)
- *       y = nil #: X?
- *     end
- *
- * We need to be aware of the type parameter `X` so we can use it to resolve the type of `y`.
- */
-vector<pair<core::LocOffsets, core::NameRef>> SigsRewriter::lastTypeParams() {
-    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
-
-    // Do we have a previous signature?
-    if (!lastSignature) {
-        return typeParams;
-    }
-
-    auto block = parser::cast_node<parser::Block>(lastSignature);
-    ENFORCE(block != nullptr);
-
-    // Does the sig contain a `type_parameters()` invocation?
-    auto send = parser::cast_node<parser::Send>(block->body.get());
-    while (send && send->method != core::Names::typeParameters()) {
-        send = parser::cast_node<parser::Send>(send->receiver.get());
-    }
-
-    if (send == nullptr) {
-        return typeParams;
-    }
-
-    // Collect the type parameters
-    for (auto &arg : send->args) {
-        auto sym = parser::cast_node<parser::Symbol>(arg.get());
-        if (sym == nullptr) {
-            continue;
-        }
-
-        typeParams.emplace_back(arg->loc, sym->val);
-    }
-
-    return typeParams;
-}
-
 parser::NodeVec SigsRewriter::rewriteNodes(parser::NodeVec nodes) {
     auto oldStmts = move(nodes);
     auto newStmts = parser::NodeVec();
@@ -464,7 +205,6 @@ parser::NodeVec SigsRewriter::rewriteNodes(parser::NodeVec nodes) {
 
 void SigsRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures) {
     for (auto &signature : signatures) {
-        lastSignature = signature.get();
         stmts.emplace_back(move(signature));
     }
 }
@@ -535,7 +275,6 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
             }
         }
 
-        stmt = maybeInsertRBSCast(move(stmt));
         newStmts.emplace_back(rewriteNode(move(stmt)));
     }
 
@@ -576,106 +315,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
         }
     }
 
-    node = maybeInsertRBSCast(move(node));
     return rewriteNode(move(node));
-}
-
-void SigsRewriter::maybeSaveSignature(parser::Block *block) {
-    if (block->body == nullptr) {
-        return;
-    }
-
-    auto send = parser::cast_node<parser::Send>(block->send.get());
-    if (send == nullptr) {
-        return;
-    }
-
-    if (send->method != core::Names::sig()) {
-        return;
-    }
-
-    lastSignature = block;
-}
-
-unique_ptr<parser::Node> insertRBSCast(unique_ptr<parser::Node> node, unique_ptr<parser::Node> type,
-                                       InlineComment::Kind kind) {
-    if (kind == InlineComment::Kind::LET) {
-        return parser::MK::TLet(type->loc, move(node), move(type));
-    } else if (kind == InlineComment::Kind::CAST) {
-        return parser::MK::TCast(type->loc, move(node), move(type));
-    } else if (kind == InlineComment::Kind::MUST) {
-        return parser::MK::TMust(type->loc, move(node));
-    } else {
-        Exception::raise("Unknown assertion kind");
-    }
-}
-
-unique_ptr<parser::Node> SigsRewriter::maybeInsertRBSCast(unique_ptr<parser::Node> node) {
-    unique_ptr<parser::Node> result;
-
-    if (auto klass = parser::cast_node<parser::Class>(node.get())) {
-        result = move(node);
-    } else if (auto module = parser::cast_node<parser::Module>(node.get())) {
-        result = move(node);
-    } else if (auto sclass = parser::cast_node<parser::SClass>(node.get())) {
-        result = move(node);
-    } else if (auto const_ = parser::cast_node<parser::Const>(node.get())) {
-        result = move(node);
-    } else if (auto asgn = parser::cast_node<parser::Assign>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
-            asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
-        }
-        result = move(node);
-    } else if (auto asgn = parser::cast_node<parser::AndAsgn>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(asgn->right, asgn->left->loc)) {
-            asgn->right = insertRBSCast(move(asgn->right), move(rbsType->first), rbsType->second);
-        }
-        result = move(node);
-    } else if (auto asgn = parser::cast_node<parser::OpAsgn>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(asgn->right, asgn->left->loc)) {
-            asgn->right = insertRBSCast(move(asgn->right), move(rbsType->first), rbsType->second);
-        }
-        result = move(node);
-    } else if (auto asgn = parser::cast_node<parser::OrAsgn>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(asgn->right, asgn->left->loc)) {
-            asgn->right = insertRBSCast(move(asgn->right), move(rbsType->first), rbsType->second);
-        }
-        result = move(node);
-    } else if (auto asgn = parser::cast_node<parser::Masgn>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(asgn->rhs, asgn->lhs->loc)) {
-            asgn->rhs = insertRBSCast(move(asgn->rhs), move(rbsType->first), rbsType->second);
-        }
-        result = move(node);
-    } else if (auto ret = parser::cast_node<parser::Return>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(node, ret->loc)) {
-            for (auto &expr : ret->exprs) {
-                expr = insertRBSCast(move(expr), move(rbsType->first), rbsType->second);
-            }
-        }
-        result = move(node);
-    } else if (auto br = parser::cast_node<parser::Break>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(node, br->loc)) {
-            for (auto &expr : br->exprs) {
-                expr = insertRBSCast(move(expr), move(rbsType->first), rbsType->second);
-            }
-        }
-        result = move(node);
-    } else if (auto next = parser::cast_node<parser::Next>(node.get())) {
-        if (auto rbsType = getRBSAssertionType(node, next->loc)) {
-            for (auto &expr : next->exprs) {
-                expr = insertRBSCast(move(expr), move(rbsType->first), rbsType->second);
-            }
-        }
-        result = move(node);
-    } else {
-        if (auto rbsType = getRBSAssertionType(node, node->loc)) {
-            result = insertRBSCast(move(node), move(rbsType->first), rbsType->second);
-        } else {
-            result = move(node);
-        }
-    }
-
-    return result;
 }
 
 unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node) {
@@ -697,8 +337,6 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         [&](parser::String *string) { result = move(node); }, [&](parser::Symbol *symbol) { result = move(node); },
         [&](parser::LVar *var) { result = std::move(node); }, [&](parser::Hash *hash) { result = move(node); },
         [&](parser::Block *block) {
-            maybeSaveSignature(block);
-
             block->body = rewriteBody(move(block->body));
             result = move(node);
         },
@@ -741,48 +379,10 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         [&](parser::Kwbegin *kwbegin) { result = move(node); },
         [&](parser::Module *module) {
             module->body = rewriteBody(move(module->body));
-
-            if (auto assertion = findRBSTrailingCommentFromPos(module->loc.endPos())) {
-                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                            core::errors::Rewriter::RBSAssertionError)) {
-                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "module");
-                }
-            }
-
-            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), module->declLoc.endLoc).line;
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), module->loc.endLoc).line;
-            if ((endLine > decLine)) {
-                if (auto assertion = findRBSTrailingCommentFromPos(module->declLoc.endLoc)) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "module");
-                    }
-                }
-            }
-
             result = move(node);
         },
         [&](parser::Class *klass) {
             klass->body = rewriteBody(move(klass->body));
-
-            if (auto assertion = findRBSTrailingCommentFromPos(klass->loc.endPos())) {
-                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                            core::errors::Rewriter::RBSAssertionError)) {
-                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "class");
-                }
-            }
-
-            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), klass->declLoc.endLoc).line;
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), klass->loc.endLoc).line;
-            if (endLine > decLine) {
-                if (auto assertion = findRBSTrailingCommentFromPos(klass->declLoc.endLoc)) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "class");
-                    }
-                }
-            }
-
             result = move(node);
         },
         // [&](parser::Args *args) {
@@ -796,49 +396,11 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         [&](parser::DefMethod *method) {
             // method->args = rewriteNode(move(method->args));
             method->body = rewriteBody(move(method->body));
-
-            if (auto assertion = findRBSTrailingCommentFromPos(method->loc.endPos())) {
-                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                            core::errors::Rewriter::RBSAssertionError)) {
-                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "method");
-                }
-            }
-
-            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->declLoc.endLoc).line;
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->loc.endLoc).line;
-            if (endLine > decLine) {
-                if (auto assertion = findRBSTrailingCommentFromPos(method->declLoc.endLoc)) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "method");
-                    }
-                }
-            }
-
             result = move(node);
         },
         [&](parser::DefS *method) {
             // method->args = rewriteNode(move(method->args));
             method->body = rewriteBody(move(method->body));
-
-            if (auto assertion = findRBSTrailingCommentFromPos(method->loc.endPos())) {
-                if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                            core::errors::Rewriter::RBSAssertionError)) {
-                    e.setHeader("Unexpected RBS assertion comment found after `{}` end", "method");
-                }
-            }
-
-            auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->declLoc.endLoc).line;
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->loc.endLoc).line;
-            if (endLine > decLine) {
-                if (auto assertion = findRBSTrailingCommentFromPos(method->declLoc.endLoc)) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "method");
-                    }
-                }
-            }
-
             result = move(node);
         },
         [&](parser::SClass *sclass) {
@@ -889,43 +451,9 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         [&](parser::Rational *complex) { result = move(node); }, [&](parser::Array *array) { result = move(node); },
         [&](parser::IRange *ret) { result = move(node); }, [&](parser::ERange *ret) { result = move(node); },
         [&](parser::Regexp *regexpNode) { result = move(node); }, [&](parser::Regopt *regopt) { result = move(node); },
-        [&](parser::Return *ret) {
-            if (ret->exprs.empty()) {
-                if (auto assertion = findRBSTrailingCommentFromPos(ret->loc.endPos())) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "return");
-                    }
-                }
-            }
-
-            result = move(node);
-        },
-        [&](parser::Break *break_) {
-            if (break_->exprs.empty()) {
-                if (auto assertion = findRBSTrailingCommentFromPos(break_->loc.endPos())) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "break");
-                    }
-                }
-            }
-
-            result = move(node);
-        },
-        [&](parser::Next *next) {
-            if (next->exprs.empty()) {
-                if (auto assertion = findRBSTrailingCommentFromPos(next->loc.endPos())) {
-                    if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
-                                                core::errors::Rewriter::RBSAssertionError)) {
-                        e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "next");
-                    }
-                }
-            }
-
-            result = move(node);
-        },
-        [&](parser::Retry *ret) { result = move(node); }, [&](parser::Yield *ret) { result = move(node); },
+        [&](parser::Return *ret) { result = move(node); }, [&](parser::Break *break_) { result = move(node); },
+        [&](parser::Next *next) { result = move(node); }, [&](parser::Retry *ret) { result = move(node); },
+        [&](parser::Yield *ret) { result = move(node); },
 
         [&](parser::Rescue *rescue) {
             rescue->body = rewriteBody(move(rescue->body));
