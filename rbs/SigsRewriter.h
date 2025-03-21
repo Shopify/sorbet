@@ -54,6 +54,8 @@ private:
     Comments findRBSSignatureComments(std::string_view sourceCode, core::LocOffsets loc);
     void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
     std::unique_ptr<parser::Node> wrapInBegin(std::unique_ptr<parser::Node> node, parser::NodeVec &signatures);
+    parser::NodeVec getStatements(parser::Node *node);
+    void maybeInsertSignatures(parser::NodeVec &stmts, std::unique_ptr<parser::Node> node);
 };
 
 } // namespace sorbet::rbs

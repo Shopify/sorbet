@@ -229,14 +229,6 @@ void SigsRewriter::insertSignatures(parser::NodeVec &stmts, parser::NodeVec &sig
     }
 }
 
-unique_ptr<parser::Node> SigsRewriter::wrapInBegin(unique_ptr<parser::Node> node, parser::NodeVec &signatures) {
-    auto loc = node->loc;
-    auto newStmts = parser::NodeVec();
-    insertSignatures(newStmts, signatures);
-    newStmts.emplace_back(rewriteNode(move(node)));
-    return make_unique<parser::Begin>(loc, move(newStmts));
-}
-
 unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     auto oldStmts = move(begin->stmts);
@@ -280,17 +272,26 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
         return rewriteBegin(move(node));
     } else if (parser::isa_node<parser::DefMethod>(node.get()) || parser::isa_node<parser::DefS>(node.get())) {
         if (auto comments = getRBSSignatures(node)) {
-            return wrapInBegin(move(node), *comments);
+            auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
+            insertSignatures(begin->stmts, *comments);
+            begin->stmts.emplace_back(move(node));
+            return move(begin);
         }
     } else if (auto send = parser::cast_node<parser::Send>(node.get())) {
         if (isVisibilitySend(send)) {
             auto &arg = send->args[0];
             if (auto comments = getRBSSignatures(arg)) {
-                return wrapInBegin(move(node), *comments);
+                auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
+                insertSignatures(begin->stmts, *comments);
+                begin->stmts.emplace_back(move(node));
+                return move(begin);
             }
         } else if (isAttrAccessorSend(send)) {
             if (auto comments = getRBSSignatures(node)) {
-                return wrapInBegin(move(node), *comments);
+                auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
+                insertSignatures(begin->stmts, *comments);
+                begin->stmts.emplace_back(move(node));
+                return move(begin);
             }
         }
     }
