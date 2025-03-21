@@ -52,6 +52,7 @@ private:
     parser::NodeVec rewriteNodes(parser::NodeVec nodes);
     std::optional<std::pair<std::unique_ptr<parser::Node>, InlineComment::Kind>>
     getRBSAssertionType(std::unique_ptr<parser::Node> &node, core::LocOffsets fromLoc);
+    std::optional<rbs::InlineComment> findRBSTrailingCommentFromPos(uint32_t fromPos);
     std::optional<rbs::InlineComment> findRBSTrailingComment(std::unique_ptr<parser::Node> &node,
                                                              core::LocOffsets fromLoc);
     bool isHeredoc(core::LocOffsets assignLoc, const std::unique_ptr<parser::Node> &node);

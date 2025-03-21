@@ -297,28 +297,8 @@ bool RBSRewriter::isHeredoc(core::LocOffsets assignLoc, const unique_ptr<parser:
     return result;
 }
 
-optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
-                                                                 core::LocOffsets fromLoc) {
+optional<rbs::InlineComment> RBSRewriter::findRBSTrailingCommentFromPos(uint32_t fromPos) {
     auto source = ctx.file.data(ctx).source();
-
-    // We want to find the comment right after the end of the assign
-    auto fromPos = node->loc.endPos();
-
-    // On heredocs, adding the comment at the end of the assign won't work because this is invalid Ruby syntax:
-    // ```
-    // <<~MSG
-    //   foo
-    // MSG #: String
-    // ```
-    // We add a special case for heredocs to allow adding the comment at the end of the assign:
-    // ```
-    // <<~MSG #: String
-    //   foo
-    // MSG
-    // ```
-    if (isHeredoc(fromLoc, node)) {
-        fromPos = fromLoc.beginPos();
-    }
 
     // Get the position of the end of the line from the startingLoc
     auto endPos = source.find('\n', fromPos);
@@ -367,6 +347,30 @@ optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<pars
                      core::LocOffsets{(uint32_t)contentStart, static_cast<uint32_t>(endPos)}, content},
         kind,
     };
+}
+
+optional<rbs::InlineComment> RBSRewriter::findRBSTrailingComment(unique_ptr<parser::Node> &node,
+                                                                 core::LocOffsets fromLoc) {
+    // We want to find the comment right after the end of the assign
+    auto fromPos = node->loc.endPos();
+
+    // On heredocs, adding the comment at the end of the assign won't work because this is invalid Ruby syntax:
+    // ```
+    // <<~MSG
+    //   foo
+    // MSG #: String
+    // ```
+    // We add a special case for heredocs to allow adding the comment at the end of the assign:
+    // ```
+    // <<~MSG #: String
+    //   foo
+    // MSG
+    // ```
+    if (isHeredoc(fromLoc, node)) {
+        fromPos = fromLoc.beginPos();
+    }
+
+    return findRBSTrailingCommentFromPos(fromPos);
 }
 
 /**
@@ -730,7 +734,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Module *module) {
             module->body = rewriteBody(move(module->body));
 
-            if (auto assertion = findRBSTrailingComment(node, module->loc)) {
+            if (auto assertion = findRBSTrailingCommentFromPos(module->loc.endPos())) {
                 if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                             core::errors::Rewriter::RBSAssertionError)) {
                     e.setHeader("Unexpected RBS assertion comment found after `{}` end", "module");
@@ -740,7 +744,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), module->declLoc.endLoc).line;
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), module->loc.endLoc).line;
             if ((endLine > decLine)) {
-                if (auto assertion = findRBSTrailingComment(node, module->loc)) {
+                if (auto assertion = findRBSTrailingCommentFromPos(module->declLoc.endLoc)) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "module");
@@ -753,7 +757,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Class *klass) {
             klass->body = rewriteBody(move(klass->body));
 
-            if (auto assertion = findRBSTrailingComment(node, klass->loc)) {
+            if (auto assertion = findRBSTrailingCommentFromPos(klass->loc.endPos())) {
                 if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                             core::errors::Rewriter::RBSAssertionError)) {
                     e.setHeader("Unexpected RBS assertion comment found after `{}` end", "class");
@@ -762,8 +766,8 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
 
             auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), klass->declLoc.endLoc).line;
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), klass->loc.endLoc).line;
-            if ((endLine > decLine)) {
-                if (auto assertion = findRBSTrailingComment(node, klass->loc)) {
+            if (endLine > decLine) {
+                if (auto assertion = findRBSTrailingCommentFromPos(klass->declLoc.endLoc)) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "class");
@@ -785,7 +789,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             // method->args = rewriteNode(move(method->args));
             method->body = rewriteBody(move(method->body));
 
-            if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+            if (auto assertion = findRBSTrailingCommentFromPos(method->loc.endPos())) {
                 if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                             core::errors::Rewriter::RBSAssertionError)) {
                     e.setHeader("Unexpected RBS assertion comment found after `{}` end", "method");
@@ -795,8 +799,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->declLoc.endLoc).line;
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->loc.endLoc).line;
             if (endLine > decLine) {
-                std::cerr << "method: " << endLine << " > " << decLine << std::endl;
-                if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+                if (auto assertion = findRBSTrailingCommentFromPos(method->declLoc.endLoc)) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "method");
@@ -810,7 +813,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             // method->args = rewriteNode(move(method->args));
             method->body = rewriteBody(move(method->body));
 
-            if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+            if (auto assertion = findRBSTrailingCommentFromPos(method->loc.endPos())) {
                 if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                             core::errors::Rewriter::RBSAssertionError)) {
                     e.setHeader("Unexpected RBS assertion comment found after `{}` end", "method");
@@ -820,7 +823,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
             auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->declLoc.endLoc).line;
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), method->loc.endLoc).line;
             if (endLine > decLine) {
-                if (auto assertion = findRBSTrailingComment(node, method->loc)) {
+                if (auto assertion = findRBSTrailingCommentFromPos(method->declLoc.endLoc)) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", "method");
@@ -880,7 +883,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         [&](parser::Regexp *regexpNode) { result = move(node); }, [&](parser::Regopt *regopt) { result = move(node); },
         [&](parser::Return *ret) {
             if (ret->exprs.empty()) {
-                if (auto assertion = findRBSTrailingComment(node, ret->loc)) {
+                if (auto assertion = findRBSTrailingCommentFromPos(ret->loc.endPos())) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "return");
@@ -892,7 +895,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         },
         [&](parser::Break *break_) {
             if (break_->exprs.empty()) {
-                if (auto assertion = findRBSTrailingComment(node, break_->loc)) {
+                if (auto assertion = findRBSTrailingCommentFromPos(break_->loc.endPos())) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "break");
@@ -904,7 +907,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
         },
         [&](parser::Next *next) {
             if (next->exprs.empty()) {
-                if (auto assertion = findRBSTrailingComment(node, next->loc)) {
+                if (auto assertion = findRBSTrailingCommentFromPos(next->loc.endPos())) {
                     if (auto e = ctx.beginError(assertion.value().comment.commentLoc,
                                                 core::errors::Rewriter::RBSAssertionError)) {
                         e.setHeader("Unexpected RBS assertion comment found in `{}` without an expression", "next");
