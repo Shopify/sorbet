@@ -7,6 +7,17 @@
 
 namespace sorbet::rbs {
 
+struct InlineComment {
+    enum class Kind {
+        LET,
+        CAST,
+        MUST,
+    };
+
+    Comment comment;
+    Kind kind;
+};
+
 class RBSRewriter {
 public:
     RBSRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};

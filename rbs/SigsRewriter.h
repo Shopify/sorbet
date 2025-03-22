@@ -26,17 +26,6 @@ struct Comments {
     std::vector<Comment> signatures;
 };
 
-struct InlineComment {
-    enum class Kind {
-        LET,
-        CAST,
-        MUST,
-    };
-
-    Comment comment;
-    Kind kind;
-};
-
 class SigsRewriter {
 public:
     SigsRewriter(core::MutableContext ctx) : ctx(ctx){};
