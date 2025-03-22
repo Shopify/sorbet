@@ -1,4 +1,4 @@
-#include "rbs/RBSRewriter.h"
+#include "rbs/AssertionsRewriter.h"
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
@@ -275,7 +275,7 @@ void checkDanglingComment(core::Context ctx, uint32_t nodeEnd, string kind) {
  * Get the RBS type from the given assign
  */
 optional<pair<unique_ptr<parser::Node>, InlineComment::Kind>>
-RBSRewriter::assertionForNode(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
+AssertionsRewriter::assertionForNode(unique_ptr<parser::Node> &node, core::LocOffsets fromLoc) {
     if (auto inlineComment = commentForNode(ctx, node, fromLoc)) {
         auto typeParams = lastTypeParams();
         return parseComment(ctx, inlineComment.value(), typeParams);
@@ -298,7 +298,7 @@ RBSRewriter::assertionForNode(unique_ptr<parser::Node> &node, core::LocOffsets f
  *
  * We need to be aware of the type parameter `X` so we can use it to resolve the type of `y`.
  */
-vector<pair<core::LocOffsets, core::NameRef>> RBSRewriter::lastTypeParams() {
+vector<pair<core::LocOffsets, core::NameRef>> AssertionsRewriter::lastTypeParams() {
     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
 
     // Do we have a previous signature?
@@ -332,7 +332,7 @@ vector<pair<core::LocOffsets, core::NameRef>> RBSRewriter::lastTypeParams() {
     return typeParams;
 }
 
-void RBSRewriter::maybeSaveSignature(parser::Block *block) {
+void AssertionsRewriter::maybeSaveSignature(parser::Block *block) {
     if (block->body == nullptr) {
         return;
     }
@@ -349,7 +349,7 @@ void RBSRewriter::maybeSaveSignature(parser::Block *block) {
     lastSignature = block;
 }
 
-unique_ptr<parser::Node> RBSRewriter::maybeInsertCast(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> AssertionsRewriter::maybeInsertCast(unique_ptr<parser::Node> node) {
     if (auto type = assertionForNode(node, core::LocOffsets::none())) {
         return insertCast(move(node), move(type));
     }
@@ -357,7 +357,7 @@ unique_ptr<parser::Node> RBSRewriter::maybeInsertCast(unique_ptr<parser::Node> n
     return node;
 }
 
-parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
+parser::NodeVec AssertionsRewriter::rewriteNodes(parser::NodeVec nodes) {
     auto oldStmts = move(nodes);
     auto newStmts = parser::NodeVec();
 
@@ -369,7 +369,7 @@ parser::NodeVec RBSRewriter::rewriteNodes(parser::NodeVec nodes) {
     return newStmts;
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> AssertionsRewriter::rewriteBegin(unique_ptr<parser::Node> node) {
     auto begin = parser::cast_node<parser::Begin>(node.get());
     ENFORCE(begin != nullptr);
 
@@ -384,7 +384,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBegin(unique_ptr<parser::Node> node
     return node;
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> AssertionsRewriter::rewriteBody(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
@@ -397,7 +397,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteBody(unique_ptr<parser::Node> node)
     return rewriteNode(move(node));
 }
 
-unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> AssertionsRewriter::rewriteNode(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }
@@ -627,7 +627,7 @@ unique_ptr<parser::Node> RBSRewriter::rewriteNode(unique_ptr<parser::Node> node)
     return result;
 }
 
-unique_ptr<parser::Node> RBSRewriter::run(unique_ptr<parser::Node> node) {
+unique_ptr<parser::Node> AssertionsRewriter::run(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
     }

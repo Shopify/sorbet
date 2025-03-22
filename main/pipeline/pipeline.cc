@@ -41,7 +41,7 @@
 #include "namer/namer.h"
 #include "parser/parser.h"
 #include "pipeline.h"
-#include "rbs/RBSRewriter.h"
+#include "rbs/AssertionsRewriter.h"
 #include "rbs/SigsRewriter.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
@@ -241,7 +241,7 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
         }
 
         if (gs.rbsAssertionsEnabled) {
-            auto rewriter = rbs::RBSRewriter(ctx);
+            auto rewriter = rbs::AssertionsRewriter(ctx);
             node = rewriter.run(move(node));
         }
     }

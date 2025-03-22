@@ -40,7 +40,7 @@
 #include "parser/parser.h"
 #include "payload/binary/binary.h"
 #include "payload/payload.h"
-#include "rbs/RBSRewriter.h"
+#include "rbs/AssertionsRewriter.h"
 #include "rbs/SigsRewriter.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
@@ -227,7 +227,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             }
 
             if (gs.rbsAssertionsEnabled) {
-                auto rewriter = rbs::RBSRewriter(ctx);
+                auto rewriter = rbs::AssertionsRewriter(ctx);
                 nodes = rewriter.run(move(nodes));
             }
         }
@@ -411,7 +411,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 }
 
                 if (ctx.state.rbsAssertionsEnabled) {
-                    auto rewriter = rbs::RBSRewriter(ctx);
+                    auto rewriter = rbs::AssertionsRewriter(ctx);
                     nodes = rewriter.run(move(nodes));
                 }
 
@@ -760,7 +760,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         }
 
         if (gs->rbsAssertionsEnabled) {
-            auto rewriter = rbs::RBSRewriter(ctx);
+            auto rewriter = rbs::AssertionsRewriter(ctx);
             nodes = rewriter.run(move(nodes));
         }
 

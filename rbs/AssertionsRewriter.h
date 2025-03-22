@@ -1,5 +1,5 @@
-#ifndef SORBET_RBS_REWRITER_H
-#define SORBET_RBS_REWRITER_H
+#ifndef SORBET_RBS_ASSERTIONS_REWRITER_H
+#define SORBET_RBS_ASSERTIONS_REWRITER_H
 
 #include "parser/parser.h"
 #include "rbs/rbs_common.h"
@@ -18,9 +18,9 @@ struct InlineComment {
     Kind kind;
 };
 
-class RBSRewriter {
+class AssertionsRewriter {
 public:
-    RBSRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};
+    AssertionsRewriter(core::MutableContext ctx) : ctx(ctx), lastSignature(nullptr){};
     std::unique_ptr<parser::Node> run(std::unique_ptr<parser::Node> tree);
 
 private:
@@ -43,4 +43,4 @@ private:
 
 } // namespace sorbet::rbs
 
-#endif // SORBET_RBS_REWRITER_H
+#endif // SORBET_RBS_ASSERTIONS_REWRITER_H
