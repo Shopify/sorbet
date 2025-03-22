@@ -16,21 +16,18 @@ private:
     core::MutableContext ctx;
     parser::Node *lastSignature;
 
+    std::vector<std::pair<core::LocOffsets, core::NameRef>> lastTypeParams();
+
     std::optional<std::pair<std::unique_ptr<parser::Node>, InlineComment::Kind>>
     assertionForNode(std::unique_ptr<parser::Node> &node, core::LocOffsets fromLoc);
 
-    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
+    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
     parser::NodeVec rewriteNodes(parser::NodeVec nodes);
 
     void maybeSaveSignature(parser::Block *block);
-    std::vector<std::pair<core::LocOffsets, core::NameRef>> lastTypeParams();
     std::unique_ptr<parser::Node> maybeInsertCast(std::unique_ptr<parser::Node> node);
-    void insertSignatures(parser::NodeVec &stmts, parser::NodeVec &signatures);
-    std::unique_ptr<parser::Node> wrapInBegin(std::unique_ptr<parser::Node> node, parser::NodeVec &signatures);
-    bool isVisibilitySend(parser::Send *send);
-    bool isAttrAccessorSend(parser::Send *send);
 };
 
 } // namespace sorbet::rbs
