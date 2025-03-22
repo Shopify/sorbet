@@ -42,6 +42,7 @@
 #include "parser/parser.h"
 #include "pipeline.h"
 #include "rbs/RBSRewriter.h"
+#include "rbs/SigsRewriter.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 

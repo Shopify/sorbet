@@ -1,7 +1,7 @@
 #ifndef SORBET_RBS_REWRITER_H
 #define SORBET_RBS_REWRITER_H
 
-#include "rbs/SigsRewriter.h"
+#include "parser/parser.h"
 #include "rbs/rbs_common.h"
 #include <memory>
 
