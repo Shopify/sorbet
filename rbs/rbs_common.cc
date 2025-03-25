@@ -2,7 +2,7 @@
 
 namespace sorbet::rbs {
 
-core::LocOffsets Signature::mapLocForRange(const range &range) const {
+core::LocOffsets Signature::locFromRange(const range &range) const {
     // Get the first comment and initialize tracking variables
     auto firstComment = comments.front();
     auto commentStartLocOffset = 2; // Skip the #: or #| prefix

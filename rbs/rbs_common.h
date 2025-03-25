@@ -41,7 +41,7 @@ public:
         return result;
     }
 
-    core::LocOffsets mapLocForRange(const range &range) const;
+    core::LocOffsets locFromRange(const range &range) const;
 };
 
 } // namespace sorbet::rbs
