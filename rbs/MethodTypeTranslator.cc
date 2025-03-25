@@ -176,8 +176,8 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
 
     auto *block = node.block;
     if (block) {
-        // TODO: RBS doesn't have location on blocks yet
-        auto arg = RBSArg{signature.loc(), nullptr, (rbs_node_t *)block};
+        auto loc = signature.mapLocForRange(block->base.location->rg);
+        auto arg = RBSArg{loc, nullptr, (rbs_node_t *)block};
         args.emplace_back(arg);
     }
 
@@ -195,7 +195,8 @@ ast::ExpressionPtr MethodTypeTranslator::methodSignature(const ast::MethodDef *m
             name = ctx.state.enterNameUTF8(nameStr);
         } else {
             if (i >= methodDef->args.size()) {
-                if (auto e = ctx.beginError(signature.loc(), core::errors::Rewriter::RBSParameterMismatch)) {
+                auto loc = signature.mapLocForRange(functionType->base.location->rg);
+                if (auto e = ctx.beginError(loc, core::errors::Rewriter::RBSParameterMismatch)) {
                     e.setHeader("RBS signature has more parameters than in the method definition");
                 }
 
@@ -282,7 +283,7 @@ ast::ExpressionPtr MethodTypeTranslator::attrSignature(const ast::Send *send, rb
     }
 
     auto typeTranslator = TypeTranslator(ctx, typeParams, parser);
-    auto returnType = typeTranslator.toExpressionPtr(type, signature.loc());
+    auto returnType = typeTranslator.toExpressionPtr(type, signature.mapLocForRange(type->location->rg));
 
     if (send->fun == core::Names::attrWriter()) {
         if (send->numPosArgs() > 1) {
