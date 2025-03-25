@@ -4,22 +4,22 @@
 # Sig parts hover
 
 #: -> String
-#^ hover: # T::Sig::WithoutRuntime.sig:
-# ^ hover: # T::Sig::WithoutRuntime.sig:
-#  ^ hover: # T::Sig::WithoutRuntime.sig:
-#   ^ hover: # T::Sig::WithoutRuntime.sig:
-#    ^ hover: # T::Sig::WithoutRuntime.sig:
+#^ hover: null
+# ^ hover: # T::Private::Methods::DeclBuilder#returns:
+#  ^ hover: # T::Private::Methods::DeclBuilder#returns:
+#   ^ hover: # T::Private::Methods::DeclBuilder#returns:
+#    ^ hover: # T::Private::Methods::DeclBuilder#returns:
 def hover_sig1; T.unsafe(nil); end
 
 #: () -> String
-#  ^ hover: # T::Sig::WithoutRuntime.sig:
-#   ^ hover: # T::Sig::WithoutRuntime.sig:
+#  ^ hover: # T::Private::Methods::DeclBuilder#returns:
+#   ^ hover: # T::Private::Methods::DeclBuilder#returns:
 def hover_sig2; T.unsafe(nil); end
 
 #: (Integer, String) -> String
 #          ^ hover: Integer
 #                   ^ TODO: Should be pointing to the sig itself?
-#           ^ hover: # T::Sig::WithoutRuntime.sig:
+#           ^ hover: # T::Private::Methods::DeclBuilder#params:
 def hover_sig3(x, y); T.unsafe(nil); end
 
 # Return type hover
@@ -77,7 +77,7 @@ def hover_keyword_params_1(x, y, z); T.unsafe(nil); end
 # Block params hover
 
 #: () { -> String } -> void
-#     ^ hover: # T::Sig::WithoutRuntime.sig:
+#     ^ hover: # T.proc:
 #              ^ TODO: RBS blocks do not have location yet
 #          ^ hover: T.class_of(String)
 #               ^ hover: T.class_of(String)
