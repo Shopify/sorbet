@@ -4,6 +4,7 @@ cc_library(
         "Builder.cc",
         "Builder.h",
         "Dedenter.h",
+        "helper.h",
         "Node.cc",
         "Node.h",
         "Node_gen.cc",
