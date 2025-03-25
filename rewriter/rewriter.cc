@@ -212,6 +212,7 @@ ast::ExpressionPtr Rewriter::run(core::MutableContext ctx, ast::ExpressionPtr tr
 
     if (ctx.state.cacheSensitiveOptions.rbsSignaturesEnabled) {
         // This rewriter must run before the others, because it creates signatures that other rewriters depend on.
+        RBSSignatures::extractRBSComments(ctx.file.data(ctx).source());
         ast = RBSSignatures::run(ctx, std::move(ast));
     }
 
