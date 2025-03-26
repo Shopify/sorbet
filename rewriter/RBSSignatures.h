@@ -41,7 +41,7 @@ private:
 public:
     static void extractRBSComments(std::string_view sourceCode);
     static ast::ExpressionPtr run(core::MutableContext ctx, ast::ExpressionPtr tree);
-    static Comments getMethodSignatureFor(const std::string_view &methodName, const core::LocOffsets &loc);
+    static Comments getMethodSignatureFor(const uint32_t lineNumber);
 
     RBSSignatures() = delete;
 };

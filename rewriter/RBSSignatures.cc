@@ -14,72 +14,8 @@ namespace sorbet::rewriter {
 
 namespace {
 
-// TODO: @kaan method name logic, vibed too hard
-const string_view DEF_PREFIX = "def ";
-const string_view PUBLIC_DEF_PREFIX = "public def ";
-const string_view PROTECTED_DEF_PREFIX = "protected def ";
-const string_view PRIVATE_DEF_PREFIX = "private def ";
-const string_view PRIVATE_CLASS_METHOD_DEF_PREFIX = "private_class_method def ";
-const string_view PUBLIC_CLASS_METHOD_DEF_PREFIX = "public_class_method def ";
-const string_view PACKAGE_PRIVATE_DEF_PREFIX = "package_private def ";
-const string_view PACKAGE_PRIVATE_CLASS_METHOD_DEF_PREFIX = "package_private_class_method def ";
 const string_view RBS_PREFIX = "#:";
 const string_view ANNOTATION_PREFIX = "# @";
-
-const string_view ATTR_READER_PREFIX = "attr_reader ";
-const string_view ATTR_WRITER_PREFIX = "attr_writer ";
-const string_view ATTR_ACCESSOR_PREFIX = "attr_accessor ";
-
-string_view extractMethodName(string_view line, string_view prefix) {
-    auto nameStart = line.substr(prefix.length());
-    size_t methodEnd = nameStart.find_first_of(" \t\r\n(;");
-
-    // If no terminator found, use the entire remaining string
-    if (methodEnd == string_view::npos) {
-        return absl::StripAsciiWhitespace(nameStart);
-    }
-    return absl::StripAsciiWhitespace(nameStart.substr(0, methodEnd));
-}
-
-// Create a struct to hold both the method name and its actual offset
-struct MethodInfo {
-    string_view name;
-    uint32_t defOffset;
-};
-
-MethodInfo findMethodName(string_view line, uint32_t baseOffset) {
-    if (absl::StartsWith(line, DEF_PREFIX)) {
-        return {extractMethodName(line, DEF_PREFIX), 0};
-    } else if (absl::StartsWith(line, PUBLIC_DEF_PREFIX)) {
-        return {extractMethodName(line, PUBLIC_DEF_PREFIX),
-                static_cast<uint32_t>(PUBLIC_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, PROTECTED_DEF_PREFIX)) {
-        return {extractMethodName(line, PROTECTED_DEF_PREFIX),
-                static_cast<uint32_t>(PROTECTED_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, PRIVATE_DEF_PREFIX)) {
-        return {extractMethodName(line, PRIVATE_DEF_PREFIX),
-                static_cast<uint32_t>(PRIVATE_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, PRIVATE_CLASS_METHOD_DEF_PREFIX)) {
-        return {extractMethodName(line, PRIVATE_CLASS_METHOD_DEF_PREFIX),
-                static_cast<uint32_t>(PRIVATE_CLASS_METHOD_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, PUBLIC_CLASS_METHOD_DEF_PREFIX)) {
-        return {extractMethodName(line, PUBLIC_CLASS_METHOD_DEF_PREFIX),
-                static_cast<uint32_t>(PUBLIC_CLASS_METHOD_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, PACKAGE_PRIVATE_DEF_PREFIX)) {
-        return {extractMethodName(line, PACKAGE_PRIVATE_DEF_PREFIX),
-                static_cast<uint32_t>(PACKAGE_PRIVATE_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, PACKAGE_PRIVATE_CLASS_METHOD_DEF_PREFIX)) {
-        return {extractMethodName(line, PACKAGE_PRIVATE_CLASS_METHOD_DEF_PREFIX),
-                static_cast<uint32_t>(PACKAGE_PRIVATE_CLASS_METHOD_DEF_PREFIX.length() - DEF_PREFIX.length())};
-    } else if (absl::StartsWith(line, ATTR_READER_PREFIX)) {
-        return {extractMethodName(line, ATTR_READER_PREFIX), 0};
-    } else if (absl::StartsWith(line, ATTR_WRITER_PREFIX)) {
-        return {extractMethodName(line, ATTR_WRITER_PREFIX), 0};
-    } else if (absl::StartsWith(line, ATTR_ACCESSOR_PREFIX)) {
-        return {extractMethodName(line, ATTR_ACCESSOR_PREFIX), 0};
-    }
-    return {string_view(), 0};
-}
 
 /**
  * Strip ASCII whitespace from the beginning and end of a string_view, but keep track of
@@ -140,7 +76,9 @@ class RBSSignaturesWalk {
 
     vector<ast::ExpressionPtr> makeMethodDefSignatures(core::MutableContext ctx, ast::MethodDef *methodDef) {
         auto signatures = vector<ast::ExpressionPtr>();
-        auto methodComments = RBSSignatures::getMethodSignatureFor(methodDef->name.toString(ctx), methodDef->loc);
+        auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), methodDef->loc.beginLoc).line;
+        auto methodName = methodDef->name.toString(ctx);
+        auto methodComments = RBSSignatures::getMethodSignatureFor(lineStart);
         auto signatureTranslator = rbs::SignatureTranslator(ctx);
 
         for (auto &signature : methodComments.signatures) {
@@ -155,10 +93,8 @@ class RBSSignaturesWalk {
 
     vector<ast::ExpressionPtr> makeAccessorSignatures(core::MutableContext ctx, ast::Send *send) {
         auto signatures = vector<ast::ExpressionPtr>();
-        if (!send->hasPosArgs()) {
-            return signatures;
-        }
-        auto attrComments = RBSSignatures::getMethodSignatureFor(send->getPosArg(0).toString(ctx), send->loc);
+        auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), send->loc.beginLoc).line;
+        auto attrComments = RBSSignatures::getMethodSignatureFor(lineStart);
         auto signatureTranslator = rbs::SignatureTranslator(ctx);
 
         for (auto &signature : attrComments.signatures) {
@@ -260,33 +196,23 @@ public:
 
 thread_local UnorderedMap<std::string, RBSSignatures::Comments> RBSSignatures::methodSignatures;
 
-RBSSignatures::Comments RBSSignatures::getMethodSignatureFor(const string_view &methodName,
-                                                             const core::LocOffsets &loc) {
-    string key = to_string(loc.beginPos()) + string(methodName);
-    auto &map = methodSignatures; // Get a local reference
-    auto it = map.find(key);
-    if (it != map.end()) {
+RBSSignatures::Comments RBSSignatures::getMethodSignatureFor(const uint32_t lineNumber) {
+    string key = to_string(lineNumber);
+
+    // fmt::print("Looking for key: {}\n", key);
+    // fmt::print("Map contents:\n");
+    // for (const auto &[k, v] : methodSignatures) {
+    //     fmt::print("  Line {}: {} signatures, {} annotations\n", k, v.signatures.size(), v.annotations.size());
+    //     for (const auto &sig : v.signatures) {
+    //         fmt::print("    Signature: {}\n", sig.string);
+    //     }
+    // }
+    // fmt::print("\n");
+
+    auto it = methodSignatures.find(key);
+    if (it != methodSignatures.end()) {
         return it->second;
     }
-    // Print the contents of the methodSignatures map for debugging
-    fmt::print("Method signatures map contents:\n");
-    for (const auto &[key, comments] : map) {
-        fmt::print("  Key: {}\n", key);
-
-        // Print RBS signatures
-        fmt::print("    Signatures ({}):\n", comments.signatures.size());
-        for (const auto &sig : comments.signatures) {
-            fmt::print("      Loc: {}:{}, Content: {}\n", sig.loc.beginPos(), sig.loc.endPos(), sig.string);
-        }
-
-        // Print annotations
-        fmt::print("    Annotations ({}):\n", comments.annotations.size());
-        for (const auto &anno : comments.annotations) {
-            fmt::print("      Loc: {}:{}, Content: {}\n", anno.loc.beginPos(), anno.loc.endPos(), anno.string);
-        }
-    }
-    fmt::print("key: {}\n", key);
-
     return Comments{};
 }
 
@@ -299,8 +225,10 @@ void RBSSignatures::extractRBSComments(string_view sourceCode) {
     auto lines = absl::StrSplit(sourceCode, '\n');
     Comments currentComments;
     uint32_t offset = 0;
+    uint32_t lineNumber = 0;
 
     for (const auto &line : lines) {
+        lineNumber++;
         uint32_t leadingWhitespaceCount = 0;
         string_view trimmedLine = stripAsciiWhitespaceWithCount(line, leadingWhitespaceCount);
 
@@ -332,7 +260,6 @@ void RBSSignatures::extractRBSComments(string_view sourceCode) {
             offset += line.length() + 1;
             continue;
         } else if (absl::StartsWith(trimmedLine, "#")) {
-            // Skip regular comments
             offset += line.length() + 1;
             continue;
         }
@@ -342,19 +269,10 @@ void RBSSignatures::extractRBSComments(string_view sourceCode) {
         // @kaan: We may be broken for class definitions, or remaining comments
 
         if (!currentComments.signatures.empty() || !currentComments.annotations.empty()) {
-            uint32_t lineOffset = offset + (trimmedLine.data() - line.data());
-            MethodInfo info = findMethodName(trimmedLine, lineOffset);
-            string_view methodName = info.name;
-            uint32_t defAdjustment = info.defOffset;
-
-            if (!methodName.empty()) {
-                uint32_t actualDefOffset = lineOffset + defAdjustment;
-                string key = to_string(actualDefOffset) + string(methodName);
-                // @kaan: Do we need to store the method name or offset is enough?
-                methodSignatures[key] = move(currentComments);
-            }
-            currentComments = Comments{};
+            string key = to_string(lineNumber);
+            methodSignatures[key] = move(currentComments);
         }
+        currentComments = Comments{};
         offset += line.length() + 1;
     }
 }
