@@ -181,6 +181,28 @@ def method20(&block)
   T.reveal_type(block) # error: Revealed type: `T.untyped`
 end
 
+
+# Some comment
+#: -> String
+
+def method21; T.unsafe(nil); end
+T.reveal_type(method21) # error: Revealed type: `String`
+
+#: (Integer) -> void # error: Unused type annotation. No method def before next annotation
+sig { params(x: String).void }
+def method22(x)
+  T.reveal_type(x) # error: Revealed type: `String`
+end
+
+#: (Integer) -> void # error: Unused type annotation. No method def before next annotation
+sig do
+  params(x: String).void
+end
+def method23(x)
+  T.reveal_type(x) # error: Revealed type: `String`
+end
+
+
 class FooProc
   #: (p: ^() -> Integer ) ?{ (Integer) [self: FooProc] -> String } -> void
   def initialize(p: -> { 42 }, &block)

@@ -194,6 +194,7 @@ public:
 
 } // namespace
 
+// @kaan: TODO might be better to supply this as an argument instead of `thread_local`
 thread_local UnorderedMap<std::string, RBSSignatures::Comments> RBSSignatures::methodSignatures;
 
 RBSSignatures::Comments RBSSignatures::getMethodSignatureFor(const uint32_t lineNumber) {
@@ -211,7 +212,9 @@ RBSSignatures::Comments RBSSignatures::getMethodSignatureFor(const uint32_t line
 
     auto it = methodSignatures.find(key);
     if (it != methodSignatures.end()) {
-        return it->second;
+        Comments result = it->second;
+        methodSignatures.erase(it); // Remove the entry from the map to identify unused comments later on
+        return result;
     }
     return Comments{};
 }
@@ -232,6 +235,7 @@ void RBSSignatures::extractRBSComments(string_view sourceCode) {
         uint32_t leadingWhitespaceCount = 0;
         string_view trimmedLine = stripAsciiWhitespaceWithCount(line, leadingWhitespaceCount);
 
+        // Empty lines between the RBS Comment and the method definition are allowed
         if (trimmedLine.empty()) {
             offset += line.length() + 1;
             continue;
@@ -264,14 +268,12 @@ void RBSSignatures::extractRBSComments(string_view sourceCode) {
             continue;
         }
 
-        // @kaan: TODO sig block between method and RBS comment, already logic for braces and do block
-
-        // @kaan: We may be broken for class definitions, or remaining comments
-
         if (!currentComments.signatures.empty() || !currentComments.annotations.empty()) {
             string key = to_string(lineNumber);
             methodSignatures[key] = move(currentComments);
         }
+
+        // Clean up currentComments for next iteration
         currentComments = Comments{};
         offset += line.length() + 1;
     }
@@ -280,6 +282,20 @@ void RBSSignatures::extractRBSComments(string_view sourceCode) {
 ast::ExpressionPtr RBSSignatures::run(core::MutableContext ctx, ast::ExpressionPtr tree) {
     RBSSignaturesWalk rbsTranslate(ctx);
     ast::TreeWalk::apply(ctx, rbsTranslate, tree);
+
+    // Check for unused comments after processing all methods
+    if (!methodSignatures.empty()) {
+        for (const auto &[lineNumber, comments] : methodSignatures) {
+            // Report each unused signature comment
+            for (const auto &sig : comments.signatures) {
+                // Use the signature's location offsets directly
+                if (auto e = ctx.beginError(sig.loc, core::errors::Rewriter::RBSUnsupported)) {
+                    e.setHeader("Unused type annotation. No method def before next annotation");
+                    e.addErrorSection(core::ErrorSection(""));
+                }
+            }
+        }
+    }
 
     return tree;
 }

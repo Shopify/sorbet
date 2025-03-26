@@ -79,3 +79,25 @@ class AttrAnnotations
     attr_reader :foo
   end
 end
+
+class UnusedComments
+  extend T::Sig
+
+  #: Integer # error: Unused type annotation. No method def before next annotation
+  sig { returns(String) }
+  attr_reader :foo
+
+  #: Integer # error: Unused type annotation. No method def before next annotation
+  sig { returns(String) }
+  attr_reader :bar
+
+  #: -> void
+  def initialize
+    @foo = T.let("foo", String)
+    @bar = T.let("bar", String)
+  end
+end
+
+x = UnusedComments.new
+T.reveal_type(x.foo) # error: Revealed type: `String`
+T.reveal_type(x.bar) # error: Revealed type: `String`
