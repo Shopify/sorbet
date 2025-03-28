@@ -10,7 +10,7 @@ namespace sorbet::rbs {
 /**
  * A collection of annotations and signatures comments found on a method definition.
  */
-struct Comments {
+struct Comments { // @kaan: why is this not nested under SigRewriter?
     /**
      * RBS annotation comments found on a method definition.
      *
@@ -33,11 +33,14 @@ public:
 
 private:
     core::MutableContext ctx;
+    UnorderedMap<std::string, Comments> methodSignatures;
 
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
     parser::NodeVec rewriteNodes(parser::NodeVec nodes);
+    void extractComments(std::string_view sourceCode);
+    void checkForUnusedComments(core::MutableContext ctx);
 };
 
 } // namespace sorbet::rbs
