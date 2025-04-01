@@ -935,6 +935,9 @@ void readOptions(Options &opts,
 
         opts.cacheSensitiveOptions.requiresAncestorEnabled = raw["enable-experimental-requires-ancestor"].as<bool>();
 
+        opts.cacheSensitiveOptions.defaultStrictLevel =
+            text2StrictLevel(raw["default-strictness-level"].as<string>(), logger);
+
         bool enableAllLSPFeatures = raw["enable-all-experimental-lsp-features"].as<bool>();
         opts.lspAllBetaFeaturesEnabled = enableAllLSPFeatures || raw["enable-all-beta-lsp-features"].as<bool>();
         opts.lspExtractToVariableEnabled =

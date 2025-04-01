@@ -198,10 +198,14 @@ struct Options {
 
         bool runningUnderAutogen : 1;
 
+        // @kaan: 3 bits isn't enough for the custom levels
+        core::StrictLevel defaultStrictLevel : 3;
+
         // In C++20 we can replace this with bit field initializers
         CacheSensitiveOptions()
             : noStdlib(false), typedSuper(true), rbsSignaturesEnabled(false), rbsAssertionsEnabled(false),
-              requiresAncestorEnabled(false), runningUnderAutogen(false) {}
+              requiresAncestorEnabled(false), runningUnderAutogen(false), defaultStrictLevel(core::StrictLevel::False) {
+        }
 
         constexpr static uint8_t NUMBER_OF_FLAGS = 6;
         constexpr static uint8_t VALID_BITS_MASK = (1 << NUMBER_OF_FLAGS) - 1;
