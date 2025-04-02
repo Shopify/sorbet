@@ -270,8 +270,12 @@ int lexer::arg_or_cmdarg(int cmd_state) {
 }
 
 void lexer::emit_comment(const char* s, const char* e) {
-  /* unused for now */
-  (void)s;
+  if (collect_comments) {
+    size_t offset_start = (size_t)(s - source_buffer.data());
+    size_t offset_end = (size_t)(e - source_buffer.data());
+    // @kaan: we're pretty much creating a locOffset. Kept is simple to not expose abstractions
+    comment_locations.emplace_back(offset_start, offset_end);
+  }
   if (*e == '\n') { // might also be \0
     newline_s = e;
   }
