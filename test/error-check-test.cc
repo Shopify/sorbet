@@ -36,9 +36,8 @@ TEST_CASE("ParserCheck") {
     sorbet::core::UnfreezeFileTable ft(gs);
 
     core::FileRef fileId = gs.enterFile("<test input>", "a");
-    auto settings = sorbet::parser::Parser::Settings{false, false, false};
-    auto result = sorbet::parser::Parser::run(gs, fileId, settings);
-    auto ast = std::move(result.tree);
+    auto settings = parser::Parser::Settings{};
+    auto ast = sorbet::parser::Parser::run(gs, fileId, settings);
 
     try {
         sorbet::core::MutableContext ctx(gs, core::Symbols::root(), fileId);

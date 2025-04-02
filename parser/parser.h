@@ -2,7 +2,6 @@
 #define SORBET_PARSER_PARSER_H
 
 #include "Node.h"
-#include "ruby_parser/driver.hh"
 
 namespace sorbet::parser {
 
@@ -22,10 +21,10 @@ public:
         }
     };
 
-    struct ParseResult {
-        std::unique_ptr<Node> tree;
-        std::vector<size_t> comments;
-    };
+    // struct ParseResult {
+    //     std::unique_ptr<Node> tree;
+    //     std::vector<size_t> comments;
+    // };
 
     static std::unique_ptr<Node> run(core::GlobalState &gs, core::FileRef file, Settings settings,
                                      std::vector<std::string> initialLocals = {});

@@ -211,7 +211,7 @@ unique_ptr<parser::Node> runParser(core::GlobalState &gs, core::FileRef file, co
         core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
         auto indentationAware = false;               // Don't start in indentation-aware error recovery mode
         auto settings = parser::Parser::Settings{traceLexer, traceParser, indentationAware};
-        auto nodes = parser::Parser::run(gs, file, settings);
+        nodes = parser::Parser::run(gs, file, settings);
         // fmt::print("comments: {}\n", fmt::join(parser::Parser::get_comment_locations(), "\n"));
     }
     if (print.ParseTree.enabled) {
