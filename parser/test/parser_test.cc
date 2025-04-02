@@ -24,13 +24,13 @@ TEST_CASE("SimpleParse") { // NOLINT
     gs.initEmpty();
     sorbet::core::UnfreezeNameTable nameTableAccess(gs);
     sorbet::core::UnfreezeFileTable ft(gs);
-    auto settings = sorbet::parser::Parser::Settings{};
+    auto settings = sorbet::parser::Parser::Settings{false, false, false};
     sorbet::core::FileRef fileId1 = gs.enterFile("<test1>", "def hello_world; p :hello; end");
-    sorbet::parser::Parser::run(gs, fileId1, settings);
+    auto result1 = sorbet::parser::Parser::run(gs, fileId1, settings);
     sorbet::core::FileRef fileId2 = gs.enterFile("<test2>", "class A; class B; end; end");
-    sorbet::parser::Parser::run(gs, fileId2, settings);
+    auto result2 = sorbet::parser::Parser::run(gs, fileId2, settings);
     sorbet::core::FileRef fileId3 = gs.enterFile("<test3>", "class A::B; module B; end; end");
-    sorbet::parser::Parser::run(gs, fileId3, settings);
+    auto result3 = sorbet::parser::Parser::run(gs, fileId3, settings);
 }
 
 struct DedentTest {

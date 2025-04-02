@@ -270,8 +270,8 @@ int lexer::arg_or_cmdarg(int cmd_state) {
 }
 
 void lexer::emit_comment(const char* s, const char* e) {
-  /* unused for now */
-  (void)s;
+ emit(token_type::tCOMMENT, std::string_view(s, e - s), s, e);
+ // (void)s
   if (*e == '\n') { // might also be \0
     newline_s = e;
   }
@@ -377,6 +377,7 @@ static const lexer::token_table_entry PUNCTUATION[] = {
   { "!@", token_type::tBANG },
   { "&.", token_type::tANDDOT },
   { "", token_type::error },
+  { "#", token_type::tCOMMENT}
 };
 
 static const lexer::token_table_entry PUNCTUATION_BEGIN[] = {

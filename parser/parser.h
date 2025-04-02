@@ -21,8 +21,13 @@ public:
         }
     };
 
-    static std::unique_ptr<Node> run(core::GlobalState &gs, core::FileRef file, Settings settings,
-                                     std::vector<std::string> initialLocals = {});
+    struct ParseResult {
+        std::unique_ptr<Node> tree;
+        std::vector<size_t> comments;
+    };
+
+    static ParseResult run(core::GlobalState &gs, core::FileRef file, Settings settings,
+                           std::vector<std::string> initialLocals = {});
 };
 
 } // namespace sorbet::parser
