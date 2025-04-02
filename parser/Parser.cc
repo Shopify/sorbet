@@ -121,8 +121,8 @@ unique_ptr<ruby_parser::base_driver> makeDriver(Parser::Settings settings, strin
 
 } // namespace
 
-Parser::ParseResult Parser::run(core::GlobalState &gs, core::FileRef file, Parser::Settings settings,
-                                vector<string> initialLocals) {
+unique_ptr<Node> Parser::run(core::GlobalState &gs, core::FileRef file, Parser::Settings settings,
+                             vector<string> initialLocals) {
     // Marked `const` so that we can re-use across multiple `build()` invocations
     const Builder builder(gs, file);
 
@@ -155,10 +155,7 @@ Parser::ParseResult Parser::run(core::GlobalState &gs, core::FileRef file, Parse
 
     if (ast != nullptr) {
         // Successful parse on first try
-        ParseResult result;
-        result.tree = std::move(ast);
-        result.comments = std::move(driver->comments);
-        return result;
+        return make_unique<Begin>(core::LocOffsets{0, 0}, NodeVec{});
     }
 
     Timer timeit(gs.tracer(), "withIndentationAware");
@@ -168,9 +165,7 @@ Parser::ParseResult Parser::run(core::GlobalState &gs, core::FileRef file, Parse
 
     if (astRetry == nullptr) {
         // Retry did not produce a parse result
-        ParseResult result;
-        result.tree = make_unique<Begin>(core::LocOffsets{0, 0}, NodeVec{});
-        return result;
+        return make_unique<Begin>(core::LocOffsets{0, 0}, NodeVec{});
     }
 
     ENFORCE(absl::c_any_of(driverRetry->diagnostics,
@@ -180,9 +175,6 @@ Parser::ParseResult Parser::run(core::GlobalState &gs, core::FileRef file, Parse
             "Error-recovery mode of the parser should always emit an error hint if it produced a parse result.");
     auto onlyHints = true;
     reportDiagnostics(gs, file, driverRetry->diagnostics, onlyHints);
-    ParseResult result;
-    result.tree = std::move(astRetry);
-    result.comments = std::move(driverRetry->comments);
-    return result;
+    return astRetry;
 }
 }; // namespace sorbet::parser

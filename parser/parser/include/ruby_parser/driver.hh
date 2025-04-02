@@ -305,7 +305,7 @@ public:
     max_numparam_stack numparam_stack;
     pattern_variables_stack pattern_variables;
     pattern_variables_stack pattern_hash_keys;
-    bool collect_comments;
+    bool collect_comments = false;
     std::vector<size_t> comments;
 
     bool pending_error;

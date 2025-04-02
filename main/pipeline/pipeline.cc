@@ -211,9 +211,9 @@ unique_ptr<parser::Node> runParser(core::GlobalState &gs, core::FileRef file, co
         core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
         auto indentationAware = false;               // Don't start in indentation-aware error recovery mode
         auto settings = parser::Parser::Settings{traceLexer, traceParser, indentationAware};
-        auto result = parser::Parser::run(gs, file, settings);
-        fmt::print("comments: {}\n", fmt::join(result.comments, "\n"));
-        nodes = std::move(result.tree);
+        auto nodes = parser::Parser::run(gs, file, settings);
+        // fmt::print("comments: {}\n", fmt::join(result.comments, "\n"));
+        // nodes = std::move(result.tree);
     }
     if (print.ParseTree.enabled) {
         print.ParseTree.fmt("{}\n", nodes->toStringWithTabs(gs, 0));
