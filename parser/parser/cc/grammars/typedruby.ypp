@@ -217,6 +217,7 @@ using namespace std::string_literals;
   command_asgn
   command_call
   command_rhs
+  comment
   cpath
   dsym
   expr
@@ -676,10 +677,6 @@ int yylex(parser::semantic_type *lval, ruby_parser::location *lloc, ruby_parser:
                       auto list = driver.alloc.node_list();
                       $$ = driver.alloc.delimited_node_list(nullptr, list, nullptr);
                     }
-                | stmts terms comment // @kaan this is incorrect
-                    {
-                      $$ = $1;
-                    }
 
    stmt_or_begin: stmt
                 | klBEGIN begin_block
@@ -764,6 +761,11 @@ int yylex(parser::semantic_type *lval, ruby_parser::location *lloc, ruby_parser:
                       $$ = driver.build.multi_assign(self, $1, $3);
                     }
                 | expr
+                | comment // @kaan
+                    {
+                      std::cout << "Encountered comment" << std::endl;
+                      $$ = $1; 
+                    }
 
     command_asgn: lhs tEQL command_rhs
                     {
@@ -1024,8 +1026,10 @@ comment:
     tCOMMENT
      {
        if (driver.collect_comments) {
+        std::cout << "COLLECTING COMMENTS" << std::endl;
         driver.comments.emplace_back($1->lineStart());
        }
+       $$ = driver.build.nil(self, $1);
      }
 
 lbrace_cmd_block_start:

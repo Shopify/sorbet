@@ -270,7 +270,9 @@ int lexer::arg_or_cmdarg(int cmd_state) {
 }
 
 void lexer::emit_comment(const char* s, const char* e) {
- emit(token_type::tCOMMENT, std::string_view(s, e - s), s, e);
+  if (std::string_view(s, e-s) == "#!!") {
+    emit(token_type::tCOMMENT, std::string_view(s, e - s), s, e);
+ }
  // (void)s
   if (*e == '\n') { // might also be \0
     newline_s = e;
