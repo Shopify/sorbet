@@ -2,6 +2,7 @@
 #define SORBET_PARSER_PARSER_H
 
 #include "Node.h"
+#include "ruby_parser/driver.hh"
 
 namespace sorbet::parser {
 
@@ -28,6 +29,13 @@ public:
 
     static std::unique_ptr<Node> run(core::GlobalState &gs, core::FileRef file, Settings settings,
                                      std::vector<std::string> initialLocals = {});
+
+    //     static const std::vector<size_t> &get_comment_locations() {
+    //         return last_driver->lex.comment_locations;
+    //     }
+
+    // private:
+    //     static ruby_parser::base_driver *last_driver;
 };
 
 } // namespace sorbet::parser
