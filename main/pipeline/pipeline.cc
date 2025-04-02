@@ -212,8 +212,7 @@ unique_ptr<parser::Node> runParser(core::GlobalState &gs, core::FileRef file, co
         auto indentationAware = false;               // Don't start in indentation-aware error recovery mode
         auto settings = parser::Parser::Settings{traceLexer, traceParser, indentationAware};
         auto nodes = parser::Parser::run(gs, file, settings);
-        // fmt::print("comments: {}\n", fmt::join(result.comments, "\n"));
-        // nodes = std::move(result.tree);
+        // fmt::print("comments: {}\n", fmt::join(parser::Parser::get_comment_locations(), "\n"));
     }
     if (print.ParseTree.enabled) {
         print.ParseTree.fmt("{}\n", nodes->toStringWithTabs(gs, 0));

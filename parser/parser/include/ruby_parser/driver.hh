@@ -305,8 +305,6 @@ public:
     max_numparam_stack numparam_stack;
     pattern_variables_stack pattern_variables;
     pattern_variables_stack pattern_hash_keys;
-    bool collect_comments = false;
-    std::vector<size_t> comments;
 
     bool pending_error;
     size_t def_level;
@@ -425,6 +423,10 @@ public:
 
     void local_push();
     void local_pop();
+
+    // const std::vector<size_t> &get_comment_locations() const {
+    //     return lex.comment_locations;
+    // }
 
 private:
     void rewind_to_tok_start(token_t endToken);
