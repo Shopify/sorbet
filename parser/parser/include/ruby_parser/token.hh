@@ -156,7 +156,8 @@
     XX(tFLOAT_IMAGINARY, 1144)      \
     XX(tBDOT2, 1145)                \
     XX(tBDOT3, 1146)                \
-    XX(tBEFORE_EOF, 1147)
+    XX(tBEFORE_EOF, 1147)           \
+    XX(tCOMMENT, 1148)
 
 namespace ruby_parser {
 enum class token_type : int {
