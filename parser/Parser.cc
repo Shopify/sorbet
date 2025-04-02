@@ -158,7 +158,7 @@ unique_ptr<Node> Parser::run(core::GlobalState &gs, core::FileRef file, Parser::
 
     if (ast != nullptr) {
         // Successful parse on first try
-        return make_unique<Begin>(core::LocOffsets{0, 0}, NodeVec{});
+        return ast;
     }
 
     Timer timeit(gs.tracer(), "withIndentationAware");
