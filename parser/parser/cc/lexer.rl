@@ -270,16 +270,10 @@ int lexer::arg_or_cmdarg(int cmd_state) {
 }
 
 void lexer::emit_comment(const char* s, const char* e) {
-  // if (std::string_view(s, e-s) == "#!!") {
- //   emit(token_type::tCOMMENT, std::string_view(s, e - s), s, e);
- // }
-
-  // if (collect_comments) {
-    // size_t offset_start = (size_t)(s - source_buffer.data());
-
-    // comment_locations.emplace_back(offset_start);
-  // }
-  (void)s;
+  if (collect_comments) {
+    size_t offset_start = (size_t)(s - source_buffer.data());
+    comment_locations.emplace_back(offset_start);
+  }
   if (*e == '\n') { // might also be \0
     newline_s = e;
   }
