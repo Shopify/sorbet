@@ -13,6 +13,9 @@ namespace sorbet::rbs {
 
 namespace {
 
+const string_view RBS_PREFIX = "#:";
+const string_view ANNOTATION_PREFIX = "# @";
+
 bool isVisibilitySend(const parser::Send *send) {
     return send->receiver == nullptr && send->args.size() == 1 &&
            (parser::isa_node<parser::DefMethod>(send->args[0].get()) ||
@@ -45,127 +48,48 @@ parser::Node *signaturesTarget(parser::Node *node) {
     return nullptr;
 }
 
-Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc) {
-    auto source = ctx.file.data(ctx).source();
+Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc,
+                          std::vector<std::pair<size_t, size_t>> commentLocations) {
+    Comments result;
 
-    vector<Comment> annotations;
-    vector<Comment> signatures;
+    // Iterate in reverse to find the closest comment before the location
+    for (auto it = commentLocations.rbegin(); it != commentLocations.rend(); ++it) {
+        if (it->second <= loc.beginPos()) {
+            auto commentLength = it->second - it->first;
+            auto commentText = ctx.file.data(ctx).source().substr(it->first, commentLength);
+            if (absl::StartsWith(commentText, RBS_PREFIX)) {
+                auto signature = commentText.substr(RBS_PREFIX.size());
+                auto start = (uint32_t)it->first;
+                auto end = (uint32_t)it->second;
+                auto commentLoc = core::LocOffsets{start, end};
+                auto typeLoc = core::LocOffsets{start + (uint32_t)RBS_PREFIX.size(), end};
+                auto comment = Comment{commentLoc, typeLoc, signature};
 
-    uint32_t beginIndex = loc.beginPos();
+                // fmt::print("Adding signature: {}\n", signature);
+                // fmt::print("Comment loc: {}, {}\n", commentLoc.beginPos(), commentLoc.endPos());
+                // fmt::print("Loc: {}, {}\n", loc.beginPos(), loc.endPos());
+                result.signatures.push_back(comment);
+                break;
+            } else if (absl::StartsWith(commentText, ANNOTATION_PREFIX)) {
+                auto annotation = commentText.substr(ANNOTATION_PREFIX.size());
+                auto start = (uint32_t)it->first;
+                auto end = (uint32_t)it->second;
+                auto commentLoc = core::LocOffsets{start, end};
+                auto annotationLoc = core::LocOffsets{start + (uint32_t)ANNOTATION_PREFIX.size(), end};
+                auto comment = Comment{commentLoc, annotationLoc, annotation};
 
-    // Everything in the file before the method definition
-    string_view preDefinition = source.substr(0, source.rfind('\n', beginIndex));
-
-    // Get all the lines before it
-    vector<string_view> all_lines = absl::StrSplit(preDefinition, '\n');
-
-    // We compute the current position in the source so we know the location of each comment
-    uint32_t index = beginIndex;
-
-    // NOTE: This is accidentally quadratic.
-    // Instead of looping over all the lines between here and the start of the file, we should
-    // instead track something like the locs of all the expressions in the ClassDef::rhs, and
-    // only scan over the space between the ClassDef::rhs top level items
-
-    // Iterate from the last line, to the first line
-    for (auto it = all_lines.rbegin(); it != all_lines.rend(); it++) {
-        index -= it->size();
-        index -= 1;
-
-        string_view line = absl::StripAsciiWhitespace(*it);
-
-        // Short circuit when line is empty
-        if (line.empty()) {
-            break;
-        }
-
-        // Handle single-line sig block
-        else if (absl::StartsWith(line, "sig")) {
-            // Do nothing for a one-line sig block
-            // TODO: Handle single-line sig blocks
-        }
-
-        // Handle multi-line sig block
-        else if (absl::StartsWith(line, "end")) {
-            // ASSUMPTION: We either hit the start of file, a `sig do`/`sig(:final) do` or an `end`
-            // TODO: Handle multi-line sig blocks
-            it++;
-            while (
-                // SOF
-                it != all_lines.rend()
-                // Start of sig block
-                && !(absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig do") ||
-                     absl::StartsWith(absl::StripAsciiWhitespace(*it), "sig(:final) do"))
-                // Invalid end keyword
-                && !absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
-                it++;
-            };
-
-            // We have either
-            // 1) Reached the start of the file
-            // 2) Found a `sig do`
-            // 3) Found an invalid end keyword
-            if (it == all_lines.rend() || absl::StartsWith(absl::StripAsciiWhitespace(*it), "end")) {
+                result.annotations.push_back(comment);
                 break;
             }
-
-            // Reached a sig block.
-            line = absl::StripAsciiWhitespace(*it);
-            ENFORCE(absl::StartsWith(line, "sig do") || absl::StartsWith(line, "sig(:final) do"));
-
-            // Stop looking if this is a single-line block e.g `sig do; <block>; end`
-            if ((absl::StartsWith(line, "sig do;") || absl::StartsWith(line, "sig(:final) do;")) &&
-                absl::EndsWith(line, "end")) {
-                break;
-            }
-
-            // Else, this is a valid sig block. Move on to any possible documentation.
-        }
-
-        // Handle a RBS sig annotation `#: SomeRBS`
-        else if (absl::StartsWith(line, "#:")) {
-            // Account for whitespace before the annotation e.g
-            // #: abc -> "abc"
-            // #:abc -> "abc"
-            int lineSize = line.size();
-            auto rbsSignature = Comment{
-                core::LocOffsets{index, index + lineSize},
-                core::LocOffsets{index + 2, index + lineSize},
-                line.substr(2),
-            };
-            signatures.emplace_back(rbsSignature);
-        }
-
-        // Handle RDoc annotations `# @abstract`
-        else if (absl::StartsWith(line, "# @")) {
-            int lineSize = line.size();
-            auto annotation = Comment{
-                core::LocOffsets{index, index + lineSize},
-                core::LocOffsets{index + 3, index + lineSize},
-                line.substr(3),
-            };
-            annotations.emplace_back(annotation);
-        }
-
-        // Ignore other comments
-        else if (absl::StartsWith(line, "#")) {
-            continue;
-        }
-
-        // No other cases applied to this line, so stop looking.
-        else {
-            break;
         }
     }
 
-    reverse(annotations.begin(), annotations.end());
-    reverse(signatures.begin(), signatures.end());
-
-    return Comments{annotations, signatures};
+    return result;
 }
 
-unique_ptr<parser::NodeVec> signaturesForNode(core::MutableContext ctx, parser::Node *node) {
-    auto comments = signaturesForLoc(ctx, node->loc);
+unique_ptr<parser::NodeVec> signaturesForNode(core::MutableContext ctx, parser::Node *node,
+                                              std::vector<std::pair<size_t, size_t>> commentLocations) {
+    auto comments = signaturesForLoc(ctx, node->loc, commentLocations);
 
     if (comments.signatures.empty()) {
         return nullptr;
@@ -211,7 +135,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBegin(unique_ptr<parser::Node> nod
 
     for (auto &stmt : oldStmts) {
         if (auto target = signaturesTarget(stmt.get())) {
-            if (auto signatures = signaturesForNode(ctx, target)) {
+            if (auto signatures = signaturesForNode(ctx, target, commentLocations)) {
                 for (auto &signature : *signatures) {
                     begin->stmts.emplace_back(move(signature));
                 }
@@ -234,7 +158,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteBody(unique_ptr<parser::Node> node
     }
 
     if (auto target = signaturesTarget(node.get())) {
-        if (auto signatures = signaturesForNode(ctx, target)) {
+        if (auto signatures = signaturesForNode(ctx, target, commentLocations)) {
             auto begin = make_unique<parser::Begin>(node->loc, parser::NodeVec());
             for (auto &signature : *signatures) {
                 begin->stmts.emplace_back(move(signature));
