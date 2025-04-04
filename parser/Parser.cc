@@ -112,6 +112,8 @@ unique_ptr<ruby_parser::base_driver> makeDriver(Parser::Settings settings, strin
                                                              !!settings.indentationAware);
     }
 
+    driver->lex.collect_comments = settings.collectComments;
+
     for (string local : initialLocals) {
         driver->lex.declare(local);
     }
@@ -120,8 +122,6 @@ unique_ptr<ruby_parser::base_driver> makeDriver(Parser::Settings settings, strin
 }
 
 } // namespace
-
-// ruby_parser::base_driver *Parser::last_driver = nullptr;
 
 unique_ptr<Node> Parser::run(core::GlobalState &gs, core::FileRef file, Parser::Settings settings,
                              vector<string> initialLocals) {
@@ -145,7 +145,6 @@ unique_ptr<Node> Parser::run(core::GlobalState &gs, core::FileRef file, Parser::
     StableStringStorage<> scratch;
 
     auto driver = makeDriver(settings, buffer, scratch, initialLocals);
-    // last_driver = driver.get();
     auto ast = builder.build(driver.get(), settings.traceParser);
 
     // Always report the original parse errors. If we need to run the parser again, we'll only
@@ -164,7 +163,6 @@ unique_ptr<Node> Parser::run(core::GlobalState &gs, core::FileRef file, Parser::
     Timer timeit(gs.tracer(), "withIndentationAware");
 
     auto driverRetry = makeDriver(settings.withIndentationAware(), buffer, scratch, initialLocals);
-    // last_driver = driverRetry.get();
     auto astRetry = builder.build(driverRetry.get(), settings.traceParser);
 
     if (astRetry == nullptr) {
