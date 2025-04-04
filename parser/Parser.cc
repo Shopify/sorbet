@@ -167,7 +167,8 @@ Parser::ParseResult Parser::run(core::GlobalState &gs, core::FileRef file, Parse
 
     if (astRetry == nullptr) {
         // Retry did not produce a parse result
-        return ParseResult{std::make_unique<Begin>(core::LocOffsets{0, 0}, NodeVec{}), std::vector<size_t>{}};
+        return ParseResult{std::make_unique<Begin>(core::LocOffsets{0, 0}, NodeVec{}),
+                           std::vector<std::pair<size_t, size_t>>{}};
     }
 
     ENFORCE(absl::c_any_of(driverRetry->diagnostics,

@@ -424,7 +424,7 @@ public:
     void local_push();
     void local_pop();
 
-    const std::vector<size_t> &get_comment_locations() const {
+    const std::vector<std::pair<size_t, size_t>> &get_comment_locations() const {
         return lex.comment_locations;
     }
 

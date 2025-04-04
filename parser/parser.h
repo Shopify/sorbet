@@ -25,7 +25,7 @@ public:
 
     struct ParseResult {
         std::unique_ptr<Node> tree;
-        std::vector<size_t> commentLocations;
+        std::vector<std::pair<size_t, size_t>> commentLocations;
     };
 
     static ParseResult run(core::GlobalState &gs, core::FileRef file, Settings settings,
