@@ -48,47 +48,66 @@ parser::Node *signaturesTarget(parser::Node *node) {
     return nullptr;
 }
 
+Comment createComment(size_t start, size_t end, string_view prefix, string_view content) {
+    auto start32 = (uint32_t)start;
+    auto end32 = (uint32_t)end;
+    auto commentLoc = core::LocOffsets{start32, end32};
+
+    auto typeStart = start32 + (uint32_t)prefix.size();
+    auto typeLoc = core::LocOffsets{typeStart, end32};
+
+    return Comment{commentLoc, typeLoc, content};
+}
+
 Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc,
-                          std::vector<std::pair<size_t, size_t>> commentLocations) {
+                          std::vector<std::pair<size_t, size_t>> &commentLocations) {
     Comments result;
 
     // Iterate in reverse to find the closest comment before the location
-    for (auto it = commentLocations.rbegin(); it != commentLocations.rend(); ++it) {
-        if (it->second <= loc.beginPos()) {
-            auto commentLength = it->second - it->first;
-            auto commentText = ctx.file.data(ctx).source().substr(it->first, commentLength);
+    auto it = commentLocations.rbegin();
+    while (it != commentLocations.rend()) {
+        auto start = it->first;
+        auto end = it->second;
+        auto nextIt = it + 1;
+
+        if (end <= loc.beginPos()) {
+            auto commentLength = end - start;
+            auto commentText = ctx.file.data(ctx).source().substr(start, commentLength);
+
             if (absl::StartsWith(commentText, RBS_PREFIX)) {
                 auto signature = commentText.substr(RBS_PREFIX.size());
-                auto start = (uint32_t)it->first;
-                auto end = (uint32_t)it->second;
-                auto commentLoc = core::LocOffsets{start, end};
-                auto typeLoc = core::LocOffsets{start + (uint32_t)RBS_PREFIX.size(), end};
-                auto comment = Comment{commentLoc, typeLoc, signature};
-
-                // fmt::print("Adding signature: {}\n", signature);
-                // fmt::print("Comment loc: {}, {}\n", commentLoc.beginPos(), commentLoc.endPos());
-                // fmt::print("Loc: {}, {}\n", loc.beginPos(), loc.endPos());
-                result.signatures.push_back(comment);
-                break;
+                result.signatures.emplace_back(createComment(start, end, RBS_PREFIX, signature));
             } else if (absl::StartsWith(commentText, ANNOTATION_PREFIX)) {
                 auto annotation = commentText.substr(ANNOTATION_PREFIX.size());
-                auto start = (uint32_t)it->first;
-                auto end = (uint32_t)it->second;
-                auto commentLoc = core::LocOffsets{start, end};
-                auto annotationLoc = core::LocOffsets{start + (uint32_t)ANNOTATION_PREFIX.size(), end};
-                auto comment = Comment{commentLoc, annotationLoc, annotation};
-
-                result.annotations.push_back(comment);
-                break;
+                result.annotations.emplace_back(createComment(start, end, ANNOTATION_PREFIX, annotation));
             }
+
+            // Check if we have a comment on the previous line
+            if (nextIt != commentLocations.rend()) {
+                auto currentItLine = core::Loc::pos2Detail(ctx.file.data(ctx), start).line;
+                auto nextItLine = core::Loc::pos2Detail(ctx.file.data(ctx), nextIt->second).line;
+                if (currentItLine == nextItLine + 1) {
+                    // Remove the processed comment
+                    commentLocations.erase(it.base() - 1);
+                    it = nextIt;
+
+                    // There's a comment directly above the current comment, process it in the next iteration
+                    continue;
+                }
+            }
+
+            // Remove the processed comment
+            commentLocations.erase(it.base() - 1);
+            break; // We processed all comments for this node location
         }
+        ++it;
     }
 
     return result;
 }
 
 unique_ptr<parser::NodeVec> signaturesForNode(core::MutableContext ctx, parser::Node *node,
-                                              std::vector<std::pair<size_t, size_t>> commentLocations) {
+                                              std::vector<std::pair<size_t, size_t>> &commentLocations) {
     auto comments = signaturesForLoc(ctx, node->loc, commentLocations);
 
     if (comments.signatures.empty()) {
@@ -115,6 +134,23 @@ unique_ptr<parser::NodeVec> signaturesForNode(core::MutableContext ctx, parser::
 }
 
 } // namespace
+
+// @kaan False positives with YARD (@api) and inline assertions
+void SigsRewriter::checkForUnusedComments() {
+    // We erased comments as we processed them, anything left over is an error
+    // for (const auto &loc : commentLocations) {
+    //     auto start = static_cast<uint32_t>(loc.first);
+    //     auto end = static_cast<uint32_t>(loc.second);
+    //     auto commentText = ctx.file.data(ctx).source().substr(start, end - start);
+
+    //     if (absl::StartsWith(commentText,
+    //                          RBS_PREFIX)) { // @kaan ANNOTATION_PREFIX causes false positives with YARD (@api)
+    //         if (auto e = ctx.beginError(core::LocOffsets{start, end}, core::errors::Rewriter::RBSUnusedComment)) {
+    //             e.setHeader("Unused RBS signature comment. No method definition found after it");
+    //         }
+    //     }
+    // }
+}
 
 parser::NodeVec SigsRewriter::rewriteNodes(parser::NodeVec nodes) {
     parser::NodeVec result;
@@ -276,7 +312,9 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
 }
 
 unique_ptr<parser::Node> SigsRewriter::run(unique_ptr<parser::Node> node) {
-    return rewriteBody(move(node));
+    auto body = rewriteBody(move(node));
+    checkForUnusedComments();
+    return body;
 }
 
 } // namespace sorbet::rbs

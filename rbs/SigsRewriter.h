@@ -40,6 +40,7 @@ private:
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
     parser::NodeVec rewriteNodes(parser::NodeVec nodes);
+    void checkForUnusedComments();
 };
 
 } // namespace sorbet::rbs
