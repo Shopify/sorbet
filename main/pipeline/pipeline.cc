@@ -243,9 +243,10 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
 
         if (gs.cacheSensitiveOptions.rbsSignaturesEnabled || gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
             auto associator = rbs::CommentsAssociator(ctx, commentLocations);
+            associator.run(node);
 
             if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
-                auto rewriter = rbs::SigsRewriter(ctx, commentLocations);
+                auto rewriter = rbs::SigsRewriter(ctx);
                 node = rewriter.run(move(node));
             }
             if (gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
