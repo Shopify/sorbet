@@ -72,15 +72,13 @@ void CommentsAssociator::associateCommentsToNode(parser::Node *node) {
 void CommentsAssociator::associateInlineCommentToNode(parser::Node *node) {
     auto nodeEndLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
 
-    vector<CommentNode> comments;
-
     auto comment = commentByLine.find(nodeEndLine);
     if (comment != commentByLine.end()) {
+        vector<CommentNode> comments;
         comments.push_back(comment->second);
+        commentsByNode[node] = comments;
         commentByLine.erase(nodeEndLine);
     }
-
-    commentsByNode[node] = comments;
 }
 
 void CommentsAssociator::walkNodes(parser::Node *node) {
@@ -124,7 +122,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
 
         // Assigns
 
-        [&](parser::Assign *assign) { associateInlineCommentToNode(node); },
+        [&](parser::Assign *assign) { associateInlineCommentToNode(assign->rhs.get()); },
 
         // Other
 

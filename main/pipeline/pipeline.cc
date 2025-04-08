@@ -252,7 +252,7 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
                 node = rewriter.run(move(node));
             }
             if (gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
-                auto rewriter = rbs::AssertionsRewriter(ctx);
+                auto rewriter = rbs::AssertionsRewriter(ctx, commentsByNode);
                 node = rewriter.run(move(node));
             }
         }

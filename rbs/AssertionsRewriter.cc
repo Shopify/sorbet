@@ -18,81 +18,6 @@ namespace {
 const regex not_nil_pattern("^\\s*!nil\\s*(#.*)?$");
 const regex untyped_pattern("^\\s*untyped\\s*(#.*)?$");
 
-/**
- * Check if the given range is the start of a heredoc assignment `= <<~FOO` and return the position of the end of the
- * heredoc marker.
- *
- * Returns -1 if no heredoc marker is found.
- */
-uint32_t hasHeredocMarker(core::Context ctx, const uint32_t fromPos, const uint32_t toPos) {
-    string source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
-    regex heredoc_pattern("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
-    smatch match;
-    if (regex_search(source, match, heredoc_pattern)) {
-        return fromPos + match.length();
-    }
-    return UINT32_MAX;
-}
-
-/**
- * Check if the given expression is a heredoc
- */
-uint32_t heredocPos(core::Context ctx, core::LocOffsets assignLoc, const unique_ptr<parser::Node> &node) {
-    if (node == nullptr) {
-        return UINT32_MAX;
-    }
-
-    uint32_t result = UINT32_MAX;
-    typecase(
-        node.get(),
-        [&](parser::String *lit) {
-            // For some reason, heredoc strings are parser differently if they contain a single line or more.
-            //
-            // Single line heredocs do not contain the `<<-` or `<<~` markers inside their location.
-            //
-            // For example, this heredoc:
-            //
-            //     <<~MSG
-            //       foo
-            //     MSG
-
-            // has the `<<-` or `<<~` markers **outside** its location.
-            //
-            // While this heredoc:
-            //
-            //     <<~MSG
-            //       foo
-            //     MSG
-            //
-            // has the `<<-` or `<<~` markers **inside** its location.
-
-            auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.beginLoc).line;
-            auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), lit->loc.endLoc).line;
-
-            if (lineEnd - lineStart <= 1) {
-                // Single line heredoc, we look for the heredoc marker outside, ie. between the assign `=` sign
-                // and the begining of the string.
-                result = hasHeredocMarker(ctx, assignLoc.endPos(), lit->loc.beginPos());
-            } else {
-                // Multi-line heredoc, we look for the heredoc marker inside the string itself.
-                result = hasHeredocMarker(ctx, lit->loc.beginPos(), lit->loc.endPos());
-            }
-        },
-        [&](parser::DString *lit) { result = hasHeredocMarker(ctx, lit->loc.beginPos(), lit->loc.endPos()); },
-        [&](parser::Array *arr) {
-            for (auto &elem : arr->elts) {
-                result = heredocPos(ctx, assignLoc, elem);
-                if (result != UINT32_MAX) {
-                    break;
-                }
-            }
-        },
-        [&](parser::Send *send) { result = heredocPos(ctx, assignLoc, send->receiver); },
-        [&](parser::Node *expr) { result = false; });
-
-    return result;
-}
-
 /*
  * Parse the comment and return the type as a `parser::Node` and the kind of assertion we need to apply (let, cast,
  * must, unsafe).
@@ -192,106 +117,6 @@ bool AssertionsRewriter::hasConsumedComment(core::LocOffsets loc) {
 }
 
 /*
- * Get the RBS comment for the given position.
- *
- * This function looks up for a comment starting at the given position until the end of the line.
- *
- * Returns `nullopt` if no comment is found.
- *
- * This function will mark the comment location as consumed so it won't be picked up by subsequent calls to this
- * function. This is to avoid applying the same comment multiple times:
- *
- *     foo x #: as !nil
- *
- * We only want to apply the `as !nil` comment on the `foo` call and not on the `x` argument.
- */
-optional<rbs::InlineComment> AssertionsRewriter::commentForPos(uint32_t fromPos, vector<char> allowedTokens = {}) {
-    auto source = ctx.file.data(ctx).source();
-
-    // Get the position of the end of the line from the startingLoc
-    auto endPos = source.find('\n', fromPos);
-    if (endPos == string::npos) {
-        // If we don't find a newline, we just use the rest of the file
-        endPos = source.size();
-    }
-
-    if (fromPos == endPos) {
-        // We reached the end of the line, we don't have a comment
-        return nullopt;
-    }
-
-    auto commentStart = fromPos;
-    while (commentStart < endPos) {
-        char c = source[commentStart];
-        if (c == ' ') {
-            // Skip whitespace until we find a `#:`
-            commentStart++;
-            continue;
-        } else if (find(allowedTokens.begin(), allowedTokens.end(), c) != allowedTokens.end()) {
-            // Skip allowed tokens like `,` or `.` depending on the callsite
-            commentStart++;
-            continue;
-        } else if (c == '#' && commentStart + 1 < endPos && source[commentStart + 1] == ':') {
-            // We found a `#:`
-            break;
-        } else {
-            // We found a character that is not a space or a `#`, so we don't have a comment
-            return nullopt;
-        }
-    }
-
-    if (commentStart == endPos) {
-        // We didn't find a `#:`
-        return nullopt;
-    }
-
-    // Consume the spaces after the `#:`
-    auto contentStart = commentStart + 2;
-    char c = source[contentStart];
-    while (c == ' ' && contentStart < endPos) {
-        contentStart++;
-        c = source[contentStart];
-    }
-
-    auto content = source.substr(contentStart, endPos - contentStart);
-    auto kind = InlineComment::Kind::LET;
-
-    if (absl::StartsWith(content, "as ")) {
-        // We found a `as` keyword, this is a `T.cast` comment
-        kind = InlineComment::Kind::CAST;
-        contentStart += 3;
-        content = content.substr(3);
-
-        if (regex_match(content.begin(), content.end(), not_nil_pattern)) {
-            // We found a `as !nil`, so a `T.must` comment
-            kind = InlineComment::Kind::MUST;
-        } else if (regex_match(content.begin(), content.end(), untyped_pattern)) {
-            // We found a `as untyped`, so a `T.unsafe` comment
-            kind = InlineComment::Kind::UNSAFE;
-        }
-    }
-
-    auto commentLoc = core::LocOffsets{(uint32_t)commentStart, static_cast<uint32_t>(endPos)};
-
-    // If we already consumed this comment, we don't return it since it's been "consumed" already
-    if (hasConsumedComment(commentLoc)) {
-        return nullopt;
-    }
-
-    // We consume the comment so it won't be picked up by subsequent calls to this function
-    consumeComment(commentLoc);
-
-    return InlineComment{
-        rbs::Comment{
-            commentLoc,
-            core::LocOffsets{(uint32_t)contentStart, static_cast<uint32_t>(endPos)},
-            content,
-        },
-        kind,
-    };
-}
-
-/*
  * Get the RBS comment for the given node.
  *
  * Returns `nullopt` if no comment is found or if the comment was already consumed.
@@ -310,62 +135,77 @@ optional<rbs::InlineComment> AssertionsRewriter::commentForPos(uint32_t fromPos,
 optional<rbs::InlineComment> AssertionsRewriter::commentForNode(unique_ptr<parser::Node> &node,
                                                                 core::LocOffsets fromLoc,
                                                                 vector<char> allowedTokens = {}) {
-    // We want to find the comment right after the end of the assign
-    auto fromPos = node->loc.endPos();
+    auto commentNodes = commentsByNode.find(node.get());
 
-    // On heredocs, adding the comment at the end of the assign won't work because this is invalid Ruby syntax:
-    // ```
-    // <<~MSG
-    //   foo
-    // MSG #: String
-    // ```
-    // We add a special case for heredocs to allow adding the comment at the end of the assign:
-    // ```
-    // <<~MSG #: String
-    //   foo
-    // MSG
-    // ```
-    if (fromLoc.exists()) {
-        if (auto pos = heredocPos(ctx, fromLoc, node)) {
-            if (pos != -1) {
-                fromPos = pos;
-            }
-        }
+    if (commentNodes == commentsByNode.end()) {
+        return nullopt;
     }
 
-    return commentForPos(fromPos, allowedTokens);
-}
+    std::cerr << "node: " << node->toString(ctx.state) << std::endl;
+
+    auto commentNode = commentNodes->second.back();
+
+    if (!absl::StartsWith(commentNode.string, "#:")) {
+        return nullopt;
+    }
+
+    auto typeBeginPos = 2;
+    auto kind = InlineComment::Kind::LET;
+
+    if (absl::StartsWith(commentNode.string, "#: as")) {
+        kind = InlineComment::Kind::CAST;
+        typeBeginPos += 5;
+    } else if (absl::StartsWith(commentNode.string, "#: !nil")) {
+        kind = InlineComment::Kind::MUST;
+    } else if (absl::StartsWith(commentNode.string, "#: untyped")) {
+        kind = InlineComment::Kind::UNSAFE;
+    }
+
+    std::cerr << "commentNode.string: " << commentNode.string.substr(typeBeginPos) << std::endl;
+
+    auto comment = Comment{
+        .commentLoc = commentNode.loc,
+        .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 2, commentNode.loc.endPos()},
+        .string = commentNode.string.substr(typeBeginPos),
+    };
+
+    return rbs::InlineComment{.comment = comment, .kind = kind};
+};
 
 void AssertionsRewriter::checkDanglingCommentWithDecl(uint32_t nodeEnd, uint32_t declEnd, string kind) {
-    if (auto assertion = commentForPos(nodeEnd)) {
-        if (auto e = ctx.beginError(assertion.value().comment.commentLoc, core::errors::Rewriter::RBSAssertionError)) {
-            e.setHeader("Unexpected RBS assertion comment found after `{}` end", kind);
-        }
-    }
+    // if (auto assertion = commentForPos(nodeEnd)) {
+    //     if (auto e = ctx.beginError(assertion.value().comment.commentLoc, core::errors::Rewriter::RBSAssertionError))
+    //     {
+    //         e.setHeader("Unexpected RBS assertion comment found after `{}` end", kind);
+    //     }
+    // }
 
-    auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), declEnd).line;
-    auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeEnd).line;
+    // auto decLine = core::Loc::pos2Detail(ctx.file.data(ctx), declEnd).line;
+    // auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeEnd).line;
 
-    if ((endLine > decLine)) {
-        if (auto assertion = commentForPos(declEnd)) {
-            if (auto e =
-                    ctx.beginError(assertion.value().comment.commentLoc, core::errors::Rewriter::RBSAssertionError)) {
-                e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", kind);
-            }
-        }
-    }
+    // if ((endLine > decLine)) {
+    //     if (auto assertion = commentForPos(declEnd)) {
+    //         if (auto e =
+    //                 ctx.beginError(assertion.value().comment.commentLoc, core::errors::Rewriter::RBSAssertionError))
+    //                 {
+    //             e.setHeader("Unexpected RBS assertion comment found after `{}` declaration", kind);
+    //         }
+    //     }
+    // }
 }
 
 void AssertionsRewriter::checkDanglingComment(uint32_t nodeEnd, string kind) {
-    if (auto assertion = commentForPos(nodeEnd)) {
-        if (auto e = ctx.beginError(assertion.value().comment.commentLoc, core::errors::Rewriter::RBSAssertionError)) {
-            e.setHeader("Unexpected RBS assertion comment found after `{}`", kind);
-        }
-    }
+    // if (auto assertion = commentForPos(nodeEnd)) {
+    //     if (auto e = ctx.beginError(assertion.value().comment.commentLoc, core::errors::Rewriter::RBSAssertionError))
+    //     {
+    //         e.setHeader("Unexpected RBS assertion comment found after `{}`", kind);
+    //     }
+    // }
 }
 
 /**
- * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
+ * Save the signature from the given block so it can be used to resolve the type parameters from the method
+ * signature.
  *
  * Returns `true` if the block is a `sig` send, `false` otherwise.
  */
@@ -641,8 +481,8 @@ unique_ptr<parser::Node> AssertionsRewriter::rewriteNode(unique_ptr<parser::Node
         },
         [&](parser::Block *block) {
             if (saveTypeParams(block)) {
-                // If this is a `sig` block, we need to save the type parameters so we can use them to resolve the type
-                // parameters from the method signature.
+                // If this is a `sig` block, we need to save the type parameters so we can use them to resolve the
+                // type parameters from the method signature.
                 result = move(node);
                 return;
             }

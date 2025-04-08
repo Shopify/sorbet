@@ -2,6 +2,7 @@
 #define SORBET_RBS_ASSERTIONS_REWRITER_H
 
 #include "parser/parser.h"
+#include "rbs/CommentsAssociator.h"
 #include "rbs/rbs_common.h"
 #include <memory>
 
@@ -21,13 +22,16 @@ struct InlineComment {
 
 class AssertionsRewriter {
 public:
-    AssertionsRewriter(core::MutableContext ctx) : ctx(ctx){};
+    AssertionsRewriter(core::MutableContext ctx, std::map<parser::Node *, std::vector<rbs::CommentNode>> commentsByNode)
+        : ctx(ctx), commentsByNode(commentsByNode){};
+
     std::unique_ptr<parser::Node> run(std::unique_ptr<parser::Node> tree);
 
 private:
     core::MutableContext ctx;
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};
     std::set<std::pair<uint32_t, uint32_t>> consumedComments = {};
+    std::map<parser::Node *, std::vector<rbs::CommentNode>> commentsByNode;
 
     void consumeComment(core::LocOffsets loc);
     bool hasConsumedComment(core::LocOffsets loc);
