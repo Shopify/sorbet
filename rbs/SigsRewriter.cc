@@ -63,14 +63,18 @@ Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc,
                           std::vector<std::pair<size_t, size_t>> &commentLocations) {
     Comments result;
 
+    auto currentNodeLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
+
     // Iterate in reverse to find the closest comment before the location
     auto it = commentLocations.rbegin();
     while (it != commentLocations.rend()) {
         auto start = it->first;
         auto end = it->second;
         auto nextIt = it + 1;
+        auto commentLine = core::Loc::pos2Detail(ctx.file.data(ctx), start).line;
 
-        if (end <= loc.beginPos()) {
+        // We only care about comments on the line directly above
+        if (commentLine == currentNodeLine - 1) {
             auto commentLength = end - start;
             auto commentText = ctx.file.data(ctx).source().substr(start, commentLength);
 
@@ -84,11 +88,13 @@ Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc,
 
             // Check if we have a comment on the previous line
             if (nextIt != commentLocations.rend()) {
-                auto currentItLine = core::Loc::pos2Detail(ctx.file.data(ctx), start).line;
-                auto nextItLine = core::Loc::pos2Detail(ctx.file.data(ctx), nextIt->second).line;
-                if (currentItLine == nextItLine + 1) {
+                auto prevCommentLine = core::Loc::pos2Detail(ctx.file.data(ctx), nextIt->first).line;
+                if (prevCommentLine == commentLine - 1) {
+                    // Update the current node line to be relative to this comment
+                    currentNodeLine = commentLine;
+
                     // Remove the processed comment
-                    commentLocations.erase(it.base() - 1);
+                    // commentLocations.erase(it.base() - 1);
                     it = nextIt;
 
                     // There's a comment directly above the current comment, process it in the next iteration
@@ -97,8 +103,10 @@ Comments signaturesForLoc(core::MutableContext ctx, core::LocOffsets loc,
             }
 
             // Remove the processed comment
-            commentLocations.erase(it.base() - 1);
+            // commentLocations.erase(it.base() - 1);
             break; // We processed all comments for this node location
+        } else if (commentLine < currentNodeLine) {
+            break; // We've passed the current node line further than 1 line, rest of the comments are irrelevant
         }
         ++it;
     }
