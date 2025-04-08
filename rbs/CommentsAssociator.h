@@ -15,7 +15,12 @@ class CommentsAssociator {
 public:
     CommentsAssociator(core::MutableContext ctx, std::vector<std::pair<size_t, size_t>> commentLocations)
         : ctx(ctx), commentLocations(commentLocations), commentByLine(){};
+
     void run(std::unique_ptr<parser::Node> &tree);
+
+    std::map<parser::Node *, std::vector<CommentNode>> &getCommentsByNode() {
+        return commentsByNode;
+    }
 
 private:
     core::MutableContext ctx;
