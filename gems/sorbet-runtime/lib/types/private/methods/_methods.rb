@@ -451,6 +451,11 @@ module T::Private::Methods
       @sigs_that_raised[key] = true
       raise
     end
+
+    if sig.nil?
+      raise "Signature for #{key} returned nil"
+    end
+
     if @sigs_that_raised[key]
       raise "A previous invocation of #{key_to_method(key)} raised, and the current one succeeded. Please don't do that."
     end
