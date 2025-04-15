@@ -243,7 +243,10 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
                 core::MutableContext ctx(gs, core::Symbols::root(), file);
                 if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
-                    auto rbsSignatures = rbs::SigsRewriter(ctx);
+                    auto associator = rbs::CommentsAssociator(ctx, parseResult.commentLocations);
+                    associator.run(nodes);
+                    auto commentsByNode = associator.getCommentsByNode();
+                    auto rbsSignatures = rbs::SigsRewriter(ctx, commentsByNode);
                     nodes = rbsSignatures.run(std::move(nodes));
                 }
                 if (gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
@@ -427,8 +430,11 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 core::MutableContext ctx(*rbiGenGs, core::Symbols::root(), file);
 
                 if (rbiGenGs->cacheSensitiveOptions.rbsSignaturesEnabled) {
-                    auto rbsSignatures = rbs::SigsRewriter(ctx);
-                    nodes = rbsSignatures.run(std::move(nodes));
+                    auto associator = rbs::CommentsAssociator(ctx, parseResult.commentLocations);
+                    associator.run(parseResult.tree);
+                    auto commentsByNode = associator.getCommentsByNode();
+                    auto rbsSignatures = rbs::SigsRewriter(ctx, commentsByNode);
+                    parseResult.tree = rbsSignatures.run(std::move(parseResult.tree));
                 }
                 if (rbiGenGs->cacheSensitiveOptions.rbsAssertionsEnabled) {
                     auto rbsAssertions = rbs::AssertionsRewriter(ctx);
@@ -775,8 +781,11 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
 
         if (gs->cacheSensitiveOptions.rbsSignaturesEnabled) {
-            auto rbsSignatures = rbs::SigsRewriter(ctx);
-            nodes = rbsSignatures.run(std::move(nodes));
+            auto associator = rbs::CommentsAssociator(ctx, parseResult.commentLocations);
+            associator.run(parseResult.tree);
+            auto commentsByNode = associator.getCommentsByNode();
+            auto rbsSignatures = rbs::SigsRewriter(ctx, commentsByNode);
+            parseResult.tree = rbsSignatures.run(std::move(parseResult.tree));
         }
         if (gs->cacheSensitiveOptions.rbsAssertionsEnabled) {
             auto rbsAssertions = rbs::AssertionsRewriter(ctx);
