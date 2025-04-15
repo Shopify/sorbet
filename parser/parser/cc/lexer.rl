@@ -270,8 +270,31 @@ int lexer::arg_or_cmdarg(int cmd_state) {
 }
 
 void lexer::emit_comment(const char* s, const char* e) {
-  /* unused for now */
-  (void)s;
+  if (collect_comments) {
+    // Find the start of the line manually. `newline_s` was incorrect for HEREDOCs
+    const char* line_start = source_buffer.data();
+    for (const char* p = s - 1; p >= source_buffer.data(); --p) {
+      if (*p == '\n') {
+        line_start = p + 1;
+        break;
+      }
+    }
+
+    bool is_first_in_line = true;
+    for (const char* p = line_start; p < s; ++p) {
+      if (!isspace(*p)) {
+        is_first_in_line = false;
+        break;
+      }
+    }
+
+    // Only push back the comment if it is the first in line (Temporary until assertions support)
+    if (is_first_in_line) {
+      size_t offset_start = (size_t)(s - source_buffer.data());
+      size_t offset_end = (size_t)(e - source_buffer.data());
+      comment_locations.emplace_back(offset_start, offset_end);
+    }
+  }
   if (*e == '\n') { // might also be \0
     newline_s = e;
   }
