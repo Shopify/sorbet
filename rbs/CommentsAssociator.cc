@@ -51,6 +51,32 @@ void CommentsAssociator::consumeCommentsUntilLine(int line) {
     commentByLine.erase(commentByLine.begin(), it);
 }
 
+void CommentsAssociator::associateAbstractCommentsToNode(parser::Node *node, int line) {
+    vector<CommentNode> comments;
+
+    if (auto entry = commentsByNode.find(node); entry != commentsByNode.end()) {
+        comments = move(entry->second);
+    } else {
+        comments = vector<CommentNode>();
+    }
+
+    auto it = commentByLine.begin();
+    while (it != commentByLine.end()) {
+        if (it->first >= line) {
+            break;
+        }
+
+        if (absl::StartsWith(it->second.string, "# @abstract:")) {
+            comments.emplace_back(it->second);
+            it = commentByLine.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    commentsByNode[node] = move(comments);
+}
+
 void CommentsAssociator::associateCommentsToNode(parser::Node *node, absl::Span<const std::string_view> prefixes) {
     auto nodeStartLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.beginPos()).line;
 
@@ -60,7 +86,7 @@ void CommentsAssociator::associateCommentsToNode(parser::Node *node, absl::Span<
         if (it->first < nodeStartLine) {
             bool found = false;
             for (const auto &prefix : prefixes) {
-                if (absl::StartsWith(it->second.string, prefix)) {
+                if (absl::StartsWith(it->second.string, prefix) && !absl::StartsWith(it->second.string, "@abstract:")) {
                     comments.emplace_back(it->second);
                     it = commentByLine.erase(it);
                     found = true;
@@ -107,6 +133,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 walkNodes(body);
             }
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
         [&](parser::SClass *sclass) {
@@ -118,6 +145,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 walkNodes(body);
             }
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
         [&](parser::Module *mod) {
@@ -129,6 +157,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 walkNodes(body);
             }
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
 

@@ -30,6 +30,9 @@ public:
     std::unique_ptr<parser::Node> attrSignature(const parser::Send *send, const rbs_node_t *type,
                                                 const RBSDeclaration &declaration,
                                                 const std::vector<Comment> &annotations);
+
+    std::pair<std::unique_ptr<parser::Node>, std::unique_ptr<parser::Node>>
+    methodDeclaration(const rbs_ast_members_method_definition_t *node, const RBSDeclaration &declaration);
 };
 
 } // namespace sorbet::rbs

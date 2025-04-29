@@ -378,4 +378,38 @@ unique_ptr<parser::Node> MethodTypeToParserNode::attrSignature(const parser::Sen
     return make_unique<parser::Block>(commentLoc, move(sig), nullptr, move(sigBuilder));
 }
 
+pair<unique_ptr<parser::Node>, unique_ptr<parser::Node>>
+MethodTypeToParserNode::methodDeclaration(const rbs_ast_members_method_definition_t *node,
+                                          const RBSDeclaration &declaration) {
+    auto declLoc = declaration.typeLocFromRange(node->base.location->rg);
+
+    auto overload = node->overloads->head->node;
+    ENFORCE(overload->type == RBS_AST_MEMBERS_METHOD_DEFINITION_OVERLOAD,
+            "Unexpected node type `{}` in method definition, expected `{}`", rbs_node_type_name(overload),
+            "MethodDefinitionOverload");
+
+    auto methodType = ((rbs_ast_members_method_definition_overload_t *)overload)->method_type;
+    ENFORCE(methodType->type == RBS_METHOD_TYPE, "Unexpected node type `{}` in method definition, expected `{}`",
+            rbs_node_type_name(methodType), "MethodType");
+
+    // TODO: build parameters list
+    // TODO: build signature
+
+    unique_ptr<parser::Node> def =
+        make_unique<parser::DefMethod>(declaration.fullTypeLoc(), declLoc,
+                                       ctx.state.enterNameUTF8(parser.resolveConstant(node->name)), nullptr, nullptr);
+
+    if (node->visibility) {
+        auto visibility = ctx.state.enterNameUTF8(parser.resolveGlobalConstant(node->visibility));
+        if (visibility == core::Names::private_()) {
+            auto args = parser::NodeVec();
+            args.emplace_back(move(def));
+            def = make_unique<parser::Send>(declLoc, parser::MK::Self(declLoc), core::Names::private_(), declLoc,
+                                            move(args));
+        }
+    }
+
+    return make_pair(nullptr, move(def));
+}
+
 } // namespace sorbet::rbs

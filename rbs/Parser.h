@@ -14,10 +14,11 @@ public:
     Parser(rbs_string_t rbsString, const rbs_encoding_t *encoding);
 
     std::string_view resolveConstant(const rbs_ast_symbol_t *symbol) const;
+    std::string_view resolveGlobalConstant(const rbs_keyword_t *keyword) const;
 
     rbs_method_type_t *parseMethodType();
     rbs_node_t *parseType();
-
+    rbs_ast_members_method_definition_t *parseMemberDefinition();
     bool hasError() const;
     const rbs_error_t *getError() const;
 };
