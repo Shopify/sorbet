@@ -28,10 +28,11 @@ private:
     static const std::string_view RBS_PREFIX;
     static const std::string_view ANNOTATION_PREFIX;
     static const std::string_view MULTILINE_RBS_PREFIX;
-
+    static const std::string_view ABSTRACT_RBS_PREFIX;
     void walkNodes(parser::Node *node);
     void associateCommentsToNode(parser::Node *node, absl::Span<const std::string_view> prefixes);
     void associateInlineCommentToNode(parser::Node *node);
+    void associateAbstractCommentsToNode(parser::Node *node, int line);
     void consumeCommentsUntilLine(int line);
 };
 

@@ -14,7 +14,7 @@ namespace sorbet::rbs {
 const std::string_view CommentsAssociator::RBS_PREFIX = "#:";
 const std::string_view CommentsAssociator::ANNOTATION_PREFIX = "# @";
 const std::string_view CommentsAssociator::MULTILINE_RBS_PREFIX = "#|";
-
+const std::string_view CommentsAssociator::ABSTRACT_RBS_PREFIX = "# @abstract:";
 namespace {
 bool isVisibilitySend(const parser::Send *send) {
     return send->receiver == nullptr && send->args.size() == 1 &&
@@ -37,18 +37,48 @@ void CommentsAssociator::consumeCommentsUntilLine(int line) {
     auto it = commentByLine.begin();
     while (it != commentByLine.end()) {
         if (it->first < line) {
+            if (absl::StartsWith(it->second.string, ABSTRACT_RBS_PREFIX)) {
+                ++it;
+                continue;
+            }
+
             if (absl::StartsWith(it->second.string, RBS_PREFIX) ||
                 absl::StartsWith(it->second.string, MULTILINE_RBS_PREFIX)) {
                 if (auto e = ctx.beginError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
                     e.setHeader("Unused RBS signature comment. No method definition found after it");
                 }
             }
-            ++it;
+            it = commentByLine.erase(it);
         } else {
             break;
         }
     }
-    commentByLine.erase(commentByLine.begin(), it);
+}
+
+void CommentsAssociator::associateAbstractCommentsToNode(parser::Node *node, int line) {
+    vector<CommentNode> comments;
+
+    if (auto entry = commentsByNode.find(node); entry != commentsByNode.end()) {
+        comments = move(entry->second);
+    } else {
+        comments = vector<CommentNode>();
+    }
+
+    auto it = commentByLine.begin();
+    while (it != commentByLine.end()) {
+        if (it->first >= line) {
+            break;
+        }
+
+        if (absl::StartsWith(it->second.string, ABSTRACT_RBS_PREFIX)) {
+            comments.emplace_back(it->second);
+            it = commentByLine.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    commentsByNode[node] = move(comments);
 }
 
 void CommentsAssociator::associateCommentsToNode(parser::Node *node, absl::Span<const std::string_view> prefixes) {
@@ -59,8 +89,10 @@ void CommentsAssociator::associateCommentsToNode(parser::Node *node, absl::Span<
     for (auto it = commentByLine.begin(); it != commentByLine.end();) {
         if (it->first < nodeStartLine) {
             bool found = false;
+
             for (const auto &prefix : prefixes) {
-                if (absl::StartsWith(it->second.string, prefix)) {
+                if (absl::StartsWith(it->second.string, prefix) &&
+                    !absl::StartsWith(it->second.string, ABSTRACT_RBS_PREFIX)) {
                     comments.emplace_back(it->second);
                     it = commentByLine.erase(it);
                     found = true;
@@ -107,6 +139,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 walkNodes(body);
             }
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
         [&](parser::SClass *sclass) {
@@ -118,6 +151,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 walkNodes(body);
             }
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
         [&](parser::Module *mod) {
@@ -129,6 +163,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 walkNodes(body);
             }
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
 
