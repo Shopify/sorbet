@@ -120,6 +120,32 @@ parser::NodeVec extractHelpers(core::MutableContext ctx, vector<Comment> annotat
     return helpers;
 }
 
+parser::NodeVec extractAbstractMethods(core::MutableContext ctx, vector<Comment> annotations) {
+    parser::NodeVec abstractDefs;
+
+    for (auto &annotation : annotations) {
+        if (absl::StartsWith(annotation.string, "abstract:")) {
+            auto offset = 9;
+            while (annotation.string[offset] == ' ') {
+                offset++;
+            }
+
+            auto comment = Comment{
+                .commentLoc = annotation.commentLoc,
+                .typeLoc = core::LocOffsets{annotation.typeLoc.beginPos() + offset, annotation.typeLoc.endPos()},
+                .string = annotation.string.substr(offset),
+            };
+
+            auto signatureTranslator = rbs::SignatureTranslator(ctx);
+            auto declaration = signatureTranslator.translateMemberDefinition(RBSDeclaration{vector<Comment>{comment}});
+            abstractDefs.emplace_back(move(declaration.first));
+            abstractDefs.emplace_back(move(declaration.second));
+        }
+    }
+
+    return abstractDefs;
+}
+
 /**
  * Wraps the body in a `parser::Begin` if it isn't already.
  *
@@ -200,6 +226,15 @@ void insertHelpers(unique_ptr<parser::Node> *body, parser::NodeVec helpers) {
 
     for (auto &helper : helpers) {
         begin->stmts.emplace_back(move(helper));
+    }
+}
+
+void insertAbstractDefs(unique_ptr<parser::Node> *body, parser::NodeVec abstractDefs) {
+    auto begin = parser::cast_node<parser::Begin>(body->get());
+    ENFORCE(begin != nullptr);
+
+    for (auto &abstractDef : abstractDefs) {
+        begin->stmts.emplace_back(move(abstractDef));
     }
 }
 
@@ -376,7 +411,9 @@ unique_ptr<parser::Node> SigsRewriter::rewriteClass(unique_ptr<parser::Node> nod
     }
 
     auto helpers = extractHelpers(ctx, comments.annotations);
-    if (helpers.empty()) {
+    auto abstractDefs = extractAbstractMethods(ctx, comments.annotations);
+
+    if (helpers.empty() && abstractDefs.empty()) {
         return node;
     }
 
@@ -386,16 +423,19 @@ unique_ptr<parser::Node> SigsRewriter::rewriteClass(unique_ptr<parser::Node> nod
             klass->body = maybeWrapBody(node, move(klass->body));
             maybeInsertExtendTHelpers(&klass->body);
             insertHelpers(&klass->body, move(helpers));
+            insertAbstractDefs(&klass->body, move(abstractDefs));
         },
         [&](parser::Module *module) {
             module->body = maybeWrapBody(node, move(module->body));
             maybeInsertExtendTHelpers(&module->body);
             insertHelpers(&module->body, move(helpers));
+            insertAbstractDefs(&module->body, move(abstractDefs));
         },
         [&](parser::SClass *sclass) {
             sclass->body = maybeWrapBody(node, move(sclass->body));
             maybeInsertExtendTHelpers(&sclass->body);
             insertHelpers(&sclass->body, move(helpers));
+            insertAbstractDefs(&sclass->body, move(abstractDefs));
         },
         [&](parser::Node *other) { Exception::raise("Unimplemented node type: {}", other->nodeName()); });
 

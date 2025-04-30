@@ -378,4 +378,173 @@ unique_ptr<parser::Node> MethodTypeToParserNode::attrSignature(const parser::Sen
     return make_unique<parser::Block>(commentLoc, move(sig), nullptr, move(sigBuilder));
 }
 
+pair<unique_ptr<parser::Node>, unique_ptr<parser::Node>>
+MethodTypeToParserNode::methodDeclaration(const rbs_ast_members_method_definition_t *node,
+                                          const RBSDeclaration &declaration) {
+    auto declLoc = declaration.typeLocFromRange(node->base.location->rg);
+
+    if (node->overloads->length > 1) {
+        auto secondNode = node->overloads->head->next;
+        auto secondLoc = declaration.typeLocFromRange(secondNode->node->location->rg);
+        if (auto e = ctx.beginError(secondLoc, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("RBS signatures for abstract methods cannot have overloads");
+        }
+
+        return make_pair(nullptr, nullptr);
+    }
+
+    ENFORCE(node->overloads->head->node->type == RBS_AST_MEMBERS_METHOD_DEFINITION_OVERLOAD,
+            "Unexpected node type `{}` in method definition, expected `{}`",
+            rbs_node_type_name(node->overloads->head->node), "MethodDefinitionOverload");
+    auto overload = (rbs_ast_members_method_definition_overload_t *)node->overloads->head->node;
+
+    ENFORCE(overload->method_type->type == RBS_METHOD_TYPE,
+            "Unexpected node type `{}` in method definition, expected `{}`", rbs_node_type_name(overload->method_type),
+            "MethodType");
+    auto methodType = (rbs_method_type_t *)overload->method_type;
+
+    ENFORCE(methodType->type->type == RBS_TYPES_FUNCTION,
+            "Unexpected node type `{}` in method definition, expected `{}`", rbs_node_type_name(methodType->type),
+            "Function");
+    auto functionType = (rbs_types_function_t *)methodType->type;
+
+    auto defArgs = make_unique<parser::Args>(declLoc, parser::NodeVec());
+    auto typeTranslator = TypeToParserNode(ctx, vector<pair<core::LocOffsets, core::NameRef>>(), parser);
+
+    for (rbs_node_list_node_t *list_node = functionType->required_positionals->head; list_node != nullptr;
+         list_node = list_node->next) {
+        ENFORCE(list_node->node->type == RBS_TYPES_FUNCTION_PARAM,
+                "Unexpected node type `{}` in required positional argument, expected `{}`",
+                rbs_node_type_name(list_node->node), "FunctionParam");
+
+        auto param = (rbs_types_function_param_t *)list_node->node;
+
+        if (!param->name) {
+            auto paramLoc = declaration.typeLocFromRange(param->type->location->rg);
+            if (auto e = ctx.beginError(paramLoc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS signatures for abstract methods cannot have unnamed positional parameters");
+            }
+
+            return make_pair(nullptr, nullptr);
+        }
+
+        auto name = ctx.state.enterNameUTF8(parser.resolveConstant(param->name));
+        auto nameLoc = declaration.typeLocFromRange(param->name->base.location->rg);
+        defArgs->args.emplace_back(make_unique<parser::Arg>(nameLoc, name));
+    }
+
+    for (rbs_node_list_node_t *list_node = functionType->optional_positionals->head; list_node != nullptr;
+         list_node = list_node->next) {
+        ENFORCE(list_node->node->type == RBS_TYPES_FUNCTION_PARAM,
+                "Unexpected node type `{}` in required positional argument, expected `{}`",
+                rbs_node_type_name(list_node->node), "FunctionParam");
+
+        auto param = (rbs_types_function_param_t *)list_node->node;
+
+        if (!param->name) {
+            auto paramLoc = declaration.typeLocFromRange(param->type->location->rg);
+            if (auto e = ctx.beginError(paramLoc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS signatures for abstract methods cannot have unnamed positional parameters");
+            }
+
+            return make_pair(nullptr, nullptr);
+        }
+
+        auto name = ctx.state.enterNameUTF8(parser.resolveConstant(param->name));
+        auto nameLoc = declaration.typeLocFromRange(param->name->base.location->rg);
+        defArgs->args.emplace_back(make_unique<parser::Optarg>(nameLoc, name, nameLoc,
+                                                               parser::MK::TUnsafe(nameLoc, parser::MK::Nil(nameLoc))));
+    }
+
+    if (functionType->rest_positionals) {
+        ENFORCE(functionType->rest_positionals->type == RBS_TYPES_FUNCTION_PARAM,
+                "Unexpected node type `{}` in rest positional argument, expected `{}`",
+                rbs_node_type_name(functionType->rest_positionals), "FunctionParam");
+
+        auto param = (rbs_types_function_param_t *)functionType->rest_positionals;
+
+        if (param->name) {
+            auto name = ctx.state.enterNameUTF8(parser.resolveConstant(param->name));
+            auto nameLoc = declaration.typeLocFromRange(param->name->base.location->rg);
+            defArgs->args.emplace_back(make_unique<parser::Restarg>(nameLoc, name, nameLoc));
+        } else {
+            auto paramLoc = declaration.typeLocFromRange(param->type->location->rg);
+            if (auto e = ctx.beginError(paramLoc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS signatures for abstract methods cannot have unnamed positional parameters");
+            }
+
+            return make_pair(nullptr, nullptr);
+        }
+    }
+
+    for (rbs_hash_node_t *hash_node = functionType->required_keywords->head; hash_node != nullptr;
+         hash_node = hash_node->next) {
+        ENFORCE(hash_node->key->type == RBS_AST_SYMBOL,
+                "Unexpected node type `{}` in keyword argument name, expected `{}`", rbs_node_type_name(hash_node->key),
+                "Symbol");
+
+        auto name = ctx.state.enterNameUTF8(parser.resolveConstant((rbs_ast_symbol_t *)hash_node->key));
+        auto nameLoc = declaration.typeLocFromRange(hash_node->key->location->rg);
+        defArgs->args.emplace_back(make_unique<parser::Kwarg>(nameLoc, name));
+    }
+
+    for (rbs_hash_node_t *hash_node = functionType->optional_keywords->head; hash_node != nullptr;
+         hash_node = hash_node->next) {
+        ENFORCE(hash_node->key->type == RBS_AST_SYMBOL,
+                "Unexpected node type `{}` in keyword argument name, expected `{}`", rbs_node_type_name(hash_node->key),
+                "Symbol");
+
+        auto name = ctx.state.enterNameUTF8(parser.resolveConstant((rbs_ast_symbol_t *)hash_node->key));
+        auto nameLoc = declaration.typeLocFromRange(hash_node->key->location->rg);
+        defArgs->args.emplace_back(make_unique<parser::Kwoptarg>(
+            nameLoc, name, nameLoc, parser::MK::TUnsafe(nameLoc, parser::MK::Nil(nameLoc))));
+    }
+
+    if (functionType->rest_keywords) {
+        ENFORCE(functionType->rest_keywords->type == RBS_TYPES_FUNCTION_PARAM,
+                "Unexpected node type `{}` in rest keyword argument, expected `{}`",
+                rbs_node_type_name(functionType->rest_keywords), "FunctionParam");
+
+        auto param = (rbs_types_function_param_t *)functionType->rest_keywords;
+
+        if (param->name) {
+            auto name = ctx.state.enterNameUTF8(parser.resolveConstant(param->name));
+            auto nameLoc = declaration.typeLocFromRange(param->name->base.location->rg);
+            defArgs->args.emplace_back(make_unique<parser::Kwrestarg>(nameLoc, name));
+        } else {
+            auto paramLoc = declaration.typeLocFromRange(param->type->location->rg);
+            if (auto e = ctx.beginError(paramLoc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("RBS signatures for abstract methods cannot have unnamed keyword parameters");
+            }
+
+            return make_pair(nullptr, nullptr);
+        }
+    }
+
+    if (methodType->block) {
+        defArgs->args.emplace_back(make_unique<parser::Blockarg>(declLoc, core::Names::blkArg()));
+    }
+
+    // block
+
+    unique_ptr<parser::Node> def = make_unique<parser::DefMethod>(
+        declaration.fullTypeLoc(), declLoc, ctx.state.enterNameUTF8(parser.resolveConstant(node->name)), move(defArgs),
+        nullptr);
+
+    auto annotations = vector<Comment>({Comment{declLoc, declLoc, "abstract"}});
+    auto sig = methodSignature(def.get(), methodType, declaration, annotations);
+
+    if (node->visibility) {
+        auto visibility = ctx.state.enterNameUTF8(parser.resolveGlobalConstant(node->visibility));
+        if (visibility == core::Names::private_()) {
+            auto args = parser::NodeVec();
+            args.emplace_back(move(def));
+            def = make_unique<parser::Send>(declLoc, parser::MK::Self(declLoc), core::Names::private_(), declLoc,
+                                            move(args));
+        }
+    }
+
+    return make_pair(move(sig), move(def));
+}
+
 } // namespace sorbet::rbs

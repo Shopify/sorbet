@@ -113,4 +113,27 @@ unique_ptr<parser::Node> SignatureTranslator::translateType(const RBSDeclaration
     return typeTranslator.toParserNode(rbsType, declaration);
 }
 
+pair<unique_ptr<parser::Node>, unique_ptr<parser::Node>>
+SignatureTranslator::translateMemberDefinition(const RBSDeclaration &declaration) {
+    rbs_string_t rbsString = makeRBSString(declaration.string);
+    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+
+    Parser parser(rbsString, encoding);
+    rbs_ast_members_method_definition_t *node = parser.parseMemberDefinition();
+
+    if (parser.hasError()) {
+        rbs_range_t tokenRange = parser.getError()->token.range;
+        core::LocOffsets offset = declaration.typeLocFromRange(tokenRange);
+
+        if (auto e = ctx.beginError(offset, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("Failed to parse RBS member definition ({})", parser.getError()->message);
+        }
+
+        return make_pair(nullptr, nullptr);
+    }
+
+    auto methodTypeToParserNode = MethodTypeToParserNode(ctx, std::move(parser));
+    return methodTypeToParserNode.methodDeclaration(node, declaration);
+}
+
 } // namespace sorbet::rbs

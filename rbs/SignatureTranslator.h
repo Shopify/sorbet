@@ -24,6 +24,9 @@ public:
 
     std::unique_ptr<parser::Node> translateType(const RBSDeclaration &declaration);
 
+    std::pair<std::unique_ptr<parser::Node>, std::unique_ptr<parser::Node>>
+    translateMemberDefinition(const RBSDeclaration &declaration);
+
 private:
     core::MutableContext ctx;
 };
