@@ -44,6 +44,13 @@ public:
     }
 
     /*
+     * Create a `nil` node.
+     */
+    static std::unique_ptr<parser::Node> Nil(core::LocOffsets loc) {
+        return std::make_unique<parser::Nil>(loc);
+    }
+
+    /*
      * Create a `self` node.
      */
     static std::unique_ptr<parser::Node> Self(core::LocOffsets loc) {
