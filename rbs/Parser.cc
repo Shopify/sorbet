@@ -45,6 +45,16 @@ rbs_node_t *Parser::parseType() {
     return type;
 }
 
+rbs_ast_members_method_definition_t *Parser::parseMemberDefinition() {
+    bool instance_only = false;
+    bool accept_overload = false;
+    rbs_position_t comment_pos;
+    rbs_node_list_t *annotations = nullptr;
+    rbs_ast_members_method_definition_t *methodDefinition = nullptr;
+    rbs_parse_member_def(parser.get(), instance_only, accept_overload, comment_pos, annotations, &methodDefinition);
+    return methodDefinition;
+}
+
 bool Parser::hasError() const {
     return parser->error != nullptr;
 }

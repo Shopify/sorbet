@@ -17,6 +17,7 @@ public:
 
     rbs_method_type_t *parseMethodType();
     rbs_node_t *parseType();
+    rbs_ast_members_method_definition_t *parseMemberDefinition();
 
     bool hasError() const;
     const rbs_error_t *getError() const;
