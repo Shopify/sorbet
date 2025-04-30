@@ -453,7 +453,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
   module <emptyTree>::<C Annotations><<C <todo sym>>> < ()
     ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
-      <self>.abstract().returns(<emptyTree>::<C Integer>)
+      <self>.returns(<emptyTree>::<C Integer>)
     end
 
     def method1<<todo method>>(&<blk>)

@@ -20,7 +20,7 @@ public:
      */
     std::unique_ptr<parser::Node> methodSignature(const parser::Node *methodDef, const rbs_method_type_t *methodType,
                                                   const RBSDeclaration &declaration,
-                                                  const std::vector<Comment> &annotations);
+                                                  const std::vector<Comment> &annotations, bool abstract = false);
 
     /**
      * Convert an RBS attribute type comment to a Sorbet signature.

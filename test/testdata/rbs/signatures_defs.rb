@@ -241,8 +241,9 @@ end
 
 module Annotations
   # @abstract
+  #  ^^^^^^^^ error: RBS signatures for abstract methods must be formatted as `# @abstract: def name: () -> void`
   #: -> Integer
-  def method1; end # error: Before declaring an abstract method, you must mark your class/module as abstract using `abstract!` or `interface!`
+  def method1; end # error: Expected `Integer` but found `NilClass` for method result type
 
   # @override
   #: -> Integer

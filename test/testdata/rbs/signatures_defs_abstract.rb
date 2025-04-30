@@ -4,25 +4,28 @@
 # @abstract
 class Foo
   # @abstract
+  #  ^^^^^^^^ error: RBS signatures for abstract methods must be formatted as `# @abstract: def name: () -> void`
+  #: -> void
+  def e1; end
 
   # @abstract: # error: Failed to parse RBS member definition (unexpected token for method name)
 
-  # @abstract: e1: -> String
+  # @abstract: e2: -> String
   #              ^ error: Failed to parse RBS member definition (unexpected token for method name)
 
-  # @abstract: def e2:
+  # @abstract: def e3:
   #            ^^^^^^^ error: Failed to parse RBS member definition (unexpected token for method type)
 
-  # @abstract: def e3: -> String | -> Integer
+  # @abstract: def e4: -> String | -> Integer
   #                              ^^^^^^^^^^^^ error: RBS signatures for abstract methods cannot have overloads
 
-  # @abstract: def e4: (Integer) -> void
+  # @abstract: def e5: (Integer) -> void
   #                     ^^^^^^^ error: RBS signatures for abstract methods cannot have unnamed positional parameters
 
-  # @abstract: def e5: (*Integer) -> String
+  # @abstract: def e6: (*Integer) -> String
   #                      ^^^^^^^ error: RBS signatures for abstract methods cannot have unnamed positional parameters
 
-  # @abstract: def e6: (**Integer) -> String
+  # @abstract: def e7: (**Integer) -> String
   #                       ^^^^^^^ error: RBS signatures for abstract methods cannot have unnamed keyword parameters
 
   # @abstract: def e8: (Integer a) -> String | ...

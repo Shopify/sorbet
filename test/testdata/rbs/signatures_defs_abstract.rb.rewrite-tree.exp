@@ -1,6 +1,14 @@
 class <emptyTree><<C <root>>> < (::<todo sym>)
   class <emptyTree>::<C Foo><<C <todo sym>>> < (::<todo sym>)
     ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+      <self>.void()
+    end
+
+    def e1<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
       <self>.abstract().params(:a, <emptyTree>::<C Integer>).returns(<emptyTree>::<C String>)
     end
 
@@ -23,6 +31,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
     def m3<<todo method>>(&<blk>)
       <emptyTree>
     end
+
+    <runtime method definition of e1>
 
     <self>.extend(::<root>::<C T>::<C Helpers>)
 

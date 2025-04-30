@@ -22,13 +22,17 @@ struct RBSArg {
     rbs_node_t *type;
 };
 
-unique_ptr<parser::Node> handleAnnotations(unique_ptr<parser::Node> sigBuilder, const vector<Comment> &annotations) {
+unique_ptr<parser::Node> handleAnnotations(core::MutableContext ctx, unique_ptr<parser::Node> sigBuilder,
+                                           const vector<Comment> &annotations) {
     for (auto &annotation : annotations) {
         if (annotation.string == "final") {
             // no-op, `final` is handled in the `sig()` call later
         } else if (annotation.string == "abstract") {
-            sigBuilder =
-                parser::MK::Send0(annotation.typeLoc, move(sigBuilder), core::Names::abstract(), annotation.typeLoc);
+            if (auto e = ctx.beginError(annotation.typeLoc, core::errors::Rewriter::RBSAbstractMisformatted)) {
+                e.setHeader(
+                    "RBS signatures for abstract methods must be formatted as `# @abstract: def name: () -> void`");
+                continue;
+            }
         } else if (annotation.string == "overridable") {
             sigBuilder =
                 parser::MK::Send0(annotation.typeLoc, move(sigBuilder), core::Names::overridable(), annotation.typeLoc);
@@ -142,7 +146,7 @@ unique_ptr<parser::Node> assembleTSigWithoutRuntime(const core::LocOffsets &loc)
 unique_ptr<parser::Node> MethodTypeToParserNode::methodSignature(const parser::Node *methodDef,
                                                                  const rbs_method_type_t *methodType,
                                                                  const RBSDeclaration &declaration,
-                                                                 const vector<Comment> &annotations) {
+                                                                 const vector<Comment> &annotations, bool abstract) {
     const auto &node = *methodType;
     // Method signatures can have multiple lines, so we need
     // - full type location
@@ -266,7 +270,12 @@ unique_ptr<parser::Node> MethodTypeToParserNode::methodSignature(const parser::N
     // Build the sig
 
     auto sigBuilder = parser::MK::Self(fullTypeLoc);
-    sigBuilder = handleAnnotations(std::move(sigBuilder), annotations);
+
+    if (abstract) {
+        sigBuilder = parser::MK::Send0(fullTypeLoc, move(sigBuilder), core::Names::abstract(), fullTypeLoc);
+    }
+
+    sigBuilder = handleAnnotations(ctx, std::move(sigBuilder), annotations);
 
     if (typeParams.size() > 0) {
         auto typeParamsVector = parser::NodeVec();
@@ -321,7 +330,7 @@ unique_ptr<parser::Node> MethodTypeToParserNode::attrSignature(const parser::Sen
     auto commentLoc = declaration.commentLoc();
 
     auto sigBuilder = parser::MK::Self(fullTypeLoc.copyWithZeroLength());
-    sigBuilder = handleAnnotations(std::move(sigBuilder), annotations);
+    sigBuilder = handleAnnotations(ctx, std::move(sigBuilder), annotations);
 
     if (send->args.size() == 0) {
         if (auto e = ctx.beginError(send->loc, core::errors::Rewriter::RBSUnsupported)) {
@@ -531,8 +540,7 @@ MethodTypeToParserNode::methodDeclaration(const rbs_ast_members_method_definitio
         declaration.fullTypeLoc(), declLoc, ctx.state.enterNameUTF8(parser.resolveConstant(node->name)), move(defArgs),
         nullptr);
 
-    auto annotations = vector<Comment>({Comment{declLoc, declLoc, "abstract"}});
-    auto sig = methodSignature(def.get(), methodType, declaration, annotations);
+    auto sig = methodSignature(def.get(), methodType, declaration, vector<Comment>(), true);
 
     if (node->visibility) {
         auto visibility = ctx.state.enterNameUTF8(parser.resolveGlobalConstant(node->visibility));
