@@ -36,9 +36,11 @@ class Foo
   # @abstract: def m2: (Integer a, ?String b, *Integer c, d: String, ?e: Integer, **Integer f) { -> void } -> String
 
   # @abstract: private def m3: () -> String
+
+  # @abstract: def self.m4: -> String
 end
 
-class Bar < Foo
+class Bar < Foo # error: Missing definition for abstract method `Foo.m4` in `T.class_of(Bar)`
   # @override
   #: (Integer a) -> String
   def m1(a)

@@ -32,6 +32,14 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
       <emptyTree>
     end
 
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+      <self>.abstract().returns(<emptyTree>::<C String>)
+    end
+
+    def self.m4<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
     <runtime method definition of e1>
 
     <self>.extend(::<root>::<C T>::<C Helpers>)
@@ -43,6 +51,8 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
     <self>.public(<runtime method definition of m2>)
 
     <self>.private(<runtime method definition of m3>)
+
+    <self>.public(<runtime method definition of self.m4>)
   end
 
   class <emptyTree>::<C Bar><<C <todo sym>>> < (<emptyTree>::<C Foo>)

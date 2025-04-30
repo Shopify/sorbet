@@ -534,11 +534,17 @@ MethodTypeToParserNode::methodDeclaration(const rbs_ast_members_method_definitio
         defArgs->args.emplace_back(make_unique<parser::Blockarg>(declLoc, core::Names::blkArg()));
     }
 
-    // block
+    unique_ptr<parser::Node> def;
 
-    unique_ptr<parser::Node> def = make_unique<parser::DefMethod>(
-        declaration.fullTypeLoc(), declLoc, ctx.state.enterNameUTF8(parser.resolveConstant(node->name)), move(defArgs),
-        nullptr);
+    if (parser.resolveGlobalConstant(node->kind) == "singleton") {
+        def = make_unique<parser::DefS>(declaration.fullTypeLoc(), declLoc, parser::MK::Self(declLoc),
+                                        ctx.state.enterNameUTF8(parser.resolveConstant(node->name)), move(defArgs),
+                                        nullptr);
+    } else {
+        def = make_unique<parser::DefMethod>(declaration.fullTypeLoc(), declLoc,
+                                             ctx.state.enterNameUTF8(parser.resolveConstant(node->name)), move(defArgs),
+                                             nullptr);
+    }
 
     auto sig = methodSignature(def.get(), methodType, declaration, vector<Comment>(), true);
 
