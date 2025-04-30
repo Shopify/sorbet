@@ -38,9 +38,9 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
     <self>.abstract!()
 
-    <runtime method definition of m1>
+    <self>.public(<runtime method definition of m1>)
 
-    <runtime method definition of m2>
+    <self>.public(<runtime method definition of m2>)
 
     <self>.private(<runtime method definition of m3>)
   end
@@ -100,7 +100,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
     <self>.abstract!()
 
-    <runtime method definition of foo>
+    <self>.public(<runtime method definition of foo>)
   end
 
   class <emptyTree>::<C Qux><<C <todo sym>>> < (::<todo sym>)
@@ -114,6 +114,6 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
     <self>.extend(::<root>::<C T>::<C Helpers>)
 
-    <runtime method definition of foo>
+    <self>.public(<runtime method definition of foo>)
   end
 end

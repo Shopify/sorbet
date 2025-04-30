@@ -542,15 +542,14 @@ MethodTypeToParserNode::methodDeclaration(const rbs_ast_members_method_definitio
 
     auto sig = methodSignature(def.get(), methodType, declaration, vector<Comment>(), true);
 
+    auto visibilityName = core::Names::public_();
     if (node->visibility) {
-        auto visibility = ctx.state.enterNameUTF8(parser.resolveGlobalConstant(node->visibility));
-        if (visibility == core::Names::private_()) {
-            auto args = parser::NodeVec();
-            args.emplace_back(move(def));
-            def = make_unique<parser::Send>(declLoc, parser::MK::Self(declLoc), core::Names::private_(), declLoc,
-                                            move(args));
-        }
+        visibilityName = ctx.state.enterNameUTF8(parser.resolveGlobalConstant(node->visibility));
     }
+
+    auto args = parser::NodeVec();
+    args.emplace_back(move(def));
+    def = make_unique<parser::Send>(declLoc, parser::MK::Self(declLoc), visibilityName, declLoc, move(args));
 
     return make_pair(move(sig), move(def));
 }
