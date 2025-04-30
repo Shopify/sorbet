@@ -74,3 +74,10 @@ class Qux
   # @abstract: def foo: -> void
   #            ^^^^^^^^^^^^^^^^ error: Before declaring an abstract method, you must mark your class/module as abstract using `abstract!` or `interface!`
 end
+
+# @abstract
+class Scope1
+  class Scope2; end
+  # @abstract: def plot: -> String
+  class Scope3; end
+end

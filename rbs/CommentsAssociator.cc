@@ -55,7 +55,9 @@ void CommentsAssociator::consumeCommentsUntilLine(int line) {
     }
 }
 
-void CommentsAssociator::associateAbstractCommentsToNode(parser::Node *node, int line) {
+void CommentsAssociator::associateAbstractCommentsToNode(parser::Node *node) {
+    auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.beginPos()).line;
+    auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
     vector<CommentNode> comments;
 
     if (auto entry = commentsByNode.find(node); entry != commentsByNode.end()) {
@@ -66,7 +68,12 @@ void CommentsAssociator::associateAbstractCommentsToNode(parser::Node *node, int
 
     auto it = commentByLine.begin();
     while (it != commentByLine.end()) {
-        if (it->first >= line) {
+        if (it->first <= beginLine) {
+            ++it;
+            continue;
+        }
+
+        if (it->first >= endLine) {
             break;
         }
 
@@ -138,8 +145,9 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
             if (auto body = cls->body.get()) {
                 walkNodes(body);
             }
+
+            associateAbstractCommentsToNode(node);
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
-            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
         [&](parser::SClass *sclass) {
@@ -150,8 +158,9 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
             if (auto body = sclass->body.get()) {
                 walkNodes(body);
             }
+
+            associateAbstractCommentsToNode(node);
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
-            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
         [&](parser::Module *mod) {
@@ -162,8 +171,9 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
             if (auto body = mod->body.get()) {
                 walkNodes(body);
             }
+
+            associateAbstractCommentsToNode(node);
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
-            associateAbstractCommentsToNode(node, endLine);
             consumeCommentsUntilLine(endLine);
         },
 

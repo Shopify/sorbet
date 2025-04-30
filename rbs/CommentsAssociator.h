@@ -32,7 +32,7 @@ private:
     void walkNodes(parser::Node *node);
     void associateCommentsToNode(parser::Node *node, absl::Span<const std::string_view> prefixes);
     void associateInlineCommentToNode(parser::Node *node);
-    void associateAbstractCommentsToNode(parser::Node *node, int line);
+    void associateAbstractCommentsToNode(parser::Node *node);
     void consumeCommentsUntilLine(int line);
 };
 

@@ -126,4 +126,26 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
 
     <self>.public(<runtime method definition of foo>)
   end
+
+  class <emptyTree>::<C Scope1><<C <todo sym>>> < (::<todo sym>)
+    ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+      <self>.abstract().returns(<emptyTree>::<C String>)
+    end
+
+    def plot<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    class <emptyTree>::<C Scope2><<C <todo sym>>> < (::<todo sym>)
+    end
+
+    class <emptyTree>::<C Scope3><<C <todo sym>>> < (::<todo sym>)
+    end
+
+    <self>.extend(::<root>::<C T>::<C Helpers>)
+
+    <self>.abstract!()
+
+    <self>.public(<runtime method definition of plot>)
+  end
 end
