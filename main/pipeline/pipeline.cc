@@ -229,8 +229,8 @@ parser::Parser::ParseResult runParser(core::GlobalState &gs, core::FileRef file,
     {
         core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
         auto indentationAware = false;               // Don't start in indentation-aware error recovery mode
-        auto collectComments =
-            gs.cacheSensitiveOptions.rbsSignaturesEnabled; // Collect comments for RBS signature translation
+        auto collectComments = gs.cacheSensitiveOptions.rbsSignaturesEnabled ||
+                               gs.cacheSensitiveOptions.rbsAssertionsEnabled; // Collect comments for RBS translation
         auto settings = parser::Parser::Settings{traceLexer, traceParser, indentationAware, collectComments};
         result = parser::Parser::run(gs, file, settings);
     }
