@@ -1,0 +1,26 @@
+other node: LVar
+other node: LVar
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+    <self>.params(:x, <emptyTree>::<C String>).void()
+  end
+
+  def foo<<todo method>>(x, &<blk>)
+    begin
+      <emptyTree>::<C T>.reveal_type(x)
+      <runtime method definition of bar>
+    end
+  end
+
+  ::<root>::<C Sorbet>::<C Private>::<C Static>.sig(::<root>::<C T>::<C Sig>::<C WithoutRuntime>) do ||
+    <self>.params(:x, <emptyTree>::<C Integer>).void()
+  end
+
+  def bar<<todo method>>(x, &<blk>)
+    <emptyTree>::<C T>.reveal_type(x)
+  end
+
+  <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+  <runtime method definition of foo>
+end

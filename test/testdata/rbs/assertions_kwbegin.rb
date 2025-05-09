@@ -2,7 +2,7 @@
 # enable-experimental-rbs-signatures: true
 # enable-experimental-rbs-assertions: true
 
-begin #: as String # error Unexpected RBS assertion comment found after `begin` declaration
+begin #: as String # error: Unexpected RBS assertion comment found after `begin` declaration
 end
 
 x = begin

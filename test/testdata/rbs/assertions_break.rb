@@ -7,7 +7,18 @@ while ARGV.any?
 end
 
 while ARGV.any?
+  break(
+    ARGV.shift #: as String
+  )
+end
+
+while ARGV.any?
   break ARGV.shift, "foo" #: Array[String]
+end
+
+while ARGV.any?
+  break ARGV.shift, #: as String
+   "foo" #: String
 end
 
 while ARGV.shift
