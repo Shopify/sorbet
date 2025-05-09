@@ -454,10 +454,8 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
     options.add_options(section)("experimental-ruby3-keyword-args",
                                  "Enforce use of new (Ruby 3.0-style) keyword arguments. (incomplete and experimental)",
                                  cxxopts::value<bool>());
-    options.add_options(section)("enable-experimental-rbs-signatures",
-                                 "Enable experimental support for RBS signatures as inline comments");
-    options.add_options(section)("enable-experimental-rbs-assertions",
-                                 "Enable experimental support for RBS assertions as inline comments");
+    options.add_options(section)("enable-experimental-rbs",
+                                 "Enable experimental support for RBS signatures and assertions as inline comments");
     options.add_options(section)("enable-experimental-requires-ancestor",
                                  "Enable experimental `requires_ancestor` annotation");
     options.add_options(section)("uniquely-defined-behavior",
@@ -922,9 +920,7 @@ void readOptions(Options &opts,
 
         opts.cacheDir = raw["cache-dir"].as<string>();
 
-        opts.cacheSensitiveOptions.rbsSignaturesEnabled = raw["enable-experimental-rbs-signatures"].as<bool>();
-
-        opts.cacheSensitiveOptions.rbsAssertionsEnabled = raw["enable-experimental-rbs-assertions"].as<bool>();
+        opts.cacheSensitiveOptions.rbsEnabled = raw["enable-experimental-rbs"].as<bool>();
 
         opts.cacheSensitiveOptions.requiresAncestorEnabled = raw["enable-experimental-requires-ancestor"].as<bool>();
 
@@ -1337,10 +1333,8 @@ void readOptions(Options &opts,
             }
         }
 
-        if (opts.print.RBSRewriteTree.enabled &&
-            (!opts.cacheSensitiveOptions.rbsSignaturesEnabled && !opts.cacheSensitiveOptions.rbsAssertionsEnabled)) {
-            logger->error("--print=rbs-rewrite-tree must also include `{}` or `{}`",
-                          "--enable-experimental-rbs-signatures", "--enable-experimental-rbs-assertions");
+        if (opts.print.RBSRewriteTree.enabled && !opts.cacheSensitiveOptions.rbsEnabled) {
+            logger->error("--print=rbs-rewrite-tree must also include `{}`", "--enable-experimental-rbs");
             throw EarlyReturnWithCode(1);
         }
 

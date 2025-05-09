@@ -1,6 +1,5 @@
 # typed: true
-# enable-experimental-rbs-signatures: true
-# enable-experimental-rbs-assertions: true
+# enable-experimental-rbs: true
 
   x = 42 #: Integer
 # ^ hover: Integer

@@ -1,6 +1,5 @@
 # typed: strict
-# enable-experimental-rbs-signatures: true
-# enable-experimental-rbs-assertions: true
+# enable-experimental-rbs: true
 
 #: (*untyped) {(String?) -> String} -> untyped
 def take_block(*args, &); end

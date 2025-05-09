@@ -1,5 +1,5 @@
 # typed: strict
-# enable-experimental-rbs-signatures: true
+# enable-experimental-rbs: true
 
 #: [U]
 class G1; end
