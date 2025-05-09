@@ -259,10 +259,13 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
         core::MutableContext ctx(gs, core::Symbols::root(), file);
         core::UnfreezeNameTable nameTableAccess(gs);
 
-        if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
+        std::map<parser::Node *, std::vector<rbs::CommentNode>> commentsByNode;
+        if (gs.cacheSensitiveOptions.rbsSignaturesEnabled || gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
             auto associator = rbs::CommentsAssociator(ctx, commentLocations);
-            auto commentsByNode = associator.run(node);
+            commentsByNode = associator.run(node);
+        }
 
+        if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
             auto rewriter = rbs::SigsRewriter(ctx, commentsByNode);
             node = rewriter.run(move(node));
         }

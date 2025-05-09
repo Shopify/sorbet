@@ -6,6 +6,7 @@ extern "C" {
 }
 
 #include "core/LocOffsets.h"
+#include "parser/parser.h"
 #include "rbs/Parser.h"
 
 namespace sorbet::rbs {
@@ -96,6 +97,16 @@ public:
 private:
     std::vector<Comment> comments;
 };
+
+/**
+ * Check if the given send node is a visibility modifier (private, protected, public, etc.)
+ */
+bool isVisibilitySend(const parser::Send *send);
+
+/**
+ * Check if the given send node is an attr accessor (attr_reader, attr_writer, attr_accessor)
+ */
+bool isAttrAccessorSend(const parser::Send *send);
 
 } // namespace sorbet::rbs
 
