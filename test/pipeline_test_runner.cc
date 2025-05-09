@@ -227,8 +227,9 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
         {
             core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
 
-            auto settings =
-                parser::Parser::Settings{false, false, false, gs.cacheSensitiveOptions.rbsSignaturesEnabled};
+            auto collectComments =
+                gs.cacheSensitiveOptions.rbsSignaturesEnabled || gs.cacheSensitiveOptions.rbsAssertionsEnabled;
+            auto settings = parser::Parser::Settings{false, false, false, collectComments};
             parseResult = parser::Parser::run(gs, file, settings);
             nodes = move(parseResult.tree);
         }
@@ -242,14 +243,18 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             if (gs.cacheSensitiveOptions.rbsSignaturesEnabled || gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
                 core::MutableContext ctx(gs, core::Symbols::root(), file);
-                if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
+
+                std::map<parser::Node *, std::vector<rbs::CommentNode>> commentsByNode;
+                if (gs.cacheSensitiveOptions.rbsSignaturesEnabled || gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
                     auto associator = rbs::CommentsAssociator(ctx, parseResult.commentLocations);
-                    auto commentsByNode = associator.run(nodes);
+                    commentsByNode = associator.run(nodes);
+                }
+                if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
                     auto rbsSignatures = rbs::SigsRewriter(ctx, commentsByNode);
                     nodes = rbsSignatures.run(std::move(nodes));
                 }
                 if (gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
-                    auto rbsAssertions = rbs::AssertionsRewriter(ctx);
+                    auto rbsAssertions = rbs::AssertionsRewriter(ctx, commentsByNode);
                     nodes = rbsAssertions.run(std::move(nodes));
                 }
             }
@@ -680,21 +685,26 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         gs->replaceFile(f.file, move(newFile));
 
         // this replicates the logic of pipeline::indexOne
-        auto settings = parser::Parser::Settings{false, false, false, gs->cacheSensitiveOptions.rbsSignaturesEnabled};
+        auto collectComments =
+            gs->cacheSensitiveOptions.rbsSignaturesEnabled || gs->cacheSensitiveOptions.rbsAssertionsEnabled;
+        auto settings = parser::Parser::Settings{false, false, false, collectComments};
         auto parseResult = parser::Parser::run(*gs, f.file, settings);
         handler.addObserved(*gs, "parse-tree", [&]() { return parseResult.tree->toString(*gs); });
         handler.addObserved(*gs, "parse-tree-json", [&]() { return parseResult.tree->toJSON(*gs); });
 
         core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
 
-        if (gs->cacheSensitiveOptions.rbsSignaturesEnabled) {
+        std::map<parser::Node *, std::vector<rbs::CommentNode>> commentsByNode;
+        if (gs->cacheSensitiveOptions.rbsSignaturesEnabled || gs->cacheSensitiveOptions.rbsAssertionsEnabled) {
             auto associator = rbs::CommentsAssociator(ctx, parseResult.commentLocations);
-            auto commentsByNode = associator.run(parseResult.tree);
+            commentsByNode = associator.run(parseResult.tree);
+        }
+        if (gs->cacheSensitiveOptions.rbsSignaturesEnabled) {
             auto rbsSignatures = rbs::SigsRewriter(ctx, commentsByNode);
             parseResult.tree = rbsSignatures.run(std::move(parseResult.tree));
         }
         if (gs->cacheSensitiveOptions.rbsAssertionsEnabled) {
-            auto rbsAssertions = rbs::AssertionsRewriter(ctx);
+            auto rbsAssertions = rbs::AssertionsRewriter(ctx, commentsByNode);
             parseResult.tree = rbsAssertions.run(std::move(parseResult.tree));
         }
         auto nodes = move(parseResult.tree);

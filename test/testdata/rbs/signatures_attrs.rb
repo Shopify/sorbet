@@ -1,5 +1,6 @@
 # typed: strict
 # enable-experimental-rbs-signatures: true
+# enable-experimental-rbs-assertions: true
 
 class Foo
   #: Integer

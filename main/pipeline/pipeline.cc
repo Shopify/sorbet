@@ -229,8 +229,8 @@ parser::Parser::ParseResult runParser(core::GlobalState &gs, core::FileRef file,
     {
         core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
         auto indentationAware = false;               // Don't start in indentation-aware error recovery mode
-        auto collectComments =
-            gs.cacheSensitiveOptions.rbsSignaturesEnabled; // Collect comments for RBS signature translation
+        auto collectComments = gs.cacheSensitiveOptions.rbsSignaturesEnabled ||
+                               gs.cacheSensitiveOptions.rbsAssertionsEnabled; // Collect comments for RBS translation
         auto settings = parser::Parser::Settings{traceLexer, traceParser, indentationAware, collectComments};
         result = parser::Parser::run(gs, file, settings);
     }
@@ -259,15 +259,18 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
         core::MutableContext ctx(gs, core::Symbols::root(), file);
         core::UnfreezeNameTable nameTableAccess(gs);
 
-        if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
+        std::map<parser::Node *, std::vector<rbs::CommentNode>> commentsByNode;
+        if (gs.cacheSensitiveOptions.rbsSignaturesEnabled || gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
             auto associator = rbs::CommentsAssociator(ctx, commentLocations);
-            auto commentsByNode = associator.run(node);
+            commentsByNode = associator.run(node);
+        }
 
+        if (gs.cacheSensitiveOptions.rbsSignaturesEnabled) {
             auto rewriter = rbs::SigsRewriter(ctx, commentsByNode);
             node = rewriter.run(move(node));
         }
         if (gs.cacheSensitiveOptions.rbsAssertionsEnabled) {
-            auto rewriter = rbs::AssertionsRewriter(ctx);
+            auto rewriter = rbs::AssertionsRewriter(ctx, commentsByNode);
             node = rewriter.run(move(node));
         }
 

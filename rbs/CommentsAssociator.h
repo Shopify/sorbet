@@ -19,20 +19,24 @@ public:
     std::map<parser::Node *, std::vector<CommentNode>> run(std::unique_ptr<parser::Node> &tree);
 
 private:
-    core::MutableContext ctx;
-    std::vector<core::LocOffsets> commentLocations;
-
-    std::map<int, CommentNode> commentByLine;
-    std::map<parser::Node *, std::vector<CommentNode>> commentsByNode;
-
     static const std::string_view RBS_PREFIX;
     static const std::string_view ANNOTATION_PREFIX;
     static const std::string_view MULTILINE_RBS_PREFIX;
 
+    core::MutableContext ctx;
+    std::vector<core::LocOffsets> commentLocations;
+    std::map<int, CommentNode> commentByLine;
+    std::map<parser::Node *, std::vector<CommentNode>> commentsByNode;
+    bool rbsAssertionsEnabled;
+    bool rbsSignaturesEnabled;
+
     void walkNodes(parser::Node *node);
-    void associateCommentsToNode(parser::Node *node, absl::Span<const std::string_view> prefixes);
-    void associateInlineCommentToNode(parser::Node *node);
+    void walkChild(parser::Node *node, parser::Node *child);
+    void associateAssertionCommentsToNode(parser::Node *node, bool adjustLocForHeredoc);
+    void associateSignatureCommentsToNode(parser::Node *node, absl::Span<const std::string_view> prefixes);
+    void consumeCommentsBetweenLines(int startLine, int endLine, std::string kind);
     void consumeCommentsUntilLine(int line);
+    uint32_t locateTargetLine(parser::Node *node);
 };
 
 } // namespace sorbet::rbs
