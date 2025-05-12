@@ -192,6 +192,9 @@ struct Options {
         // Enable experimental support for RBS assertions such as `T.let`
         bool rbsAssertionsEnabled : 1;
 
+        // Enable experimental support for RBS signatures and assertions
+        bool rbsEnabled : 1;
+
         // Experimental feature `requires_ancestor`
         bool requiresAncestorEnabled : 1;
 
@@ -202,7 +205,7 @@ struct Options {
         // In C++20 we can replace this with bit field initializers
         CacheSensitiveOptions()
             : noStdlib(false), typedSuper(true), rbsSignaturesEnabled(false), rbsAssertionsEnabled(false),
-              requiresAncestorEnabled(false), runningUnderAutogen(false), stripePackages(false) {}
+              rbsEnabled(false), requiresAncestorEnabled(false), runningUnderAutogen(false), stripePackages(false) {}
 
         constexpr static uint8_t NUMBER_OF_FLAGS = 7;
         constexpr static uint8_t VALID_BITS_MASK = (1 << NUMBER_OF_FLAGS) - 1;
