@@ -1,5 +1,5 @@
 # typed: true
-# enable-experimental-rbs-signatures: true
+# enable-experimental-rbs: true
 
 # Sig parts hover
 
