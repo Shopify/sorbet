@@ -55,12 +55,14 @@ void CommentsAssociator::associateCommentsToNode(parser::Node *node, absl::Span<
     auto nodeStartLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.beginPos()).line;
 
     vector<CommentNode> comments;
+    fmt::print("Associating comments to node: {}, {} \n", node->nodeName(), node->loc.beginPos());
 
     for (auto it = commentByLine.begin(); it != commentByLine.end();) {
         if (it->first < nodeStartLine) {
             bool found = false;
             for (const auto &prefix : prefixes) {
                 if (absl::StartsWith(it->second.string, prefix)) {
+                    fmt::print("Found comment: {} \n", it->second.string);
                     comments.emplace_back(it->second);
                     it = commentByLine.erase(it);
                     found = true;
@@ -71,6 +73,7 @@ void CommentsAssociator::associateCommentsToNode(parser::Node *node, absl::Span<
                 it++;
             }
         } else {
+            fmt::print("No more comments to associate \n");
             break;
         }
     }
@@ -83,6 +86,7 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
         return;
     }
 
+    fmt::print("Walking node: {}, {} \n", node->nodeName(), node->loc.beginPos());
     typecase(
         node,
 
@@ -162,6 +166,12 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
                 associateCommentsToNode(send, {RBS_PREFIX, ANNOTATION_PREFIX, MULTILINE_RBS_PREFIX});
                 auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
                 consumeCommentsUntilLine(endLine);
+            } else {
+                for (auto &arg : send->args) {
+                    if (!parser::isa_node<parser::DefMethod>(arg.get()) && !parser::isa_node<parser::DefS>(arg.get())) {
+                        walkNodes(arg.get());
+                    }
+                }
             }
         },
         [&](parser::Assign *assign) {
@@ -266,6 +276,10 @@ void CommentsAssociator::walkNodes(parser::Node *node) {
 
 std::map<parser::Node *, std::vector<CommentNode>> CommentsAssociator::run(unique_ptr<parser::Node> &node) {
     walkNodes(node.get());
+    fmt::print("Comments by node: \n");
+    for (auto &[node, comments] : commentsByNode) {
+        fmt::print("Node: {}, comments: {}\n", node->nodeName(), comments.size());
+    }
     return move(commentsByNode);
 };
 

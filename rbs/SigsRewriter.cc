@@ -295,6 +295,7 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(core::MutableContext
 
     for (auto &declaration : comments.signatures) {
         if (parser::isa_node<parser::DefMethod>(node) || parser::isa_node<parser::DefS>(node)) {
+            fmt::print("Translating method signature for node: {}, {} \n", node->nodeName(), node->loc.beginPos());
             auto sig = signatureTranslator.translateMethodSignature(node, declaration, comments.annotations);
 
             signatures->emplace_back(move(sig));
@@ -408,7 +409,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
     }
 
     unique_ptr<parser::Node> result;
-
+    fmt::print("Rewriting node: {}, {} \n", node->nodeName(), node->loc.beginPos());
     typecase(
         node.get(),
         // Using the same order as Desugar.cc
@@ -499,6 +500,12 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         },
         [&](parser::When *when) {
             when->body = rewriteBody(move(when->body));
+            result = move(node);
+        },
+        [&](parser::Send *send) {
+            if (!isVisibilitySend(send)) {
+                send->args = rewriteNodes(move(send->args));
+            }
             result = move(node);
         },
         [&](parser::Node *other) { result = move(node); });
