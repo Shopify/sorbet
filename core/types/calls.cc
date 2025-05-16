@@ -313,6 +313,14 @@ unique_ptr<Error> matchArgType(const GlobalState &gs, TypeConstraint &constr, Lo
         return nullptr;
     }
 
+    auto withoutNil = Types::dropNil(gs, argTpe.type);
+
+    // For testing: Enable nilable arguments to be passed to non-nilable parameters.
+    if (Types::isSubTypeUnderConstraint(gs, constr, withoutNil, expectedType, UntypedMode::AlwaysCompatible,
+                                        ErrorSection::Collector::NO_OP)) {
+        return nullptr;
+    }
+
     if (auto e = gs.beginError(argLoc, errors::Infer::MethodArgumentMismatch)) {
         if (mayBeSetter && method.data(gs)->name.isSetter(gs)) {
             e.setHeader("Assigning a value to `{}` that does not match expected type `{}`", argSym.argumentName(gs),

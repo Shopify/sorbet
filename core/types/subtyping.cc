@@ -1148,6 +1148,11 @@ bool isSubTypeUnderConstraintSingle(const GlobalState &gs, TypeConstraint &const
         return true;
     }
 
+    // Make NilClass a subtype of all types.
+    if (t1 == core::Types::nilClass()) {
+        return true;
+    }
+
     if (isa_type<TypeVar>(t1) || isa_type<TypeVar>(t2)) {
         if (constr.isSolved()) {
             return constr.isAlreadyASubType(gs, t1, t2);
