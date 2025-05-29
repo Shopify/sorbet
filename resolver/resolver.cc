@@ -3320,9 +3320,38 @@ private:
         if (sig.seen.override_) {
             method.data(ctx)->flags.isOverride = true;
         }
+        if (sig.seen.deprecated_) {
+            method.data(ctx)->flags.isDeprecated = true;
+        }
         if (sig.seen.final) {
             method.data(ctx)->flags.isFinal = true;
         }
+        
+        // Inherit deprecated flag from parent methods if this method overrides and isn't explicitly deprecated
+        if (sig.seen.override_ && !sig.seen.deprecated_) {
+            auto owner = method.data(ctx)->owner;
+            auto name = method.data(ctx)->name;
+            
+            // Check superclass
+            if (owner.data(ctx)->superClass().exists()) {
+                auto parentMethod = owner.data(ctx)->superClass().data(ctx)->findMethodTransitive(ctx, name);
+                if (parentMethod.exists() && parentMethod != method && parentMethod.data(ctx)->flags.isDeprecated) {
+                    sig.seen.deprecated_ = true;
+                    method.data(ctx)->flags.isDeprecated = true;
+                }
+            }
+            
+            // Check mixins if not already inherited
+			for (const auto &mixin : owner.data(ctx)->mixins()) {
+				auto mixinMethod = mixin.data(ctx)->findMethod(ctx, name);
+				if (mixinMethod.exists() && mixinMethod != method && mixinMethod.data(ctx)->flags.isDeprecated) {
+					sig.seen.deprecated_ = true;
+					method.data(ctx)->flags.isDeprecated = true;
+					break;
+				}
+            }
+        }
+        
         if (sig.seen.bind) {
             if (sig.bind == core::Symbols::MagicBindToAttachedClass()) {
                 if (auto e = ctx.beginError(exprLoc, core::errors::Resolver::BindNonBlockParameter)) {
