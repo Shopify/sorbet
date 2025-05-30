@@ -85,7 +85,7 @@ class ChildMissingInheritedDeprecated < ParentWithDeprecated
   
   # Child overrides deprecated method - should still be deprecated
   sig { override.returns(String) }
-  def overridable_deprecated
+  def overridable_deprecated # error: Method `ChildMissingInheritedDeprecated#overridable_deprecated` overrides deprecated method but is not marked deprecated
     "child overrides deprecated"
   end
 end
@@ -117,14 +117,14 @@ class ConcreteDeprecatedCombinations < DeprecatedCombinations
   extend T::Sig
   
   sig { override.returns(String) }
-  def deprecated_abstract
+  def deprecated_abstract # error: Method `ConcreteDeprecatedCombinations#deprecated_abstract` overrides deprecated method but is not marked deprecated
     "concrete implementation"
   end
 end
 
-ConcreteDeprecatedCombinations.new.deprecated_and_overridable # warning: Method `DeprecatedCombinations#deprecated_and_overridable` is deprecated
-ConcreteDeprecatedCombinations.new.deprecated_abstract # warning: Method `ConcreteDeprecatedCombinations#deprecated_abstract` is deprecated
-ConcreteDeprecatedCombinations.new.deprecated_final # warning: Method `DeprecatedCombinations#deprecated_final` is deprecated
+ConcreteDeprecatedCombinations.new.deprecated_and_overridable # error: Method `DeprecatedCombinations#deprecated_and_overridable` is deprecated
+ConcreteDeprecatedCombinations.new.deprecated_abstract
+ConcreteDeprecatedCombinations.new.deprecated_final # error: Method `DeprecatedCombinations#deprecated_final` is deprecated
 
 # Test deprecated with attr_accessor-style methods
 class DeprecatedAccessors
