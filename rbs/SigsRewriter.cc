@@ -528,6 +528,12 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
             when->body = rewriteBody(move(when->body));
             result = move(node);
         },
+        [&](parser::Send *send) {
+            if (!parser::MK::isVisibilitySend(send)) {
+                send->args = rewriteNodes(move(send->args));
+            }
+            result = move(node);
+        },
         [&](parser::Node *other) { result = move(node); });
 
     return result;
