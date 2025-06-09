@@ -601,7 +601,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unreachable("PM_ENSURE_NODE is handled separately as part of PM_BEGIN_NODE, see its docs for details.");
         }
         case PM_FALSE_NODE: { // The `false` keyword
-            return translateSimpleKeyword<parser::False>(node);
+            auto sorbetNode = translateSimpleKeyword<parser::False>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::False(sorbetNode->loc));
+
+            return std::move(sorbetNode);
         }
         case PM_FLOAT_NODE: { // A floating point number literal, e.g. `1.23`
             auto floatNode = down_cast<pm_float_node>(node);
@@ -979,7 +983,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_node<parser::Next>(location, move(arguments));
         }
         case PM_NIL_NODE: { // The `nil` keyword
-            return translateSimpleKeyword<parser::Nil>(node);
+            auto sorbetNode = translateSimpleKeyword<parser::Nil>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::Nil(sorbetNode->loc));
+
+            return std::move(sorbetNode);
         }
         case PM_NO_KEYWORDS_PARAMETER_NODE: { // `**nil`, such as in `def foo(**nil)` or `h in { k: v, **nil}`
             unreachable("PM_NO_KEYWORDS_PARAMETER_NODE is handled separately in `PM_HASH_PATTERN_NODE` and "
@@ -1193,7 +1201,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return translateSimpleKeyword<parser::Retry>(node);
         }
         case PM_SELF_NODE: { // The `self` keyword
-            return translateSimpleKeyword<parser::Self>(node);
+            auto sorbetNode = translateSimpleKeyword<parser::Self>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::Self(sorbetNode->loc));
+
+            return std::move(sorbetNode);
         }
         case PM_SHAREABLE_CONSTANT_NODE: {
             // Sorbet doesn't handle `shareable_constant_value` yet.
@@ -1211,10 +1223,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_node<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
         }
         case PM_SOURCE_ENCODING_NODE: { // The `__ENCODING__` keyword
-            return translateSimpleKeyword<parser::EncodingLiteral>(node);
+            auto sorbetNode = translateSimpleKeyword<parser::EncodingLiteral>(node);
+
+            auto locZeroLen = sorbetNode->loc.copyWithZeroLength();
+            sorbetNode->cacheDesugaredExpr(MK::Send0(sorbetNode->loc,MK::Magic(sorbetNode->loc),
+                                                     core::Names::getEncoding(), locZeroLen));
+
+            return std::move(sorbetNode);
         }
         case PM_SOURCE_FILE_NODE: { // The `__FILE__` keyword
-            return translateSimpleKeyword<parser::FileLiteral>(node);
+            auto sorbetNode = translateSimpleKeyword<parser::FileLiteral>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::String(sorbetNode->loc, core::Names::currentFile()));
+
+            return std::move(sorbetNode);
         }
         case PM_SOURCE_LINE_NODE: { // The `__LINE__` keyword
             return translateSimpleKeyword<parser::LineLiteral>(node);
@@ -1274,7 +1296,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_node<parser::Symbol>(location, gs.enterNameUTF8(source));
         }
         case PM_TRUE_NODE: { // The `true` keyword
-            return translateSimpleKeyword<parser::True>(node);
+            auto sorbetNode = translateSimpleKeyword<parser::True>(node);
+
+            sorbetNode->cacheDesugaredExpr(MK::True(sorbetNode->loc));
+
+            return std::move(sorbetNode);
         }
         case PM_UNDEF_NODE: { // The `undef` keyword, like `undef :method_to_undef
             auto undefNode = down_cast<pm_undef_node>(node);
