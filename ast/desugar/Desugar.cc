@@ -709,15 +709,28 @@ public:
     ENFORCE(!(dctx).ctx.state.parseWithPrism, \
             "The {} node should have already been desugared by the Prism Translator.", (node)->nodeName())
 
+void recordPrismCacheMiss(DesugarContext dctx, ConstExprStr nodeName) {
+    if constexpr (enable_counters) {
+        if (dctx.ctx.state.parseWithPrism) {
+            categoryCounterInc("prism_desugar_cache_miss", nodeName);
+        }
+    }
+}
+
 ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) {
     try {
         if (what.get() == nullptr) {
             return MK::EmptyTree();
         }
 
-        if (auto expr = what->getCachedDesugaredExpr()) {
-            // This is a NodeAndExpr node that's already been translated to `ExpressionPtr` in `Translator.cc`
-            return expr;
+        if (dctx.ctx.state.parseWithPrism) {
+            if (auto expr = what->getCachedDesugaredExpr()) {
+                // This is a NodeAndExpr node that's already been translated to `ExpressionPtr` in `Translator.cc`
+                categoryCounterInc("prism_desugar", "cache_hit");
+                return expr;
+            } else {
+                categoryCounterInc("prism_desugar", "cache_miss");
+            }
         }
 
         auto loc = what->loc;
@@ -731,13 +744,15 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             // add entries here, without consulting the "node.*" counters from a
             // run over a representative code base.
             [&](parser::Const *const_) {
-                TRANSLATED_BY_PRISM(dctx, const_);
+                recordPrismCacheMiss(dctx, "Const");
+                // TRANSLATED_BY_PRISM(dctx, const_);
 
                 auto scope = node2TreeImpl(dctx, std::move(const_->scope));
                 ExpressionPtr res = MK::UnresolvedConstant(loc, std::move(scope), const_->name);
                 result = std::move(res);
             },
             [&](parser::Send *send) {
+                recordPrismCacheMiss(dctx, "Send");
                 Send::Flags flags;
                 auto rec = node2TreeImpl(dctx, std::move(send->receiver));
                 if (isa_tree<EmptyTree>(rec)) {
@@ -1039,18 +1054,22 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::String *string) {
+                recordPrismCacheMiss(dctx, "String");
                 ExpressionPtr res = MK::String(loc, string->val);
                 result = std::move(res);
             },
             [&](parser::Symbol *symbol) {
+                recordPrismCacheMiss(dctx, "Symbol");
                 ExpressionPtr res = MK::Symbol(loc, symbol->val);
                 result = std::move(res);
             },
             [&](parser::LVar *var) {
+                recordPrismCacheMiss(dctx, "LVar");
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = std::move(res);
             },
             [&](parser::Hash *hash) {
+                recordPrismCacheMiss(dctx, "Hash");
                 InsSeq::STATS_store updateStmts;
                 updateStmts.reserve(hash->pairs.size());
 
@@ -1175,10 +1194,15 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::Block *block) {
+                recordPrismCacheMiss(dctx, "Block");
                 result = desugarBlock(dctx, loc, block->loc, block->send, block->args, block->body);
             },
-            [&](parser::Begin *begin) { result = desugarBegin(dctx, loc, begin->stmts); },
+            [&](parser::Begin *begin) {
+                recordPrismCacheMiss(dctx, "Begin");
+                result = desugarBegin(dctx, loc, begin->stmts);
+            },
             [&](parser::Assign *asgn) {
+                recordPrismCacheMiss(dctx, "Assign");
                 auto lhs = node2TreeImpl(dctx, std::move(asgn->lhs));
                 auto rhs = node2TreeImpl(dctx, std::move(asgn->rhs));
                 // Ensure that X = <ErrorNode> always looks like a proper static field, rather
@@ -1198,6 +1222,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             },
             // END hand-ordered clauses
             [&](parser::And *and_) {
+                recordPrismCacheMiss(dctx, "And");
                 auto lhs = node2TreeImpl(dctx, std::move(and_->left));
                 auto rhs = node2TreeImpl(dctx, std::move(and_->right));
                 if (dctx.preserveConcreteSyntax) {
@@ -1249,6 +1274,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::Or *or_) {
+                recordPrismCacheMiss(dctx, "Or");
                 auto lhs = node2TreeImpl(dctx, std::move(or_->left));
                 auto rhs = node2TreeImpl(dctx, std::move(or_->right));
                 if (dctx.preserveConcreteSyntax) {
@@ -1274,6 +1300,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::AndAsgn *andAsgn) {
+                recordPrismCacheMiss(dctx, "AndAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::andAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, std::move(andAsgn->left)),
@@ -1345,6 +1372,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::OrAsgn *orAsgn) {
+                recordPrismCacheMiss(dctx, "OrAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::orAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, std::move(orAsgn->left)),
@@ -1442,6 +1470,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::OpAsgn *opAsgn) {
+                recordPrismCacheMiss(dctx, "OpAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::opAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, std::move(opAsgn->left)),
@@ -1513,6 +1542,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::CSend *csend) {
+                recordPrismCacheMiss(dctx, "CSend");
                 if (dctx.preserveConcreteSyntax) {
                     // Desugaring to a InsSeq + If causes a problem for Extract to Variable; the fake If will be where
                     // the new variable is inserted, which is incorrect. Instead, desugar to a regular send, so that the
@@ -1564,12 +1594,14 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Self *self) {
+                recordPrismCacheMiss(dctx, "Self");
                 TRANSLATED_BY_PRISM(dctx, self);
 
                 ExpressionPtr res = MK::Self(loc);
                 result = std::move(res);
             },
             [&](parser::DSymbol *dsymbol) {
+                recordPrismCacheMiss(dctx, "DSymbol");
                 if (dsymbol->nodes.empty()) {
                     ExpressionPtr res = MK::Symbol(loc, core::Names::empty());
                     result = std::move(res);
@@ -1582,12 +1614,14 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::FileLiteral *fileLiteral) {
+                recordPrismCacheMiss(dctx, "FileLiteral");
                 TRANSLATED_BY_PRISM(dctx, fileLiteral);
 
                 ExpressionPtr res = MK::String(loc, core::Names::currentFile());
                 result = std::move(res);
             },
             [&](parser::ConstLhs *constLhs) {
+                recordPrismCacheMiss(dctx, "ConstLhs");
                 TRANSLATED_BY_PRISM(dctx, constLhs);
 
                 auto scope = node2TreeImpl(dctx, std::move(constLhs->scope));
@@ -1595,13 +1629,18 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Cbase *cbase) {
+                recordPrismCacheMiss(dctx, "Cbase");
                 TRANSLATED_BY_PRISM(dctx, cbase);
 
                 ExpressionPtr res = MK::Constant(loc, core::Symbols::root());
                 result = std::move(res);
             },
-            [&](parser::Kwbegin *kwbegin) { result = desugarBegin(dctx, loc, kwbegin->stmts); },
+            [&](parser::Kwbegin *kwbegin) {
+                recordPrismCacheMiss(dctx, "Kwbegin");
+                result = desugarBegin(dctx, loc, kwbegin->stmts);
+            },
             [&](parser::Module *module) {
+                recordPrismCacheMiss(dctx, "Module");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockArg, dctx.enclosingMethodLoc,
                                      dctx.enclosingMethodName, dctx.inAnyBlock, true, dctx.preserveConcreteSyntax);
                 ClassDef::RHS_store body = scopeNodeToBody(dctx1, std::move(module->body));
@@ -1612,6 +1651,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Class *klass) {
+                recordPrismCacheMiss(dctx, "Class");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockArg, dctx.enclosingMethodLoc,
                                      dctx.enclosingMethodName, dctx.inAnyBlock, false, dctx.preserveConcreteSyntax);
                 ClassDef::RHS_store body = scopeNodeToBody(dctx1, std::move(klass->body));
@@ -1626,46 +1666,56 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Arg *arg) {
+                recordPrismCacheMiss(dctx, "Arg");
                 ExpressionPtr res = MK::Local(loc, arg->name);
                 result = std::move(res);
             },
             [&](parser::Restarg *arg) {
+                recordPrismCacheMiss(dctx, "Restarg");
                 ExpressionPtr res = MK::RestArg(loc, MK::Local(arg->nameLoc, arg->name));
                 result = std::move(res);
             },
             [&](parser::Kwrestarg *arg) {
+                recordPrismCacheMiss(dctx, "Kwrestarg");
                 ExpressionPtr res = MK::RestArg(loc, MK::KeywordArg(loc, arg->name));
                 result = std::move(res);
             },
             [&](parser::Kwarg *arg) {
+                recordPrismCacheMiss(dctx, "Kwarg");
                 ExpressionPtr res = MK::KeywordArg(loc, arg->name);
                 result = std::move(res);
             },
             [&](parser::Blockarg *arg) {
+                recordPrismCacheMiss(dctx, "Blockarg");
                 ExpressionPtr res = MK::BlockArg(loc, MK::Local(loc, arg->name));
                 result = std::move(res);
             },
             [&](parser::Kwoptarg *arg) {
+                recordPrismCacheMiss(dctx, "Kwoptarg");
                 ExpressionPtr res = MK::OptionalArg(loc, MK::KeywordArg(arg->nameLoc, arg->name),
                                                     node2TreeImpl(dctx, std::move(arg->default_)));
                 result = std::move(res);
             },
             [&](parser::Optarg *arg) {
+                recordPrismCacheMiss(dctx, "Optarg");
                 ExpressionPtr res = MK::OptionalArg(loc, MK::Local(arg->nameLoc, arg->name),
                                                     node2TreeImpl(dctx, std::move(arg->default_)));
                 result = std::move(res);
             },
             [&](parser::Shadowarg *arg) {
+                recordPrismCacheMiss(dctx, "Shadowarg");
                 ExpressionPtr res = MK::ShadowArg(loc, MK::Local(loc, arg->name));
                 result = std::move(res);
             },
             [&](parser::DefMethod *method) {
+                recordPrismCacheMiss(dctx, "DefMethod");
                 bool isSelf = false;
                 ExpressionPtr res =
                     buildMethod(dctx, method->loc, method->declLoc, method->name, method->args, method->body, isSelf);
                 result = std::move(res);
             },
             [&](parser::DefS *method) {
+                recordPrismCacheMiss(dctx, "DefS");
                 auto *self = parser::cast_node<parser::Self>(method->singleton.get());
                 if (self == nullptr) {
                     if (auto e = dctx.ctx.beginIndexerError(method->singleton->loc,
@@ -1683,6 +1733,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::SClass *sclass) {
+                recordPrismCacheMiss(dctx, "SClass");
                 // This will be a nested ClassDef which we leave in the tree
                 // which will get the symbol of `class.singleton_class`
                 auto *self = parser::cast_node<parser::Self>(sclass->expr.get());
@@ -1708,17 +1759,20 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::NumBlock *block) {
+                recordPrismCacheMiss(dctx, "NumBlock");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockArg, dctx.enclosingMethodLoc,
                                      dctx.enclosingMethodName, true, dctx.inModule, dctx.preserveConcreteSyntax);
                 result = desugarBlock(dctx1, loc, block->loc, block->send, block->args, block->body);
             },
             [&](parser::While *wl) {
+                recordPrismCacheMiss(dctx, "While");
                 auto cond = node2TreeImpl(dctx, std::move(wl->cond));
                 auto body = node2TreeImpl(dctx, std::move(wl->body));
                 ExpressionPtr res = MK::While(loc, std::move(cond), std::move(body));
                 result = std::move(res);
             },
             [&](parser::WhilePost *wl) {
+                recordPrismCacheMiss(dctx, "WhilePost");
                 bool isKwbegin = parser::isa_node<parser::Kwbegin>(wl->body.get());
                 auto cond = node2TreeImpl(dctx, std::move(wl->cond));
                 auto body = node2TreeImpl(dctx, std::move(wl->body));
@@ -1730,6 +1784,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Until *wl) {
+                recordPrismCacheMiss(dctx, "Until");
                 auto cond = node2TreeImpl(dctx, std::move(wl->cond));
                 auto body = node2TreeImpl(dctx, std::move(wl->body));
                 ExpressionPtr res =
@@ -1738,6 +1793,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             },
             // This is the same as WhilePost, but the cond negation is in the other branch.
             [&](parser::UntilPost *wl) {
+                recordPrismCacheMiss(dctx, "UntilPost");
                 bool isKwbegin = parser::isa_node<parser::Kwbegin>(wl->body.get());
                 auto cond = node2TreeImpl(dctx, std::move(wl->cond));
                 auto body = node2TreeImpl(dctx, std::move(wl->body));
@@ -1748,45 +1804,55 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Nil *wl) {
-                TRANSLATED_BY_PRISM(dctx, wl);
+                recordPrismCacheMiss(dctx, "Nil");
+                // TRANSLATED_BY_PRISM(dctx, wl);
 
                 ExpressionPtr res = MK::Nil(loc);
                 result = std::move(res);
             },
             [&](parser::IVar *var) {
+                recordPrismCacheMiss(dctx, "IVar");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Instance, var->name);
                 result = std::move(res);
             },
             [&](parser::GVar *var) {
+                recordPrismCacheMiss(dctx, "GVar");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global, var->name);
                 result = std::move(res);
             },
             [&](parser::CVar *var) {
+                recordPrismCacheMiss(dctx, "CVar");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Class, var->name);
                 result = std::move(res);
             },
             [&](parser::LVarLhs *var) {
+                recordPrismCacheMiss(dctx, "LVarLhs");
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = std::move(res);
             },
             [&](parser::GVarLhs *var) {
+                recordPrismCacheMiss(dctx, "GVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global, var->name);
                 result = std::move(res);
             },
             [&](parser::CVarLhs *var) {
+                recordPrismCacheMiss(dctx, "CVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Class, var->name);
                 result = std::move(res);
             },
             [&](parser::IVarLhs *var) {
+                recordPrismCacheMiss(dctx, "IVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Instance, var->name);
                 result = std::move(res);
             },
             [&](parser::NthRef *var) {
+                recordPrismCacheMiss(dctx, "NthRef");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global,
                                                                      dctx.ctx.state.enterNameUTF8(to_string(var->ref)));
                 result = std::move(res);
             },
             [&](parser::Super *super) {
+                recordPrismCacheMiss(dctx, "Super");
                 // Desugar super into a call to a normal method named `super`;
                 // Do this by synthesizing a `Send` parse node and letting our
                 // Send desugar handle it.
@@ -1795,8 +1861,12 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 auto res = node2TreeImpl(dctx, std::move(send));
                 result = std::move(res);
             },
-            [&](parser::ZSuper *zuper) { result = MK::ZSuper(loc, maybeTypedSuper(dctx)); },
+            [&](parser::ZSuper *zuper) {
+                recordPrismCacheMiss(dctx, "ZSuper");
+                result = MK::ZSuper(loc, maybeTypedSuper(dctx));
+            },
             [&](parser::For *for_) {
+                recordPrismCacheMiss(dctx, "For");
                 MethodDef::ARGS_store args;
                 bool canProvideNiceDesugar = true;
                 auto mlhsNode = std::move(for_->vars);
@@ -1844,6 +1914,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Integer *integer) {
+                recordPrismCacheMiss(dctx, "Integer");
                 int64_t val;
 
                 // complemented literals
@@ -1865,10 +1936,12 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::DString *dstring) {
+                recordPrismCacheMiss(dctx, "DString");
                 ExpressionPtr res = desugarDString(dctx, loc, std::move(dstring->nodes));
                 result = std::move(res);
             },
             [&](parser::Float *floatNode) {
+                recordPrismCacheMiss(dctx, "Float");
                 double val;
                 auto underscorePos = floatNode->val.find("_");
 
@@ -1887,6 +1960,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Complex *complex) {
+                recordPrismCacheMiss(dctx, "Complex");
                 auto kernel = MK::Constant(loc, core::Symbols::Kernel());
                 core::NameRef complex_name = core::Names::Constants::Complex().dataCnst(dctx.ctx)->original;
                 core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->value);
@@ -1895,6 +1969,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(send);
             },
             [&](parser::Rational *complex) {
+                recordPrismCacheMiss(dctx, "Rational");
                 auto kernel = MK::Constant(loc, core::Symbols::Kernel());
                 core::NameRef complex_name = core::Names::Constants::Rational().dataCnst(dctx.ctx)->original;
                 core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->val);
@@ -1902,6 +1977,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(send);
             },
             [&](parser::Array *array) {
+                recordPrismCacheMiss(dctx, "Array");
                 Array::ENTRY_store elems;
                 elems.reserve(array->elts.size());
                 ExpressionPtr lastMerge;
@@ -1959,6 +2035,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::IRange *ret) {
+                recordPrismCacheMiss(dctx, "IRange");
                 auto recv = MK::Magic(loc);
                 auto from = node2TreeImpl(dctx, std::move(ret->from));
                 auto to = node2TreeImpl(dctx, std::move(ret->to));
@@ -1968,6 +2045,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(send);
             },
             [&](parser::ERange *ret) {
+                recordPrismCacheMiss(dctx, "ERange");
                 auto recv = MK::Magic(loc);
                 auto from = node2TreeImpl(dctx, std::move(ret->from));
                 auto to = node2TreeImpl(dctx, std::move(ret->to));
@@ -1977,6 +2055,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(send);
             },
             [&](parser::Regexp *regexpNode) {
+                recordPrismCacheMiss(dctx, "Regexp");
                 ExpressionPtr cnst = MK::Constant(loc, core::Symbols::Regexp());
                 auto pattern = desugarDString(dctx, loc, std::move(regexpNode->regex));
                 auto opts = node2TreeImpl(dctx, std::move(regexpNode->opts));
@@ -1985,6 +2064,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(send);
             },
             [&](parser::Regopt *regopt) {
+                recordPrismCacheMiss(dctx, "Regopt");
                 int flags = 0;
                 for (auto &chr : regopt->opts) {
                     int flag = 0;
@@ -2013,6 +2093,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = MK::Int(loc, flags);
             },
             [&](parser::Return *ret) {
+                recordPrismCacheMiss(dctx, "Return");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -2046,6 +2127,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::Break *ret) {
+                recordPrismCacheMiss(dctx, "Break");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -2079,6 +2161,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::Next *ret) {
+                recordPrismCacheMiss(dctx, "Next");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -2112,10 +2195,12 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::Retry *ret) {
+                recordPrismCacheMiss(dctx, "Retry");
                 ExpressionPtr res = make_expression<Retry>(loc);
                 result = std::move(res);
             },
             [&](parser::Yield *ret) {
+                recordPrismCacheMiss(dctx, "Yield");
                 Send::ARGS_store args;
                 args.reserve(ret->exprs.size());
                 for (auto &stat : ret->exprs) {
@@ -2146,6 +2231,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Rescue *rescue) {
+                recordPrismCacheMiss(dctx, "Rescue");
                 Rescue::RESCUE_CASE_store cases;
                 cases.reserve(rescue->rescue.size());
                 for (auto &node : rescue->rescue) {
@@ -2158,6 +2244,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Resbody *resbody) {
+                recordPrismCacheMiss(dctx, "Resbody");
                 RescueCase::EXCEPTION_store exceptions;
                 auto exceptionsExpr = node2TreeImpl(dctx, std::move(resbody->exception));
                 if (isa_tree<EmptyTree>(exceptionsExpr)) {
@@ -2209,6 +2296,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Ensure *ensure) {
+                recordPrismCacheMiss(dctx, "Ensure");
                 auto bodyExpr = node2TreeImpl(dctx, std::move(ensure->body));
                 auto ensureExpr = node2TreeImpl(dctx, std::move(ensure->ensure));
                 auto rescue = cast_tree<Rescue>(bodyExpr);
@@ -2223,6 +2311,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 }
             },
             [&](parser::If *if_) {
+                recordPrismCacheMiss(dctx, "If");
                 auto cond = node2TreeImpl(dctx, std::move(if_->condition));
                 auto thenp = node2TreeImpl(dctx, std::move(if_->then_));
                 auto elsep = node2TreeImpl(dctx, std::move(if_->else_));
@@ -2230,6 +2319,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(iff);
             },
             [&](parser::Masgn *masgn) {
+                recordPrismCacheMiss(dctx, "Masgn");
                 auto *lhs = parser::cast_node<parser::Mlhs>(masgn->lhs.get());
                 ENFORCE(lhs != nullptr, "Failed to get lhs of Masgn");
 
@@ -2238,18 +2328,21 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::True *t) {
+                recordPrismCacheMiss(dctx, "True");
                 TRANSLATED_BY_PRISM(dctx, t);
 
                 auto res = MK::True(loc);
                 result = std::move(res);
             },
             [&](parser::False *t) {
+                recordPrismCacheMiss(dctx, "False");
                 TRANSLATED_BY_PRISM(dctx, t);
 
                 auto res = MK::False(loc);
                 result = std::move(res);
             },
             [&](parser::Case *case_) {
+                recordPrismCacheMiss(dctx, "Case");
                 if (dctx.preserveConcreteSyntax) {
                     // Desugar to:
                     //   Magic.caseWhen(condition, numPatterns, <pattern 1>, ..., <pattern N>, <body 1>, ..., <body M>)
@@ -2333,20 +2426,24 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Splat *splat) {
+                recordPrismCacheMiss(dctx, "Splat");
                 auto res = MK::Splat(loc, node2TreeImpl(dctx, std::move(splat->var)));
                 result = std::move(res);
             },
             [&](parser::ForwardedRestArg *fra) {
+                recordPrismCacheMiss(dctx, "ForwardedRestArg");
                 auto var = ast::MK::Local(loc, core::Names::star());
                 result = MK::Splat(loc, std::move(var));
             },
             [&](parser::Alias *alias) {
+                recordPrismCacheMiss(dctx, "Alias");
                 auto res =
                     MK::Send2(loc, MK::Self(loc), core::Names::aliasMethod(), locZeroLen,
                               node2TreeImpl(dctx, std::move(alias->from)), node2TreeImpl(dctx, std::move(alias->to)));
                 result = std::move(res);
             },
             [&](parser::Defined *defined) {
+                recordPrismCacheMiss(dctx, "Defined");
                 auto value = node2TreeImpl(dctx, std::move(defined->value));
                 auto loc = value.loc();
                 auto ident = cast_tree<UnresolvedIdent>(value);
@@ -2378,25 +2475,30 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::LineLiteral *line) {
+                recordPrismCacheMiss(dctx, "LineLiteral");
                 auto pos = dctx.ctx.locAt(loc).position(dctx.ctx);
                 ENFORCE(pos.first.line == pos.second.line, "position corrupted");
                 auto res = MK::Int(loc, pos.first.line);
                 result = std::move(res);
             },
             [&](parser::XString *xstring) {
+                recordPrismCacheMiss(dctx, "XString");
                 auto res = MK::Send1(loc, MK::Self(loc), core::Names::backtick(), locZeroLen,
                                      desugarDString(dctx, loc, std::move(xstring->nodes)));
                 result = std::move(res);
             },
             [&](parser::Preexe *preexe) {
+                recordPrismCacheMiss(dctx, "Preexe");
                 auto res = unsupportedNode(dctx, preexe);
                 result = std::move(res);
             },
             [&](parser::Postexe *postexe) {
+                recordPrismCacheMiss(dctx, "Postexe");
                 auto res = unsupportedNode(dctx, postexe);
                 result = std::move(res);
             },
             [&](parser::Undef *undef) {
+                recordPrismCacheMiss(dctx, "Undef");
                 if (auto e = dctx.ctx.beginIndexerError(what->loc, core::errors::Desugar::UndefUsage)) {
                     e.setHeader("Unsuppored method: undef");
                 }
@@ -2413,6 +2515,7 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::CaseMatch *caseMatch) {
+                recordPrismCacheMiss(dctx, "CaseMatch");
                 // Create a local var to store the expression used in each match clause
                 auto exprLoc = caseMatch->expr->loc;
                 auto exprName = dctx.freshNameUnique(core::Names::assignTemp());
@@ -2446,41 +2549,52 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Backref *backref) {
+                recordPrismCacheMiss(dctx, "Backref");
                 auto recv = MK::Magic(loc);
                 auto arg = MK::Symbol(backref->loc, backref->name);
                 result = MK::Send1(loc, std::move(recv), core::Names::regexBackref(), locZeroLen, std::move(arg));
             },
             [&](parser::EFlipflop *eflipflop) {
+                recordPrismCacheMiss(dctx, "EFlipflop");
                 auto res = unsupportedNode(dctx, eflipflop);
                 result = std::move(res);
             },
             [&](parser::IFlipflop *iflipflop) {
+                recordPrismCacheMiss(dctx, "IFlipflop");
                 auto res = unsupportedNode(dctx, iflipflop);
                 result = std::move(res);
             },
             [&](parser::MatchCurLine *matchCurLine) {
+                recordPrismCacheMiss(dctx, "MatchCurLine");
                 auto res = unsupportedNode(dctx, matchCurLine);
                 result = std::move(res);
             },
             [&](parser::Redo *redo) {
+                recordPrismCacheMiss(dctx, "Redo");
                 auto res = unsupportedNode(dctx, redo);
                 result = std::move(res);
             },
             [&](parser::EncodingLiteral *encodingLiteral) {
+                recordPrismCacheMiss(dctx, "EncodingLiteral");
                 TRANSLATED_BY_PRISM(dctx, encodingLiteral);
 
                 auto recv = MK::Magic(loc);
                 result = MK::Send0(loc, std::move(recv), core::Names::getEncoding(), locZeroLen);
             },
             [&](parser::MatchPattern *pattern) {
+                recordPrismCacheMiss(dctx, "MatchPattern");
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs);
                 result = std::move(res);
             },
             [&](parser::MatchPatternP *pattern) {
+                recordPrismCacheMiss(dctx, "MatchPatternP");
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs);
                 result = std::move(res);
             },
-            [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
+            [&](parser::EmptyElse *else_) {
+                recordPrismCacheMiss(dctx, "EmptyElse");
+                result = MK::EmptyTree();
+            },
 
             [&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
             [&](parser::Node *node) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); });
