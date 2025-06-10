@@ -822,7 +822,7 @@ string fieldType(FieldType arg) {
 }
 
 void emitNodeHeader(ostream &out, NodeDef &node) {
-    out << "class " << node.name << " final : public Node {" << '\n';
+    out << "class " << node.name << " : public Node {" << '\n';
     out << "public:" << '\n';
 
     // generate constructor

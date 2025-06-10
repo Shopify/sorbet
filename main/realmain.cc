@@ -439,6 +439,7 @@ int realmain(int argc, char *argv[]) {
     vector<ast::ParsedFile> indexed;
 
     gs->requiresAncestorEnabled = opts.requiresAncestorEnabled;
+    gs->parseWithPrism = opts.parser == options::Parser::PRISM;
 
     logger->trace("building initial global state");
     unique_ptr<const OwnedKeyValueStore> kvstore = cache::maybeCreateKeyValueStore(logger, opts);

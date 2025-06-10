@@ -19,7 +19,7 @@ void ErrorFlusherLSP::flushErrors(spdlog::logger &logger, const core::GlobalStat
                 continue;
             }
 
-            prodHistogramAdd("error", error->error->what.code, 1);
+            prodHistogramInc("error", error->error->what.code);
             errorsAccumulated.emplace_back(move(error->error));
         }
     }

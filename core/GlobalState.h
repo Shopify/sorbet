@@ -325,6 +325,7 @@ public:
     std::vector<std::unique_ptr<pipeline::semantic_extension::SemanticExtension>> semanticExtensions;
 
     bool requiresAncestorEnabled = false;
+    bool parseWithPrism = false;
 
     bool shouldReportErrorOn(Loc loc, ErrorClass what) const;
 

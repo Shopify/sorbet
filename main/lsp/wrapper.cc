@@ -32,6 +32,7 @@ void setRequiredLSPOptions(core::GlobalState &gs, options::Options &options) {
     gs.ruby3KeywordArgs = options.ruby3KeywordArgs;
     gs.typedSuper = options.typedSuper;
     gs.suppressPayloadSuperclassRedefinitionFor = options.suppressPayloadSuperclassRedefinitionFor;
+    gs.parseWithPrism = options.parser == options::Parser::PRISM;
 
     // Ensure LSP is enabled.
     options.runLSP = true;

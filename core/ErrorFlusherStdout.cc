@@ -15,7 +15,7 @@ void ErrorFlusherStdout::flushErrors(spdlog::logger &logger, const GlobalState &
                 continue;
             }
 
-            prodHistogramAdd("error", error->error->what.code, 1);
+            prodHistogramInc("error", error->error->what.code);
 
             auto &out = error->error->isCritical() ? critical : nonCritical;
             if (out.size() != 0) {
