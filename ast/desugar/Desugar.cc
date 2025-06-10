@@ -735,7 +735,9 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
 
         auto loc = what->loc;
         auto locZeroLen = what->loc.copyWithZeroLength();
-        ENFORCE(loc.exists(), "parse-tree node has no location: {}", what->toString(dctx.ctx));
+        ENFORCE(loc.exists() || parser::isa_node<parser::ExprWrapperNode>(what.get()),
+            "parse-tree node has no location: {}", what->toString(dctx.ctx));
+
         ExpressionPtr result;
         typecase(
             what.get(),
@@ -2595,7 +2597,11 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 recordPrismCacheMiss(dctx, "EmptyElse");
                 result = MK::EmptyTree();
             },
-
+            [&](parser::ExprWrapperNode *exprWrapperNode) {
+                recordPrismCacheMiss(dctx, "ExprWrapperNode");
+                result = exprWrapperNode->getCachedDesugaredExpr();
+                ENFORCE(result != nullptr, "desugar result unset");
+            },
             [&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
             [&](parser::Node *node) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); });
         ENFORCE(result.get() != nullptr, "desugar result unset");
