@@ -1162,7 +1162,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return translateSimpleKeyword<parser::Retry>(node);
         }
         case PM_SELF_NODE: { // The `self` keyword
-            return translateSimpleKeyword<parser::Self>(node);
+            return make_unique<parser::NodeWithExpr>(location, translateSimpleKeyword<parser::Self>(node),
+                                                     MK::Self(location));
         }
         case PM_SHAREABLE_CONSTANT_NODE: {
             // Sorbet doesn't handle `shareable_constant_value` yet.
