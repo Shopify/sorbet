@@ -2453,6 +2453,12 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             },
             [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
 
+            [&](parser::NodeWithExpr *nodeWithExpr) {
+                cout << "NodeWithExpr: " << nodeWithExpr->wrappedNode->nodeName() << endl;
+                result = nodeWithExpr->takeCachedDesugaredExpr();
+                ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
+            },
+
             [&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
             [&](parser::Node *node) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); });
         ENFORCE(result.get() != nullptr, "desugar result unset");
