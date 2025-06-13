@@ -720,6 +720,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
         auto locZeroLen = what->loc.copyWithZeroLength();
         ENFORCE(loc.exists(), "parse-tree node has no location: {}", what->toString(dctx.ctx));
         ExpressionPtr result;
+
+        categoryCounterInc("node2TreeImpl", "check_for_prism");
         typecase(
             what,
             // The top N clauses here are ordered according to observed
