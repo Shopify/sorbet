@@ -103,9 +103,9 @@ template <class To> To *cast_node(Node *what) {
         return casted;
     }
 
-    // if (auto casted = fast_cast<Node, NodeWithExpr>(what)) {
-    //     return cast_node<To>(casted->wrappedNode.get());
-    // }
+    if (auto casted = fast_cast<Node, NodeWithExpr>(what)) {
+        return cast_node<To>(casted->wrappedNode.get());
+    }
 
     return nullptr;
 }
