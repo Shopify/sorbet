@@ -100,12 +100,18 @@ template <class To> To *cast_node(Node *what) {
 #endif
 
     if (auto casted = fast_cast<Node, To>(what)) {
+        categoryCounterInc("cast_node", "correct");
         return casted;
     }
 
-    // if (auto casted = fast_cast<Node, NodeWithExpr>(what)) {
-    //     return cast_node<To>(casted->wrappedNode.get());
-    // }
+    if (auto casted = fast_cast<Node, NodeWithExpr>(what)) {
+        categoryCounterInc("cast_node", "nullptr");
+        categoryCounterInc("cast_node_delegation", "delegated_to_wrapped_node");
+        return cast_node<To>(casted->wrappedNode.get());
+    } else {
+        categoryCounterInc("cast_node", "nullptr");
+        categoryCounterInc("cast_node_delegation", "nullptr");
+    }
 
     return nullptr;
 }
