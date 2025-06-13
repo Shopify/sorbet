@@ -570,7 +570,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unreachable("PM_ENSURE_NODE is handled separately as part of PM_BEGIN_NODE, see its docs for details.");
         }
         case PM_FALSE_NODE: { // The `false` keyword
-            return translateSimpleKeyword<parser::False>(node);
+            return make_unique<parser::NodeWithExpr>(location, translateSimpleKeyword<parser::False>(node),
+                                                     MK::False(location));
         }
         case PM_FLOAT_NODE: { // A floating point number literal, e.g. `1.23`
             auto floatNode = down_cast<pm_float_node>(node);
@@ -948,7 +949,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Next>(location, move(arguments));
         }
         case PM_NIL_NODE: { // The `nil` keyword
-            return translateSimpleKeyword<parser::Nil>(node);
+            return make_unique<parser::NodeWithExpr>(location, translateSimpleKeyword<parser::Nil>(node),
+                                                     MK::Nil(location));
         }
         case PM_NO_KEYWORDS_PARAMETER_NODE: { // `**nil`, such as in `def foo(**nil)` or `h in { k: v, **nil}`
             unreachable("PM_NO_KEYWORDS_PARAMETER_NODE is handled separately in `PM_HASH_PATTERN_NODE` and "
@@ -1181,10 +1183,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
         }
         case PM_SOURCE_ENCODING_NODE: { // The `__ENCODING__` keyword
-            return translateSimpleKeyword<parser::EncodingLiteral>(node);
+            return make_unique<parser::NodeWithExpr>(
+                location, translateSimpleKeyword<parser::EncodingLiteral>(node),
+                MK::Send0(location, MK::Magic(location), core::Names::getEncoding(), location.copyWithZeroLength()));
         }
         case PM_SOURCE_FILE_NODE: { // The `__FILE__` keyword
-            return translateSimpleKeyword<parser::FileLiteral>(node);
+            return make_unique<parser::NodeWithExpr>(location, translateSimpleKeyword<parser::FileLiteral>(node),
+                                                     MK::String(location, core::Names::currentFile()));
         }
         case PM_SOURCE_LINE_NODE: { // The `__LINE__` keyword
             return translateSimpleKeyword<parser::LineLiteral>(node);
@@ -1244,7 +1249,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Symbol>(location, gs.enterNameUTF8(source));
         }
         case PM_TRUE_NODE: { // The `true` keyword
-            return translateSimpleKeyword<parser::True>(node);
+            return make_unique<parser::NodeWithExpr>(location, translateSimpleKeyword<parser::True>(node),
+                                                     MK::True(location));
         }
         case PM_UNDEF_NODE: { // The `undef` keyword, like `undef :method_to_undef
             auto undefNode = down_cast<pm_undef_node>(node);
@@ -1838,11 +1844,15 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
         return make_unique<LVarLhs>(location, core::Names::dynamicConstAssign());
     }
 
+    auto constantName = gs.enterNameConstant(name);
+
     auto constexpr isConstantPath = is_same_v<PrismLhsNode, pm_constant_path_target_node> ||
                                     is_same_v<PrismLhsNode, pm_constant_path_write_node> ||
                                     is_same_v<PrismLhsNode, pm_constant_path_node>;
 
     std::unique_ptr<parser::Node> parent;
+    ast::ExpressionPtr parentExpr = nullptr;
+
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
         if (auto prismParentNode = node->parent; prismParentNode != nullptr) {
             // This constant reference is chained onto another constant reference.
@@ -1853,9 +1863,13 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
             //  /  \
             // A   ::B
             parent = translate(prismParentNode);
+            if (auto *parentWithExpr = parser::cast_node<parser::NodeWithExpr>(parent.get())) {
+                parentExpr = parentWithExpr->takeCachedDesugaredExpr();
+            }
         } else { // This is the root of a fully qualified constant reference, like `::A`.
             auto delimiterLoc = translateLoc(node->delimiter_loc); // The location of the `::`
             parent = make_unique<parser::Cbase>(delimiterLoc);
+            parentExpr = MK::Constant(delimiterLoc, core::Symbols::root());
         }
     } else { // Handle plain constants like `A`, that aren't part of a constant path.
         static_assert(
@@ -1872,9 +1886,17 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
             location = translateLoc(node->name_loc);
         }
         parent = nullptr;
+        parentExpr = MK::EmptyTree();
     }
 
-    return make_unique<SorbetLHSNode>(location, move(parent), gs.enterNameConstant(name));
+    auto sorbetNode = make_unique<SorbetLHSNode>(location, move(parent), constantName);
+
+    if (parentExpr != nullptr) {
+        return make_unique<parser::NodeWithExpr>(location, move(sorbetNode),
+                                                 MK::UnresolvedConstant(location, move(parentExpr), constantName));
+    } else {
+        return move(sorbetNode);
+    }
 }
 
 core::NameRef Translator::translateConstantName(pm_constant_id_t constant_id) {
