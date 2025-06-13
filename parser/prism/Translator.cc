@@ -1,6 +1,9 @@
 #include "Translator.h"
 #include "Helpers.h"
 
+#include "ast/Helpers.h"
+#include "ast/Trees.h"
+
 template class std::unique_ptr<sorbet::parser::Node>;
 
 using std::is_same_v;
@@ -9,6 +12,8 @@ using std::move;
 using std::unique_ptr;
 
 namespace sorbet::parser::Prism {
+
+using sorbet::ast::MK;
 
 // Indicates that a particular code path should never be reached, with an explanation of why.
 // Throws a `sorbet::SorbetException` when triggered to help with debugging.
@@ -1157,7 +1162,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return translateSimpleKeyword<parser::Retry>(node);
         }
         case PM_SELF_NODE: { // The `self` keyword
-            return translateSimpleKeyword<parser::Self>(node);
+            return make_unique<parser::NodeWithExpr>(location, translateSimpleKeyword<parser::Self>(node),
+                                                     MK::Self(location));
         }
         case PM_SHAREABLE_CONSTANT_NODE: {
             // Sorbet doesn't handle `shareable_constant_value` yet.
