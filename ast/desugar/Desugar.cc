@@ -1558,6 +1558,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Self *self) {
+                TRANSLATED_BY_PRISM(dctx, self);
+
                 ExpressionPtr res = MK::Self(loc);
                 result = std::move(res);
             },
@@ -1574,6 +1576,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::FileLiteral *fileLiteral) {
+                TRANSLATED_BY_PRISM(dctx, fileLiteral);
+
                 ExpressionPtr res = MK::String(loc, core::Names::currentFile());
                 result = std::move(res);
             },
@@ -1734,6 +1738,10 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Nil *wl) {
+                // This can still be hit because of the call to `make_unique<parser::Nil>(loc)`
+                // in the `parser::Send` case below.
+                // TRANSLATED_BY_PRISM(dctx, wl);
+
                 ExpressionPtr res = MK::Nil(loc);
                 result = std::move(res);
             },
@@ -2222,10 +2230,14 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::True *t) {
+                TRANSLATED_BY_PRISM(dctx, t);
+
                 auto res = MK::True(loc);
                 result = std::move(res);
             },
             [&](parser::False *t) {
+                TRANSLATED_BY_PRISM(dctx, t);
+
                 auto res = MK::False(loc);
                 result = std::move(res);
             },
@@ -2447,6 +2459,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::EncodingLiteral *encodingLiteral) {
+                TRANSLATED_BY_PRISM(dctx, encodingLiteral);
+
                 auto recv = MK::Magic(loc);
                 result = MK::Send0(loc, std::move(recv), core::Names::getEncoding(), locZeroLen);
             },
