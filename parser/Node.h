@@ -49,7 +49,8 @@ template <class To> To *cast_node(Node *what) {
     static_assert(!std::is_pointer<To>::value, "To has to be a pointer");
     static_assert(std::is_assignable<Node *&, To *>::value, "Ill Formed To, has to be a subclass of Expression");
 #if __cplusplus >= 201402L
-    static_assert(std::is_final<To>::value, "To is not final");
+    // TODO: Uncomment this once we've finished Prism migration.
+    // static_assert(std::is_final<To>::value, "To is not final");
 #elif __has_feature(is_final)
     static_assert(__is_final(To), "To is not final");
 #else
