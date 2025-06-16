@@ -4,6 +4,9 @@
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
 
+#include "ast/Helpers.h"
+#include "ast/Trees.h"
+
 template class std::unique_ptr<sorbet::parser::Node>;
 
 using namespace std;
