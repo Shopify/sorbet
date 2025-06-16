@@ -720,6 +720,13 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
         ExpressionPtr result;
 
         categoryCounterInc("node2TreeImpl", "check_for_prism");
+        if (dctx.ctx.state.parseWithPrism) {
+            if (auto expr = what->takeCachedDesugaredExpr()) {
+                // This is a NodeWithExpr node that's already been translated to `ExpressionPtr` in `Translator.cc`
+                return expr;
+            }
+        }
+
         typecase(
             what.get(),
             // The top N clauses here are ordered according to observed

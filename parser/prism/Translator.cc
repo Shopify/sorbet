@@ -12,6 +12,40 @@ namespace sorbet::parser::Prism {
 
 using sorbet::ast::MK;
 
+using sorbet::ast::MK;
+
+// A templated class which mimics the gvien `SorbetNode`, except with some extra room to fit an `ast::ExpressionPtr`.
+template <typename SorbetNode> class NodeWithExpr : public SorbetNode {
+    ast::ExpressionPtr desugaredExpr = nullptr;
+
+public:
+    template <typename... Args> NodeWithExpr(Args &&...args) : SorbetNode(std::forward<Args>(args)...) {}
+
+    // This method is intended to be called from the various `Translator` methods.
+    // Any value stored here will later be used to fast-path `node2TreeImpl` in `Desugar.cc`.
+    // This allows for a gradual migration to expression nodes, paving the way to eventually delete the translation
+    // to the intermediate `parser::Node` tree.
+    virtual void cacheDesugaredExpr(ast::ExpressionPtr desugaredExpr) {
+        this->desugaredExpr = std::move(desugaredExpr);
+    }
+
+    virtual ast::ExpressionPtr takeCachedDesugaredExpr() {
+        // We know each `NodeWithExpr` object's `takeCachedDesugaredExpr()` will be called at most once, either:
+        // 1. When its parent node is being translated below, and this value is used to create that parent's expr.
+        // 2. When this node is visted by `node2TreeImpl` in `Runner.cc`, and this value is used in the fast-path.
+        //
+        // Because of this, we don't need to make any copies here. Just move this value out,
+        // and exclusive ownership to the caller.
+        return std::move(this->desugaredExpr);
+    }
+};
+
+// Allocates a new `NodeWithExpr`, that's a subclass of `SorbetNode`, with a pre-computed `ExpressionPtr` AST.
+template <typename SorbetNode, typename... TArgs>
+unique_ptr<NodeWithExpr<SorbetNode>> make_node_with_expr(TArgs &&...args) {
+    return make_unique<NodeWithExpr<SorbetNode>>(std::forward<TArgs>(args)...);
+}
+
 // Indicates that a particular code path should never be reached, with an explanation of why.
 // Throws a `sorbet::SorbetException` when triggered to help with debugging.
 template <typename... TArgs>

@@ -1,6 +1,7 @@
 #ifndef SORBET_PARSER_NODE_H
 #define SORBET_PARSER_NODE_H
 
+#include "ast/Trees.h"
 #include "common/common.h"
 #include "core/core.h"
 #include <memory>
@@ -23,6 +24,14 @@ public:
     virtual std::string toWhitequark(const core::GlobalState &gs, int tabs = 0) = 0;
     virtual std::string nodeName() = 0;
     core::LocOffsets loc;
+
+    virtual void cacheDesugaredExpr(ast::ExpressionPtr expr) {
+        // no-op, except for the override in NodeWithExpr
+    }
+
+    virtual ast::ExpressionPtr takeCachedDesugaredExpr() {
+        return nullptr;
+    }
 
 protected:
     void printTabs(fmt::memory_buffer &to, int count) const;
