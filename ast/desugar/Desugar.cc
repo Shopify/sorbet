@@ -705,6 +705,11 @@ public:
     }
 };
 
+// This macro indicates a code path that should never be reached if we're using Prism.
+#define TRANSLATED_BY_PRISM(dctx, node)       \
+    ENFORCE(!(dctx).ctx.state.parseWithPrism, \
+            "The {} node should have already been desugared by the Prism Translator.", (node)->nodeName())
+
 // Translate a tree to an expression. NOTE: this should only be called from `node2TreeImpl`.
 ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
     try {
