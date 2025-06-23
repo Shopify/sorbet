@@ -232,8 +232,9 @@ vector<ast::ParsedFile> index(unique_ptr<core::GlobalState> &gs, absl::Span<core
             }
             case realmain::options::Parser::PRISM: {
                 core::UnfreezeNameTable nameTableAccess(*gs); // enters original strings
+                core::MutableContext ctx(*gs, core::Symbols::root(), file);
 
-                nodes = parser::Prism::Parser::run(*gs, file);
+                nodes = parser::Prism::Parser::run(ctx, file);
                 break;
             }
         }
@@ -477,6 +478,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             // Index
             for (auto file : files) {
                 core::UnfreezeNameTable nameTableAccess(*rbiGenGs); // enters original strings
+                core::MutableContext ctx(*rbiGenGs, core::Symbols::root(), file);
 
                 unique_ptr<parser::Node> nodes;
                 switch (parser) {
@@ -485,12 +487,11 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                         break;
                     }
                     case realmain::options::Parser::PRISM: {
-                        nodes = parser::Prism::Parser::run(*rbiGenGs, file);
+                        nodes = parser::Prism::Parser::run(ctx, file);
                         break;
                     }
                 }
 
-                core::MutableContext ctx(*rbiGenGs, core::Symbols::root(), file);
                 auto tree = ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file};
                 tree = ast::ParsedFile{rewriter::Rewriter::run(ctx, move(tree.tree)), tree.file};
                 tree = testSerialize(*rbiGenGs, local_vars::LocalVars::run(ctx, move(tree)));
@@ -819,6 +820,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             make_shared<core::File>(string(f.file.data(*gs).path()), move(newSource), f.file.data(*gs).sourceType);
         gs->replaceFile(f.file, move(newFile));
 
+        core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
+
         // this replicates the logic of pipeline::indexOne
         unique_ptr<parser::Node> nodes;
         switch (parser) {
@@ -827,7 +830,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                nodes = parser::Prism::Parser::run(*gs, f.file);
+                nodes = parser::Prism::Parser::run(ctx, f.file);
                 break;
             }
         }
@@ -835,7 +838,6 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         handler.addObserved(*gs, "parse-tree", [&]() { return nodes->toString(*gs); });
         handler.addObserved(*gs, "parse-tree-json", [&]() { return nodes->toJSON(*gs); });
 
-        core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
         ast::ParsedFile file = testSerialize(*gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), f.file});
         handler.addObserved(*gs, "desguar-tree", [&]() { return file.tree.toString(*gs); });
         handler.addObserved(*gs, "desugar-tree-raw", [&]() { return file.tree.showRaw(*gs); });
