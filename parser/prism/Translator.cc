@@ -3,6 +3,9 @@
 
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
+#include "core/errors/desugar.h"
+
+#include "absl/strings/str_replace.h"
 
 template class std::unique_ptr<sorbet::parser::Node>;
 
@@ -11,6 +14,7 @@ using namespace std;
 namespace sorbet::parser::Prism {
 
 using sorbet::ast::MK;
+using ExpressionPtr = sorbet::ast::ExpressionPtr;
 
 // Returns true if all nodes have a desugared expr or are null.
 // Call this with all of a node's children, to check if that node can be desugared.
@@ -793,7 +797,26 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
 
-            return make_unique<parser::Integer>(location, move(valueString));
+            int64_t val;
+
+            // complemented literals
+            bool hasTilde = valueString.find("~") != string::npos;
+            const string &withoutTilde = !hasTilde ? valueString : absl::StrReplaceAll(valueString, {{"~", ""}});
+
+            auto underscorePos = withoutTilde.find("_");
+            const string &withoutUnderscores =
+                (underscorePos == string::npos) ? withoutTilde : absl::StrReplaceAll(withoutTilde, {{"_", ""}});
+
+            if (!absl::SimpleAtoi(withoutUnderscores, &val)) {
+                val = 0;
+                if (auto e = ctx.beginIndexerError(location, core::errors::Desugar::IntegerOutOfRange)) {
+                    e.setHeader("Unsupported integer literal: `{}`", valueString);
+                }
+            }
+
+            ExpressionPtr expr = MK::Int(location, hasTilde ? ~val : val);
+
+            return make_node_with_expr<parser::Integer>(move(expr), location, move(valueString));
         }
         case PM_INTERPOLATED_MATCH_LAST_LINE_NODE: { // An interpolated regex literal in a conditional...
             // ...that implicitly checks against the last read line by an IO object, e.g. `if /wat #{123}/`
