@@ -63,7 +63,7 @@ public:
     Parser(const Parser &) = default;
     Parser &operator=(const Parser &) = default;
 
-    static std::unique_ptr<parser::Node> run(core::GlobalState &gs, core::FileRef file);
+    static std::unique_ptr<parser::Node> run(core::MutableContext &ctx, core::FileRef file);
 
     ParseResult parse();
     core::LocOffsets translateLocation(pm_location_t location);
