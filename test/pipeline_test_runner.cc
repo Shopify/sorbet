@@ -234,8 +234,9 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             }
             case realmain::options::Parser::PRISM: {
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
+                core::MutableContext ctx(gs, core::Symbols::root(), file);
 
-                auto nodes = parser::Prism::Parser::run(gs, file);
+                auto nodes = parser::Prism::Parser::run(ctx, file);
                 parseResult = parser::Parser::ParseResult{move(nodes), {}};
                 break;
             }
@@ -272,42 +273,51 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
             core::MutableContext ctx(gs, core::Symbols::root(), file);
             desugared = testSerialize(gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file});
+            break;
         }
-
-        handler.addObserved(gs, "desugar-tree", [&]() { return desugared.tree.toString(gs); });
-        handler.addObserved(gs, "desugar-tree-raw", [&]() { return desugared.tree.showRaw(gs); });
-
-        ast::ParsedFile localNamed;
-
-        // Rewriter
-        ast::ParsedFile rewritten;
-        {
+        case realmain::options::Parser::PRISM: {
             core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
 
-            core::MutableContext ctx(gs, core::Symbols::root(), desugared.file);
-            bool previous = gs.cacheSensitiveOptions.runningUnderAutogen;
-            gs.cacheSensitiveOptions.runningUnderAutogen = test.expectations.contains("autogen");
-            rewritten =
-                testSerialize(gs, ast::ParsedFile{rewriter::Rewriter::run(ctx, move(desugared.tree)), desugared.file});
-            gs.cacheSensitiveOptions.runningUnderAutogen = previous;
+            core::MutableContext ctx(gs, core::Symbols::root(), file);
+            desugared = testSerialize(gs, ast::ParsedFile{ast::prismDesugar::node2Tree(ctx, move(nodes)), file});
+            break;
         }
-
-        handler.addObserved(gs, "rewrite-tree", [&]() { return rewritten.tree.toString(gs); });
-        handler.addObserved(gs, "rewrite-tree-raw", [&]() { return rewritten.tree.showRaw(gs); });
-
-        {
-            core::UnfreezeNameTable nameTableAccess(gs); // possibly enters mangled names
-            core::MutableContext ctx(gs, core::Symbols::root(), desugared.file);
-            localNamed = testSerialize(gs, local_vars::LocalVars::run(ctx, move(rewritten)));
-        }
-
-        handler.addObserved(gs, "index-tree", [&]() { return localNamed.tree.toString(gs); });
-        handler.addObserved(gs, "index-tree-raw", [&]() { return localNamed.tree.showRaw(gs); });
-
-        trees.emplace_back(move(localNamed));
     }
 
-    return trees;
+    handler.addObserved(gs, "desugar-tree", [&]() { return desugared.tree.toString(gs); });
+    handler.addObserved(gs, "desugar-tree-raw", [&]() { return desugared.tree.showRaw(gs); });
+
+    ast::ParsedFile localNamed;
+
+    // Rewriter
+    ast::ParsedFile rewritten;
+    {
+        core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
+
+        core::MutableContext ctx(gs, core::Symbols::root(), desugared.file);
+        bool previous = gs.cacheSensitiveOptions.runningUnderAutogen;
+        gs.cacheSensitiveOptions.runningUnderAutogen = test.expectations.contains("autogen");
+        rewritten =
+            testSerialize(gs, ast::ParsedFile{rewriter::Rewriter::run(ctx, move(desugared.tree)), desugared.file});
+        gs.cacheSensitiveOptions.runningUnderAutogen = previous;
+    }
+
+    handler.addObserved(gs, "rewrite-tree", [&]() { return rewritten.tree.toString(gs); });
+    handler.addObserved(gs, "rewrite-tree-raw", [&]() { return rewritten.tree.showRaw(gs); });
+
+    {
+        core::UnfreezeNameTable nameTableAccess(gs); // possibly enters mangled names
+        core::MutableContext ctx(gs, core::Symbols::root(), desugared.file);
+        localNamed = testSerialize(gs, local_vars::LocalVars::run(ctx, move(rewritten)));
+    }
+
+    handler.addObserved(gs, "index-tree", [&]() { return localNamed.tree.toString(gs); });
+    handler.addObserved(gs, "index-tree-raw", [&]() { return localNamed.tree.showRaw(gs); });
+
+    trees.emplace_back(move(localNamed));
+}
+
+return trees;
 }
 
 void package(core::GlobalState &gs, unique_ptr<WorkerPool> &workers, absl::Span<ast::ParsedFile> trees,
