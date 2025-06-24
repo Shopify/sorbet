@@ -48,6 +48,7 @@ struct Printers {
     PrinterConfig RBSRewriteTree;
     PrinterConfig DesugarTree;
     PrinterConfig DesugarTreeRaw;
+    PrinterConfig DesugarTreeRawWithLocs;
     PrinterConfig RewriterTree;
     PrinterConfig RewriterTreeRaw;
     PrinterConfig IndexTree;
