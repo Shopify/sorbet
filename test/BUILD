@@ -136,6 +136,21 @@ test_suite(
     tags = ["prism_location_test"],
 )
 
+# Load the macro that creates a test for every file in the testdata/desugar folder
+load("//test:desugar_location_test.bzl", "desugar_test_suite")
+
+# Run the macro
+desugar_test_suite(
+    name = "desugar_location_tests",
+    srcs = glob(["testdata/desugar/**/*.rb"]),
+)
+
+# Create a test suite to run all the desugar location tests
+test_suite(
+    name = "desugar_location_tests",
+    tags = ["desugar_location_test"],
+)
+
 cc_test(
     name = "hello-test",
     size = "small",
