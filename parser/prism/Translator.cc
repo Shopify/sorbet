@@ -1,14 +1,18 @@
 #include "Translator.h"
 #include "Helpers.h"
 
+#include "absl/strings/str_replace.h"
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
 #include "core/errors/desugar.h"
 
+<<<<<<< HEAD
 #include "absl/strings/str_replace.h"
 
-template class std::unique_ptr<sorbet::parser::Node>;
+    template class std::unique_ptr<sorbet::parser::Node>;
 
+=======
+>>>>>>> cecabdaee (Handle integer literals prefixed with ~ (unary complement) consistently as a call to `~` instead of changing the literal to the complement)
 using namespace std;
 
 namespace sorbet::parser::Prism {
@@ -322,6 +326,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 messageLoc = translateLoc(callNode->message_loc);
             }
 
+<<<<<<< HEAD
             // Handle `~[Integer]`, like `~42`
             // Unlike `-[Integer]`, Prism treats `~[Integer]` as a method call
             // But Sorbet's legacy parser treats both `~[Integer]` and `-[Integer]` as integer literals
@@ -331,6 +336,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 return make_unique<parser::Integer>(location, move(valueString));
             }
 
+=======
+>>>>>>> 1a248de11 (Handle integer literals prefixed with ~ (unary complement) consistently as a call to `~` instead of changing the literal to the complement)
             pm_node_t *prismBlock = callNode->block;
             NodeVec args;
             // PM_BLOCK_ARGUMENT_NODE models the `&b` in `a.map(&b)`,
@@ -799,13 +806,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             int64_t val;
 
-            // complemented literals
-            bool hasTilde = valueString.find("~") != string::npos;
-            const string &withoutTilde = !hasTilde ? valueString : absl::StrReplaceAll(valueString, {{"~", ""}});
-
-            auto underscorePos = withoutTilde.find("_");
+            auto underscorePos = valueString.find("_");
             const string &withoutUnderscores =
-                (underscorePos == string::npos) ? withoutTilde : absl::StrReplaceAll(withoutTilde, {{"_", ""}});
+                (underscorePos == string::npos) ? valueString : absl::StrReplaceAll(valueString, {{"_", ""}});
 
             if (!absl::SimpleAtoi(withoutUnderscores, &val)) {
                 val = 0;
@@ -813,10 +816,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     e.setHeader("Unsupported integer literal: `{}`", valueString);
                 }
             }
+<<<<<<< HEAD
 
             // Should desugar to Send node (like `42.~()`)
             // ExpressionPtr expr = MK::Int(location, hasTilde ? ~val : val);
             ExpressionPtr expr;
+=======
+            ExpressionPtr expr = MK::Int(location, val);
+>>>>>>> 1a248de11 (Handle integer literals prefixed with ~ (unary complement) consistently as a call to `~` instead of changing the literal to the complement)
 
             if (hasTilde) {
                 auto loc = location.copyEndWithZeroLength();
