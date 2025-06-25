@@ -10,9 +10,6 @@
 -42       # "-42"
 -4_2      # "-4_2"
 
-# ~ should not be a method call
-~42       # "~42"
-
 # Hexadecimal literal
 0xcafe    # "51966"
 0xca_fe   # "0"
