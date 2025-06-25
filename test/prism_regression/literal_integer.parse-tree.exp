@@ -19,9 +19,6 @@ Begin {
       val = "-4_2"
     }
     Integer {
-      val = "~42"
-    }
-    Integer {
       val = "51966"
     }
     Integer {
