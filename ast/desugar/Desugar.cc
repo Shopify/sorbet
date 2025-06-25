@@ -1847,7 +1847,10 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                     }
                 }
 
-                ExpressionPtr res = MK::Int(loc, hasTilde ? ~val : val);
+                ExpressionPtr res = MK::Int(loc, val);
+                if (hasTilde) {
+                    res = MK::Send0(loc, move(res), core::Names::unaryTilde(), loc.copyEndWithZeroLength());
+                }
                 result = std::move(res);
             },
             [&](parser::DString *dstring) {
