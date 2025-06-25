@@ -224,7 +224,7 @@ vector<ast::ParsedFile> index(unique_ptr<core::GlobalState> &gs, absl::Span<core
 
         unique_ptr<parser::Node> nodes;
         switch (parser) {
-            case realmain::options::Parser::SORBET: {
+            case realmain::options::Parser::ORIGINAL: {
                 core::UnfreezeNameTable nameTableAccess(*gs); // enters original strings
 
                 nodes = parser::Parser::run(*gs, file, parser::Parser::Settings{});
@@ -479,7 +479,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
                 unique_ptr<parser::Node> nodes;
                 switch (parser) {
-                    case realmain::options::Parser::SORBET: {
+                    case realmain::options::Parser::ORIGINAL: {
                         nodes = parser::Parser::run(*rbiGenGs, file, parser::Parser::Settings{});
                         break;
                     }
@@ -820,7 +820,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         // this replicates the logic of pipeline::indexOne
         unique_ptr<parser::Node> nodes;
         switch (parser) {
-            case realmain::options::Parser::SORBET: {
+            case realmain::options::Parser::ORIGINAL: {
                 nodes = parser::Parser::run(*gs, f.file, parser::Parser::Settings{});
                 break;
             }
