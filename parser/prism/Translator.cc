@@ -1,8 +1,10 @@
 #include "Translator.h"
 #include "Helpers.h"
 
+#include "absl/strings/str_replace.h"
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
+#include "core/errors/desugar.h"
 
 template class std::unique_ptr<sorbet::parser::Node>;
 
@@ -582,7 +584,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto floatNode = down_cast<pm_float_node>(node);
             string valueString(sliceLocation(floatNode->base.location));
 
-            return make_unique<parser::Float>(location, move(valueString));
+            double val;
+            auto underscorePos = valueString.find("_");
+            const std::string &withoutUnderscores =
+                (underscorePos == std::string::npos) ? valueString : absl::StrReplaceAll(valueString, {{"_", ""}});
+            if (!absl::SimpleAtod(withoutUnderscores, &val)) {
+                val = std::numeric_limits<double>::quiet_NaN();
+                if (auto e = ctx.beginIndexerError(location, core::errors::Desugar::FloatOutOfRange)) {
+                    e.setHeader("Unsupported float literal: `{}`", valueString);
+                    e.addErrorNote("This likely represents a bug in Sorbet. Please report an issue:\n"
+                                   "    https://github.com/sorbet/sorbet/issues");
+                }
+            }
+
+            return make_node_with_expr<parser::Float>(MK::Float(location, val), location, move(valueString));
         }
         case PM_FLIP_FLOP_NODE: { // A flip-flop pattern, like the `flip..flop` in `if flip..flop`
             auto flipFlopNode = down_cast<pm_flip_flop_node>(node);
