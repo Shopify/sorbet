@@ -674,22 +674,34 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             ENFORCE(!value.empty());
 
+            auto kernel = MK::Constant(location, core::Symbols::Kernel());
+            core::NameRef complex_name = core::Names::Constants::Complex().dataCnst(ctx)->original;
+            core::NameRef value_name = ctx.state.enterNameUTF8(value);
+
+            auto send = MK::Send2(location, std::move(kernel), complex_name, location.copyWithZeroLength(),
+                                  MK::Int(location, 0), MK::String(location, value_name));
+
             char sign = value[0];
             // Check for optional leading '+' or '-'
             if (sign == '+' || sign == '-') {
                 value.remove_prefix(1);
 
-                // Create the Complex node with the unsigned value
-                auto receiver = make_unique<parser::Complex>(location, std::string(value));
+                // Re-create the value_name without the sign
+                value_name = ctx.state.enterNameUTF8(value);
+                send = MK::Send2(location, MK::Constant(location, core::Symbols::Kernel()), complex_name,
+                                 location.copyWithZeroLength(), MK::Int(location, 0), MK::String(location, value_name));
 
-                // Return the appropriate unary operation
+                // Wrap in the appropriate unary operation
                 core::NameRef unaryOp = (sign == '-') ? core::Names::unaryMinus() : core::Names::unaryPlus();
-                return make_unique<parser::Send>(location, move(receiver), unaryOp,
-                                                 core::LocOffsets{location.beginLoc, location.beginLoc + 1}, NodeVec{});
+                auto unarySend = MK::Send0(location, move(send), unaryOp,
+                                           core::LocOffsets{location.beginLoc, location.beginLoc + 1});
+                return make_node_with_expr<parser::Complex>(
+                    move(unarySend), location,
+                    std::string(imaginaryNode->base.location.start, imaginaryNode->base.location.end));
             }
 
-            // No leading sign; return the Complex node directly
-            return make_unique<parser::Complex>(location, std::string(value));
+            // No leading sign; return the desugared expression directly
+            return make_node_with_expr<parser::Complex>(move(send), location, std::string(value));
         }
         case PM_IMPLICIT_NODE: { // A hash key without explicit value, like the `k4` in `{ k4: }`
             auto implicitNode = down_cast<pm_implicit_node>(node);
