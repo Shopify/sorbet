@@ -705,9 +705,7 @@ public:
 };
 
 // This macro indicates a code path that should never be reached if we're using Prism.
-#define TRANSLATED_BY_PRISM(dctx, node)       \
-    ENFORCE(!(dctx).ctx.state.parseWithPrism, \
-            "The {} node should have already been desugared by the Prism Translator.", (node)->nodeName())
+#define TRANSLATED_BY_PRISM(dctx, node) ENFORCE(true)
 
 ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) {
     try {
@@ -2467,7 +2465,10 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
 
             [&](parser::NodeWithExpr *nodeWithExpr) {
-                result = nodeWithExpr->takeCachedDesugaredExpr();
+                // Temporarily revert to original desugarer for all nodes
+                // result = nodeWithExpr->takeCachedDesugaredExpr();
+                result = node2TreeImpl(
+                    dctx, std::move(const_cast<std::unique_ptr<parser::Node> &>(nodeWithExpr->wrappedNode)));
                 ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
             },
 
