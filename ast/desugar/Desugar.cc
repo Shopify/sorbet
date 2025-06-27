@@ -2467,7 +2467,10 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
             [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
 
             [&](parser::NodeWithExpr *nodeWithExpr) {
-                result = nodeWithExpr->takeCachedDesugaredExpr();
+                // Temporarily revert to original desugarer for all nodes
+                // result = nodeWithExpr->takeCachedDesugaredExpr();
+                result = node2TreeImpl(
+                    dctx, std::move(const_cast<std::unique_ptr<parser::Node> &>(nodeWithExpr->wrappedNode)));
                 ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
             },
 
