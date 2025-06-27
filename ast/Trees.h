@@ -231,6 +231,8 @@ public:
 
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
 
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
+
     bool isSelfReference() const;
 
     void _sanityCheck() const;
@@ -398,6 +400,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -428,6 +431,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -449,6 +453,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -469,6 +474,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -488,6 +494,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -505,6 +512,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -524,6 +532,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -543,6 +552,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -570,6 +580,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -596,6 +607,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -615,6 +627,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -641,6 +654,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -660,6 +674,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -679,6 +694,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -699,6 +715,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -718,6 +735,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -737,6 +755,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -757,6 +776,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -849,6 +869,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     // Add the given positional argument as the last positional argument.
@@ -1026,6 +1047,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1049,6 +1071,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1071,6 +1094,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1090,6 +1114,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
     bool isString() const;
     bool isSymbol() const;
@@ -1119,6 +1144,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1144,6 +1170,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
     std::optional<std::pair<core::SymbolRef, std::vector<core::NameRef>>> fullUnresolvedPath(core::Context ctx) const;
 
@@ -1163,6 +1190,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1183,6 +1211,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
     void _sanityCheck();
 };
@@ -1207,6 +1236,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1228,6 +1258,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
@@ -1245,6 +1276,7 @@ public:
 
     std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const;
     std::string showRaw(const core::GlobalState &gs, int tabs = 0) const;
+    std::string showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs = 0) const;
     std::string nodeName() const;
 
     void _sanityCheck();
