@@ -1,0 +1,95 @@
+ClassDef{
+  loc = test/testdata/desugar/nthref.rb.parse-tree.exp:1:1-10:2
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/nthref.rb.parse-tree.exp }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/nthref.rb.parse-tree.exp:1:1-10:2
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/nthref.rb.parse-tree.exp:1:1-10:2
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/nthref.rb.parse-tree.exp:1:1-1:1
+        localVariable = <U <self>>
+      }
+      fun = <U Begin>
+      block = Block {
+        loc = test/testdata/desugar/nthref.rb.parse-tree.exp:1:1-10:2
+        args = [
+        ]
+        body = Assign{
+          loc = test/testdata/desugar/nthref.rb.parse-tree.exp:2:3-9:4
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/nthref.rb.parse-tree.exp:2:3-2:8
+            kind = Local
+            name = <U stmts>
+          }
+          rhs = Array{
+            loc = test/testdata/desugar/nthref.rb.parse-tree.exp:2:11-9:4
+            elems = [
+              Send{
+                loc = test/testdata/desugar/nthref.rb.parse-tree.exp:3:5-5:6
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/nthref.rb.parse-tree.exp:3:5-3:5
+                  localVariable = <U <self>>
+                }
+                fun = <U NthRef>
+                block = Block {
+                  loc = test/testdata/desugar/nthref.rb.parse-tree.exp:3:5-5:6
+                  args = [
+                  ]
+                  body = Assign{
+                    loc = test/testdata/desugar/nthref.rb.parse-tree.exp:4:7-4:14
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/nthref.rb.parse-tree.exp:4:7-4:10
+                      kind = Local
+                      name = <U ref>
+                    }
+                    rhs = Literal{ loc = test/testdata/desugar/nthref.rb.parse-tree.exp:4:13-4:14, value = 1 }
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+              Send{
+                loc = test/testdata/desugar/nthref.rb.parse-tree.exp:6:5-8:6
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/nthref.rb.parse-tree.exp:6:5-6:5
+                  localVariable = <U <self>>
+                }
+                fun = <U NthRef>
+                block = Block {
+                  loc = test/testdata/desugar/nthref.rb.parse-tree.exp:6:5-8:6
+                  args = [
+                  ]
+                  body = Assign{
+                    loc = test/testdata/desugar/nthref.rb.parse-tree.exp:7:7-7:19
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/nthref.rb.parse-tree.exp:7:7-7:10
+                      kind = Local
+                      name = <U ref>
+                    }
+                    rhs = Literal{ loc = test/testdata/desugar/nthref.rb.parse-tree.exp:7:13-7:19, value = 314159 }
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

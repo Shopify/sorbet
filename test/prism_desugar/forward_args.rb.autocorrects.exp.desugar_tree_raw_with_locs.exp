@@ -1,0 +1,1098 @@
+ClassDef{
+  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:4:1-49:50
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:4:1-49:50
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:4:1-43:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:4:7-4:10
+        cnst = <C <U Foo>>
+        scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:4:1-43:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:3-5:39
+          flags = {}
+          name = <U bar><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:11-5:12
+              kind = Local
+              name = <U a>
+            }, UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:14-5:15
+              kind = Local
+              name = <U b>
+            }, KeywordArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:17-5:20, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:17-5:20
+              kind = Local
+              name = <U k1>
+            } }, KeywordArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:22-5:25, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:22-5:25
+              kind = Local
+              name = <U k2>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:28-5:33, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:5:28-5:33
+              kind = Local
+              name = <U block>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:3-9:6
+          flags = {}
+          name = <U foo><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14
+              kind = Local
+              name = <U <fwd-args>>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14
+              kind = Local
+              name = <U <fwd-kwargs>>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:7:11-7:14
+              kind = Local
+              name = <U <fwd-block>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:14-8:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                  flags = {}
+                  recv = Array{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:5
+                    elems = [
+                    ]
+                  }
+                  fun = <U concat>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                        kind = Local
+                        name = <U <fwd-args>>
+                      }
+                      fun = <U to_a>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Array{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                    elems = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <to-hash-dup>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                            kind = Local
+                            name = <U <fwd-kwargs>>
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28, value = nil }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:8:5-8:28
+                kind = Local
+                name = <U <fwd-block>>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:3-13:6
+          flags = {}
+          name = <U foo2><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:12-11:17, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:13-11:17
+              kind = Local
+              name = <U args>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:21-11:27, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:21-11:27, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:21-11:27
+              kind = Local
+              name = <U kwargs>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:30-11:35, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:11:30-11:35
+              kind = Local
+              name = <U block>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:14-12:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:5
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:5
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <splat>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:25-12:29
+                    kind = Local
+                    name = <U args>
+                  }
+                ]
+              }
+              Array{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:5-12:48
+                elems = [
+                  InsSeq{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:31-12:39
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:31-12:39
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:31-12:39
+                          kind = Local
+                          name = <D <U <hashTemp>> $2>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:31-12:39
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:31-12:39
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-dup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:33-12:39
+                              kind = Local
+                              name = <U kwargs>
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:31-12:39
+                      kind = Local
+                      name = <D <U <hashTemp>> $2>
+                    }
+                  }
+                ]
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:12:42-12:47
+                kind = Local
+                name = <U block>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:3-17:6
+          flags = {}
+          name = <U foo3><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15
+              kind = Local
+              name = <U <fwd-args>>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15
+              kind = Local
+              name = <U <fwd-kwargs>>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:15:12-15:15
+              kind = Local
+              name = <U <fwd-block>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:14-16:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:5
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:5
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Array{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:25-16:34
+                        elems = [
+                          Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:26-16:27, value = 1 }
+                          Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:29-16:30, value = 2 }
+                          Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:32-16:33, value = 3 }
+                        ]
+                      }
+                    ]
+                  }
+                  fun = <U concat>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                        kind = Local
+                        name = <U <fwd-args>>
+                      }
+                      fun = <U to_a>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Array{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                    elems = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <to-hash-dup>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                            kind = Local
+                            name = <U <fwd-kwargs>>
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40, value = nil }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:16:5-16:40
+                kind = Local
+                name = <U <fwd-block>>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:3-21:6
+          flags = {}
+          name = <U foo4><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:12-19:17, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:13-19:17
+              kind = Local
+              name = <U args>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:21-19:27, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:21-19:27, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:21-19:27
+              kind = Local
+              name = <U kwargs>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:30-19:35, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:19:30-19:35
+              kind = Local
+              name = <U block>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:60
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:60
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:14-20:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:5
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:5
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:5
+                    symbol = (class ::<Magic>)
+                    orig = nullptr
+                  }
+                  fun = <U <splat>>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Array{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:25-20:34
+                      elems = [
+                        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:26-20:27, value = 1 }
+                        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:29-20:30, value = 2 }
+                        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:32-20:33, value = 3 }
+                      ]
+                    }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:5
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:5
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:37-20:41
+                        kind = Local
+                        name = <U args>
+                      }
+                    ]
+                  }
+                ]
+              }
+              Array{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:5-20:60
+                elems = [
+                  InsSeq{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:43-20:51
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:43-20:51
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:43-20:51
+                          kind = Local
+                          name = <D <U <hashTemp>> $2>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:43-20:51
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:43-20:51
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-dup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:45-20:51
+                              kind = Local
+                              name = <U kwargs>
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:43-20:51
+                      kind = Local
+                      name = <D <U <hashTemp>> $2>
+                    }
+                  }
+                ]
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:20:54-20:59
+                kind = Local
+                name = <U block>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:23:3-28:6
+          flags = {}
+          name = <U foo5><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:23:12-23:13, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:23:12-23:13
+              kind = Local
+              name = <U *>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:5-27:8
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:5-24:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:6-24:7, value = 1 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:8-24:9, value = 2 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:10-24:11, value = 3 }
+              ]
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:5-27:8
+              args = [
+                RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:22-24:24, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:24:23-24:24
+                  kind = Local
+                  name = <U _>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:21
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:8
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Local{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:16-26:20
+                        localVariable = <U <self>>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:7, value = :p }
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:7
+                      elems = [
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26
+                              kind = Local
+                              name = <U <fwd-args>>
+                            }
+                            fun = <U to_a>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:26:7-26:26, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:30:3-35:6
+          flags = {}
+          name = <U foo6><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:30:12-30:17, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:30:13-30:17
+              kind = Local
+              name = <U args>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:5-34:8
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:5-31:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:6-31:7, value = 1 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:8-31:9, value = 2 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:10-31:11, value = 3 }
+              ]
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:5-34:8
+              args = [
+                RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:22-31:24, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:31:23-31:24
+                  kind = Local
+                  name = <U _>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:21
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:8
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Local{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:16-33:20
+                        localVariable = <U <self>>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:7, value = :p }
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:7
+                      elems = [
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26
+                              kind = Local
+                              name = <U <fwd-args>>
+                            }
+                            fun = <U to_a>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:33:7-33:26, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:37:3-42:6
+          flags = {}
+          name = <U foo7><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:37:12-37:13, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:37:12-37:13
+              kind = Local
+              name = <U *>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:5-41:8
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:5-38:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:6-38:7, value = 1 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:8-38:9, value = 2 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:10-38:11, value = 3 }
+              ]
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:5-41:8
+              args = [
+                RestArg{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:22-38:27, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:38:23-38:27
+                  kind = Local
+                  name = <U args>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:21
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:8
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Local{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:16-40:20
+                        localVariable = <U <self>>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:7, value = :p }
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:7
+                      elems = [
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26
+                              kind = Local
+                              name = <U <fwd-args>>
+                            }
+                            fun = <U to_a>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:40:7-40:26, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:45:1-45:12
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:45:1-45:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:45:1-45:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:46:1-46:18
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:46:1-46:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:46:1-46:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:46:13-46:14, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:46:16-46:17, value = 2 }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:1-47:26
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:1-47:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:1-47:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 0
+      args = [
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:13-47:15, value = :k1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:17-47:18, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:20-47:22, value = :k2 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:47:24-47:25, value = 2 }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:1-48:30
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:1-48:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:1-48:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:1-48:30
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:16-48:26
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:16-48:16
+            localVariable = <U <self>>
+          }
+          fun = <U puts>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:48:21-48:26, value = "foo" }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:1-49:50
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:1-49:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:1-49:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:1-49:50
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:36-49:46
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:36-49:36
+            localVariable = <U <self>>
+          }
+          fun = <U puts>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:41-49:46, value = "foo" }
+          ]
+        }
+      }
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:13-49:14, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:16-49:17, value = 2 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:19-49:21, value = :k1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:23-49:24, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:26-49:28, value = :k2 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb.autocorrects.exp:49:30-49:31, value = 2 }
+      ]
+    }
+  ]
+}

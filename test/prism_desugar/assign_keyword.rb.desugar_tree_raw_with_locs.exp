@@ -1,0 +1,22 @@
+ClassDef{
+  loc = test/testdata/desugar/assign_keyword.rb:2:3-2:11
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/assign_keyword.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/assign_keyword.rb:2:3-2:11
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Assign{
+      loc = test/testdata/desugar/assign_keyword.rb:2:3-2:11
+      lhs = UnresolvedConstantLit{
+        loc = test/testdata/desugar/assign_keyword.rb:2:3-2:4
+        cnst = <C <U U>>
+        scope = EmptyTree{ loc = test/testdata/desugar/assign_keyword.rb }
+      }
+      rhs = EmptyTree{ loc = test/testdata/desugar/assign_keyword.rb }
+    }
+  ]
+}

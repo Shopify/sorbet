@@ -1,0 +1,108 @@
+ClassDef{
+  loc = test/testdata/desugar/range_nested.rb:3:1-7:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/range_nested.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/range_nested.rb:3:1-7:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/range_nested.rb:3:1-7:4
+      kind = module
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/range_nested.rb:3:8-3:11
+        cnst = <C <U Foo>>
+        scope = EmptyTree{ loc = test/testdata/desugar/range_nested.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = []
+      rhs = [
+        ClassDef{
+          loc = test/testdata/desugar/range_nested.rb:4:3-4:19
+          kind = class
+          name = UnresolvedConstantLit{
+            loc = test/testdata/desugar/range_nested.rb:4:9-4:14
+            cnst = <C <U Range>>
+            scope = EmptyTree{ loc = test/testdata/desugar/range_nested.rb }
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = [ConstantLit{
+              loc = test/testdata/desugar/range_nested.rb:4:3-4:19
+              symbol = (class ::<todo sym>)
+              orig = nullptr
+            }]
+          rhs = [
+            EmptyTree{ loc = test/testdata/desugar/range_nested.rb }
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/range_nested.rb:5:3-5:22
+          flags = {}
+          recv = UnresolvedConstantLit{
+            loc = test/testdata/desugar/range_nested.rb:5:3-5:4
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/range_nested.rb }
+          }
+          fun = <U reveal_type>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Send{
+              loc = test/testdata/desugar/range_nested.rb:5:17-5:21
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/range_nested.rb:5:17-5:21
+                symbol = (class ::<Magic>)
+                orig = nullptr
+              }
+              fun = <U <build-range>>
+              block = nullptr
+              pos_args = 3
+              args = [
+                Literal{ loc = test/testdata/desugar/range_nested.rb:5:17-5:18, value = 0 }
+                Literal{ loc = test/testdata/desugar/range_nested.rb:5:20-5:21, value = 1 }
+                Literal{ loc = test/testdata/desugar/range_nested.rb:5:17-5:21, value = false }
+              ]
+            }
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/range_nested.rb:6:3-6:23
+          flags = {}
+          recv = UnresolvedConstantLit{
+            loc = test/testdata/desugar/range_nested.rb:6:3-6:4
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/range_nested.rb }
+          }
+          fun = <U reveal_type>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Send{
+              loc = test/testdata/desugar/range_nested.rb:6:17-6:22
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/range_nested.rb:6:17-6:22
+                symbol = (class ::<Magic>)
+                orig = nullptr
+              }
+              fun = <U <build-range>>
+              block = nullptr
+              pos_args = 3
+              args = [
+                Literal{ loc = test/testdata/desugar/range_nested.rb:6:17-6:18, value = 0 }
+                Literal{ loc = test/testdata/desugar/range_nested.rb:6:21-6:22, value = 1 }
+                Literal{ loc = test/testdata/desugar/range_nested.rb:6:17-6:22, value = true }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

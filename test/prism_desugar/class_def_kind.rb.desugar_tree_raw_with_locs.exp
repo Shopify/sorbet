@@ -1,0 +1,46 @@
+ClassDef{
+  loc = test/testdata/desugar/class_def_kind.rb:3:1-4:21
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/class_def_kind.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/class_def_kind.rb:3:1-4:21
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/class_def_kind.rb:3:1-3:19
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/class_def_kind.rb:3:7-3:14
+        cnst = <C <U MyClass>>
+        scope = EmptyTree{ loc = test/testdata/desugar/class_def_kind.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/class_def_kind.rb:3:1-3:19
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        EmptyTree{ loc = test/testdata/desugar/class_def_kind.rb }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/class_def_kind.rb:4:1-4:21
+      kind = module
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/class_def_kind.rb:4:8-4:16
+        cnst = <C <U MyModule>>
+        scope = EmptyTree{ loc = test/testdata/desugar/class_def_kind.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = []
+      rhs = [
+        EmptyTree{ loc = test/testdata/desugar/class_def_kind.rb }
+      ]
+    }
+  ]
+}

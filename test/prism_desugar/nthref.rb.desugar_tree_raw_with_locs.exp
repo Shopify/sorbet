@@ -1,0 +1,24 @@
+ClassDef{
+  loc = test/testdata/desugar/nthref.rb:2:1-3:8
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/nthref.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/nthref.rb:2:1-3:8
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    UnresolvedIdent{
+      loc = test/testdata/desugar/nthref.rb:2:1-2:3
+      kind = Global
+      name = <U 1>
+    }
+
+    UnresolvedIdent{
+      loc = test/testdata/desugar/nthref.rb:3:1-3:8
+      kind = Global
+      name = <U 314159>
+    }
+  ]
+}

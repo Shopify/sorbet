@@ -1,0 +1,1374 @@
+ClassDef{
+  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:3:1-35:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:3:1-35:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:3:1-3:27
+      flags = {}
+      name = <U pos_args><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:3:14-3:15
+          kind = Local
+          name = <U a>
+        }, UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:3:17-3:18
+          kind = Local
+          name = <U b>
+        }, UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:3:20-3:21
+          kind = Local
+          name = <U c>
+        }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:1-4:32
+      flags = {}
+      name = <U req_kwargs><<U <todo method>>>
+      args = [KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:16-4:18, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:16-4:18
+          kind = Local
+          name = <U a>
+        } }, KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:20-4:22, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:20-4:22
+          kind = Local
+          name = <U b>
+        } }, KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:24-4:26, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:4:24-4:26
+          kind = Local
+          name = <U c>
+        } }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:1-5:38
+      flags = {}
+      name = <U opt_kwargs><<U <todo method>>>
+      args = [OptionalArg{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:16-5:20
+          expr = KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:16-5:18, expr = UnresolvedIdent{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:16-5:18
+            kind = Local
+            name = <U a>
+          } }
+          default_ = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:19-5:20, value = 1 }
+        }, OptionalArg{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:22-5:26
+          expr = KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:22-5:24, expr = UnresolvedIdent{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:22-5:24
+            kind = Local
+            name = <U b>
+          } }
+          default_ = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:25-5:26, value = 2 }
+        }, OptionalArg{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:28-5:32
+          expr = KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:28-5:30, expr = UnresolvedIdent{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:28-5:30
+            kind = Local
+            name = <U c>
+          } }
+          default_ = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:5:31-5:32, value = 3 }
+        }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:1-6:37
+      flags = {}
+      name = <U all_the_args><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:18-6:19
+          kind = Local
+          name = <U a>
+        }, OptionalArg{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:21-6:25
+          expr = KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:21-6:23, expr = UnresolvedIdent{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:21-6:23
+            kind = Local
+            name = <U b>
+          } }
+          default_ = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:24-6:25, value = 2 }
+        }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:28-6:31, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:6:28-6:31
+          kind = Local
+          name = <U blk>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:8:1-15:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [RestArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:8:9-8:10, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:8:9-8:10
+          kind = Local
+          name = <U *>
+        } }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-14:35
+        stats = [
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat>>
+            block = nullptr
+            pos_args = 4
+            args = [
+              Local{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:3
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:3, value = :pos_args }
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+                flags = {}
+                recv = Array{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:3
+                  elems = [
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14
+                          kind = Local
+                          name = <U <fwd-args>>
+                        }
+                        fun = <U to_a>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:9:3-9:14, value = nil }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat>>
+            block = nullptr
+            pos_args = 4
+            args = [
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:17
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:4
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:12-12:16
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:3, value = :pos_args }
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+                flags = {}
+                recv = Array{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:3
+                  elems = [
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29
+                          kind = Local
+                          name = <U <fwd-args>>
+                        }
+                        fun = <U to_a>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:12:3-12:29, value = nil }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat>>
+            block = nullptr
+            pos_args = 4
+            args = [
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:17
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:4
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:12-13:16
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:3, value = :pos_args }
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+                flags = {}
+                recv = Array{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:3
+                  elems = [
+                    Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:27-13:28, value = 1 }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32
+                          kind = Local
+                          name = <U <fwd-args>>
+                        }
+                        fun = <U to_a>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:13:3-13:32, value = nil }
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+            symbol = (class ::<Magic>)
+            orig = nullptr
+          }
+          fun = <U <call-with-splat>>
+          block = nullptr
+          pos_args = 4
+          args = [
+            Send{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:17
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:4
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+              }
+              fun = <U unsafe>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Local{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:12-14:16
+                  localVariable = <U <self>>
+                }
+              ]
+            }
+            Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:3, value = :pos_args }
+            Send{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+              flags = {}
+              recv = Array{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:3
+                elems = [
+                  Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:27-14:28, value = 1 }
+                  Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:30-14:31, value = 2 }
+                ]
+              }
+              fun = <U concat>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+                    symbol = (module ::T)
+                    orig = nullptr
+                  }
+                  fun = <U unsafe>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35
+                        kind = Local
+                        name = <U <fwd-args>>
+                      }
+                      fun = <U to_a>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:14:3-14:35, value = nil }
+          ]
+        }
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:17:1-27:4
+      flags = {}
+      name = <U bar><<U <todo method>>>
+      args = [RestArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:17:11-17:11, expr = KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:17:11-17:11, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:17:11-17:11
+          kind = Local
+          name = <P <U **> $2>
+        } } }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:3-26:29
+        stats = [
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:3-18:17
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:3-18:3
+              localVariable = <U <self>>
+            }
+            fun = <U req_kwargs>
+            block = nullptr
+            pos_args = 0
+            args = [
+              InsSeq{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                      kind = Local
+                      name = <D <U <hashTemp>> $2>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <to-hash-dup>>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                              kind = Local
+                              name = <U <fwd-kwargs>>
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:18:14-18:16
+                  kind = Local
+                  name = <D <U <hashTemp>> $2>
+                }
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:3-19:23
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:3-19:3
+              localVariable = <U <self>>
+            }
+            fun = <U req_kwargs>
+            block = nullptr
+            pos_args = 0
+            args = [
+              InsSeq{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                      kind = Local
+                      name = <D <U <hashTemp>> $3>
+                    }
+                    rhs = Hash{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                      pairs = [
+                        [
+                          key = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:15, value = :a }
+                          value = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:17-19:18, value = 1 }
+                        ]
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                      kind = Local
+                      name = <D <U <hashTemp>> $3>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <merge-hash>>
+                      block = nullptr
+                      pos_args = 2
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                          kind = Local
+                          name = <D <U <hashTemp>> $3>
+                        }
+                        Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-nodup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedIdent{
+                                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                                  kind = Local
+                                  name = <U <fwd-kwargs>>
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:19:14-19:22
+                  kind = Local
+                  name = <D <U <hashTemp>> $3>
+                }
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:3-21:29
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:3-21:3
+              localVariable = <U <self>>
+            }
+            fun = <U req_kwargs>
+            block = nullptr
+            pos_args = 0
+            args = [
+              InsSeq{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                      kind = Local
+                      name = <D <U <hashTemp>> $4>
+                    }
+                    rhs = Hash{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                      pairs = [
+                        [
+                          key = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:15, value = :a }
+                          value = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:17-21:18, value = 1 }
+                        ]
+                        [
+                          key = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:20-21:21, value = :b }
+                          value = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:23-21:24, value = 2 }
+                        ]
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                      kind = Local
+                      name = <D <U <hashTemp>> $4>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <merge-hash>>
+                      block = nullptr
+                      pos_args = 2
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                          kind = Local
+                          name = <D <U <hashTemp>> $4>
+                        }
+                        Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-nodup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedIdent{
+                                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                                  kind = Local
+                                  name = <U <fwd-kwargs>>
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:21:14-21:28
+                  kind = Local
+                  name = <D <U <hashTemp>> $4>
+                }
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:3-24:17
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:3-24:3
+              localVariable = <U <self>>
+            }
+            fun = <U opt_kwargs>
+            block = nullptr
+            pos_args = 0
+            args = [
+              InsSeq{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                      kind = Local
+                      name = <D <U <hashTemp>> $5>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <to-hash-dup>>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                              kind = Local
+                              name = <U <fwd-kwargs>>
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:24:14-24:16
+                  kind = Local
+                  name = <D <U <hashTemp>> $5>
+                }
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:3-25:23
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:3-25:3
+              localVariable = <U <self>>
+            }
+            fun = <U opt_kwargs>
+            block = nullptr
+            pos_args = 0
+            args = [
+              InsSeq{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                      kind = Local
+                      name = <D <U <hashTemp>> $6>
+                    }
+                    rhs = Hash{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                      pairs = [
+                        [
+                          key = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:15, value = :a }
+                          value = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:17-25:18, value = 1 }
+                        ]
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                      kind = Local
+                      name = <D <U <hashTemp>> $6>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <merge-hash>>
+                      block = nullptr
+                      pos_args = 2
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                          kind = Local
+                          name = <D <U <hashTemp>> $6>
+                        }
+                        Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-nodup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedIdent{
+                                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                                  kind = Local
+                                  name = <U <fwd-kwargs>>
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:25:14-25:22
+                  kind = Local
+                  name = <D <U <hashTemp>> $6>
+                }
+              }
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:3-26:29
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:3-26:3
+            localVariable = <U <self>>
+          }
+          fun = <U opt_kwargs>
+          block = nullptr
+          pos_args = 0
+          args = [
+            InsSeq{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                    kind = Local
+                    name = <D <U <hashTemp>> $7>
+                  }
+                  rhs = Hash{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                    pairs = [
+                      [
+                        key = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:15, value = :a }
+                        value = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:17-26:18, value = 1 }
+                      ]
+                      [
+                        key = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:20-26:21, value = :b }
+                        value = Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:23-26:24, value = 2 }
+                      ]
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                    kind = Local
+                    name = <D <U <hashTemp>> $7>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <merge-hash>>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                        kind = Local
+                        name = <D <U <hashTemp>> $7>
+                      }
+                      Send{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <to-hash-nodup>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                            flags = {}
+                            recv = ConstantLit{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              UnresolvedIdent{
+                                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                                kind = Local
+                                name = <U <fwd-kwargs>>
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              expr = UnresolvedIdent{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:26:14-26:28
+                kind = Local
+                name = <D <U <hashTemp>> $7>
+              }
+            }
+          ]
+        }
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:1-35:4
+      flags = {}
+      name = <U baz><<U <todo method>>>
+      args = [RestArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:9-29:10, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:9-29:10
+          kind = Local
+          name = <U *>
+        } }, RestArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:14-29:14, expr = KeywordArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:14-29:14, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:14-29:14
+          kind = Local
+          name = <P <U **> $3>
+        } } }, BlockArg{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:17-29:17, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:29:17-29:17
+          kind = Local
+          name = <P <U &> $4>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-34:26
+        stats = [
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Local{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:3
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:3, value = :all_the_args }
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+                flags = {}
+                recv = Array{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:3
+                  elems = [
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+                          kind = Local
+                          name = <U <fwd-args>>
+                        }
+                        fun = <U to_a>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Array{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:3-30:24
+                elems = [
+                  InsSeq{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                          kind = Local
+                          name = <D <U <hashTemp>> $2>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-dup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedIdent{
+                                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                                  kind = Local
+                                  name = <U <fwd-kwargs>>
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:19-30:21
+                      kind = Local
+                      name = <D <U <hashTemp>> $2>
+                    }
+                  }
+                ]
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:30:23-30:24
+                kind = Local
+                name = <U &>
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:17
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:4
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:12-32:16
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:3, value = :all_the_args }
+              Send{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+                flags = {}
+                recv = Array{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:3
+                  elems = [
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+                          kind = Local
+                          name = <U <fwd-args>>
+                        }
+                        fun = <U to_a>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Array{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:3-32:40
+                elems = [
+                  InsSeq{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                          kind = Local
+                          name = <D <U <hashTemp>> $3>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-dup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedIdent{
+                                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                                  kind = Local
+                                  name = <U <fwd-kwargs>>
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:34-32:36
+                      kind = Local
+                      name = <D <U <hashTemp>> $3>
+                    }
+                  }
+                ]
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:32:38-32:39
+                kind = Local
+                name = <U &>
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:3-33:24
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:3-33:24
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-block>>
+            block = nullptr
+            pos_args = 4
+            args = [
+              Local{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:3-33:3
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:3-33:3, value = :all_the_args }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:23-33:24
+                kind = Local
+                name = <U &>
+              }
+              Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:16-33:17, value = 1 }
+              InsSeq{
+                loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                      kind = Local
+                      name = <D <U <hashTemp>> $4>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <to-hash-dup>>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Send{
+                          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                              kind = Local
+                              name = <U <fwd-kwargs>>
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:33:19-33:21
+                  kind = Local
+                  name = <D <U <hashTemp>> $4>
+                }
+              }
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:3-34:26
+          flags = {privateOk}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:3-34:26
+            symbol = (class ::<Magic>)
+            orig = nullptr
+          }
+          fun = <U <call-with-block>>
+          block = nullptr
+          pos_args = 4
+          args = [
+            Local{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:3-34:3
+              localVariable = <U <self>>
+            }
+            Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:3-34:3, value = :all_the_args }
+            UnresolvedIdent{
+              loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:25-34:26
+              kind = Local
+              name = <U &>
+            }
+            Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:16-34:17, value = 1 }
+            Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:19-34:20, value = :b }
+            Literal{ loc = test/testdata/desugar/forwarded_restarg_and_kwrestarg.rb:34:22-34:23, value = 3 }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+ClassDef{
+  loc = test/testdata/desugar/defs_not_self.rb:2:1-3:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/defs_not_self.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/defs_not_self.rb:2:1-3:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/defs_not_self.rb:2:1-3:4
+      flags = {self}
+      name = <U method><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/defs_not_self.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/defs_not_self.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/defs_not_self.rb }
+    }
+  ]
+}

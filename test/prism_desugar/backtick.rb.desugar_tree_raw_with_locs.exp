@@ -1,0 +1,68 @@
+ClassDef{
+  loc = test/testdata/desugar/backtick.rb:2:1-3:20
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/backtick.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/backtick.rb:2:1-3:20
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/backtick.rb:2:1-2:15
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/backtick.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U puts>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/backtick.rb:2:6-2:15
+          flags = {}
+          recv = Local{
+            loc = test/testdata/desugar/backtick.rb:2:6-2:15
+            localVariable = <U <self>>
+          }
+          fun = <U `>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/backtick.rb:2:6-2:15, value = "echo hi" }
+          ]
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/backtick.rb:3:1-3:20
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/backtick.rb:3:1-3:1
+        localVariable = <U <self>>
+      }
+      fun = <U puts>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/backtick.rb:3:6-3:20
+          flags = {}
+          recv = Local{
+            loc = test/testdata/desugar/backtick.rb:3:6-3:20
+            localVariable = <U <self>>
+          }
+          fun = <U `>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/backtick.rb:3:6-3:20, value = "echo hi" }
+          ]
+        }
+      ]
+    }
+  ]
+}

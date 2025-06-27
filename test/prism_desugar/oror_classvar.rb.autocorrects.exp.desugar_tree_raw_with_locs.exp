@@ -1,0 +1,645 @@
+ClassDef{
+  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:4:1-35:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:4:1-35:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:4:1-4:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:4:1-4:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:4:8-4:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:4:8-4:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+          }
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:7:1-7:22
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:7:1-7:2
+        kind = Local
+        name = <U x>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:7:5-7:22
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:7:5-7:6
+          cnst = <C <U T>>
+          scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+        }
+        fun = <U let>
+        block = nullptr
+        pos_args = 2
+        args = [
+          Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:7:11-7:12, value = 0 }
+          UnresolvedConstantLit{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:7:14-7:21
+            cnst = <C <U Integer>>
+            scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+          }
+        ]
+      }
+    }
+
+    UnresolvedIdent{
+      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:8:1-8:2
+      kind = Local
+      name = <U x>
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:10:1-35:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:10:7-10:13
+        cnst = <C <U Config>>
+        scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:10:1-35:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        If{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+          cond = UnresolvedIdent{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:22
+            kind = Class
+            name = <U @@supported_methods>
+          }
+          thenp = UnresolvedIdent{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:22
+            kind = Class
+            name = <U @@supported_methods>
+          }
+          elsep = InsSeq{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:22
+                  kind = Class
+                  name = <U @@supported_methods>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:27-11:66
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:27-11:28
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                  }
+                  fun = <U let>
+                  block = nullptr
+                  pos_args = 2
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:22
+                      kind = Class
+                      name = <U @@supported_methods>
+                    }
+                    Send{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:38-11:65
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:38-11:39
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                      }
+                      fun = <U nilable>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Send{
+                          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:48-11:64
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:48-11:56
+                            cnst = <C <U Array>>
+                            scope = UnresolvedConstantLit{
+                              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:48-11:49
+                              cnst = <C <U T>>
+                              scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                            }
+                          }
+                          fun = <U []>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedConstantLit{
+                              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:57-11:63
+                              cnst = <C <U String>>
+                              scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+              Assign{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+                  kind = Local
+                  name = <D <U <statTemp>> $2>
+                }
+                rhs = Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:33-11:36, value = nil }
+              }
+            ],
+            expr = Assign{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:22
+                kind = Class
+                name = <U @@supported_methods>
+              }
+              rhs = UnresolvedIdent{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:11:3-11:66
+                kind = Local
+                name = <D <U <statTemp>> $2>
+              }
+            }
+          }
+        }
+
+        Send{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:13:3-13:16
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:13:3-13:3
+            localVariable = <U <self>>
+          }
+          fun = <U extend>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:13:10-13:16
+              cnst = <C <U Sig>>
+              scope = UnresolvedConstantLit{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:13:10-13:11
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+              }
+            }
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:3-15:34
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:3-15:3
+            localVariable = <U <self>>
+          }
+          fun = <U sig>
+          block = Block {
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:3-15:34
+            args = [
+            ]
+            body = Send{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:8-15:33
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:8-15:8
+                localVariable = <U <self>>
+              }
+              fun = <U returns>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:16-15:32
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:16-15:24
+                    cnst = <C <U Array>>
+                    scope = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:16-15:17
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                    }
+                  }
+                  fun = <U []>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:15:25-15:31
+                      cnst = <C <U String>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          pos_args = 0
+          args = [
+          ]
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:16:3-23:6
+          flags = {self}
+          name = <U supported_methods><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:5-22:32
+            stats = [
+              If{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:5-20:32
+                cond = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:5-17:24
+                  kind = Class
+                  name = <U @@supported_methods>
+                }
+                thenp = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:5-17:24
+                  kind = Class
+                  name = <U @@supported_methods>
+                }
+                elsep = Assign{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:5-20:32
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:5-17:24
+                    kind = Class
+                    name = <U @@supported_methods>
+                  }
+                  rhs = InsSeq{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:17:29-20:32
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:31-18:113
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:31-18:35
+                          kind = Local
+                          name = <U temp>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:38-18:113
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:38-18:39
+                            cnst = <C <U T>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                          }
+                          fun = <U let>
+                          block = nullptr
+                          pos_args = 2
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:44-18:83
+                              flags = {}
+                              recv = Send{
+                                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:44-18:76
+                                flags = {}
+                                recv = Array{
+                                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:44-18:71
+                                  elems = [
+                                    Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:45-18:51, value = "fast" }
+                                    Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:53-18:59, value = "slow" }
+                                    Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:61-18:70, value = "special" }
+                                  ]
+                                }
+                                fun = <U uniq>
+                                block = nullptr
+                                pos_args = 0
+                                args = [
+                                ]
+                              }
+                              fun = <U freeze>
+                              block = nullptr
+                              pos_args = 0
+                              args = [
+                              ]
+                            }
+                            Send{
+                              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:85-18:112
+                              flags = {}
+                              recv = UnresolvedConstantLit{
+                                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:85-18:86
+                                cnst = <C <U T>>
+                                scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                              }
+                              fun = <U nilable>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                Send{
+                                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:95-18:111
+                                  flags = {}
+                                  recv = UnresolvedConstantLit{
+                                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:95-18:103
+                                    cnst = <C <U Array>>
+                                    scope = UnresolvedConstantLit{
+                                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:95-18:96
+                                      cnst = <C <U T>>
+                                      scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                                    }
+                                  }
+                                  fun = <U []>
+                                  block = nullptr
+                                  pos_args = 1
+                                  args = [
+                                    UnresolvedConstantLit{
+                                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:18:104-18:110
+                                      cnst = <C <U String>>
+                                      scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:19:31-19:35
+                      kind = Local
+                      name = <U temp>
+                    }
+                  }
+                }
+              }
+              Send{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:21:5-21:39
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:21:5-21:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                }
+                fun = <U reveal_type>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:21:19-21:38
+                    kind = Class
+                    name = <U @@supported_methods>
+                  }
+                ]
+              }
+            ],
+            expr = Send{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:22:5-22:32
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:22:5-22:6
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+              }
+              fun = <U must>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:22:12-22:31
+                  kind = Class
+                  name = <U @@supported_methods>
+                }
+              ]
+            }
+          }
+        }
+
+        If{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+          cond = UnresolvedIdent{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:28
+            kind = Class
+            name = <U @@suggest_t_let_class_rhs>
+          }
+          thenp = UnresolvedIdent{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:28
+            kind = Class
+            name = <U @@suggest_t_let_class_rhs>
+          }
+          elsep = InsSeq{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:28
+                  kind = Class
+                  name = <U @@suggest_t_let_class_rhs>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:33-25:50
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:33-25:34
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                  }
+                  fun = <U let>
+                  block = nullptr
+                  pos_args = 2
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:28
+                      kind = Class
+                      name = <U @@suggest_t_let_class_rhs>
+                    }
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:43-25:49
+                      cnst = <C <U String>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                    }
+                  ]
+                }
+              }
+              Assign{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+                  kind = Local
+                  name = <D <U <statTemp>> $3>
+                }
+                rhs = Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:39-25:41, value = "" }
+              }
+            ],
+            expr = Assign{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:28
+                kind = Class
+                name = <U @@suggest_t_let_class_rhs>
+              }
+              rhs = UnresolvedIdent{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:25:3-25:50
+                kind = Local
+                name = <D <U <statTemp>> $3>
+              }
+            }
+          }
+        }
+
+        Send{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:29:3-29:25
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:29:3-29:3
+            localVariable = <U <self>>
+          }
+          fun = <U sig>
+          block = Block {
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:29:3-29:25
+            args = [
+            ]
+            body = Send{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:29:8-29:24
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:29:8-29:8
+                localVariable = <U <self>>
+              }
+              fun = <U returns>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:29:16-29:23
+                  cnst = <C <U Integer>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                }
+              ]
+            }
+          }
+          pos_args = 0
+          args = [
+          ]
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:30:3-34:6
+          flags = {self}
+          name = <U suggest_t_let_method><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = If{
+            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+            cond = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:27
+              kind = Class
+              name = <U @@suggest_t_let_method>
+            }
+            thenp = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:27
+              kind = Class
+              name = <U @@suggest_t_let_method>
+            }
+            elsep = InsSeq{
+              loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:27
+                    kind = Class
+                    name = <U @@suggest_t_let_method>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:32-31:60
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:32-31:33
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                    }
+                    fun = <U let>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:27
+                        kind = Class
+                        name = <U @@suggest_t_let_method>
+                      }
+                      Send{
+                        loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:42-31:59
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:42-31:43
+                          cnst = <C <U T>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                        }
+                        fun = <U nilable>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedConstantLit{
+                            loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:52-31:58
+                            cnst = <C <U String>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+                    kind = Local
+                    name = <D <U <statTemp>> $2>
+                  }
+                  rhs = Literal{ loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:38-31:40, value = "" }
+                }
+              ],
+              expr = Assign{
+                loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:27
+                  kind = Class
+                  name = <U @@suggest_t_let_method>
+                }
+                rhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/oror_classvar.rb.autocorrects.exp:31:5-31:60
+                  kind = Local
+                  name = <D <U <statTemp>> $2>
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,232 @@
+ClassDef{
+  loc = test/testdata/desugar/duplicated_hash_keys.rb:2:1-31:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:2:1-31:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:2:1-2:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/duplicated_hash_keys.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb:2:8-2:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/duplicated_hash_keys.rb:2:8-2:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+          }
+        }
+      ]
+    }
+
+    Hash{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:4:1-8:2
+      pairs = [
+        [
+          key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:5:3-5:8, value = "foo" }
+          value = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:5:12-5:13, value = 1 }
+        ]
+        [
+          key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:6:3-6:8, value = "foo" }
+          value = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:6:12-6:13, value = 2 }
+        ]
+      ]
+    }
+
+    Hash{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:10:1-14:2
+      pairs = [
+        [
+          key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:11:3-11:7, value = :bar }
+          value = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:11:11-11:12, value = 1 }
+        ]
+        [
+          key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:12:3-12:7, value = :bar }
+          value = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:12:11-12:12, value = 2 }
+        ]
+      ]
+    }
+
+    Hash{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:16:1-19:2
+      pairs = [
+        [
+          key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:17:3-17:7, value = :baz }
+          value = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:17:11-17:14, value = nil }
+        ]
+        [
+          key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:18:3-18:8, value = "baz" }
+          value = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:18:12-18:15, value = nil }
+        ]
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:21:1-21:47
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/duplicated_hash_keys.rb:21:1-21:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/duplicated_hash_keys.rb:21:1-21:47
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb:21:6-21:46
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/duplicated_hash_keys.rb:21:6-21:41
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/duplicated_hash_keys.rb:21:6-21:6
+              localVariable = <U <self>>
+            }
+            fun = <U params>
+            block = nullptr
+            pos_args = 0
+            args = [
+              Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:21:13-21:14, value = :x }
+              Hash{
+                loc = test/testdata/desugar/duplicated_hash_keys.rb:21:16-21:40
+                pairs = [
+                  [
+                    key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:21:17-21:18, value = :y }
+                    value = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/duplicated_hash_keys.rb:21:20-21:27
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+                    }
+                  ]
+                  [
+                    key = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:21:29-21:30, value = :y }
+                    value = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/duplicated_hash_keys.rb:21:32-21:39
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+                    }
+                  ]
+                ]
+              }
+            ]
+          }
+          fun = <U void>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:23:1-24:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb:23:9-23:10
+          kind = Local
+          name = <U x>
+        }, BlockArg{ loc = test/testdata/desugar/duplicated_hash_keys.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+    }
+
+    Send{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:27:1-27:53
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/duplicated_hash_keys.rb:27:1-27:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/duplicated_hash_keys.rb:27:1-27:53
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb:27:6-27:52
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/duplicated_hash_keys.rb:27:6-27:36
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/duplicated_hash_keys.rb:27:6-27:6
+              localVariable = <U <self>>
+            }
+            fun = <U params>
+            block = nullptr
+            pos_args = 0
+            args = [
+              Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:27:13-27:14, value = :_ }
+              UnresolvedConstantLit{
+                loc = test/testdata/desugar/duplicated_hash_keys.rb:27:16-27:23
+                cnst = <C <U Integer>>
+                scope = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+              }
+              Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:27:25-27:26, value = :_ }
+              UnresolvedConstantLit{
+                loc = test/testdata/desugar/duplicated_hash_keys.rb:27:28-27:35
+                cnst = <C <U Integer>>
+                scope = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+              }
+            ]
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/duplicated_hash_keys.rb:27:45-27:51
+              cnst = <C <U String>>
+              scope = EmptyTree{ loc = test/testdata/desugar/duplicated_hash_keys.rb }
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/duplicated_hash_keys.rb:29:1-31:4
+      flags = {self}
+      name = <U x><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb:29:12-29:13
+          kind = Local
+          name = <U _>
+        }, UnresolvedIdent{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb:29:15-29:16
+          kind = Local
+          name = <U _>
+        }, BlockArg{ loc = test/testdata/desugar/duplicated_hash_keys.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/duplicated_hash_keys.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Literal{ loc = test/testdata/desugar/duplicated_hash_keys.rb:30:3-30:5, value = "" }
+    }
+  ]
+}

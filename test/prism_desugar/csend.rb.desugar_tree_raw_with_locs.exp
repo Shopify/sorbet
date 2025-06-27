@@ -1,0 +1,975 @@
+ClassDef{
+  loc = test/testdata/desugar/csend.rb:2:1-25:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/csend.rb:2:1-25:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/csend.rb:2:1-9:4
+      flags = {}
+      name = <U test_csend><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/csend.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/csend.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/csend.rb:3:3-8:17
+        stats = [
+          InsSeq{
+            loc = test/testdata/desugar/csend.rb:3:3-3:11
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/csend.rb:3:3-3:3
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:3:3-3:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $2>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/csend.rb:3:3-3:6
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/csend.rb:3:3-3:3
+                    localVariable = <U <self>>
+                  }
+                  fun = <U foo>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/csend.rb:3:3-3:3
+              cond = Send{
+                loc = test/testdata/desugar/csend.rb:3:3-3:3
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:3:3-3:3
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:3:3-3:3
+                    kind = Local
+                    name = <D <U <assignTemp>> $2>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/csend.rb:3:6-3:6
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:3:3-3:3
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:3:6-3:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $2>
+                  }
+                ]
+              }
+              elsep = Send{
+                loc = test/testdata/desugar/csend.rb:3:3-3:11
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:3:3-3:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $2>
+                }
+                fun = <U bar>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          }
+          InsSeq{
+            loc = test/testdata/desugar/csend.rb:4:3-4:21
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/csend.rb:4:3-4:3
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:4:3-4:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $3>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/csend.rb:4:3-4:6
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/csend.rb:4:3-4:3
+                    localVariable = <U <self>>
+                  }
+                  fun = <U foo>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/csend.rb:4:3-4:3
+              cond = Send{
+                loc = test/testdata/desugar/csend.rb:4:3-4:3
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:4:3-4:3
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:4:3-4:3
+                    kind = Local
+                    name = <D <U <assignTemp>> $3>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/csend.rb:4:6-4:6
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:4:3-4:3
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:4:6-4:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $3>
+                  }
+                ]
+              }
+              elsep = Send{
+                loc = test/testdata/desugar/csend.rb:4:3-4:21
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:4:3-4:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $3>
+                }
+                fun = <U bar>
+                block = Block {
+                  loc = test/testdata/desugar/csend.rb:4:3-4:21
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:4:15-4:16
+                      kind = Local
+                      name = <U x>
+                    }
+                  ]
+                  body = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:4:18-4:19
+                    kind = Local
+                    name = <U x>
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          }
+          InsSeq{
+            loc = test/testdata/desugar/csend.rb:5:3-5:15
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/csend.rb:5:3-5:3
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:5:3-5:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $4>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/csend.rb:5:3-5:6
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/csend.rb:5:3-5:3
+                    localVariable = <U <self>>
+                  }
+                  fun = <U foo>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/csend.rb:5:3-5:3
+              cond = Send{
+                loc = test/testdata/desugar/csend.rb:5:3-5:3
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:5:3-5:3
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:5:3-5:3
+                    kind = Local
+                    name = <D <U <assignTemp>> $4>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/csend.rb:5:6-5:6
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:5:3-5:3
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:5:6-5:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $4>
+                  }
+                ]
+              }
+              elsep = Send{
+                loc = test/testdata/desugar/csend.rb:5:3-5:15
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:5:3-5:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $4>
+                }
+                fun = <U bar=>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ loc = test/testdata/desugar/csend.rb:5:14-5:15, value = 5 }
+                ]
+              }
+            }
+          }
+          InsSeq{
+            loc = test/testdata/desugar/csend.rb:6:3-6:16
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/csend.rb:6:3-6:3
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:6:3-6:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $5>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/csend.rb:6:3-6:6
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/csend.rb:6:3-6:3
+                    localVariable = <U <self>>
+                  }
+                  fun = <U foo>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/csend.rb:6:3-6:3
+              cond = Send{
+                loc = test/testdata/desugar/csend.rb:6:3-6:3
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:6:3-6:3
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:6:3-6:3
+                    kind = Local
+                    name = <D <U <assignTemp>> $5>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/csend.rb:6:6-6:6
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:6:3-6:3
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:6:6-6:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $5>
+                  }
+                ]
+              }
+              elsep = InsSeq{
+                loc = test/testdata/desugar/csend.rb:6:3-6:16
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/csend.rb:6:3-6:16
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:6:3-6:16
+                      kind = Local
+                      name = <D <U bar> $6>
+                    }
+                    rhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:6:3-6:3
+                      kind = Local
+                      name = <D <U <assignTemp>> $5>
+                    }
+                  }
+                ],
+                expr = Send{
+                  loc = test/testdata/desugar/csend.rb:6:3-6:16
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:6:3-6:16
+                    kind = Local
+                    name = <D <U bar> $6>
+                  }
+                  fun = <U bar=>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/csend.rb:6:3-6:16
+                      flags = {}
+                      recv = Send{
+                        loc = test/testdata/desugar/csend.rb:6:3-6:16
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/csend.rb:6:3-6:16
+                          kind = Local
+                          name = <D <U bar> $6>
+                        }
+                        fun = <U bar>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                      fun = <U +>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/csend.rb:6:15-6:16, value = 5 }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+          InsSeq{
+            loc = test/testdata/desugar/csend.rb:7:3-7:17
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/csend.rb:7:3-7:3
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:7:3-7:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $7>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/csend.rb:7:3-7:6
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:3
+                    localVariable = <U <self>>
+                  }
+                  fun = <U foo>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/csend.rb:7:3-7:3
+              cond = Send{
+                loc = test/testdata/desugar/csend.rb:7:3-7:3
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:7:3-7:3
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:3
+                    kind = Local
+                    name = <D <U <assignTemp>> $7>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/csend.rb:7:6-7:6
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:7:3-7:3
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:7:6-7:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $7>
+                  }
+                ]
+              }
+              elsep = InsSeq{
+                loc = test/testdata/desugar/csend.rb:7:3-7:17
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:17
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:7:3-7:17
+                      kind = Local
+                      name = <D <U bar> $8>
+                    }
+                    rhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:7:3-7:3
+                      kind = Local
+                      name = <D <U <assignTemp>> $7>
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:17
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:7:3-7:17
+                      kind = Local
+                      name = <D <U bar> $9>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/csend.rb:7:3-7:17
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/csend.rb:7:3-7:17
+                        kind = Local
+                        name = <D <U bar> $8>
+                      }
+                      fun = <U bar>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  }
+                ],
+                expr = If{
+                  loc = test/testdata/desugar/csend.rb:7:3-7:17
+                  cond = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:17
+                    kind = Local
+                    name = <D <U bar> $9>
+                  }
+                  thenp = Send{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:17
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:7:3-7:17
+                      kind = Local
+                      name = <D <U bar> $8>
+                    }
+                    fun = <U bar=>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/csend.rb:7:16-7:17, value = 5 }
+                    ]
+                  }
+                  elsep = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:7:3-7:17
+                    kind = Local
+                    name = <D <U bar> $9>
+                  }
+                }
+              }
+            }
+          }
+        ],
+        expr = InsSeq{
+          loc = test/testdata/desugar/csend.rb:8:3-8:17
+          stats = [
+            Assign{
+              loc = test/testdata/desugar/csend.rb:8:3-8:3
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/csend.rb:8:3-8:3
+                kind = Local
+                name = <D <U <assignTemp>> $10>
+              }
+              rhs = Send{
+                loc = test/testdata/desugar/csend.rb:8:3-8:6
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:3
+                  localVariable = <U <self>>
+                }
+                fun = <U foo>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          ],
+          expr = If{
+            loc = test/testdata/desugar/csend.rb:8:3-8:3
+            cond = Send{
+              loc = test/testdata/desugar/csend.rb:8:3-8:3
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/csend.rb:8:3-8:3
+                symbol = (class ::NilClass)
+                orig = nullptr
+              }
+              fun = <U ===>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:3
+                  kind = Local
+                  name = <D <U <assignTemp>> $10>
+                }
+              ]
+            }
+            thenp = Send{
+              loc = test/testdata/desugar/csend.rb:8:6-8:6
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/csend.rb:8:3-8:3
+                symbol = (class ::<Magic>)
+                orig = nullptr
+              }
+              fun = <U <nil-for-safe-navigation>>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:8:6-8:7
+                  kind = Local
+                  name = <D <U <assignTemp>> $10>
+                }
+              ]
+            }
+            elsep = InsSeq{
+              loc = test/testdata/desugar/csend.rb:8:3-8:17
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:17
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:8:3-8:17
+                    kind = Local
+                    name = <D <U bar> $11>
+                  }
+                  rhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:8:3-8:3
+                    kind = Local
+                    name = <D <U <assignTemp>> $10>
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:17
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:8:3-8:17
+                    kind = Local
+                    name = <D <U bar> $12>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/csend.rb:8:3-8:17
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/csend.rb:8:3-8:17
+                      kind = Local
+                      name = <D <U bar> $11>
+                    }
+                    fun = <U bar>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                }
+              ],
+              expr = If{
+                loc = test/testdata/desugar/csend.rb:8:3-8:17
+                cond = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:17
+                  kind = Local
+                  name = <D <U bar> $12>
+                }
+                thenp = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:17
+                  kind = Local
+                  name = <D <U bar> $12>
+                }
+                elsep = Send{
+                  loc = test/testdata/desugar/csend.rb:8:3-8:17
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:8:3-8:17
+                    kind = Local
+                    name = <D <U bar> $11>
+                  }
+                  fun = <U bar=>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ loc = test/testdata/desugar/csend.rb:8:16-8:17, value = 5 }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/csend.rb:12:1-12:24
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/csend.rb:12:1-12:1
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/csend.rb:12:1-12:1
+            kind = Local
+            name = <D <U <assignTemp>> $2>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/csend.rb:12:1-12:16
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/csend.rb:12:1-12:12
+              cnst = <C <U BasicObject>>
+              scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+      ],
+      expr = If{
+        loc = test/testdata/desugar/csend.rb:12:1-12:1
+        cond = Send{
+          loc = test/testdata/desugar/csend.rb:12:1-12:1
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/csend.rb:12:1-12:1
+            symbol = (class ::NilClass)
+            orig = nullptr
+          }
+          fun = <U ===>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/csend.rb:12:1-12:1
+              kind = Local
+              name = <D <U <assignTemp>> $2>
+            }
+          ]
+        }
+        thenp = Send{
+          loc = test/testdata/desugar/csend.rb:12:16-12:16
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/csend.rb:12:1-12:1
+            symbol = (class ::<Magic>)
+            orig = nullptr
+          }
+          fun = <U <nil-for-safe-navigation>>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/csend.rb:12:16-12:17
+              kind = Local
+              name = <D <U <assignTemp>> $2>
+            }
+          ]
+        }
+        elsep = Send{
+          loc = test/testdata/desugar/csend.rb:12:1-12:24
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/csend.rb:12:1-12:1
+            kind = Local
+            name = <D <U <assignTemp>> $2>
+          }
+          fun = <U __id__>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/csend.rb:15:1-25:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/csend.rb:15:7-15:8
+        cnst = <C <U A>>
+        scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/csend.rb:15:1-25:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        Send{
+          loc = test/testdata/desugar/csend.rb:16:3-16:16
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/csend.rb:16:3-16:3
+            localVariable = <U <self>>
+          }
+          fun = <U extend>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/csend.rb:16:10-16:16
+              cnst = <C <U Sig>>
+              scope = UnresolvedConstantLit{
+                loc = test/testdata/desugar/csend.rb:16:10-16:11
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+              }
+            }
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/csend.rb:18:3-21:6
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/csend.rb:18:3-18:3
+            localVariable = <U <self>>
+          }
+          fun = <U sig>
+          block = Block {
+            loc = test/testdata/desugar/csend.rb:18:3-21:6
+            args = [
+            ]
+            body = Send{
+              loc = test/testdata/desugar/csend.rb:19:5-20:37
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/csend.rb:19:5-19:43
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/csend.rb:19:5-19:5
+                  localVariable = <U <self>>
+                }
+                fun = <U params>
+                block = nullptr
+                pos_args = 0
+                args = [
+                  Literal{ loc = test/testdata/desugar/csend.rb:19:12-19:13, value = :x }
+                  Send{
+                    loc = test/testdata/desugar/csend.rb:19:15-19:42
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/csend.rb:19:15-19:16
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+                    }
+                    fun = <U any>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/csend.rb:19:21-19:31
+                        cnst = <C <U FalseClass>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+                      }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/csend.rb:19:33-19:41
+                        cnst = <C <U NilClass>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+                      }
+                    ]
+                  }
+                ]
+              }
+              fun = <U returns>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/csend.rb:20:16-20:36
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/csend.rb:20:16-20:17
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+                  }
+                  fun = <U nilable>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/csend.rb:20:26-20:35
+                      cnst = <C <U TrueClass>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/csend.rb }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          pos_args = 0
+          args = [
+          ]
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/csend.rb:22:3-24:6
+          flags = {}
+          name = <U foo><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/csend.rb:22:11-22:12
+              kind = Local
+              name = <U x>
+            }, BlockArg{ loc = test/testdata/desugar/csend.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/csend.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/csend.rb:23:5-23:13
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/csend.rb:23:5-23:5
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:23:5-23:5
+                  kind = Local
+                  name = <D <U <assignTemp>> $2>
+                }
+                rhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:23:5-23:6
+                  kind = Local
+                  name = <U x>
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/csend.rb:23:5-23:5
+              cond = Send{
+                loc = test/testdata/desugar/csend.rb:23:5-23:5
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:23:5-23:5
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:23:5-23:5
+                    kind = Local
+                    name = <D <U <assignTemp>> $2>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/csend.rb:23:6-23:6
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/csend.rb:23:5-23:5
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/csend.rb:23:6-23:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $2>
+                  }
+                ]
+              }
+              elsep = Send{
+                loc = test/testdata/desugar/csend.rb:23:5-23:13
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/csend.rb:23:5-23:5
+                  kind = Local
+                  name = <D <U <assignTemp>> $2>
+                }
+                fun = <U |>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ loc = test/testdata/desugar/csend.rb:23:9-23:13, value = true }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

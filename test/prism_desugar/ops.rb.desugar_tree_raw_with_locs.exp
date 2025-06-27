@@ -1,0 +1,132 @@
+ClassDef{
+  loc = test/testdata/desugar/ops.rb:2:1-5:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/ops.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/ops.rb:2:1-5:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/ops.rb:2:1-5:4
+      flags = {}
+      name = <U test_ops><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/ops.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/ops.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/ops.rb:3:3-4:9
+        stats = [
+          InsSeq{
+            loc = test/testdata/desugar/ops.rb:3:3-3:9
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/ops.rb:3:3-3:9
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/ops.rb:3:3-3:9
+                  kind = Local
+                  name = <D <U ||> $2>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/ops.rb:3:3-3:4
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/ops.rb:3:3-3:3
+                    localVariable = <U <self>>
+                  }
+                  fun = <U a>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/ops.rb:3:3-3:9
+              cond = UnresolvedIdent{
+                loc = test/testdata/desugar/ops.rb:3:4-3:8
+                kind = Local
+                name = <D <U ||> $2>
+              }
+              thenp = UnresolvedIdent{
+                loc = test/testdata/desugar/ops.rb:3:3-3:4
+                kind = Local
+                name = <D <U ||> $2>
+              }
+              elsep = Send{
+                loc = test/testdata/desugar/ops.rb:3:8-3:9
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/ops.rb:3:8-3:8
+                  localVariable = <U <self>>
+                }
+                fun = <U b>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          }
+        ],
+        expr = InsSeq{
+          loc = test/testdata/desugar/ops.rb:4:3-4:9
+          stats = [
+            Assign{
+              loc = test/testdata/desugar/ops.rb:4:3-4:9
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/ops.rb:4:3-4:9
+                kind = Local
+                name = <D <U &&> $3>
+              }
+              rhs = Send{
+                loc = test/testdata/desugar/ops.rb:4:3-4:4
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/ops.rb:4:3-4:3
+                  localVariable = <U <self>>
+                }
+                fun = <U c>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          ],
+          expr = If{
+            loc = test/testdata/desugar/ops.rb:4:3-4:9
+            cond = UnresolvedIdent{
+              loc = test/testdata/desugar/ops.rb:4:4-4:8
+              kind = Local
+              name = <D <U &&> $3>
+            }
+            thenp = Send{
+              loc = test/testdata/desugar/ops.rb:4:8-4:9
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/ops.rb:4:8-4:8
+                localVariable = <U <self>>
+              }
+              fun = <U d>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+            elsep = UnresolvedIdent{
+              loc = test/testdata/desugar/ops.rb:4:3-4:4
+              kind = Local
+              name = <D <U &&> $3>
+            }
+          }
+        }
+      }
+    }
+  ]
+}

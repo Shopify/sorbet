@@ -1,0 +1,785 @@
+ClassDef{
+  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:1-5:1
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:1-5:1
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:1-5:1
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:1-1:6
+        cnst = <C <U <ErrorNode>>>
+        scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [Send{
+          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:29
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:26
+            flags = {}
+            recv = Send{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:23
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:21
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:20
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:12
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:8-1:9
+                      cnst = <C <U C>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                    }
+                    fun = <U <>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:11-1:12
+                        cnst = <C <U U>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                      }
+                    ]
+                  }
+                  fun = <U <>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:14-1:20
+                      flags = {}
+                      recv = Send{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:14-1:18
+                        flags = {privateOk}
+                        recv = Local{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:14-1:14
+                          localVariable = <U <self>>
+                        }
+                        fun = <U root>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                      fun = <U >>>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        UnresolvedConstantLit{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:18-1:20
+                          cnst = <C <U <ErrorNode>>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                fun = <U >>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:20-1:21
+                    cnst = <C <U <ErrorNode>>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                  }
+                ]
+              }
+              fun = <U <>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:22-1:23
+                  cnst = <C <U <ErrorNode>>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                }
+              ]
+            }
+            fun = <U <>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedConstantLit{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:25-1:26
+                cnst = <C <U C>>
+                scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+              }
+            ]
+          }
+          fun = <U <>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:28-1:29
+              cnst = <C <U U>>
+              scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+            }
+          ]
+        }]
+      rhs = [
+        Send{
+          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:30-1:41
+          flags = {}
+          recv = UnresolvedConstantLit{
+            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:30-1:36
+            cnst = <C <U Object>>
+            scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+          }
+          fun = <U >>>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:1:39-1:41, value = nil }
+          ]
+        }
+
+        ClassDef{
+          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:3-4:95
+          kind = class
+          name = UnresolvedConstantLit{
+            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:3-2:8
+            cnst = <C <U <ErrorNode>>>
+            scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = [Send{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:54
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:53
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:36
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:33
+                    flags = {}
+                    recv = Send{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:31
+                      flags = {}
+                      recv = Send{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:29
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:25
+                          flags = {}
+                          recv = Send{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:17
+                            flags = {}
+                            recv = Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:14
+                              flags = {}
+                              recv = UnresolvedConstantLit{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:10-2:11
+                                cnst = <C <U S>>
+                                scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                              }
+                              fun = <U <>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedConstantLit{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:13-2:14
+                                  cnst = <C <U C>>
+                                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                                }
+                              ]
+                            }
+                            fun = <U <>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              UnresolvedConstantLit{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:16-2:17
+                                cnst = <C <U U>>
+                                scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                              }
+                            ]
+                          }
+                          fun = <U <>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:19-2:25
+                              flags = {}
+                              recv = Send{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:19-2:23
+                                flags = {privateOk}
+                                recv = Local{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:19-2:19
+                                  localVariable = <U <self>>
+                                }
+                                fun = <U root>
+                                block = nullptr
+                                pos_args = 0
+                                args = [
+                                ]
+                              }
+                              fun = <U >>>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedConstantLit{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:23-2:25
+                                  cnst = <C <U <ErrorNode>>>
+                                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        fun = <U >>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:27-2:29
+                            kind = Global
+                            name = <U 1>
+                          }
+                        ]
+                      }
+                      fun = <U >>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Array{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:30-2:31
+                          elems = [
+                            UnresolvedConstantLit{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:30-2:31
+                              cnst = <C <U <ErrorNode>>>
+                              scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                    fun = <U <>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:32-2:33
+                        cnst = <C <U C>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                      }
+                    ]
+                  }
+                  fun = <U <>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:35-2:36
+                      cnst = <C <U U>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                    }
+                  ]
+                }
+                fun = <U <>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:38-2:53
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:38-2:51
+                      cnst = <C <U AttachedClass>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                    }
+                    fun = <U >>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:51-2:53
+                        cnst = <C <U <ErrorNode>>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                      }
+                    ]
+                  }
+                ]
+              }
+              fun = <U >>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:53-2:54
+                  cnst = <C <U <ErrorNode>>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                }
+              ]
+            }]
+          rhs = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:54-2:54
+              cnst = <C <U <ErrorNode>>>
+              scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+            }
+
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:54-2:55
+              cnst = <C <U <ErrorNode>>>
+              scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+            }
+
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:56-2:57
+              cnst = <C <U <ErrorNode>>>
+              scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+            }
+
+            Send{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:59-2:66
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:59-2:63
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:59-2:60
+                  cnst = <C <U S>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                }
+                fun = <U <>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:62-2:63
+                    cnst = <C <U C>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                  }
+                ]
+              }
+              fun = <U <>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:65-2:66
+                  cnst = <C <U U>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                }
+              ]
+            }
+
+            Send{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:67-2:82
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:67-2:78
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:67-2:73
+                  cnst = <C <U Object>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                }
+                fun = <U >>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:76-2:78
+                    kind = Global
+                    name = <U 1>
+                  }
+                ]
+              }
+              fun = <U >>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Literal{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:2:80-2:82, value = nil }
+              ]
+            }
+
+            Send{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-4:30
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-4:27
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-4:21
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-4:20
+                    flags = {}
+                    recv = Send{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-4:15
+                      flags = {}
+                      recv = Send{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:32
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:28
+                          flags = {}
+                          recv = Send{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:20
+                            flags = {}
+                            recv = Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:17
+                              flags = {}
+                              recv = Send{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:14
+                                flags = {}
+                                recv = Send{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:11
+                                  flags = {privateOk}
+                                  recv = Local{
+                                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:5-3:5
+                                    localVariable = <U <self>>
+                                  }
+                                  fun = <U method>
+                                  block = nullptr
+                                  pos_args = 0
+                                  args = [
+                                  ]
+                                }
+                                fun = <U <>
+                                block = nullptr
+                                pos_args = 1
+                                args = [
+                                  UnresolvedConstantLit{
+                                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:13-3:14
+                                    cnst = <C <U S>>
+                                    scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                                  }
+                                ]
+                              }
+                              fun = <U <>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedConstantLit{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:16-3:17
+                                  cnst = <C <U C>>
+                                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                                }
+                              ]
+                            }
+                            fun = <U <>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              UnresolvedConstantLit{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:19-3:20
+                                cnst = <C <U U>>
+                                scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                              }
+                            ]
+                          }
+                          fun = <U <>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:22-3:28
+                              flags = {}
+                              recv = Send{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:22-3:26
+                                flags = {privateOk}
+                                recv = Local{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:22-3:22
+                                  localVariable = <U <self>>
+                                }
+                                fun = <U root>
+                                block = nullptr
+                                pos_args = 0
+                                args = [
+                                ]
+                              }
+                              fun = <U >>>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                UnresolvedConstantLit{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:26-3:28
+                                  cnst = <C <U <ErrorNode>>>
+                                  scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                        fun = <U >>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:3:30-3:32
+                            kind = Global
+                            name = <U 1>
+                          }
+                        ]
+                      }
+                      fun = <U >>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Send{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:7-4:15
+                          flags = {privateOk}
+                          recv = Local{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:7-4:7
+                            localVariable = <U <self>>
+                          }
+                          fun = <U argument>
+                          block = nullptr
+                          pos_args = 0
+                          args = [
+                          ]
+                        }
+                      ]
+                    }
+                    fun = <U <>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:17-4:20
+                        flags = {privateOk}
+                        recv = Local{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:17-4:17
+                          localVariable = <U <self>>
+                        }
+                        fun = <U blk>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                  fun = <U >>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:20-4:21
+                      cnst = <C <U <ErrorNode>>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                    }
+                  ]
+                }
+                fun = <U <>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:22-4:27
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:22-4:22
+                      localVariable = <U <self>>
+                    }
+                    fun = <U block>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                ]
+              }
+              fun = <U >>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:29-4:30
+                  kind = Instance
+                  name = <U @>
+                }
+              ]
+            }
+
+            Send{
+              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:31-4:91
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:31-4:31
+                localVariable = <U <self>>
+              }
+              fun = <U Loc>
+              block = Block {
+                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:31-4:91
+                args = [
+                ]
+                body = InsSeq{
+                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:36-4:91
+                  stats = [
+                    Assign{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:36-4:81
+                      lhs = UnresolvedIdent{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:36-4:40
+                        kind = Local
+                        name = <U file>
+                      }
+                      rhs = Send{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:41-4:81
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:41-4:62
+                          flags = {}
+                          recv = Send{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:41-4:54
+                            flags = {}
+                            recv = Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:41-4:45
+                              flags = {privateOk}
+                              recv = Local{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:41-4:41
+                                localVariable = <U <self>>
+                              }
+                              fun = <U test>
+                              block = nullptr
+                              pos_args = 0
+                              args = [
+                              ]
+                            }
+                            fun = <U />
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              Send{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:46-4:54
+                                flags = {privateOk}
+                                recv = Local{
+                                  loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:46-4:46
+                                  localVariable = <U <self>>
+                                }
+                                fun = <U testdata>
+                                block = nullptr
+                                pos_args = 0
+                                args = [
+                                ]
+                              }
+                            ]
+                          }
+                          fun = <U />
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:55-4:62
+                              flags = {privateOk}
+                              recv = Local{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:55-4:55
+                                localVariable = <U <self>>
+                              }
+                              fun = <U desugar>
+                              block = nullptr
+                              pos_args = 0
+                              args = [
+                              ]
+                            }
+                          ]
+                        }
+                        fun = <U />
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:63-4:81
+                            flags = {}
+                            recv = Send{
+                              loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:63-4:78
+                              flags = {privateOk}
+                              recv = Local{
+                                loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:63-4:63
+                                localVariable = <U <self>>
+                              }
+                              fun = <U top_level_const>
+                              block = nullptr
+                              pos_args = 0
+                              args = [
+                              ]
+                            }
+                            fun = <U rb>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  expr = Assign{
+                    loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:82-4:91
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:82-4:87
+                      kind = Local
+                      name = <U start>
+                    }
+                    rhs = If{
+                      loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:88-4:91
+                      cond = Literal{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:88-4:90, value = "?" }
+                      thenp = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:90-4:91
+                        cnst = <C <U <ErrorNode>>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                      }
+                      elsep = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:91-4:91
+                        cnst = <C <U <ErrorNode>>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+                      }
+                    }
+                  }
+                }
+              }
+              pos_args = 0
+              args = [
+              ]
+            }
+          ]
+        }
+
+        If{
+          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:96-4:99
+          cond = Literal{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:96-4:98, value = "?" }
+          thenp = UnresolvedConstantLit{
+            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:98-4:99
+            cnst = <C <U <ErrorNode>>>
+            scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+          }
+          elsep = UnresolvedConstantLit{
+            loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:99-4:99
+            cnst = <C <U <ErrorNode>>>
+            scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+          }
+        }
+
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:99-4:99
+          cnst = <C <U <ErrorNode>>>
+          scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+        }
+
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp:4:100-5:1
+          cnst = <C <U <ErrorNode>>>
+          scope = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb.symbol-table-raw.exp }
+        }
+      ]
+    }
+  ]
+}

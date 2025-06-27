@@ -1,0 +1,29 @@
+ClassDef{
+  loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb:2:1-2:9
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb:2:1-2:9
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb:2:1-2:9
+      flags = {}
+      recv = ConstantLit{
+        loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb:2:1-2:9
+        symbol = (class ::<Magic>)
+        orig = nullptr
+      }
+      fun = <U <string-interpolate>>
+      block = nullptr
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb:2:2-2:5, value = nil }
+        Literal{ loc = test/testdata/desugar/fuzz_bad_loc_dstring.rb:2:5-2:8, value = nil }
+      ]
+    }
+  ]
+}

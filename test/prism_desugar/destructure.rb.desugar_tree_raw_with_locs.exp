@@ -1,0 +1,301 @@
+ClassDef{
+  loc = test/testdata/desugar/destructure.rb:2:1-9:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/destructure.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/destructure.rb:2:1-9:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/destructure.rb:2:1-9:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/destructure.rb:2:7-2:18
+        cnst = <C <U Destructure>>
+        scope = EmptyTree{ loc = test/testdata/desugar/destructure.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/destructure.rb:2:1-9:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/destructure.rb:3:3-8:6
+          flags = {}
+          name = <U f><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/destructure.rb:3:9-3:14
+              kind = Local
+              name = <D <U <destructure>> $2>
+            }, UnresolvedIdent{
+              loc = test/testdata/desugar/destructure.rb:3:16-3:17
+              kind = Local
+              name = <U z>
+            }, BlockArg{ loc = test/testdata/desugar/destructure.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/destructure.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/destructure.rb:3:3-8:6
+            stats = [
+              InsSeq{
+                loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                      kind = Local
+                      name = <D <U <assignTemp>> $3>
+                    }
+                    rhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                      kind = Local
+                      name = <D <U <destructure>> $2>
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                      kind = Local
+                      name = <D <U <assignTemp>> $4>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                        symbol = (class ::<Magic>)
+                        orig = nullptr
+                      }
+                      fun = <U <expand-splat>>
+                      block = nullptr
+                      pos_args = 3
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                          kind = Local
+                          name = <D <U <assignTemp>> $3>
+                        }
+                        Literal{ loc = test/testdata/desugar/destructure.rb:3:9-3:14, value = 2 }
+                        Literal{ loc = test/testdata/desugar/destructure.rb:3:9-3:14, value = 0 }
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/destructure.rb:3:10-3:11
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:3:10-3:11
+                      kind = Local
+                      name = <U x>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/destructure.rb:3:10-3:11
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/destructure.rb:3:10-3:11
+                        kind = Local
+                        name = <D <U <assignTemp>> $4>
+                      }
+                      fun = <U []>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/destructure.rb:3:9-3:14, value = 0 }
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/destructure.rb:3:12-3:13
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:3:12-3:13
+                      kind = Local
+                      name = <U y>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/destructure.rb:3:12-3:13
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/destructure.rb:3:12-3:13
+                        kind = Local
+                        name = <D <U <assignTemp>> $4>
+                      }
+                      fun = <U []>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/destructure.rb:3:9-3:14, value = 1 }
+                      ]
+                    }
+                  }
+                ],
+                expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/destructure.rb:3:9-3:14
+                  kind = Local
+                  name = <D <U <assignTemp>> $3>
+                }
+              }
+            ],
+            expr = InsSeq{
+              loc = test/testdata/desugar/destructure.rb:4:5-7:8
+              stats = [
+                Send{
+                  loc = test/testdata/desugar/destructure.rb:4:5-4:10
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/destructure.rb:4:5-4:6
+                    kind = Local
+                    name = <U x>
+                  }
+                  fun = <U +>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:4:9-4:10
+                      kind = Local
+                      name = <U y>
+                    }
+                  ]
+                }
+              ],
+              expr = Send{
+                loc = test/testdata/desugar/destructure.rb:6:5-7:8
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/destructure.rb:6:5-6:5
+                  localVariable = <U <self>>
+                }
+                fun = <U lambda>
+                block = Block {
+                  loc = test/testdata/desugar/destructure.rb:6:5-7:8
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                      kind = Local
+                      name = <D <U <destructure>> $5>
+                    }
+                  ]
+                  body = InsSeq{
+                    loc = test/testdata/desugar/destructure.rb:6:5-7:8
+                    stats = [
+                      InsSeq{
+                        loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                        stats = [
+                          Assign{
+                            loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                              kind = Local
+                              name = <D <U <assignTemp>> $6>
+                            }
+                            rhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                              kind = Local
+                              name = <D <U <destructure>> $5>
+                            }
+                          }
+                          Assign{
+                            loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                              kind = Local
+                              name = <D <U <assignTemp>> $7>
+                            }
+                            rhs = Send{
+                              loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                                symbol = (class ::<Magic>)
+                                orig = nullptr
+                              }
+                              fun = <U <expand-splat>>
+                              block = nullptr
+                              pos_args = 3
+                              args = [
+                                UnresolvedIdent{
+                                  loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                                  kind = Local
+                                  name = <D <U <assignTemp>> $6>
+                                }
+                                Literal{ loc = test/testdata/desugar/destructure.rb:6:16-6:21, value = 2 }
+                                Literal{ loc = test/testdata/desugar/destructure.rb:6:16-6:21, value = 0 }
+                              ]
+                            }
+                          }
+                          Assign{
+                            loc = test/testdata/desugar/destructure.rb:6:17-6:18
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/destructure.rb:6:17-6:18
+                              kind = Local
+                              name = <U a>
+                            }
+                            rhs = Send{
+                              loc = test/testdata/desugar/destructure.rb:6:17-6:18
+                              flags = {}
+                              recv = UnresolvedIdent{
+                                loc = test/testdata/desugar/destructure.rb:6:17-6:18
+                                kind = Local
+                                name = <D <U <assignTemp>> $7>
+                              }
+                              fun = <U []>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                Literal{ loc = test/testdata/desugar/destructure.rb:6:16-6:21, value = 0 }
+                              ]
+                            }
+                          }
+                          Assign{
+                            loc = test/testdata/desugar/destructure.rb:6:19-6:20
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/destructure.rb:6:19-6:20
+                              kind = Local
+                              name = <U b>
+                            }
+                            rhs = Send{
+                              loc = test/testdata/desugar/destructure.rb:6:19-6:20
+                              flags = {}
+                              recv = UnresolvedIdent{
+                                loc = test/testdata/desugar/destructure.rb:6:19-6:20
+                                kind = Local
+                                name = <D <U <assignTemp>> $7>
+                              }
+                              fun = <U []>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                Literal{ loc = test/testdata/desugar/destructure.rb:6:16-6:21, value = 1 }
+                              ]
+                            }
+                          }
+                        ],
+                        expr = UnresolvedIdent{
+                          loc = test/testdata/desugar/destructure.rb:6:16-6:21
+                          kind = Local
+                          name = <D <U <assignTemp>> $6>
+                        }
+                      }
+                    ],
+                    expr = EmptyTree{ loc = test/testdata/desugar/destructure.rb }
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

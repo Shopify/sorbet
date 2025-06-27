@@ -1,0 +1,65 @@
+ClassDef{
+  loc = test/testdata/desugar/lambda.rb:2:1-4:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/lambda.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/lambda.rb:2:1-4:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/lambda.rb:2:1-4:4
+      flags = {}
+      name = <U test_lambda><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/lambda.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/lambda.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Send{
+        loc = test/testdata/desugar/lambda.rb:3:3-3:13
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/lambda.rb:3:3-3:13
+          cnst = <C <U Kernel>>
+          scope = EmptyTree{ loc = test/testdata/desugar/lambda.rb }
+        }
+        fun = <U lambda>
+        block = Block {
+          loc = test/testdata/desugar/lambda.rb:3:3-3:13
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/lambda.rb:3:6-3:7
+              kind = Local
+              name = <U x>
+            }
+          ]
+          body = Send{
+            loc = test/testdata/desugar/lambda.rb:3:9-3:12
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/lambda.rb:3:9-3:10
+              kind = Local
+              name = <U x>
+            }
+            fun = <U *>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/lambda.rb:3:11-3:12
+                kind = Local
+                name = <U x>
+              }
+            ]
+          }
+        }
+        pos_args = 0
+        args = [
+        ]
+      }
+    }
+  ]
+}

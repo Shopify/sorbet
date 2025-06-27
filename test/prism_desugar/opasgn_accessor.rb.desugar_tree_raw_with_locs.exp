@@ -1,0 +1,278 @@
+ClassDef{
+  loc = test/testdata/desugar/opasgn_accessor.rb:3:1-15:21
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/opasgn_accessor.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/opasgn_accessor.rb:3:1-15:21
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/opasgn_accessor.rb:3:1-8:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/opasgn_accessor.rb:3:7-3:8
+        cnst = <C <U A>>
+        scope = EmptyTree{ loc = test/testdata/desugar/opasgn_accessor.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/opasgn_accessor.rb:3:1-8:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        Send{
+          loc = test/testdata/desugar/opasgn_accessor.rb:4:3-4:16
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/opasgn_accessor.rb:4:3-4:3
+            localVariable = <U <self>>
+          }
+          fun = <U extend>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/opasgn_accessor.rb:4:10-4:16
+              cnst = <C <U Sig>>
+              scope = UnresolvedConstantLit{
+                loc = test/testdata/desugar/opasgn_accessor.rb:4:10-4:11
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/opasgn_accessor.rb }
+              }
+            }
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/opasgn_accessor.rb:6:3-6:35
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/opasgn_accessor.rb:6:3-6:3
+            localVariable = <U <self>>
+          }
+          fun = <U sig>
+          block = Block {
+            loc = test/testdata/desugar/opasgn_accessor.rb:6:3-6:35
+            args = [
+            ]
+            body = Send{
+              loc = test/testdata/desugar/opasgn_accessor.rb:6:8-6:34
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/opasgn_accessor.rb:6:8-6:8
+                localVariable = <U <self>>
+              }
+              fun = <U returns>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/opasgn_accessor.rb:6:16-6:33
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/opasgn_accessor.rb:6:16-6:17
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/opasgn_accessor.rb }
+                  }
+                  fun = <U nilable>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/opasgn_accessor.rb:6:26-6:32
+                      cnst = <C <U String>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/opasgn_accessor.rb }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          pos_args = 0
+          args = [
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/opasgn_accessor.rb:7:3-7:23
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/opasgn_accessor.rb:7:3-7:3
+            localVariable = <U <self>>
+          }
+          fun = <U attr_accessor>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/opasgn_accessor.rb:7:17-7:23, value = :value }
+          ]
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/opasgn_accessor.rb:10:1-10:10
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/opasgn_accessor.rb:10:1-10:2
+        kind = Local
+        name = <U a>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/opasgn_accessor.rb:10:5-10:10
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/opasgn_accessor.rb:10:5-10:6
+          cnst = <C <U A>>
+          scope = EmptyTree{ loc = test/testdata/desugar/opasgn_accessor.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+            kind = Local
+            name = <D <U value> $2>
+          }
+          rhs = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:2
+            kind = Local
+            name = <U a>
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+            kind = Local
+            name = <D <U value> $3>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+              kind = Local
+              name = <D <U value> $2>
+            }
+            fun = <U value>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+      ],
+      expr = If{
+        loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+        cond = UnresolvedIdent{
+          loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+          kind = Local
+          name = <D <U value> $3>
+        }
+        thenp = Send{
+          loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+            kind = Local
+            name = <D <U value> $2>
+          }
+          fun = <U value=>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/opasgn_accessor.rb:14:13-14:21, value = "string" }
+          ]
+        }
+        elsep = UnresolvedIdent{
+          loc = test/testdata/desugar/opasgn_accessor.rb:14:1-14:21
+          kind = Local
+          name = <D <U value> $3>
+        }
+      }
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+            kind = Local
+            name = <D <U value> $4>
+          }
+          rhs = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:2
+            kind = Local
+            name = <U a>
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+            kind = Local
+            name = <D <U value> $5>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+              kind = Local
+              name = <D <U value> $4>
+            }
+            fun = <U value>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+      ],
+      expr = If{
+        loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+        cond = UnresolvedIdent{
+          loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+          kind = Local
+          name = <D <U value> $5>
+        }
+        thenp = UnresolvedIdent{
+          loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+          kind = Local
+          name = <D <U value> $5>
+        }
+        elsep = Send{
+          loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/opasgn_accessor.rb:15:1-15:21
+            kind = Local
+            name = <D <U value> $4>
+          }
+          fun = <U value=>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/opasgn_accessor.rb:15:13-15:21, value = "string" }
+          ]
+        }
+      }
+    }
+  ]
+}

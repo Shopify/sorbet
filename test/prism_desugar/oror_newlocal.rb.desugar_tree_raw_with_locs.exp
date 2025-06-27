@@ -1,0 +1,193 @@
+ClassDef{
+  loc = test/testdata/desugar/oror_newlocal.rb:2:1-14:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/oror_newlocal.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/oror_newlocal.rb:2:1-14:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/oror_newlocal.rb:2:1-2:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/oror_newlocal.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/oror_newlocal.rb:2:8-2:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/oror_newlocal.rb:2:8-2:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/oror_newlocal.rb }
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/oror_newlocal.rb:4:1-4:23
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/oror_newlocal.rb:4:1-4:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/oror_newlocal.rb:4:1-4:23
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/oror_newlocal.rb:4:6-4:22
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/oror_newlocal.rb:4:6-4:6
+            localVariable = <U <self>>
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/oror_newlocal.rb:4:14-4:21
+              cnst = <C <U Integer>>
+              scope = EmptyTree{ loc = test/testdata/desugar/oror_newlocal.rb }
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/oror_newlocal.rb:5:1-7:4
+      flags = {}
+      name = <U int><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/oror_newlocal.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/oror_newlocal.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Literal{ loc = test/testdata/desugar/oror_newlocal.rb:6:3-6:4, value = 5 }
+    }
+
+    Send{
+      loc = test/testdata/desugar/oror_newlocal.rb:9:1-9:23
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/oror_newlocal.rb:9:1-9:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/oror_newlocal.rb:9:1-9:23
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/oror_newlocal.rb:9:6-9:22
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/oror_newlocal.rb:9:6-9:6
+            localVariable = <U <self>>
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/oror_newlocal.rb:9:14-9:21
+              cnst = <C <U Integer>>
+              scope = EmptyTree{ loc = test/testdata/desugar/oror_newlocal.rb }
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/oror_newlocal.rb:10:1-14:4
+      flags = {}
+      name = <U newlocal><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/oror_newlocal.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/oror_newlocal.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/oror_newlocal.rb:11:3-13:4
+        stats = [
+          If{
+            loc = test/testdata/desugar/oror_newlocal.rb:11:3-11:12
+            cond = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_newlocal.rb:11:3-11:4
+              kind = Local
+              name = <U x>
+            }
+            thenp = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_newlocal.rb:11:3-11:4
+              kind = Local
+              name = <U x>
+            }
+            elsep = Assign{
+              loc = test/testdata/desugar/oror_newlocal.rb:11:3-11:12
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/oror_newlocal.rb:11:3-11:4
+                kind = Local
+                name = <U x>
+              }
+              rhs = Send{
+                loc = test/testdata/desugar/oror_newlocal.rb:11:9-11:12
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/oror_newlocal.rb:11:9-11:9
+                  localVariable = <U <self>>
+                }
+                fun = <U int>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          }
+          Send{
+            loc = test/testdata/desugar/oror_newlocal.rb:12:3-12:19
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/oror_newlocal.rb:12:3-12:4
+              cnst = <C <U T>>
+              scope = EmptyTree{ loc = test/testdata/desugar/oror_newlocal.rb }
+            }
+            fun = <U reveal_type>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/oror_newlocal.rb:12:17-12:18
+                kind = Local
+                name = <U x>
+              }
+            ]
+          }
+        ],
+        expr = UnresolvedIdent{
+          loc = test/testdata/desugar/oror_newlocal.rb:13:3-13:4
+          kind = Local
+          name = <U x>
+        }
+      }
+    }
+  ]
+}

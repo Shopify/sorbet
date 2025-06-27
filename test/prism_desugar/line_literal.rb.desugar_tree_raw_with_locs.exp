@@ -1,0 +1,42 @@
+ClassDef{
+  loc = test/testdata/desugar/line_literal.rb:3:1-4:13
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/line_literal.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/line_literal.rb:3:1-4:13
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/line_literal.rb:3:1-4:13
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/line_literal.rb:3:1-3:1
+        localVariable = <U <self>>
+      }
+      fun = <U puts>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/line_literal.rb:3:6-4:13
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/line_literal.rb:3:6-4:13
+            symbol = (class ::<Magic>)
+            orig = nullptr
+          }
+          fun = <U <string-interpolate>>
+          block = nullptr
+          pos_args = 2
+          args = [
+            Literal{ loc = test/testdata/desugar/line_literal.rb:3:7-4:1, value = "\n" }
+            Literal{ loc = test/testdata/desugar/line_literal.rb:4:3-4:11, value = 4 }
+          ]
+        }
+      ]
+    }
+  ]
+}

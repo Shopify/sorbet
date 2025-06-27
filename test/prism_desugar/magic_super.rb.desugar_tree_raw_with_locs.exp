@@ -1,0 +1,145 @@
+ClassDef{
+  loc = test/testdata/desugar/magic_super.rb:3:1-21:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/magic_super.rb:3:1-21:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/magic_super.rb:3:1-10:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/magic_super.rb:3:7-3:13
+        cnst = <C <U Parent>>
+        scope = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/magic_super.rb:3:1-10:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/magic_super.rb:4:3-5:6
+          flags = {}
+          name = <U super><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb:4:13-4:14
+              kind = Local
+              name = <U x>
+            }, BlockArg{ loc = test/testdata/desugar/magic_super.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/magic_super.rb:7:3-7:19
+          flags = {}
+          name = <U nullary><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/magic_super.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/magic_super.rb:9:3-9:20
+          flags = {}
+          name = <U unary><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb:9:13-9:14
+              kind = Local
+              name = <U x>
+            }, BlockArg{ loc = test/testdata/desugar/magic_super.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/magic_super.rb:12:1-21:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/magic_super.rb:12:7-12:12
+        cnst = <C <U Child>>
+        scope = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [UnresolvedConstantLit{
+          loc = test/testdata/desugar/magic_super.rb:12:15-12:21
+          cnst = <C <U Parent>>
+          scope = EmptyTree{ loc = test/testdata/desugar/magic_super.rb }
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/magic_super.rb:13:3-15:6
+          flags = {}
+          name = <U nullary><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/magic_super.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/magic_super.rb:14:5-14:10
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/magic_super.rb:14:5-14:10
+              localVariable = <U <self>>
+            }
+            fun = <U <super>>
+            block = nullptr
+            pos_args = 1
+            args = [
+              ZSuperArgs{ loc = test/testdata/desugar/magic_super.rb:14:10-14:10 }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/magic_super.rb:17:3-20:6
+          flags = {}
+          name = <U unary><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb:17:13-17:14
+              kind = Local
+              name = <U x>
+            }, BlockArg{ loc = test/testdata/desugar/magic_super.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/magic_super.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/magic_super.rb:18:5-18:16
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/magic_super.rb:18:5-18:5
+              localVariable = <U <self>>
+            }
+            fun = <U <super>>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/magic_super.rb:18:11-18:12, value = 1 }
+              Literal{ loc = test/testdata/desugar/magic_super.rb:18:14-18:15, value = 2 }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

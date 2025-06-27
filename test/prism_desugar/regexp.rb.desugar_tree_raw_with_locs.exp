@@ -1,0 +1,302 @@
+ClassDef{
+  loc = test/testdata/desugar/regexp.rb:2:1-18:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/regexp.rb:2:1-18:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/regexp.rb:2:1-18:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/regexp.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/regexp.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/regexp.rb:3:5-17:11
+        stats = [
+          Send{
+            loc = test/testdata/desugar/regexp.rb:3:5-3:10
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/regexp.rb:3:5-3:10
+              symbol = (class ::Regexp)
+              orig = nullptr
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/regexp.rb:3:5-3:10, value = "abc" }
+              Literal{ loc = test/testdata/desugar/regexp.rb:3:9-3:10, value = 0 }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:4:5-4:22
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/regexp.rb:4:5-4:11
+              cnst = <C <U Regexp>>
+              scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Literal{ loc = test/testdata/desugar/regexp.rb:4:16-4:21, value = "abc" }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:6:5-6:11
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/regexp.rb:6:5-6:11
+              symbol = (class ::Regexp)
+              orig = nullptr
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/regexp.rb:6:5-6:11, value = "abc" }
+              Literal{ loc = test/testdata/desugar/regexp.rb:6:9-6:11, value = 1 }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:7:5-7:42
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/regexp.rb:7:5-7:11
+              cnst = <C <U Regexp>>
+              scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/regexp.rb:7:16-7:21, value = "abc" }
+              UnresolvedConstantLit{
+                loc = test/testdata/desugar/regexp.rb:7:23-7:41
+                cnst = <C <U IGNORECASE>>
+                scope = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/regexp.rb:7:23-7:29
+                  cnst = <C <U Regexp>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+                }
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:9:5-9:17
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/regexp.rb:9:5-9:17
+              symbol = (class ::Regexp)
+              orig = nullptr
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/regexp.rb:9:5-9:17, value = "abc" }
+              Literal{ loc = test/testdata/desugar/regexp.rb:9:9-9:17, value = 7 }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:10:5-10:85
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/regexp.rb:10:5-10:11
+              cnst = <C <U Regexp>>
+              scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/regexp.rb:10:16-10:21, value = "abc" }
+              Send{
+                loc = test/testdata/desugar/regexp.rb:10:23-10:84
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/regexp.rb:10:23-10:64
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/regexp.rb:10:23-10:45
+                    flags = {}
+                    recv = Literal{ loc = test/testdata/desugar/regexp.rb:10:23-10:24, value = 0 }
+                    fun = <U |>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/regexp.rb:10:27-10:45
+                        cnst = <C <U IGNORECASE>>
+                        scope = UnresolvedConstantLit{
+                          loc = test/testdata/desugar/regexp.rb:10:27-10:33
+                          cnst = <C <U Regexp>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+                        }
+                      }
+                    ]
+                  }
+                  fun = <U |>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/regexp.rb:10:48-10:64
+                      cnst = <C <U EXTENDED>>
+                      scope = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/regexp.rb:10:48-10:54
+                        cnst = <C <U Regexp>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+                      }
+                    }
+                  ]
+                }
+                fun = <U |>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/regexp.rb:10:67-10:84
+                    cnst = <C <U MULTILINE>>
+                    scope = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/regexp.rb:10:67-10:73
+                      cnst = <C <U Regexp>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+          Assign{
+            loc = test/testdata/desugar/regexp.rb:12:5-12:12
+            lhs = UnresolvedIdent{
+              loc = test/testdata/desugar/regexp.rb:12:5-12:6
+              kind = Local
+              name = <U a>
+            }
+            rhs = Literal{ loc = test/testdata/desugar/regexp.rb:12:9-12:12, value = "a" }
+          }
+          Assign{
+            loc = test/testdata/desugar/regexp.rb:13:5-13:12
+            lhs = UnresolvedIdent{
+              loc = test/testdata/desugar/regexp.rb:13:5-13:6
+              kind = Local
+              name = <U c>
+            }
+            rhs = Literal{ loc = test/testdata/desugar/regexp.rb:13:9-13:12, value = "c" }
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:14:5-14:16
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/regexp.rb:14:5-14:16
+              symbol = (class ::Regexp)
+              orig = nullptr
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Send{
+                loc = test/testdata/desugar/regexp.rb:14:5-14:16
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/regexp.rb:14:5-14:16
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <string-interpolate>>
+                block = nullptr
+                pos_args = 3
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/regexp.rb:14:8-14:9
+                    kind = Local
+                    name = <U a>
+                  }
+                  Literal{ loc = test/testdata/desugar/regexp.rb:14:10-14:11, value = "b" }
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/regexp.rb:14:13-14:14
+                    kind = Local
+                    name = <U c>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/regexp.rb:14:15-14:16, value = 0 }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/regexp.rb:15:5-15:28
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/regexp.rb:15:5-15:11
+              cnst = <C <U Regexp>>
+              scope = EmptyTree{ loc = test/testdata/desugar/regexp.rb }
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/regexp.rb:15:16-15:27
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/regexp.rb:15:16-15:23
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/regexp.rb:15:16-15:17
+                    kind = Local
+                    name = <U a>
+                  }
+                  fun = <U +>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ loc = test/testdata/desugar/regexp.rb:15:20-15:23, value = "b" }
+                  ]
+                }
+                fun = <U +>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/regexp.rb:15:26-15:27
+                    kind = Local
+                    name = <U c>
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/regexp.rb:17:5-17:11
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/regexp.rb:17:5-17:11
+            symbol = (class ::Regexp)
+            orig = nullptr
+          }
+          fun = <U new>
+          block = nullptr
+          pos_args = 2
+          args = [
+            Literal{ loc = test/testdata/desugar/regexp.rb:17:5-17:11, value = "abc" }
+            Literal{ loc = test/testdata/desugar/regexp.rb:17:9-17:11, value = 0 }
+          ]
+        }
+      }
+    }
+  ]
+}

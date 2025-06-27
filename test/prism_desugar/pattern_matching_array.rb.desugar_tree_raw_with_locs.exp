@@ -1,0 +1,1053 @@
+ClassDef{
+  loc = test/testdata/desugar/pattern_matching_array.rb:3:1-27:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/pattern_matching_array.rb:3:1-27:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Assign{
+      loc = test/testdata/desugar/pattern_matching_array.rb:3:1-3:10
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/pattern_matching_array.rb:3:1-3:5
+        kind = Local
+        name = <U expr>
+      }
+      rhs = Array{
+        loc = test/testdata/desugar/pattern_matching_array.rb:3:8-3:10
+        elems = [
+        ]
+      }
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/pattern_matching_array.rb:5:1-27:4
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/pattern_matching_array.rb:5:6-5:10
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/pattern_matching_array.rb:5:6-5:10
+            kind = Local
+            name = <D <U <assignTemp>> $2>
+          }
+          rhs = UnresolvedIdent{
+            loc = test/testdata/desugar/pattern_matching_array.rb:5:6-5:10
+            kind = Local
+            name = <U expr>
+          }
+        }
+      ],
+      expr = If{
+        loc = test/testdata/desugar/pattern_matching_array.rb:6:1-7:19
+        cond = Send{
+          loc = test/testdata/desugar/pattern_matching_array.rb:6:4-6:11
+          flags = {rewriterSynthesized}
+          recv = Send{
+            loc = test/testdata/desugar/pattern_matching_array.rb:6:4-6:11
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/pattern_matching_array.rb:6:4-6:11
+              symbol = (module ::T)
+              orig = nullptr
+            }
+            fun = <U unsafe>
+            block = nullptr
+            pos_args = 1
+            args = [
+              ConstantLit{
+                loc = test/testdata/desugar/pattern_matching_array.rb:6:4-6:11
+                symbol = (module ::Kernel)
+                orig = nullptr
+              }
+            ]
+          }
+          fun = <U raise>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:6:4-6:11, value = "Sorbet rewriter pass partially unimplemented" }
+          ]
+        }
+        thenp = InsSeq{
+          loc = test/testdata/desugar/pattern_matching_array.rb:6:4-6:11
+          stats = [
+            Assign{
+              loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11
+                kind = Local
+                name = <U a>
+              }
+              rhs = Send{
+                loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11
+                flags = {rewriterSynthesized}
+                recv = Send{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11
+                    symbol = (module ::T)
+                    orig = nullptr
+                  }
+                  fun = <U unsafe>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    ConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11
+                      symbol = (module ::Kernel)
+                      orig = nullptr
+                    }
+                  ]
+                }
+                fun = <U raise>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:6:10-6:11, value = "Sorbet rewriter pass partially unimplemented" }
+                ]
+              }
+            }
+          ],
+          expr = Send{
+            loc = test/testdata/desugar/pattern_matching_array.rb:7:3-7:19
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/pattern_matching_array.rb:7:3-7:4
+              cnst = <C <U T>>
+              scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+            }
+            fun = <U reveal_type>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/pattern_matching_array.rb:7:17-7:18
+                kind = Local
+                name = <U a>
+              }
+            ]
+          }
+        }
+        elsep = If{
+          loc = test/testdata/desugar/pattern_matching_array.rb:8:1-9:19
+          cond = Send{
+            loc = test/testdata/desugar/pattern_matching_array.rb:8:4-8:7
+            flags = {rewriterSynthesized}
+            recv = Send{
+              loc = test/testdata/desugar/pattern_matching_array.rb:8:4-8:7
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/pattern_matching_array.rb:8:4-8:7
+                symbol = (module ::T)
+                orig = nullptr
+              }
+              fun = <U unsafe>
+              block = nullptr
+              pos_args = 1
+              args = [
+                ConstantLit{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:8:4-8:7
+                  symbol = (module ::Kernel)
+                  orig = nullptr
+                }
+              ]
+            }
+            fun = <U raise>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:8:4-8:7, value = "Sorbet rewriter pass partially unimplemented" }
+            ]
+          }
+          thenp = InsSeq{
+            loc = test/testdata/desugar/pattern_matching_array.rb:8:4-8:7
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6
+                  kind = Local
+                  name = <U b>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6
+                  flags = {rewriterSynthesized}
+                  recv = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      ConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6
+                        symbol = (module ::Kernel)
+                        orig = nullptr
+                      }
+                    ]
+                  }
+                  fun = <U raise>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:8:5-8:6, value = "Sorbet rewriter pass partially unimplemented" }
+                  ]
+                }
+              }
+            ],
+            expr = Send{
+              loc = test/testdata/desugar/pattern_matching_array.rb:9:3-9:19
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/pattern_matching_array.rb:9:3-9:4
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+              }
+              fun = <U reveal_type>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:9:17-9:18
+                  kind = Local
+                  name = <U b>
+                }
+              ]
+            }
+          }
+          elsep = If{
+            loc = test/testdata/desugar/pattern_matching_array.rb:10:1-12:19
+            cond = Send{
+              loc = test/testdata/desugar/pattern_matching_array.rb:10:4-10:12
+              flags = {rewriterSynthesized}
+              recv = Send{
+                loc = test/testdata/desugar/pattern_matching_array.rb:10:4-10:12
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:10:4-10:12
+                  symbol = (module ::T)
+                  orig = nullptr
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  ConstantLit{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:10:4-10:12
+                    symbol = (module ::Kernel)
+                    orig = nullptr
+                  }
+                ]
+              }
+              fun = <U raise>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:10:4-10:12, value = "Sorbet rewriter pass partially unimplemented" }
+              ]
+            }
+            thenp = InsSeq{
+              loc = test/testdata/desugar/pattern_matching_array.rb:10:4-10:12
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6
+                    kind = Local
+                    name = <U c>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6
+                    flags = {rewriterSynthesized}
+                    recv = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6
+                        symbol = (module ::T)
+                        orig = nullptr
+                      }
+                      fun = <U unsafe>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6
+                          symbol = (module ::Kernel)
+                          orig = nullptr
+                        }
+                      ]
+                    }
+                    fun = <U raise>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:10:5-10:6, value = "Sorbet rewriter pass partially unimplemented" }
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10
+                    kind = Local
+                    name = <U d>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10
+                    flags = {rewriterSynthesized}
+                    recv = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10
+                        symbol = (module ::T)
+                        orig = nullptr
+                      }
+                      fun = <U unsafe>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10
+                          symbol = (module ::Kernel)
+                          orig = nullptr
+                        }
+                      ]
+                    }
+                    fun = <U raise>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:10:9-10:10, value = "Sorbet rewriter pass partially unimplemented" }
+                    ]
+                  }
+                }
+              ],
+              expr = InsSeq{
+                loc = test/testdata/desugar/pattern_matching_array.rb:11:3-12:19
+                stats = [
+                  Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:11:3-11:19
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:11:3-11:4
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:11:17-11:18
+                        kind = Local
+                        name = <U c>
+                      }
+                    ]
+                  }
+                ],
+                expr = Send{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:12:3-12:19
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:12:3-12:4
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                  }
+                  fun = <U reveal_type>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:12:17-12:18
+                      kind = Local
+                      name = <U d>
+                    }
+                  ]
+                }
+              }
+            }
+            elsep = If{
+              loc = test/testdata/desugar/pattern_matching_array.rb:13:1-17:19
+              cond = Send{
+                loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:18
+                flags = {rewriterSynthesized}
+                recv = Send{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:18
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:18
+                    symbol = (module ::T)
+                    orig = nullptr
+                  }
+                  fun = <U unsafe>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    ConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:18
+                      symbol = (module ::Kernel)
+                      orig = nullptr
+                    }
+                  ]
+                }
+                fun = <U raise>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:18, value = "Sorbet rewriter pass partially unimplemented" }
+                ]
+              }
+              thenp = InsSeq{
+                loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:18
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5
+                      kind = Local
+                      name = <U e>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5
+                      flags = {rewriterSynthesized}
+                      recv = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          ConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5
+                            symbol = (module ::Kernel)
+                            orig = nullptr
+                          }
+                        ]
+                      }
+                      fun = <U raise>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:13:4-13:5, value = "Sorbet rewriter pass partially unimplemented" }
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9
+                      kind = Local
+                      name = <U f>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9
+                      flags = {rewriterSynthesized}
+                      recv = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          ConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9
+                            symbol = (module ::Kernel)
+                            orig = nullptr
+                          }
+                        ]
+                      }
+                      fun = <U raise>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:13:8-13:9, value = "Sorbet rewriter pass partially unimplemented" }
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18
+                      kind = Local
+                      name = <U h>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18
+                      flags = {rewriterSynthesized}
+                      recv = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          ConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18
+                            symbol = (module ::Kernel)
+                            orig = nullptr
+                          }
+                        ]
+                      }
+                      fun = <U raise>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:13:17-13:18, value = "Sorbet rewriter pass partially unimplemented" }
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13
+                      kind = Local
+                      name = <U g>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13
+                      flags = {rewriterSynthesized}
+                      recv = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          ConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13
+                            symbol = (module ::Kernel)
+                            orig = nullptr
+                          }
+                        ]
+                      }
+                      fun = <U raise>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:13:12-13:13, value = "Sorbet rewriter pass partially unimplemented" }
+                      ]
+                    }
+                  }
+                ],
+                expr = InsSeq{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:14:3-17:19
+                  stats = [
+                    Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:14:3-14:19
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:14:3-14:4
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                      }
+                      fun = <U reveal_type>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:14:17-14:18
+                          kind = Local
+                          name = <U e>
+                        }
+                      ]
+                    }
+                    Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:15:3-15:19
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:15:3-15:4
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                      }
+                      fun = <U reveal_type>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:15:17-15:18
+                          kind = Local
+                          name = <U f>
+                        }
+                      ]
+                    }
+                    Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:16:3-16:19
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:16:3-16:4
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                      }
+                      fun = <U reveal_type>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:16:17-16:18
+                          kind = Local
+                          name = <U g>
+                        }
+                      ]
+                    }
+                  ],
+                  expr = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:17:3-17:19
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:17:3-17:4
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:17:17-17:18
+                        kind = Local
+                        name = <U h>
+                      }
+                    ]
+                  }
+                }
+              }
+              elsep = If{
+                loc = test/testdata/desugar/pattern_matching_array.rb:18:1-19:19
+                cond = Send{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:18:4-18:8
+                  flags = {rewriterSynthesized}
+                  recv = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:18:4-18:8
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:18:4-18:8
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      ConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:18:4-18:8
+                        symbol = (module ::Kernel)
+                        orig = nullptr
+                      }
+                    ]
+                  }
+                  fun = <U raise>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:18:4-18:8, value = "Sorbet rewriter pass partially unimplemented" }
+                  ]
+                }
+                thenp = InsSeq{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:18:4-18:8
+                  stats = [
+                    Assign{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6
+                      lhs = UnresolvedIdent{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6
+                        kind = Local
+                        name = <U i>
+                      }
+                      rhs = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6
+                        flags = {rewriterSynthesized}
+                        recv = Send{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            ConstantLit{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6
+                              symbol = (module ::Kernel)
+                              orig = nullptr
+                            }
+                          ]
+                        }
+                        fun = <U raise>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:18:5-18:6, value = "Sorbet rewriter pass partially unimplemented" }
+                        ]
+                      }
+                    }
+                  ],
+                  expr = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:19:3-19:19
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:19:3-19:4
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:19:17-19:18
+                        kind = Local
+                        name = <U i>
+                      }
+                    ]
+                  }
+                }
+                elsep = If{
+                  loc = test/testdata/desugar/pattern_matching_array.rb:20:1-22:19
+                  cond = Send{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:20:4-20:13
+                    flags = {rewriterSynthesized}
+                    recv = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:20:4-20:13
+                      flags = {}
+                      recv = ConstantLit{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:20:4-20:13
+                        symbol = (module ::T)
+                        orig = nullptr
+                      }
+                      fun = <U unsafe>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:20:4-20:13
+                          symbol = (module ::Kernel)
+                          orig = nullptr
+                        }
+                      ]
+                    }
+                    fun = <U raise>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:20:4-20:13, value = "Sorbet rewriter pass partially unimplemented" }
+                    ]
+                  }
+                  thenp = InsSeq{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:20:4-20:13
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6
+                          kind = Local
+                          name = <U k>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6
+                          flags = {rewriterSynthesized}
+                          recv = Send{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6
+                            flags = {}
+                            recv = ConstantLit{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              ConstantLit{
+                                loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6
+                                symbol = (module ::Kernel)
+                                orig = nullptr
+                              }
+                            ]
+                          }
+                          fun = <U raise>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:20:5-20:6, value = "Sorbet rewriter pass partially unimplemented" }
+                          ]
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12
+                          kind = Local
+                          name = <U l>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12
+                          flags = {rewriterSynthesized}
+                          recv = Send{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12
+                            flags = {}
+                            recv = ConstantLit{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              ConstantLit{
+                                loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12
+                                symbol = (module ::Kernel)
+                                orig = nullptr
+                              }
+                            ]
+                          }
+                          fun = <U raise>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:20:11-20:12, value = "Sorbet rewriter pass partially unimplemented" }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = InsSeq{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:21:3-22:19
+                      stats = [
+                        Send{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:21:3-21:19
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:21:3-21:4
+                            cnst = <C <U T>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                          }
+                          fun = <U reveal_type>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:21:17-21:18
+                              kind = Local
+                              name = <U k>
+                            }
+                          ]
+                        }
+                      ],
+                      expr = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:22:3-22:19
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:22:3-22:4
+                          cnst = <C <U T>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                        }
+                        fun = <U reveal_type>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:22:17-22:18
+                            kind = Local
+                            name = <U l>
+                          }
+                        ]
+                      }
+                    }
+                  }
+                  elsep = If{
+                    loc = test/testdata/desugar/pattern_matching_array.rb:23:1-25:19
+                    cond = Send{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:23:4-23:11
+                      flags = {rewriterSynthesized}
+                      recv = Send{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:23:4-23:11
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:23:4-23:11
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          ConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:23:4-23:11
+                            symbol = (module ::Kernel)
+                            orig = nullptr
+                          }
+                        ]
+                      }
+                      fun = <U raise>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:23:4-23:11, value = "Sorbet rewriter pass partially unimplemented" }
+                      ]
+                    }
+                    thenp = InsSeq{
+                      loc = test/testdata/desugar/pattern_matching_array.rb:23:4-23:11
+                      stats = [
+                        Assign{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6
+                          lhs = UnresolvedIdent{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6
+                            kind = Local
+                            name = <U m>
+                          }
+                          rhs = Send{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6
+                            flags = {rewriterSynthesized}
+                            recv = Send{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                ConstantLit{
+                                  loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6
+                                  symbol = (module ::Kernel)
+                                  orig = nullptr
+                                }
+                              ]
+                            }
+                            fun = <U raise>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:23:5-23:6, value = "Sorbet rewriter pass partially unimplemented" }
+                            ]
+                          }
+                        }
+                        Assign{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10
+                          lhs = UnresolvedIdent{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10
+                            kind = Local
+                            name = <U n>
+                          }
+                          rhs = Send{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10
+                            flags = {rewriterSynthesized}
+                            recv = Send{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10
+                              flags = {}
+                              recv = ConstantLit{
+                                loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                ConstantLit{
+                                  loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10
+                                  symbol = (module ::Kernel)
+                                  orig = nullptr
+                                }
+                              ]
+                            }
+                            fun = <U raise>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              Literal{ loc = test/testdata/desugar/pattern_matching_array.rb:23:9-23:10, value = "Sorbet rewriter pass partially unimplemented" }
+                            ]
+                          }
+                        }
+                      ],
+                      expr = InsSeq{
+                        loc = test/testdata/desugar/pattern_matching_array.rb:24:3-25:19
+                        stats = [
+                          Send{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:24:3-24:19
+                            flags = {}
+                            recv = UnresolvedConstantLit{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:24:3-24:4
+                              cnst = <C <U T>>
+                              scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                            }
+                            fun = <U reveal_type>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              UnresolvedIdent{
+                                loc = test/testdata/desugar/pattern_matching_array.rb:24:17-24:18
+                                kind = Local
+                                name = <U m>
+                              }
+                            ]
+                          }
+                        ],
+                        expr = Send{
+                          loc = test/testdata/desugar/pattern_matching_array.rb:25:3-25:19
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            loc = test/testdata/desugar/pattern_matching_array.rb:25:3-25:4
+                            cnst = <C <U T>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                          }
+                          fun = <U reveal_type>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/pattern_matching_array.rb:25:17-25:18
+                              kind = Local
+                              name = <U n>
+                            }
+                          ]
+                        }
+                      }
+                    }
+                    elsep = EmptyTree{ loc = test/testdata/desugar/pattern_matching_array.rb }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

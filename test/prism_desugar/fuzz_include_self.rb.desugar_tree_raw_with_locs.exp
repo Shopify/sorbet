@@ -1,0 +1,70 @@
+ClassDef{
+  loc = test/testdata/desugar/fuzz_include_self.rb:2:1-8:6
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/fuzz_include_self.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/fuzz_include_self.rb:2:1-8:6
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/fuzz_include_self.rb:2:1-6:4
+      kind = module
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/fuzz_include_self.rb:2:8-2:9
+        cnst = <C <U A>>
+        scope = EmptyTree{ loc = test/testdata/desugar/fuzz_include_self.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = []
+      rhs = [
+        Send{
+          loc = test/testdata/desugar/fuzz_include_self.rb:3:3-3:14
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/fuzz_include_self.rb:3:3-3:3
+            localVariable = <U <self>>
+          }
+          fun = <U extend>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Local{
+              loc = test/testdata/desugar/fuzz_include_self.rb:3:10-3:14
+              localVariable = <U <self>>
+            }
+          ]
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/fuzz_include_self.rb:4:3-5:6
+          flags = {}
+          name = <U foo><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/fuzz_include_self.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/fuzz_include_self.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/fuzz_include_self.rb }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/fuzz_include_self.rb:8:1-8:6
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/fuzz_include_self.rb:8:1-8:2
+        cnst = <C <U A>>
+        scope = EmptyTree{ loc = test/testdata/desugar/fuzz_include_self.rb }
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

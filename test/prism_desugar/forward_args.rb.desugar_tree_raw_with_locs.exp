@@ -1,0 +1,1098 @@
+ClassDef{
+  loc = test/testdata/desugar/forward_args.rb:3:1-48:50
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/forward_args.rb:3:1-48:50
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/forward_args.rb:3:1-42:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/forward_args.rb:3:7-3:10
+        cnst = <C <U Foo>>
+        scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/forward_args.rb:3:1-42:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:4:3-4:39
+          flags = {}
+          name = <U bar><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:4:11-4:12
+              kind = Local
+              name = <U a>
+            }, UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:4:14-4:15
+              kind = Local
+              name = <U b>
+            }, KeywordArg{ loc = test/testdata/desugar/forward_args.rb:4:17-4:20, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:4:17-4:20
+              kind = Local
+              name = <U k1>
+            } }, KeywordArg{ loc = test/testdata/desugar/forward_args.rb:4:22-4:25, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:4:22-4:25
+              kind = Local
+              name = <U k2>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb:4:28-4:33, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:4:28-4:33
+              kind = Local
+              name = <U block>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:6:3-8:6
+          flags = {}
+          name = <U foo><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:6:11-6:14, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:6:11-6:14
+              kind = Local
+              name = <U <fwd-args>>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb:6:11-6:14, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb:6:11-6:14, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:6:11-6:14
+              kind = Local
+              name = <U <fwd-kwargs>>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb:6:11-6:14, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:6:11-6:14
+              kind = Local
+              name = <U <fwd-block>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:7:5-7:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:7:5-7:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb:7:14-7:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb:7:5-7:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                  flags = {}
+                  recv = Array{
+                    loc = test/testdata/desugar/forward_args.rb:7:5-7:5
+                    elems = [
+                    ]
+                  }
+                  fun = <U concat>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                        kind = Local
+                        name = <U <fwd-args>>
+                      }
+                      fun = <U to_a>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Array{
+                    loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                    elems = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <to-hash-dup>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                            kind = Local
+                            name = <U <fwd-kwargs>>
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb:7:5-7:28, value = nil }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb:7:5-7:28
+                kind = Local
+                name = <U <fwd-block>>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:10:3-12:6
+          flags = {}
+          name = <U foo2><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:10:12-10:17, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:10:13-10:17
+              kind = Local
+              name = <U args>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb:10:21-10:27, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb:10:21-10:27, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:10:21-10:27
+              kind = Local
+              name = <U kwargs>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb:10:30-10:35, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:10:30-10:35
+              kind = Local
+              name = <U block>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:11:5-11:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb:11:5-11:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:11:5-11:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:11:5-11:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb:11:14-11:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb:11:5-11:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:11:5-11:5
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:11:5-11:5
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <splat>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/forward_args.rb:11:25-11:29
+                    kind = Local
+                    name = <U args>
+                  }
+                ]
+              }
+              Array{
+                loc = test/testdata/desugar/forward_args.rb:11:5-11:48
+                elems = [
+                  InsSeq{
+                    loc = test/testdata/desugar/forward_args.rb:11:31-11:39
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/forward_args.rb:11:31-11:39
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/forward_args.rb:11:31-11:39
+                          kind = Local
+                          name = <D <U <hashTemp>> $2>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/forward_args.rb:11:31-11:39
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forward_args.rb:11:31-11:39
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-dup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb:11:33-11:39
+                              kind = Local
+                              name = <U kwargs>
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/forward_args.rb:11:31-11:39
+                      kind = Local
+                      name = <D <U <hashTemp>> $2>
+                    }
+                  }
+                ]
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb:11:42-11:47
+                kind = Local
+                name = <U block>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:14:3-16:6
+          flags = {}
+          name = <U foo3><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:14:12-14:15, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:14:12-14:15
+              kind = Local
+              name = <U <fwd-args>>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb:14:12-14:15, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb:14:12-14:15, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:14:12-14:15
+              kind = Local
+              name = <U <fwd-kwargs>>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb:14:12-14:15, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:14:12-14:15
+              kind = Local
+              name = <U <fwd-block>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:15:5-15:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:15:5-15:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb:15:14-15:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb:15:5-15:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/forward_args.rb:15:5-15:5
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb:15:5-15:5
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Array{
+                        loc = test/testdata/desugar/forward_args.rb:15:25-15:34
+                        elems = [
+                          Literal{ loc = test/testdata/desugar/forward_args.rb:15:26-15:27, value = 1 }
+                          Literal{ loc = test/testdata/desugar/forward_args.rb:15:29-15:30, value = 2 }
+                          Literal{ loc = test/testdata/desugar/forward_args.rb:15:32-15:33, value = 3 }
+                        ]
+                      }
+                    ]
+                  }
+                  fun = <U concat>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                        kind = Local
+                        name = <U <fwd-args>>
+                      }
+                      fun = <U to_a>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Array{
+                    loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                    elems = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <to-hash-dup>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                            kind = Local
+                            name = <U <fwd-kwargs>>
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb:15:5-15:40, value = nil }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb:15:5-15:40
+                kind = Local
+                name = <U <fwd-block>>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:18:3-20:6
+          flags = {}
+          name = <U foo4><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:18:12-18:17, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:18:13-18:17
+              kind = Local
+              name = <U args>
+            } }, RestArg{ loc = test/testdata/desugar/forward_args.rb:18:21-18:27, expr = KeywordArg{ loc = test/testdata/desugar/forward_args.rb:18:21-18:27, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:18:21-18:27
+              kind = Local
+              name = <U kwargs>
+            } } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb:18:30-18:35, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:18:30-18:35
+              kind = Local
+              name = <U block>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:19:5-19:60
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/forward_args.rb:19:5-19:60
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat-and-block>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:19:5-19:19
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:19:5-19:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Local{
+                    loc = test/testdata/desugar/forward_args.rb:19:14-19:18
+                    localVariable = <U <self>>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/forward_args.rb:19:5-19:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/forward_args.rb:19:5-19:5
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/forward_args.rb:19:5-19:5
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/forward_args.rb:19:5-19:5
+                    symbol = (class ::<Magic>)
+                    orig = nullptr
+                  }
+                  fun = <U <splat>>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Array{
+                      loc = test/testdata/desugar/forward_args.rb:19:25-19:34
+                      elems = [
+                        Literal{ loc = test/testdata/desugar/forward_args.rb:19:26-19:27, value = 1 }
+                        Literal{ loc = test/testdata/desugar/forward_args.rb:19:29-19:30, value = 2 }
+                        Literal{ loc = test/testdata/desugar/forward_args.rb:19:32-19:33, value = 3 }
+                      ]
+                    }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:19:5-19:5
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb:19:5-19:5
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/forward_args.rb:19:37-19:41
+                        kind = Local
+                        name = <U args>
+                      }
+                    ]
+                  }
+                ]
+              }
+              Array{
+                loc = test/testdata/desugar/forward_args.rb:19:5-19:60
+                elems = [
+                  InsSeq{
+                    loc = test/testdata/desugar/forward_args.rb:19:43-19:51
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/forward_args.rb:19:43-19:51
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/forward_args.rb:19:43-19:51
+                          kind = Local
+                          name = <D <U <hashTemp>> $2>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/forward_args.rb:19:43-19:51
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/forward_args.rb:19:43-19:51
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <to-hash-dup>>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb:19:45-19:51
+                              kind = Local
+                              name = <U kwargs>
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/forward_args.rb:19:43-19:51
+                      kind = Local
+                      name = <D <U <hashTemp>> $2>
+                    }
+                  }
+                ]
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/forward_args.rb:19:54-19:59
+                kind = Local
+                name = <U block>
+              }
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:22:3-27:6
+          flags = {}
+          name = <U foo5><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:22:12-22:13, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:22:12-22:13
+              kind = Local
+              name = <U *>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:23:5-26:8
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/forward_args.rb:23:5-23:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/forward_args.rb:23:6-23:7, value = 1 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb:23:8-23:9, value = 2 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb:23:10-23:11, value = 3 }
+              ]
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/forward_args.rb:23:5-26:8
+              args = [
+                RestArg{ loc = test/testdata/desugar/forward_args.rb:23:22-23:23, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forward_args.rb:23:22-23:23
+                  kind = Local
+                  name = <U *>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:25:7-25:21
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb:25:7-25:8
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Local{
+                        loc = test/testdata/desugar/forward_args.rb:25:16-25:20
+                        localVariable = <U <self>>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb:25:7-25:7, value = :p }
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/forward_args.rb:25:7-25:7
+                      elems = [
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb:25:7-25:26
+                              kind = Local
+                              name = <U <fwd-args>>
+                            }
+                            fun = <U to_a>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb:25:7-25:26, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:29:3-34:6
+          flags = {}
+          name = <U foo6><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:29:12-29:17, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:29:13-29:17
+              kind = Local
+              name = <U args>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:30:5-33:8
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/forward_args.rb:30:5-30:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/forward_args.rb:30:6-30:7, value = 1 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb:30:8-30:9, value = 2 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb:30:10-30:11, value = 3 }
+              ]
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/forward_args.rb:30:5-33:8
+              args = [
+                RestArg{ loc = test/testdata/desugar/forward_args.rb:30:22-30:23, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forward_args.rb:30:22-30:23
+                  kind = Local
+                  name = <U *>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:32:7-32:21
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb:32:7-32:8
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Local{
+                        loc = test/testdata/desugar/forward_args.rb:32:16-32:20
+                        localVariable = <U <self>>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb:32:7-32:7, value = :p }
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/forward_args.rb:32:7-32:7
+                      elems = [
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb:32:7-32:26
+                              kind = Local
+                              name = <U <fwd-args>>
+                            }
+                            fun = <U to_a>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb:32:7-32:26, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/forward_args.rb:36:3-41:6
+          flags = {}
+          name = <U foo7><<U <todo method>>>
+          args = [RestArg{ loc = test/testdata/desugar/forward_args.rb:36:12-36:13, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb:36:12-36:13
+              kind = Local
+              name = <U *>
+            } }, BlockArg{ loc = test/testdata/desugar/forward_args.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/forward_args.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/forward_args.rb:37:5-40:8
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/forward_args.rb:37:5-37:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/forward_args.rb:37:6-37:7, value = 1 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb:37:8-37:9, value = 2 }
+                Literal{ loc = test/testdata/desugar/forward_args.rb:37:10-37:11, value = 3 }
+              ]
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/forward_args.rb:37:5-40:8
+              args = [
+                RestArg{ loc = test/testdata/desugar/forward_args.rb:37:22-37:27, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/forward_args.rb:37:23-37:27
+                  kind = Local
+                  name = <U args>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:39:7-39:21
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/forward_args.rb:39:7-39:8
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Local{
+                        loc = test/testdata/desugar/forward_args.rb:39:16-39:20
+                        localVariable = <U <self>>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb:39:7-39:7, value = :p }
+                  Send{
+                    loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/forward_args.rb:39:7-39:7
+                      elems = [
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/forward_args.rb:39:7-39:26
+                              kind = Local
+                              name = <U <fwd-args>>
+                            }
+                            fun = <U to_a>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/forward_args.rb:39:7-39:26, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb:44:1-44:12
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb:44:1-44:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb:44:1-44:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb:45:1-45:18
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb:45:1-45:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb:45:1-45:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/forward_args.rb:45:13-45:14, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:45:16-45:17, value = 2 }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb:46:1-46:26
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb:46:1-46:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb:46:1-46:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 0
+      args = [
+        Literal{ loc = test/testdata/desugar/forward_args.rb:46:13-46:15, value = :k1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:46:17-46:18, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:46:20-46:22, value = :k2 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:46:24-46:25, value = 2 }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb:47:1-47:30
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb:47:1-47:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb:47:1-47:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/forward_args.rb:47:1-47:30
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/forward_args.rb:47:16-47:26
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/forward_args.rb:47:16-47:16
+            localVariable = <U <self>>
+          }
+          fun = <U puts>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/forward_args.rb:47:21-47:26, value = "foo" }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/forward_args.rb:48:1-48:50
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/forward_args.rb:48:1-48:8
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/forward_args.rb:48:1-48:4
+          cnst = <C <U Foo>>
+          scope = EmptyTree{ loc = test/testdata/desugar/forward_args.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/forward_args.rb:48:1-48:50
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/forward_args.rb:48:36-48:46
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/forward_args.rb:48:36-48:36
+            localVariable = <U <self>>
+          }
+          fun = <U puts>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/forward_args.rb:48:41-48:46, value = "foo" }
+          ]
+        }
+      }
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/forward_args.rb:48:13-48:14, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:48:16-48:17, value = 2 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:48:19-48:21, value = :k1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:48:23-48:24, value = 1 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:48:26-48:28, value = :k2 }
+        Literal{ loc = test/testdata/desugar/forward_args.rb:48:30-48:31, value = 2 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+ClassDef{
+  loc = test/testdata/desugar/star_in_block_arg.rb:2:1-10:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/star_in_block_arg.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/star_in_block_arg.rb:2:1-10:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/star_in_block_arg.rb:2:1-2:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/star_in_block_arg.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/star_in_block_arg.rb:2:8-2:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/star_in_block_arg.rb:2:8-2:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/star_in_block_arg.rb }
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/star_in_block_arg.rb:4:1-4:58
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/star_in_block_arg.rb:4:1-4:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/star_in_block_arg.rb:4:1-4:58
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/star_in_block_arg.rb:4:6-4:57
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/star_in_block_arg.rb:4:6-4:52
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/star_in_block_arg.rb:4:6-4:6
+              localVariable = <U <self>>
+            }
+            fun = <U params>
+            block = nullptr
+            pos_args = 0
+            args = [
+              Literal{ loc = test/testdata/desugar/star_in_block_arg.rb:4:13-4:16, value = :blk }
+              Send{
+                loc = test/testdata/desugar/star_in_block_arg.rb:4:18-4:51
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/star_in_block_arg.rb:4:18-4:46
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:4:18-4:24
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/star_in_block_arg.rb:4:18-4:19
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/star_in_block_arg.rb }
+                    }
+                    fun = <U proc>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  fun = <U params>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                    Literal{ loc = test/testdata/desugar/star_in_block_arg.rb:4:32-4:36, value = :args }
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/star_in_block_arg.rb:4:38-4:45
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/star_in_block_arg.rb }
+                    }
+                  ]
+                }
+                fun = <U void>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          fun = <U void>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/star_in_block_arg.rb:5:1-6:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/star_in_block_arg.rb:5:10-5:13, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/star_in_block_arg.rb:5:10-5:13
+          kind = Local
+          name = <U blk>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/star_in_block_arg.rb }
+    }
+
+    Send{
+      loc = test/testdata/desugar/star_in_block_arg.rb:8:1-10:4
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/star_in_block_arg.rb:8:1-8:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/star_in_block_arg.rb:8:1-10:4
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+            kind = Local
+            name = <D <U <destructure>> $2>
+          }
+        ]
+        body = InsSeq{
+          loc = test/testdata/desugar/star_in_block_arg.rb:8:1-10:4
+          stats = [
+            InsSeq{
+              loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                    kind = Local
+                    name = <D <U <assignTemp>> $3>
+                  }
+                  rhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                    kind = Local
+                    name = <D <U <destructure>> $2>
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                    kind = Local
+                    name = <D <U <assignTemp>> $4>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <expand-splat>>
+                    block = nullptr
+                    pos_args = 3
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                        kind = Local
+                        name = <D <U <assignTemp>> $3>
+                      }
+                      Literal{ loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16, value = 1 }
+                      Literal{ loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16, value = 0 }
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/star_in_block_arg.rb:8:11-8:15
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:8:11-8:15
+                    kind = Local
+                    name = <U args>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/star_in_block_arg.rb:8:10-8:15
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/star_in_block_arg.rb:8:10-8:15
+                      kind = Local
+                      name = <D <U <assignTemp>> $4>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16, value = 0 }
+                    ]
+                  }
+                }
+              ],
+              expr = UnresolvedIdent{
+                loc = test/testdata/desugar/star_in_block_arg.rb:8:9-8:16
+                kind = Local
+                name = <D <U <assignTemp>> $3>
+              }
+            }
+          ],
+          expr = Send{
+            loc = test/testdata/desugar/star_in_block_arg.rb:9:3-9:22
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/star_in_block_arg.rb:9:3-9:4
+              cnst = <C <U T>>
+              scope = EmptyTree{ loc = test/testdata/desugar/star_in_block_arg.rb }
+            }
+            fun = <U reveal_type>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/star_in_block_arg.rb:9:17-9:21
+                kind = Local
+                name = <U args>
+              }
+            ]
+          }
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

@@ -1,0 +1,781 @@
+ClassDef{
+  loc = test/testdata/desugar/hash_two_args.rb:2:1-32:25
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/hash_two_args.rb:2:1-32:25
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/hash_two_args.rb:2:1-2:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/hash_two_args.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/hash_two_args.rb:2:8-2:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/hash_two_args.rb:2:8-2:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/hash_two_args.rb:4:1-4:49
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/hash_two_args.rb:4:1-4:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/hash_two_args.rb:4:1-4:49
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/hash_two_args.rb:4:6-4:48
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/hash_two_args.rb:4:6-4:43
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/hash_two_args.rb:4:6-4:6
+              localVariable = <U <self>>
+            }
+            fun = <U params>
+            block = nullptr
+            pos_args = 0
+            args = [
+              Literal{ loc = test/testdata/desugar/hash_two_args.rb:4:13-4:16, value = :foo }
+              Send{
+                loc = test/testdata/desugar/hash_two_args.rb:4:18-4:42
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/hash_two_args.rb:4:18-4:25
+                  cnst = <C <U Hash>>
+                  scope = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/hash_two_args.rb:4:18-4:19
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                  }
+                }
+                fun = <U []>
+                block = nullptr
+                pos_args = 2
+                args = [
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/hash_two_args.rb:4:26-4:32
+                    cnst = <C <U Symbol>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                  }
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/hash_two_args.rb:4:34-4:41
+                    cnst = <C <U Integer>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                  }
+                ]
+              }
+            ]
+          }
+          fun = <U void>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/hash_two_args.rb:5:1-30:4
+      flags = {}
+      name = <U test_enumeration><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/hash_two_args.rb:5:22-5:25
+          kind = Local
+          name = <U foo>
+        }, BlockArg{ loc = test/testdata/desugar/hash_two_args.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/hash_two_args.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/hash_two_args.rb:6:5-29:8
+        stats = [
+          Send{
+            loc = test/testdata/desugar/hash_two_args.rb:6:5-9:8
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/hash_two_args.rb:6:5-6:8
+              kind = Local
+              name = <U foo>
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/hash_two_args.rb:6:5-9:8
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:6:18-6:19
+                  kind = Local
+                  name = <U k>
+                }
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:6:21-6:22
+                  kind = Local
+                  name = <U v>
+                }
+              ]
+              body = InsSeq{
+                loc = test/testdata/desugar/hash_two_args.rb:7:9-8:35
+                stats = [
+                  Send{
+                    loc = test/testdata/desugar/hash_two_args.rb:7:9-7:34
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:7:9-7:10
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                    fun = <U assert_type!>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/hash_two_args.rb:7:24-7:25
+                        kind = Local
+                        name = <U k>
+                      }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:7:27-7:33
+                        cnst = <C <U Symbol>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                    ]
+                  }
+                ],
+                expr = Send{
+                  loc = test/testdata/desugar/hash_two_args.rb:8:9-8:35
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/hash_two_args.rb:8:9-8:10
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                  }
+                  fun = <U assert_type!>
+                  block = nullptr
+                  pos_args = 2
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/hash_two_args.rb:8:24-8:25
+                      kind = Local
+                      name = <U v>
+                    }
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:8:27-8:34
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                  ]
+                }
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/hash_two_args.rb:10:5-13:8
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/hash_two_args.rb:10:5-10:8
+              kind = Local
+              name = <U foo>
+            }
+            fun = <U map>
+            block = Block {
+              loc = test/testdata/desugar/hash_two_args.rb:10:5-13:8
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:10:17-10:18
+                  kind = Local
+                  name = <U k>
+                }
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:10:20-10:21
+                  kind = Local
+                  name = <U v>
+                }
+              ]
+              body = InsSeq{
+                loc = test/testdata/desugar/hash_two_args.rb:11:9-12:35
+                stats = [
+                  Send{
+                    loc = test/testdata/desugar/hash_two_args.rb:11:9-11:34
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:11:9-11:10
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                    fun = <U assert_type!>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/hash_two_args.rb:11:24-11:25
+                        kind = Local
+                        name = <U k>
+                      }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:11:27-11:33
+                        cnst = <C <U Symbol>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                    ]
+                  }
+                ],
+                expr = Send{
+                  loc = test/testdata/desugar/hash_two_args.rb:12:9-12:35
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/hash_two_args.rb:12:9-12:10
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                  }
+                  fun = <U assert_type!>
+                  block = nullptr
+                  pos_args = 2
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/hash_two_args.rb:12:24-12:25
+                      kind = Local
+                      name = <U v>
+                    }
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:12:27-12:34
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                  ]
+                }
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/hash_two_args.rb:15:5-18:8
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/hash_two_args.rb:15:5-15:8
+              kind = Local
+              name = <U foo>
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/hash_two_args.rb:15:5-18:8
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                  kind = Local
+                  name = <D <U <destructure>> $2>
+                }
+              ]
+              body = InsSeq{
+                loc = test/testdata/desugar/hash_two_args.rb:15:5-18:8
+                stats = [
+                  InsSeq{
+                    loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                          kind = Local
+                          name = <D <U <assignTemp>> $3>
+                        }
+                        rhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                          kind = Local
+                          name = <D <U <destructure>> $2>
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                          kind = Local
+                          name = <D <U <assignTemp>> $4>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <expand-splat>>
+                          block = nullptr
+                          pos_args = 3
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                              kind = Local
+                              name = <D <U <assignTemp>> $3>
+                            }
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24, value = 2 }
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24, value = 0 }
+                          ]
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:15:19-15:20
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:19-15:20
+                          kind = Local
+                          name = <U k>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:19-15:20
+                          flags = {}
+                          recv = UnresolvedIdent{
+                            loc = test/testdata/desugar/hash_two_args.rb:15:19-15:20
+                            kind = Local
+                            name = <D <U <assignTemp>> $4>
+                          }
+                          fun = <U []>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24, value = 0 }
+                          ]
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:15:22-15:23
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:22-15:23
+                          kind = Local
+                          name = <U v>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/hash_two_args.rb:15:22-15:23
+                          flags = {}
+                          recv = UnresolvedIdent{
+                            loc = test/testdata/desugar/hash_two_args.rb:15:22-15:23
+                            kind = Local
+                            name = <D <U <assignTemp>> $4>
+                          }
+                          fun = <U []>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24, value = 1 }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/hash_two_args.rb:15:18-15:24
+                      kind = Local
+                      name = <D <U <assignTemp>> $3>
+                    }
+                  }
+                ],
+                expr = InsSeq{
+                  loc = test/testdata/desugar/hash_two_args.rb:16:9-17:35
+                  stats = [
+                    Send{
+                      loc = test/testdata/desugar/hash_two_args.rb:16:9-16:34
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:16:9-16:10
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                      fun = <U assert_type!>
+                      block = nullptr
+                      pos_args = 2
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:16:24-16:25
+                          kind = Local
+                          name = <U k>
+                        }
+                        UnresolvedConstantLit{
+                          loc = test/testdata/desugar/hash_two_args.rb:16:27-16:33
+                          cnst = <C <U Symbol>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                        }
+                      ]
+                    }
+                  ],
+                  expr = Send{
+                    loc = test/testdata/desugar/hash_two_args.rb:17:9-17:35
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:17:9-17:10
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                    fun = <U assert_type!>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/hash_two_args.rb:17:24-17:25
+                        kind = Local
+                        name = <U v>
+                      }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:17:27-17:34
+                        cnst = <C <U Integer>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/hash_two_args.rb:19:5-22:8
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/hash_two_args.rb:19:5-19:8
+              kind = Local
+              name = <U foo>
+            }
+            fun = <U map>
+            block = Block {
+              loc = test/testdata/desugar/hash_two_args.rb:19:5-22:8
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                  kind = Local
+                  name = <D <U <destructure>> $5>
+                }
+              ]
+              body = InsSeq{
+                loc = test/testdata/desugar/hash_two_args.rb:19:5-22:8
+                stats = [
+                  InsSeq{
+                    loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                    stats = [
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                          kind = Local
+                          name = <D <U <assignTemp>> $6>
+                        }
+                        rhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                          kind = Local
+                          name = <D <U <destructure>> $5>
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                          kind = Local
+                          name = <D <U <assignTemp>> $7>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                          flags = {}
+                          recv = ConstantLit{
+                            loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                            symbol = (class ::<Magic>)
+                            orig = nullptr
+                          }
+                          fun = <U <expand-splat>>
+                          block = nullptr
+                          pos_args = 3
+                          args = [
+                            UnresolvedIdent{
+                              loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                              kind = Local
+                              name = <D <U <assignTemp>> $6>
+                            }
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23, value = 2 }
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23, value = 0 }
+                          ]
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:19:18-19:19
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:18-19:19
+                          kind = Local
+                          name = <U k>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:18-19:19
+                          flags = {}
+                          recv = UnresolvedIdent{
+                            loc = test/testdata/desugar/hash_two_args.rb:19:18-19:19
+                            kind = Local
+                            name = <D <U <assignTemp>> $7>
+                          }
+                          fun = <U []>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23, value = 0 }
+                          ]
+                        }
+                      }
+                      Assign{
+                        loc = test/testdata/desugar/hash_two_args.rb:19:21-19:22
+                        lhs = UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:21-19:22
+                          kind = Local
+                          name = <U v>
+                        }
+                        rhs = Send{
+                          loc = test/testdata/desugar/hash_two_args.rb:19:21-19:22
+                          flags = {}
+                          recv = UnresolvedIdent{
+                            loc = test/testdata/desugar/hash_two_args.rb:19:21-19:22
+                            kind = Local
+                            name = <D <U <assignTemp>> $7>
+                          }
+                          fun = <U []>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23, value = 1 }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/hash_two_args.rb:19:17-19:23
+                      kind = Local
+                      name = <D <U <assignTemp>> $6>
+                    }
+                  }
+                ],
+                expr = InsSeq{
+                  loc = test/testdata/desugar/hash_two_args.rb:20:9-21:35
+                  stats = [
+                    Send{
+                      loc = test/testdata/desugar/hash_two_args.rb:20:9-20:34
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:20:9-20:10
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                      fun = <U assert_type!>
+                      block = nullptr
+                      pos_args = 2
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/hash_two_args.rb:20:24-20:25
+                          kind = Local
+                          name = <U k>
+                        }
+                        UnresolvedConstantLit{
+                          loc = test/testdata/desugar/hash_two_args.rb:20:27-20:33
+                          cnst = <C <U Symbol>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                        }
+                      ]
+                    }
+                  ],
+                  expr = Send{
+                    loc = test/testdata/desugar/hash_two_args.rb:21:9-21:35
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:21:9-21:10
+                      cnst = <C <U T>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                    fun = <U assert_type!>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/hash_two_args.rb:21:24-21:25
+                        kind = Local
+                        name = <U v>
+                      }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:21:27-21:34
+                        cnst = <C <U Integer>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/hash_two_args.rb:24:5-26:8
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/hash_two_args.rb:24:5-24:8
+              kind = Local
+              name = <U foo>
+            }
+            fun = <U each>
+            block = Block {
+              loc = test/testdata/desugar/hash_two_args.rb:24:5-26:8
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:24:18-24:20
+                  kind = Local
+                  name = <U kv>
+                }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/hash_two_args.rb:25:9-25:46
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/hash_two_args.rb:25:9-25:10
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                }
+                fun = <U assert_type!>
+                block = nullptr
+                pos_args = 2
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/hash_two_args.rb:25:24-25:26
+                    kind = Local
+                    name = <U kv>
+                  }
+                  Array{
+                    loc = test/testdata/desugar/hash_two_args.rb:25:28-25:45
+                    elems = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:25:29-25:35
+                        cnst = <C <U Symbol>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/hash_two_args.rb:25:37-25:44
+                        cnst = <C <U Integer>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/hash_two_args.rb:27:5-29:8
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/hash_two_args.rb:27:5-27:8
+            kind = Local
+            name = <U foo>
+          }
+          fun = <U map>
+          block = Block {
+            loc = test/testdata/desugar/hash_two_args.rb:27:5-29:8
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash_two_args.rb:27:17-27:19
+                kind = Local
+                name = <U kv>
+              }
+            ]
+            body = Send{
+              loc = test/testdata/desugar/hash_two_args.rb:28:9-28:46
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/hash_two_args.rb:28:9-28:10
+                cnst = <C <U T>>
+                scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+              }
+              fun = <U assert_type!>
+              block = nullptr
+              pos_args = 2
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/hash_two_args.rb:28:24-28:26
+                  kind = Local
+                  name = <U kv>
+                }
+                Array{
+                  loc = test/testdata/desugar/hash_two_args.rb:28:28-28:45
+                  elems = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:28:29-28:35
+                      cnst = <C <U Symbol>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/hash_two_args.rb:28:37-28:44
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/hash_two_args.rb }
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/hash_two_args.rb:32:1-32:25
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/hash_two_args.rb:32:1-32:1
+        localVariable = <U <self>>
+      }
+      fun = <U test_enumeration>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Hash{
+          loc = test/testdata/desugar/hash_two_args.rb:32:18-32:24
+          pairs = [
+            [
+              key = Literal{ loc = test/testdata/desugar/hash_two_args.rb:32:19-32:20, value = :a }
+              value = Literal{ loc = test/testdata/desugar/hash_two_args.rb:32:22-32:23, value = 1 }
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

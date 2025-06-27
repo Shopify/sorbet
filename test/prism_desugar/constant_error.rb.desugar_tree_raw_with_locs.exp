@@ -1,0 +1,39 @@
+ClassDef{
+  loc = test/testdata/desugar/constant_error.rb:2:1-4:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/constant_error.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/constant_error.rb:2:1-4:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/constant_error.rb:2:1-4:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/constant_error.rb:2:7-2:10
+        cnst = <C <U Foo>>
+        scope = EmptyTree{ loc = test/testdata/desugar/constant_error.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/constant_error.rb:2:1-4:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        Assign{
+          loc = test/testdata/desugar/constant_error.rb:3:5-3:14
+          lhs = UnresolvedConstantLit{
+            loc = test/testdata/desugar/constant_error.rb:3:5-3:8
+            cnst = <C <U BAR>>
+            scope = EmptyTree{ loc = test/testdata/desugar/constant_error.rb }
+          }
+          rhs = Literal{ loc = test/testdata/desugar/constant_error.rb:3:11-3:14, value = 100 }
+        }
+      ]
+    }
+  ]
+}

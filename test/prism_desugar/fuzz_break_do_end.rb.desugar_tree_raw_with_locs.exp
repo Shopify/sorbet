@@ -1,0 +1,26 @@
+ClassDef{
+  loc = test/testdata/desugar/fuzz_break_do_end.rb:2:1-2:11
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/fuzz_break_do_end.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/fuzz_break_do_end.rb:2:1-2:11
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Break{ loc = test/testdata/desugar/fuzz_break_do_end.rb:2:1-2:8, expr = Literal{ loc = test/testdata/desugar/fuzz_break_do_end.rb:2:7-2:8, value = 1 } }
+
+    UnresolvedConstantLit{
+      loc = test/testdata/desugar/fuzz_break_do_end.rb:2:8-2:8
+      cnst = <C <U <ErrorNode>>>
+      scope = EmptyTree{ loc = test/testdata/desugar/fuzz_break_do_end.rb }
+    }
+
+    UnresolvedConstantLit{
+      loc = test/testdata/desugar/fuzz_break_do_end.rb:2:9-2:11
+      cnst = <C <U <ErrorNode>>>
+      scope = EmptyTree{ loc = test/testdata/desugar/fuzz_break_do_end.rb }
+    }
+  ]
+}

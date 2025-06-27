@@ -1,0 +1,1206 @@
+ClassDef{
+  loc = test/testdata/desugar/blockpass.rb:2:1-55:16
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/blockpass.rb:2:1-55:16
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/blockpass.rb:2:1-6:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/blockpass.rb:2:7-2:14
+        cnst = <C <U HasMeth>>
+        scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/blockpass.rb:2:1-6:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/blockpass.rb:3:5-5:8
+          flags = {}
+          name = <U meth><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/blockpass.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Literal{ loc = test/testdata/desugar/blockpass.rb:4:9-4:15, value = "meth" }
+        }
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/blockpass.rb:8:1-10:4
+      flags = {}
+      name = <U returns_lambda><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/blockpass.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Send{
+        loc = test/testdata/desugar/blockpass.rb:9:5-9:39
+        flags = {privateOk}
+        recv = Local{
+          loc = test/testdata/desugar/blockpass.rb:9:5-9:5
+          localVariable = <U <self>>
+        }
+        fun = <U lambda>
+        block = Block {
+          loc = test/testdata/desugar/blockpass.rb:9:5-9:39
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/blockpass.rb:9:16-9:17
+              kind = Local
+              name = <U x>
+            }
+          ]
+          body = Literal{ loc = test/testdata/desugar/blockpass.rb:9:19-9:35, value = "returns_lambda" }
+        }
+        pos_args = 0
+        args = [
+        ]
+      }
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/blockpass.rb:12:1-16:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/blockpass.rb:12:7-12:16
+        cnst = <C <U HasToProc>>
+        scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/blockpass.rb:12:1-16:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/blockpass.rb:13:5-15:8
+          flags = {}
+          name = <U to_proc><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/blockpass.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/blockpass.rb:14:9-14:23
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:14:9-14:9
+              localVariable = <U <self>>
+            }
+            fun = <U returns_lambda>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+        }
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/blockpass.rb:18:1-20:4
+      flags = {}
+      name = <U calls_arg_with_object><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/blockpass.rb:18:27-18:30
+          kind = Local
+          name = <U arg>
+        }, BlockArg{ loc = test/testdata/desugar/blockpass.rb:18:33-18:36, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/blockpass.rb:18:33-18:36
+          kind = Local
+          name = <U blk>
+        } }]
+      rhs = Send{
+        loc = test/testdata/desugar/blockpass.rb:19:5-19:18
+        flags = {}
+        recv = UnresolvedIdent{
+          loc = test/testdata/desugar/blockpass.rb:19:5-19:8
+          kind = Local
+          name = <U blk>
+        }
+        fun = <U call>
+        block = nullptr
+        pos_args = 1
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/blockpass.rb:19:14-19:17
+            kind = Local
+            name = <U arg>
+          }
+        ]
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/blockpass.rb:22:1-24:4
+      flags = {}
+      name = <U calls_with_object><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb:22:24-22:27, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/blockpass.rb:22:24-22:27
+          kind = Local
+          name = <U blk>
+        } }]
+      rhs = Send{
+        loc = test/testdata/desugar/blockpass.rb:23:5-23:44
+        flags = {privateOk}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/blockpass.rb:23:5-23:44
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <call-with-block>>
+        block = nullptr
+        pos_args = 4
+        args = [
+          Local{
+            loc = test/testdata/desugar/blockpass.rb:23:5-23:5
+            localVariable = <U <self>>
+          }
+          Literal{ loc = test/testdata/desugar/blockpass.rb:23:5-23:5, value = :calls_arg_with_object }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/blockpass.rb:23:41-23:44
+            kind = Local
+            name = <U blk>
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:23:27-23:38
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:23:27-23:34
+              cnst = <C <U HasMeth>>
+              scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+        ]
+      }
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/blockpass.rb:26:1-30:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/blockpass.rb:26:7-26:22
+        cnst = <C <U CallsWithObject>>
+        scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/blockpass.rb:26:1-30:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/blockpass.rb:27:5-29:8
+          flags = {self}
+          name = <U calls_with_object><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb:27:33-27:36, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/blockpass.rb:27:33-27:36
+              kind = Local
+              name = <U blk>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/blockpass.rb:28:9-28:30
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/blockpass.rb:28:9-28:12
+              kind = Local
+              name = <U blk>
+            }
+            fun = <U call>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/blockpass.rb:28:18-28:29
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:28:18-28:25
+                  cnst = <C <U HasMeth>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+                }
+                fun = <U new>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/blockpass.rb:32:1-36:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/blockpass.rb:32:7-32:27
+        cnst = <C <U CallsWithObjectChild>>
+        scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [UnresolvedConstantLit{
+          loc = test/testdata/desugar/blockpass.rb:32:30-32:45
+          cnst = <C <U CallsWithObject>>
+          scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/blockpass.rb:33:5-35:8
+          flags = {self}
+          name = <U calls_with_object><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb:33:33-33:36, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/blockpass.rb:33:33-33:36
+              kind = Local
+              name = <U blk>
+            } }]
+          rhs = Send{
+            loc = test/testdata/desugar/blockpass.rb:34:9-34:20
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:34:9-34:20
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-block>>
+            block = nullptr
+            pos_args = 3
+            args = [
+              Local{
+                loc = test/testdata/desugar/blockpass.rb:34:9-34:9
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/blockpass.rb:34:9-34:9, value = :<super> }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/blockpass.rb:34:16-34:19
+                kind = Local
+                name = <U blk>
+              }
+            ]
+          }
+        }
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/blockpass.rb:38:1-53:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/blockpass.rb:38:10-38:13, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/blockpass.rb:38:10-38:13
+          kind = Local
+          name = <U blk>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/blockpass.rb:39:5-52:52
+        stats = [
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:39:5-39:29
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:39:5-39:5
+              localVariable = <U <self>>
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:39:24-39:29
+              args = [
+                RestArg{ loc = test/testdata/desugar/blockpass.rb:39:24-39:24, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                  kind = Local
+                  name = <D <U <block-pass>> $2>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:39:24-39:29
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:39:24-39:29
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 3
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                      kind = Local
+                      name = <D <U <block-pass>> $2>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/blockpass.rb:39:24-39:24, value = 0 }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:39:24-39:29, value = :meth }
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/blockpass.rb:39:24-39:24
+                          kind = Local
+                          name = <D <U <block-pass>> $2>
+                        }
+                        fun = <U []>
+                        block = nullptr
+                        pos_args = 2
+                        args = [
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:39:24-39:24, value = 1 }
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:39:24-39:24, value = 9223372036854775807 }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:39:24-39:24, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:40:5-40:58
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:40:5-40:5
+              localVariable = <U <self>>
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:40:5-40:58
+              args = [
+                RestArg{ loc = test/testdata/desugar/blockpass.rb:40:25-40:30, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:40:26-40:30
+                  kind = Local
+                  name = <U args>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:40:32-40:57
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:40:32-40:57
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:40:32-40:45
+                    flags = {}
+                    recv = Literal{ loc = test/testdata/desugar/blockpass.rb:40:32-40:37, value = :meth }
+                    fun = <U to_proc>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:40:32-40:32, value = :call }
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:40:32-40:32
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:40:32-40:32
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/blockpass.rb:40:52-40:56
+                        kind = Local
+                        name = <U args>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:40:32-40:57, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:41:5-41:50
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:41:5-41:5
+              localVariable = <U <self>>
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:41:5-41:50
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:41:25-41:26
+                  kind = Local
+                  name = <U x>
+                }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:41:28-41:49
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/blockpass.rb:41:28-41:41
+                  flags = {}
+                  recv = Literal{ loc = test/testdata/desugar/blockpass.rb:41:28-41:33, value = :meth }
+                  fun = <U to_proc>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+                fun = <U call>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/blockpass.rb:41:47-41:48
+                    kind = Local
+                    name = <U x>
+                  }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:42:5-42:35
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:42:5-42:5
+              localVariable = <U <self>>
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:42:5-42:35
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:42:25-42:26
+                  kind = Local
+                  name = <U x>
+                }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:42:28-42:34
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:42:28-42:29
+                  kind = Local
+                  name = <U x>
+                }
+                fun = <U meth>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:43:5-43:27
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:43:5-43:27
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-block>>
+            block = nullptr
+            pos_args = 3
+            args = [
+              Local{
+                loc = test/testdata/desugar/blockpass.rb:43:5-43:5
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/blockpass.rb:43:5-43:5, value = :calls_with_object }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/blockpass.rb:43:24-43:27
+                kind = Local
+                name = <U blk>
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:44:5-44:38
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:44:5-44:38
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-block>>
+            block = nullptr
+            pos_args = 3
+            args = [
+              Local{
+                loc = test/testdata/desugar/blockpass.rb:44:5-44:5
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/blockpass.rb:44:5-44:5, value = :calls_with_object }
+              Send{
+                loc = test/testdata/desugar/blockpass.rb:44:24-44:38
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/blockpass.rb:44:24-44:24
+                  localVariable = <U <self>>
+                }
+                fun = <U returns_lambda>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:45:5-45:37
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:45:5-45:37
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-block>>
+            block = nullptr
+            pos_args = 3
+            args = [
+              Local{
+                loc = test/testdata/desugar/blockpass.rb:45:5-45:5
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/blockpass.rb:45:5-45:5, value = :calls_with_object }
+              Send{
+                loc = test/testdata/desugar/blockpass.rb:45:24-45:37
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:45:24-45:33
+                  cnst = <C <U HasToProc>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+                }
+                fun = <U new>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:46:5-46:66
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:46:5-46:5
+              localVariable = <U <self>>
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:46:5-46:66
+              args = [
+                RestArg{ loc = test/testdata/desugar/blockpass.rb:46:25-46:30, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:46:26-46:30
+                  kind = Local
+                  name = <U args>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:46:32-46:65
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:46:32-46:65
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 4
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:46:32-46:53
+                    flags = {}
+                    recv = Send{
+                      loc = test/testdata/desugar/blockpass.rb:46:32-46:45
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/blockpass.rb:46:32-46:41
+                        cnst = <C <U HasToProc>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+                      }
+                      fun = <U new>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                    fun = <U to_proc>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:46:32-46:32, value = :call }
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:46:32-46:32
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:46:32-46:32
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/blockpass.rb:46:60-46:64
+                        kind = Local
+                        name = <U args>
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:46:32-46:65, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:47:5-47:46
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:47:5-47:20
+              cnst = <C <U CallsWithObject>>
+              scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:47:40-47:45
+              args = [
+                RestArg{ loc = test/testdata/desugar/blockpass.rb:47:40-47:40, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                  kind = Local
+                  name = <D <U <block-pass>> $3>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:47:40-47:45
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:47:40-47:45
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 3
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                      kind = Local
+                      name = <D <U <block-pass>> $3>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/blockpass.rb:47:40-47:40, value = 0 }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:47:40-47:45, value = :meth }
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/blockpass.rb:47:40-47:40
+                          kind = Local
+                          name = <D <U <block-pass>> $3>
+                        }
+                        fun = <U []>
+                        block = nullptr
+                        pos_args = 2
+                        args = [
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:47:40-47:40, value = 1 }
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:47:40-47:40, value = 9223372036854775807 }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:47:40-47:40, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          InsSeq{
+            loc = test/testdata/desugar/blockpass.rb:48:5-48:47
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                  kind = Local
+                  name = <D <U <assignTemp>> $4>
+                }
+                rhs = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:48:5-48:20
+                  cnst = <C <U CallsWithObject>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+              cond = Send{
+                loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                  symbol = (class ::NilClass)
+                  orig = nullptr
+                }
+                fun = <U ===>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                    kind = Local
+                    name = <D <U <assignTemp>> $4>
+                  }
+                ]
+              }
+              thenp = Send{
+                loc = test/testdata/desugar/blockpass.rb:48:20-48:20
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <nil-for-safe-navigation>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/blockpass.rb:48:20-48:21
+                    kind = Local
+                    name = <D <U <assignTemp>> $4>
+                  }
+                ]
+              }
+              elsep = Send{
+                loc = test/testdata/desugar/blockpass.rb:48:5-48:47
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:48:5-48:5
+                  kind = Local
+                  name = <D <U <assignTemp>> $4>
+                }
+                fun = <U calls_with_object>
+                block = Block {
+                  loc = test/testdata/desugar/blockpass.rb:48:41-48:46
+                  args = [
+                    RestArg{ loc = test/testdata/desugar/blockpass.rb:48:41-48:41, expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                      kind = Local
+                      name = <D <U <block-pass>> $5>
+                    } }
+                  ]
+                  body = Send{
+                    loc = test/testdata/desugar/blockpass.rb:48:41-48:46
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:48:41-48:46
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <call-with-splat>>
+                    block = nullptr
+                    pos_args = 3
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                          kind = Local
+                          name = <D <U <block-pass>> $5>
+                        }
+                        fun = <U []>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:48:41-48:41, value = 0 }
+                        ]
+                      }
+                      Literal{ loc = test/testdata/desugar/blockpass.rb:48:41-48:46, value = :meth }
+                      Send{
+                        loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <splat>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                            flags = {}
+                            recv = UnresolvedIdent{
+                              loc = test/testdata/desugar/blockpass.rb:48:41-48:41
+                              kind = Local
+                              name = <D <U <block-pass>> $5>
+                            }
+                            fun = <U []>
+                            block = nullptr
+                            pos_args = 2
+                            args = [
+                              Literal{ loc = test/testdata/desugar/blockpass.rb:48:41-48:41, value = 1 }
+                              Literal{ loc = test/testdata/desugar/blockpass.rb:48:41-48:41, value = 9223372036854775807 }
+                            ]
+                          }
+                        ]
+                      }
+                      Literal{ loc = test/testdata/desugar/blockpass.rb:48:41-48:41, value = nil }
+                    ]
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+            }
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:50:5-50:51
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/blockpass.rb:50:5-50:25
+              cnst = <C <U CallsWithObjectChild>>
+              scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+            }
+            fun = <U calls_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:50:45-50:50
+              args = [
+                RestArg{ loc = test/testdata/desugar/blockpass.rb:50:45-50:45, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                  kind = Local
+                  name = <D <U <block-pass>> $6>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:50:45-50:50
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:50:45-50:50
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 3
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                      kind = Local
+                      name = <D <U <block-pass>> $6>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/blockpass.rb:50:45-50:45, value = 0 }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:50:45-50:50, value = :meth }
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/blockpass.rb:50:45-50:45
+                          kind = Local
+                          name = <D <U <block-pass>> $6>
+                        }
+                        fun = <U []>
+                        block = nullptr
+                        pos_args = 2
+                        args = [
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:50:45-50:45, value = 1 }
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:50:45-50:45, value = 9223372036854775807 }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:50:45-50:45, value = nil }
+                ]
+              }
+            }
+            pos_args = 0
+            args = [
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/blockpass.rb:51:5-51:46
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/blockpass.rb:51:5-51:5
+              localVariable = <U <self>>
+            }
+            fun = <U calls_arg_with_object>
+            block = Block {
+              loc = test/testdata/desugar/blockpass.rb:51:41-51:46
+              args = [
+                RestArg{ loc = test/testdata/desugar/blockpass.rb:51:41-51:41, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                  kind = Local
+                  name = <D <U <block-pass>> $7>
+                } }
+              ]
+              body = Send{
+                loc = test/testdata/desugar/blockpass.rb:51:41-51:46
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:51:41-51:46
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <call-with-splat>>
+                block = nullptr
+                pos_args = 3
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                      kind = Local
+                      name = <D <U <block-pass>> $7>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/blockpass.rb:51:41-51:41, value = 0 }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:51:41-51:46, value = :meth }
+                  Send{
+                    loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                        flags = {}
+                        recv = UnresolvedIdent{
+                          loc = test/testdata/desugar/blockpass.rb:51:41-51:41
+                          kind = Local
+                          name = <D <U <block-pass>> $7>
+                        }
+                        fun = <U []>
+                        block = nullptr
+                        pos_args = 2
+                        args = [
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:51:41-51:41, value = 1 }
+                          Literal{ loc = test/testdata/desugar/blockpass.rb:51:41-51:41, value = 9223372036854775807 }
+                        ]
+                      }
+                    ]
+                  }
+                  Literal{ loc = test/testdata/desugar/blockpass.rb:51:41-51:41, value = nil }
+                ]
+              }
+            }
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/blockpass.rb:51:27-51:38
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/blockpass.rb:51:27-51:34
+                  cnst = <C <U HasMeth>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+                }
+                fun = <U new>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/blockpass.rb:52:5-52:52
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/blockpass.rb:52:5-52:5
+            localVariable = <U <self>>
+          }
+          fun = <U calls_arg_with_object>
+          block = Block {
+            loc = test/testdata/desugar/blockpass.rb:52:5-52:52
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/blockpass.rb:52:42-52:43
+                kind = Local
+                name = <U x>
+              }
+            ]
+            body = Send{
+              loc = test/testdata/desugar/blockpass.rb:52:45-52:51
+              flags = {}
+              recv = UnresolvedIdent{
+                loc = test/testdata/desugar/blockpass.rb:52:45-52:46
+                kind = Local
+                name = <U x>
+              }
+              fun = <U meth>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+          }
+          pos_args = 1
+          args = [
+            Send{
+              loc = test/testdata/desugar/blockpass.rb:52:27-52:38
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/blockpass.rb:52:27-52:34
+                cnst = <C <U HasMeth>>
+                scope = EmptyTree{ loc = test/testdata/desugar/blockpass.rb }
+              }
+              fun = <U new>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+          ]
+        }
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/blockpass.rb:55:1-55:16
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/blockpass.rb:55:1-55:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/blockpass.rb:55:1-55:16
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/blockpass.rb:55:7-55:8
+            kind = Local
+            name = <U x>
+          }
+        ]
+        body = Literal{ loc = test/testdata/desugar/blockpass.rb:55:10-55:15, value = "foo" }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+ClassDef{
+  loc = test/testdata/desugar/and_self.rb:3:3-3:10
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/and_self.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/and_self.rb:3:3-3:10
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    If{
+      loc = test/testdata/desugar/and_self.rb:3:3-3:10
+      cond = Local{
+        loc = test/testdata/desugar/and_self.rb:3:3-3:7
+        localVariable = <U <self>>
+      }
+      thenp = Send{
+        loc = test/testdata/desugar/and_self.rb:3:9-3:10
+        flags = {privateOk}
+        recv = Local{
+          loc = test/testdata/desugar/and_self.rb:3:9-3:9
+          localVariable = <U <self>>
+        }
+        fun = <U o>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      elsep = Local{
+        loc = test/testdata/desugar/and_self.rb:3:3-3:7
+        localVariable = <U <self>>
+      }
+    }
+  ]
+}

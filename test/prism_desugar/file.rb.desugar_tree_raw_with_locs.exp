@@ -1,0 +1,14 @@
+ClassDef{
+  loc = test/testdata/desugar/file.rb:2:1-2:9
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/file.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/file.rb:2:1-2:9
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Literal{ loc = test/testdata/desugar/file.rb:2:1-2:9, value = "__FILE__" }
+  ]
+}

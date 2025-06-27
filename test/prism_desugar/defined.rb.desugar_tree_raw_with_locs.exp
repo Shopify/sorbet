@@ -1,0 +1,59 @@
+ClassDef{
+  loc = test/testdata/desugar/defined.rb:2:1-4:14
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/defined.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/defined.rb:2:1-4:14
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/defined.rb:2:10-2:18
+      flags = {}
+      recv = ConstantLit{
+        loc = test/testdata/desugar/defined.rb:2:10-2:18
+        symbol = (class ::<Magic>)
+        orig = nullptr
+      }
+      fun = <U defined?>
+      block = nullptr
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/defined.rb:2:10-2:13, value = "Foo" }
+        Literal{ loc = test/testdata/desugar/defined.rb:2:10-2:18, value = "Bar" }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/defined.rb:3:10-3:11
+      flags = {}
+      recv = ConstantLit{
+        loc = test/testdata/desugar/defined.rb:3:10-3:11
+        symbol = (class ::<Magic>)
+        orig = nullptr
+      }
+      fun = <U defined?>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/defined.rb:4:10-4:13
+      flags = {}
+      recv = ConstantLit{
+        loc = test/testdata/desugar/defined.rb:4:10-4:13
+        symbol = (class ::<Magic>)
+        orig = nullptr
+      }
+      fun = <U defined?>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

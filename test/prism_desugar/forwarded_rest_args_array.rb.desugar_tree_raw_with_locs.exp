@@ -1,0 +1,132 @@
+ClassDef{
+  loc = test/testdata/desugar/forwarded_rest_args_array.rb:3:1-10:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/forwarded_rest_args_array.rb:3:1-10:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_rest_args_array.rb:3:1-6:4
+      flags = {}
+      name = <U forwarded_rest_args><<U <todo method>>>
+      args = [RestArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:3:25-3:26, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb:3:25-3:26
+          kind = Local
+          name = <U *>
+        } }, BlockArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:3-5:20
+        stats = [
+          Assign{
+            loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:3-4:28
+            lhs = UnresolvedIdent{
+              loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:3-4:5
+              kind = Local
+              name = <U xs>
+            }
+            rhs = Send{
+              loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+              flags = {}
+              recv = Send{
+                loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+                flags = {}
+                recv = Array{
+                  loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+                  elems = [
+                    Literal{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:9-4:16, value = :before }
+                  ]
+                }
+                fun = <U concat>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+                        kind = Local
+                        name = <U *>
+                      }
+                    ]
+                  }
+                ]
+              }
+              fun = <U concat>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Array{
+                  loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:8-4:28
+                  elems = [
+                    Literal{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:4:21-4:27, value = :after }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb:5:3-5:20
+          flags = {}
+          recv = UnresolvedConstantLit{
+            loc = test/testdata/desugar/forwarded_rest_args_array.rb:5:3-5:4
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb }
+          }
+          fun = <U reveal_type>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/forwarded_rest_args_array.rb:5:17-5:19
+              kind = Local
+              name = <U xs>
+            }
+          ]
+        }
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:1-10:4
+      flags = {}
+      name = <U start_dotdotdot><<U <todo method>>>
+      args = [RestArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:21-8:22, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:21-8:22
+          kind = Local
+          name = <U *>
+        } }, RestArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27
+          kind = Local
+          name = <U <fwd-args>>
+        } }, RestArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27, expr = KeywordArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27
+          kind = Local
+          name = <U <fwd-kwargs>>
+        } } }, BlockArg{ loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb:8:24-8:27
+          kind = Local
+          name = <U <fwd-block>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+ClassDef{
+  loc = test/testdata/desugar/dsymbol.rb:2:1-5:18
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/dsymbol.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/dsymbol.rb:2:1-5:18
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Literal{ loc = test/testdata/desugar/dsymbol.rb:2:1-2:5, value = :foo }
+
+    Literal{ loc = test/testdata/desugar/dsymbol.rb:3:1-3:7, value = :foo }
+
+    Literal{ loc = test/testdata/desugar/dsymbol.rb:4:1-4:4, value = : }
+
+    Send{
+      loc = test/testdata/desugar/dsymbol.rb:5:1-5:18
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/dsymbol.rb:5:1-5:18
+        flags = {}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/dsymbol.rb:5:1-5:18
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <string-interpolate>>
+        block = nullptr
+        pos_args = 3
+        args = [
+          Literal{ loc = test/testdata/desugar/dsymbol.rb:5:3-5:9, value = "hello_" }
+          Send{
+            loc = test/testdata/desugar/dsymbol.rb:5:11-5:15
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/dsymbol.rb:5:11-5:11
+              localVariable = <U <self>>
+            }
+            fun = <U name>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          Literal{ loc = test/testdata/desugar/dsymbol.rb:5:16-5:17, value = "!" }
+        ]
+      }
+      fun = <U intern>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

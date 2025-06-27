@@ -1,0 +1,37 @@
+ClassDef{
+  loc = test/testdata/desugar/integers.rb:2:1-14:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/integers.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/integers.rb:2:1-14:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/integers.rb:2:1-14:4
+      flags = {}
+      name = <U test_large_int><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/integers.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/integers.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Array{
+        loc = test/testdata/desugar/integers.rb:3:3-13:4
+        elems = [
+          Literal{ loc = test/testdata/desugar/integers.rb:4:5-4:7, value = 0 }
+          Literal{ loc = test/testdata/desugar/integers.rb:5:5-5:7, value = 0 }
+          Literal{ loc = test/testdata/desugar/integers.rb:6:5-6:7, value = 0 }
+          Literal{ loc = test/testdata/desugar/integers.rb:7:5-7:24, value = 9223372036854775807 }
+          Literal{ loc = test/testdata/desugar/integers.rb:8:5-8:25, value = -9223372036854775808 }
+          Literal{ loc = test/testdata/desugar/integers.rb:9:5-9:25, value = 0 }
+          Literal{ loc = test/testdata/desugar/integers.rb:10:5-10:11, value = 51966 }
+          Literal{ loc = test/testdata/desugar/integers.rb:11:5-11:8, value = 0 }
+          Literal{ loc = test/testdata/desugar/integers.rb:12:5-12:7, value = 1 }
+        ]
+      }
+    }
+  ]
+}

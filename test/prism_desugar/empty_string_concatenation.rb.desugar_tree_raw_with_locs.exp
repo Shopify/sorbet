@@ -1,0 +1,29 @@
+ClassDef{
+  loc = test/testdata/desugar/empty_string_concatenation.rb:2:1-2:7
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/empty_string_concatenation.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/empty_string_concatenation.rb:2:1-2:7
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/empty_string_concatenation.rb:2:1-2:7
+      flags = {}
+      recv = ConstantLit{
+        loc = test/testdata/desugar/empty_string_concatenation.rb:2:1-2:7
+        symbol = (class ::<Magic>)
+        orig = nullptr
+      }
+      fun = <U <string-interpolate>>
+      block = nullptr
+      pos_args = 2
+      args = [
+        Literal{ loc = test/testdata/desugar/empty_string_concatenation.rb:2:2-2:5, value = nil }
+        Literal{ loc = test/testdata/desugar/empty_string_concatenation.rb:2:5-2:6, value = ":" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+ClassDef{
+  loc = test/testdata/desugar/top_level_const.rb:2:1-2:16
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/top_level_const.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/top_level_const.rb:2:1-2:16
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    UnresolvedConstantLit{
+      loc = test/testdata/desugar/top_level_const.rb:2:1-2:16
+      cnst = <C <U TopLevelConst>>
+      scope = ConstantLit{
+        loc = test/testdata/desugar/top_level_const.rb:2:1-2:3
+        symbol = (class ::<root>)
+        orig = nullptr
+      }
+    }
+  ]
+}

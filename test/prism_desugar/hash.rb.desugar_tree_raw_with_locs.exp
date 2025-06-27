@@ -1,0 +1,706 @@
+ClassDef{
+  loc = test/testdata/desugar/hash.rb:2:1-16:101
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/hash.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/hash.rb:2:1-16:101
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Hash{
+      loc = test/testdata/desugar/hash.rb:2:1-2:3
+      pairs = [
+      ]
+    }
+
+    Hash{
+      loc = test/testdata/desugar/hash.rb:4:1-4:9
+      pairs = [
+        [
+          key = Literal{ loc = test/testdata/desugar/hash.rb:4:2-4:3, value = :a }
+          value = Literal{ loc = test/testdata/desugar/hash.rb:4:5-4:8, value = "a" }
+        ]
+      ]
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/hash.rb:6:1-6:6
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/hash.rb:6:1-6:6
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:6:1-6:6
+            kind = Local
+            name = <D <U <hashTemp>> $4>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:6:1-6:6
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:6:1-6:6
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <to-hash-dup>>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/hash.rb:6:4-6:5
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/hash.rb:6:4-6:4
+                  localVariable = <U <self>>
+                }
+                fun = <U x>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      expr = UnresolvedIdent{
+        loc = test/testdata/desugar/hash.rb:6:1-6:6
+        kind = Local
+        name = <D <U <hashTemp>> $4>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/hash.rb:7:1-7:2
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/hash.rb:7:1-7:1
+        localVariable = <U <self>>
+      }
+      fun = <U x>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/hash.rb:9:1-9:14
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/hash.rb:9:1-9:14
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:9:1-9:14
+            kind = Local
+            name = <D <U <hashTemp>> $5>
+          }
+          rhs = Hash{
+            loc = test/testdata/desugar/hash.rb:9:1-9:14
+            pairs = [
+              [
+                key = Literal{ loc = test/testdata/desugar/hash.rb:9:2-9:3, value = :a }
+                value = Literal{ loc = test/testdata/desugar/hash.rb:9:5-9:8, value = "a" }
+              ]
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:9:1-9:14
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:9:1-9:14
+            kind = Local
+            name = <D <U <hashTemp>> $5>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:9:1-9:14
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:9:1-9:14
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash>>
+            block = nullptr
+            pos_args = 2
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:9:1-9:14
+                kind = Local
+                name = <D <U <hashTemp>> $5>
+              }
+              Send{
+                loc = test/testdata/desugar/hash.rb:9:1-9:14
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/hash.rb:9:1-9:14
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <to-hash-nodup>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/hash.rb:9:12-9:13
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/hash.rb:9:12-9:12
+                      localVariable = <U <self>>
+                    }
+                    fun = <U x>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      expr = UnresolvedIdent{
+        loc = test/testdata/desugar/hash.rb:9:1-9:14
+        kind = Local
+        name = <D <U <hashTemp>> $5>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/hash.rb:10:1-10:27
+      flags = {}
+      recv = Hash{
+        loc = test/testdata/desugar/hash.rb:10:1-10:9
+        pairs = [
+          [
+            key = Literal{ loc = test/testdata/desugar/hash.rb:10:2-10:3, value = :a }
+            value = Literal{ loc = test/testdata/desugar/hash.rb:10:5-10:8, value = "a" }
+          ]
+        ]
+      }
+      fun = <U merge!>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/hash.rb:10:17-10:26
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/hash.rb:10:17-10:18
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/hash.rb:10:17-10:17
+              localVariable = <U <self>>
+            }
+            fun = <U x>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U to_hash>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/hash.rb:12:1-12:14
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/hash.rb:12:1-12:14
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:12:1-12:14
+            kind = Local
+            name = <D <U <hashTemp>> $7>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:12:1-12:14
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:12:1-12:14
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <to-hash-dup>>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/hash.rb:12:4-12:5
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/hash.rb:12:4-12:4
+                  localVariable = <U <self>>
+                }
+                fun = <U x>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:12:1-12:14
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:12:1-12:14
+            kind = Local
+            name = <D <U <hashTemp>> $7>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:12:1-12:14
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:12:1-12:14
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash-values>>
+            block = nullptr
+            pos_args = 3
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:12:1-12:14
+                kind = Local
+                name = <D <U <hashTemp>> $7>
+              }
+              Literal{ loc = test/testdata/desugar/hash.rb:12:7-12:8, value = :a }
+              Literal{ loc = test/testdata/desugar/hash.rb:12:10-12:13, value = "a" }
+            ]
+          }
+        }
+      ],
+      expr = UnresolvedIdent{
+        loc = test/testdata/desugar/hash.rb:12:1-12:14
+        kind = Local
+        name = <D <U <hashTemp>> $7>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/hash.rb:13:1-13:31
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/hash.rb:13:2-13:15
+        flags = {}
+        recv = Send{
+          loc = test/testdata/desugar/hash.rb:13:2-13:11
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/hash.rb:13:2-13:3
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/hash.rb:13:2-13:2
+              localVariable = <U <self>>
+            }
+            fun = <U x>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U to_hash>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+        fun = <U dup>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+      fun = <U merge!>
+      block = nullptr
+      pos_args = 0
+      args = [
+        Literal{ loc = test/testdata/desugar/hash.rb:13:24-13:25, value = :a }
+        Literal{ loc = test/testdata/desugar/hash.rb:13:27-13:30, value = "a" }
+      ]
+    }
+
+    InsSeq{
+      loc = test/testdata/desugar/hash.rb:15:1-15:48
+      stats = [
+        Assign{
+          loc = test/testdata/desugar/hash.rb:15:1-15:48
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            kind = Local
+            name = <D <U <hashTemp>> $8>
+          }
+          rhs = Hash{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            pairs = [
+              [
+                key = Literal{ loc = test/testdata/desugar/hash.rb:15:2-15:3, value = :a }
+                value = Literal{ loc = test/testdata/desugar/hash.rb:15:5-15:8, value = "a" }
+              ]
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:15:1-15:48
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            kind = Local
+            name = <D <U <hashTemp>> $8>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:15:1-15:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash>>
+            block = nullptr
+            pos_args = 2
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                kind = Local
+                name = <D <U <hashTemp>> $8>
+              }
+              Send{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/hash.rb:15:1-15:48
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <to-hash-nodup>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/hash.rb:15:12-15:13
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/hash.rb:15:12-15:12
+                      localVariable = <U <self>>
+                    }
+                    fun = <U x>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:15:1-15:48
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            kind = Local
+            name = <D <U <hashTemp>> $8>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:15:1-15:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash>>
+            block = nullptr
+            pos_args = 2
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                kind = Local
+                name = <D <U <hashTemp>> $8>
+              }
+              Send{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/hash.rb:15:1-15:48
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <to-hash-nodup>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/hash.rb:15:17-15:18
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/hash.rb:15:17-15:17
+                      localVariable = <U <self>>
+                    }
+                    fun = <U y>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:15:1-15:48
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            kind = Local
+            name = <D <U <hashTemp>> $8>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:15:1-15:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash-values>>
+            block = nullptr
+            pos_args = 5
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                kind = Local
+                name = <D <U <hashTemp>> $8>
+              }
+              Literal{ loc = test/testdata/desugar/hash.rb:15:20-15:21, value = :b }
+              Literal{ loc = test/testdata/desugar/hash.rb:15:23-15:26, value = "b" }
+              Literal{ loc = test/testdata/desugar/hash.rb:15:28-15:29, value = :c }
+              Literal{ loc = test/testdata/desugar/hash.rb:15:31-15:34, value = "c" }
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:15:1-15:48
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            kind = Local
+            name = <D <U <hashTemp>> $8>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:15:1-15:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash>>
+            block = nullptr
+            pos_args = 2
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                kind = Local
+                name = <D <U <hashTemp>> $8>
+              }
+              Send{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/hash.rb:15:1-15:48
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <to-hash-nodup>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/hash.rb:15:38-15:39
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/hash.rb:15:38-15:38
+                      localVariable = <U <self>>
+                    }
+                    fun = <U y>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        Assign{
+          loc = test/testdata/desugar/hash.rb:15:1-15:48
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            kind = Local
+            name = <D <U <hashTemp>> $8>
+          }
+          rhs = Send{
+            loc = test/testdata/desugar/hash.rb:15:1-15:48
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/hash.rb:15:1-15:48
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <merge-hash-values>>
+            block = nullptr
+            pos_args = 3
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/hash.rb:15:1-15:48
+                kind = Local
+                name = <D <U <hashTemp>> $8>
+              }
+              Literal{ loc = test/testdata/desugar/hash.rb:15:41-15:42, value = :d }
+              Literal{ loc = test/testdata/desugar/hash.rb:15:44-15:47, value = "d" }
+            ]
+          }
+        }
+      ],
+      expr = UnresolvedIdent{
+        loc = test/testdata/desugar/hash.rb:15:1-15:48
+        kind = Local
+        name = <D <U <hashTemp>> $8>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/hash.rb:16:1-16:101
+      flags = {}
+      recv = Send{
+        loc = test/testdata/desugar/hash.rb:16:1-16:86
+        flags = {}
+        recv = Send{
+          loc = test/testdata/desugar/hash.rb:16:1-16:68
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/hash.rb:16:1-16:45
+            flags = {}
+            recv = Send{
+              loc = test/testdata/desugar/hash.rb:16:1-16:27
+              flags = {}
+              recv = Hash{
+                loc = test/testdata/desugar/hash.rb:16:1-16:9
+                pairs = [
+                  [
+                    key = Literal{ loc = test/testdata/desugar/hash.rb:16:2-16:3, value = :a }
+                    value = Literal{ loc = test/testdata/desugar/hash.rb:16:5-16:8, value = "a" }
+                  ]
+                ]
+              }
+              fun = <U merge!>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/hash.rb:16:17-16:26
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/hash.rb:16:17-16:18
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/hash.rb:16:17-16:17
+                      localVariable = <U <self>>
+                    }
+                    fun = <U x>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  fun = <U to_hash>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              ]
+            }
+            fun = <U merge!>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/hash.rb:16:35-16:44
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/hash.rb:16:35-16:36
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/hash.rb:16:35-16:35
+                    localVariable = <U <self>>
+                  }
+                  fun = <U y>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+                fun = <U to_hash>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          fun = <U merge!>
+          block = nullptr
+          pos_args = 0
+          args = [
+            Literal{ loc = test/testdata/desugar/hash.rb:16:53-16:54, value = :b }
+            Literal{ loc = test/testdata/desugar/hash.rb:16:56-16:59, value = "b" }
+            Literal{ loc = test/testdata/desugar/hash.rb:16:61-16:62, value = :c }
+            Literal{ loc = test/testdata/desugar/hash.rb:16:64-16:67, value = "c" }
+          ]
+        }
+        fun = <U merge!>
+        block = nullptr
+        pos_args = 1
+        args = [
+          Send{
+            loc = test/testdata/desugar/hash.rb:16:76-16:85
+            flags = {}
+            recv = Send{
+              loc = test/testdata/desugar/hash.rb:16:76-16:77
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/hash.rb:16:76-16:76
+                localVariable = <U <self>>
+              }
+              fun = <U y>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+            fun = <U to_hash>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+        ]
+      }
+      fun = <U merge!>
+      block = nullptr
+      pos_args = 0
+      args = [
+        Literal{ loc = test/testdata/desugar/hash.rb:16:94-16:95, value = :d }
+        Literal{ loc = test/testdata/desugar/hash.rb:16:97-16:100, value = "d" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,815 @@
+ClassDef{
+  loc = test/testdata/desugar/sclass.rb:2:1-94:5
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/sclass.rb:2:1-94:5
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:2:1-3:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:2:7-2:8
+        cnst = <C <U A>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:2:1-3:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      ]
+    }
+
+    EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:11:1-17:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:11:7-11:8
+        cnst = <C <U B>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:11:1-17:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        ClassDef{
+          loc = test/testdata/desugar/sclass.rb:12:5-16:8
+          kind = class
+          name = UnresolvedIdent{
+            loc = test/testdata/desugar/sclass.rb:12:14-12:18
+            kind = Class
+            name = <U <singleton class>>
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = []
+          rhs = [
+            MethodDef{
+              loc = test/testdata/desugar/sclass.rb:13:9-15:12
+              flags = {}
+              name = <U b><<U <todo method>>>
+              args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/sclass.rb
+                  kind = Local
+                  name = <U <blk>>
+                } }]
+              rhs = Literal{ loc = test/testdata/desugar/sclass.rb:14:13-14:16, value = "b" }
+            }
+          ]
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/sclass.rb:19:1-19:16
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/sclass.rb:19:1-19:3
+        kind = Global
+        name = <U $c>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/sclass.rb:19:6-19:16
+        flags = {}
+        recv = UnresolvedConstantLit{
+          loc = test/testdata/desugar/sclass.rb:19:6-19:12
+          cnst = <C <U Object>>
+          scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+        }
+        fun = <U new>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+    }
+
+    EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:26:1-34:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:26:7-26:8
+        cnst = <C <U D>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:26:1-34:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        ClassDef{
+          loc = test/testdata/desugar/sclass.rb:27:5-33:8
+          kind = class
+          name = UnresolvedIdent{
+            loc = test/testdata/desugar/sclass.rb:27:14-27:18
+            kind = Class
+            name = <U <singleton class>>
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = []
+          rhs = [
+            ClassDef{
+              loc = test/testdata/desugar/sclass.rb:28:9-32:12
+              kind = class
+              name = UnresolvedIdent{
+                loc = test/testdata/desugar/sclass.rb:28:18-28:22
+                kind = Class
+                name = <U <singleton class>>
+              }
+              symbol = <C <U <todo sym>>>
+              ancestors = []
+              rhs = [
+                MethodDef{
+                  loc = test/testdata/desugar/sclass.rb:29:13-31:16
+                  flags = {}
+                  name = <U d><<U <todo method>>>
+                  args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/sclass.rb
+                      kind = Local
+                      name = <U <blk>>
+                    } }]
+                  rhs = Literal{ loc = test/testdata/desugar/sclass.rb:30:17-30:20, value = "d" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:36:1-45:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:36:7-36:8
+        cnst = <C <U E>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:36:1-45:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        ClassDef{
+          loc = test/testdata/desugar/sclass.rb:37:5-43:8
+          kind = class
+          name = UnresolvedIdent{
+            loc = test/testdata/desugar/sclass.rb:37:14-37:18
+            kind = Class
+            name = <U <singleton class>>
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = []
+          rhs = [
+            MethodDef{
+              loc = test/testdata/desugar/sclass.rb:38:9-42:12
+              flags = {}
+              name = <U wrapper><<U <todo method>>>
+              args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/sclass.rb
+                  kind = Local
+                  name = <U <blk>>
+                } }]
+              rhs = MethodDef{
+                loc = test/testdata/desugar/sclass.rb:39:13-41:16
+                flags = {}
+                name = <U e><<U <todo method>>>
+                args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                    loc = test/testdata/desugar/sclass.rb
+                    kind = Local
+                    name = <U <blk>>
+                  } }]
+                rhs = Literal{ loc = test/testdata/desugar/sclass.rb:40:17-40:20, value = "e" }
+              }
+            }
+          ]
+        }
+
+        Send{
+          loc = test/testdata/desugar/sclass.rb:44:5-44:12
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/sclass.rb:44:5-44:5
+            localVariable = <U <self>>
+          }
+          fun = <U wrapper>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:47:1-58:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:47:7-47:8
+        cnst = <C <U F>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:47:1-58:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        ClassDef{
+          loc = test/testdata/desugar/sclass.rb:48:3-57:8
+          kind = class
+          name = UnresolvedIdent{
+            loc = test/testdata/desugar/sclass.rb:48:12-48:16
+            kind = Class
+            name = <U <singleton class>>
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = []
+          rhs = [
+            MethodDef{
+              loc = test/testdata/desugar/sclass.rb:49:9-51:12
+              flags = {}
+              name = <U initialize><<U <todo method>>>
+              args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/sclass.rb
+                  kind = Local
+                  name = <U <blk>>
+                } }]
+              rhs = Assign{
+                loc = test/testdata/desugar/sclass.rb:50:11-50:33
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/sclass.rb:50:11-50:13
+                  kind = Instance
+                  name = <U @f>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/sclass.rb:50:16-50:33
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/sclass.rb:50:16-50:17
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                  }
+                  fun = <U let>
+                  block = nullptr
+                  pos_args = 2
+                  args = [
+                    Literal{ loc = test/testdata/desugar/sclass.rb:50:22-50:23, value = 0 }
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/sclass.rb:50:25-50:32
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                    }
+                  ]
+                }
+              }
+            }
+
+            Send{
+              loc = test/testdata/desugar/sclass.rb:53:9-53:22
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/sclass.rb:53:9-53:9
+                localVariable = <U <self>>
+              }
+              fun = <U extend>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/sclass.rb:53:16-53:22
+                  cnst = <C <U Sig>>
+                  scope = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/sclass.rb:53:16-53:17
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                  }
+                }
+              ]
+            }
+
+            Send{
+              loc = test/testdata/desugar/sclass.rb:55:9-55:50
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/sclass.rb:55:9-55:9
+                localVariable = <U <self>>
+              }
+              fun = <U sig>
+              block = Block {
+                loc = test/testdata/desugar/sclass.rb:55:9-55:50
+                args = [
+                ]
+                body = Send{
+                  loc = test/testdata/desugar/sclass.rb:55:14-55:49
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/sclass.rb:55:14-55:32
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/sclass.rb:55:14-55:14
+                      localVariable = <U <self>>
+                    }
+                    fun = <U params>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                      Literal{ loc = test/testdata/desugar/sclass.rb:55:21-55:22, value = :f }
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/sclass.rb:55:24-55:31
+                        cnst = <C <U Integer>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                      }
+                    ]
+                  }
+                  fun = <U returns>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedConstantLit{
+                      loc = test/testdata/desugar/sclass.rb:55:41-55:48
+                      cnst = <C <U Integer>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                    }
+                  ]
+                }
+              }
+              pos_args = 0
+              args = [
+              ]
+            }
+
+            Send{
+              loc = test/testdata/desugar/sclass.rb:56:9-56:23
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/sclass.rb:56:9-56:9
+                localVariable = <U <self>>
+              }
+              fun = <U attr_writer>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Literal{ loc = test/testdata/desugar/sclass.rb:56:21-56:23, value = :f }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:60:1-72:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:60:7-60:8
+        cnst = <C <U G>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:60:1-72:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/sclass.rb:61:5-68:8
+          flags = {}
+          name = <U wrapper><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/sclass.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/sclass.rb:62:9-67:14
+            stats = [
+              ClassDef{
+                loc = test/testdata/desugar/sclass.rb:62:9-66:12
+                kind = class
+                name = UnresolvedIdent{
+                  loc = test/testdata/desugar/sclass.rb:62:18-62:22
+                  kind = Class
+                  name = <U <singleton class>>
+                }
+                symbol = <C <U <todo sym>>>
+                ancestors = []
+                rhs = [
+                  MethodDef{
+                    loc = test/testdata/desugar/sclass.rb:63:13-65:16
+                    flags = {}
+                    name = <U inner><<U <todo method>>>
+                    args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                        loc = test/testdata/desugar/sclass.rb
+                        kind = Local
+                        name = <U <blk>>
+                      } }]
+                    rhs = Send{
+                      loc = test/testdata/desugar/sclass.rb:64:17-64:36
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/sclass.rb:64:17-64:18
+                        cnst = <C <U T>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                      }
+                      fun = <U reveal_type>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Local{
+                          loc = test/testdata/desugar/sclass.rb:64:31-64:35
+                          localVariable = <U <self>>
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            expr = Send{
+              loc = test/testdata/desugar/sclass.rb:67:9-67:14
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/sclass.rb:67:9-67:9
+                localVariable = <U <self>>
+              }
+              fun = <U inner>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+          }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/sclass.rb:69:5-71:8
+          flags = {self}
+          name = <U g><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/sclass.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Literal{ loc = test/testdata/desugar/sclass.rb:70:9-70:12, value = "g" }
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/sclass.rb:74:1-82:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/sclass.rb:74:7-74:8
+        cnst = <C <U H>>
+        scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/sclass.rb:74:1-82:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        ClassDef{
+          loc = test/testdata/desugar/sclass.rb:75:5-81:8
+          kind = class
+          name = UnresolvedIdent{
+            loc = test/testdata/desugar/sclass.rb:75:14-75:18
+            kind = Class
+            name = <U <singleton class>>
+          }
+          symbol = <C <U <todo sym>>>
+          ancestors = []
+          rhs = [
+            ClassDef{
+              loc = test/testdata/desugar/sclass.rb:76:9-80:12
+              kind = class
+              name = UnresolvedConstantLit{
+                loc = test/testdata/desugar/sclass.rb:76:15-76:17
+                cnst = <C <U H2>>
+                scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+              }
+              symbol = <C <U <todo sym>>>
+              ancestors = [ConstantLit{
+                  loc = test/testdata/desugar/sclass.rb:76:9-80:12
+                  symbol = (class ::<todo sym>)
+                  orig = nullptr
+                }]
+              rhs = [
+                MethodDef{
+                  loc = test/testdata/desugar/sclass.rb:77:13-79:16
+                  flags = {self}
+                  name = <U h><<U <todo method>>>
+                  args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+                      loc = test/testdata/desugar/sclass.rb
+                      kind = Local
+                      name = <U <blk>>
+                    } }]
+                  rhs = Literal{ loc = test/testdata/desugar/sclass.rb:78:17-78:20, value = "h" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/sclass.rb:84:1-93:4
+      flags = {}
+      name = <U main><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/sclass.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/sclass.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/sclass.rb:85:5-92:33
+        stats = [
+          Send{
+            loc = test/testdata/desugar/sclass.rb:85:5-85:13
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:85:5-85:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:85:10-85:13
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/sclass.rb:85:10-85:11
+                  cnst = <C <U A>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                }
+                fun = <U a>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/sclass.rb:86:5-86:13
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:86:5-86:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:86:10-86:13
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/sclass.rb:86:10-86:11
+                  cnst = <C <U B>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                }
+                fun = <U b>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/sclass.rb:87:5-87:14
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:87:5-87:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:87:10-87:14
+                flags = {}
+                recv = UnresolvedIdent{
+                  loc = test/testdata/desugar/sclass.rb:87:10-87:12
+                  kind = Global
+                  name = <U $c>
+                }
+                fun = <U c>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/sclass.rb:88:5-88:29
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:88:5-88:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:88:10-88:29
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/sclass.rb:88:10-88:27
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/sclass.rb:88:10-88:11
+                    cnst = <C <U D>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                  }
+                  fun = <U singleton_class>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+                fun = <U d>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/sclass.rb:89:5-89:13
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:89:5-89:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:89:10-89:13
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/sclass.rb:89:10-89:11
+                  cnst = <C <U E>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                }
+                fun = <U e>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/sclass.rb:90:5-90:18
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:90:5-90:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:90:10-90:18
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/sclass.rb:90:10-90:11
+                  cnst = <C <U F>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                }
+                fun = <U f=>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ loc = test/testdata/desugar/sclass.rb:90:16-90:18, value = 91 }
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/sclass.rb:91:5-91:23
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/sclass.rb:91:5-91:5
+              localVariable = <U <self>>
+            }
+            fun = <U puts>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/sclass.rb:91:10-91:23
+                flags = {}
+                recv = Send{
+                  loc = test/testdata/desugar/sclass.rb:91:10-91:15
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/sclass.rb:91:10-91:11
+                    cnst = <C <U G>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                  }
+                  fun = <U new>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+                fun = <U wrapper>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/sclass.rb:92:5-92:33
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/sclass.rb:92:5-92:5
+            localVariable = <U <self>>
+          }
+          fun = <U puts>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Send{
+              loc = test/testdata/desugar/sclass.rb:92:10-92:33
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/sclass.rb:92:10-92:31
+                cnst = <C <U H2>>
+                scope = Send{
+                  loc = test/testdata/desugar/sclass.rb:92:10-92:27
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/sclass.rb:92:10-92:11
+                    cnst = <C <U H>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/sclass.rb }
+                  }
+                  fun = <U singleton_class>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+              fun = <U h>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+          ]
+        }
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/sclass.rb:94:1-94:5
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/sclass.rb:94:1-94:1
+        localVariable = <U <self>>
+      }
+      fun = <U main>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

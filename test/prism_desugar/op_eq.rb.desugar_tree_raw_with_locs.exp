@@ -1,0 +1,539 @@
+ClassDef{
+  loc = test/testdata/desugar/op_eq.rb:2:1-18:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/op_eq.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/op_eq.rb:2:1-18:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/op_eq.rb:2:1-18:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/op_eq.rb:2:7-2:11
+        cnst = <C <U OpEq>>
+        scope = EmptyTree{ loc = test/testdata/desugar/op_eq.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/op_eq.rb:2:1-18:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/op_eq.rb:3:3-3:13
+          flags = {}
+          name = <U b><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/op_eq.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/op_eq.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/op_eq.rb:4:3-4:17
+          flags = {}
+          name = <U b=><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb:4:10-4:11
+              kind = Local
+              name = <U _>
+            }, BlockArg{ loc = test/testdata/desugar/op_eq.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/op_eq.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/op_eq.rb:5:3-5:13
+          flags = {}
+          name = <U y><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/op_eq.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/op_eq.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/op_eq.rb:6:3-6:13
+          flags = {}
+          name = <U z><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/op_eq.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = EmptyTree{ loc = test/testdata/desugar/op_eq.rb }
+        }
+
+        MethodDef{
+          loc = test/testdata/desugar/op_eq.rb:8:3-17:6
+          flags = {}
+          name = <U example><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb:8:15-8:16
+              kind = Local
+              name = <U a>
+            }, BlockArg{ loc = test/testdata/desugar/op_eq.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/op_eq.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/op_eq.rb:9:5-16:18
+            stats = [
+              If{
+                loc = test/testdata/desugar/op_eq.rb:9:5-9:13
+                cond = UnresolvedIdent{
+                  loc = test/testdata/desugar/op_eq.rb:9:5-9:6
+                  kind = Local
+                  name = <U a>
+                }
+                thenp = Assign{
+                  loc = test/testdata/desugar/op_eq.rb:9:5-9:13
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:9:5-9:6
+                    kind = Local
+                    name = <U a>
+                  }
+                  rhs = Literal{ loc = test/testdata/desugar/op_eq.rb:9:11-9:13, value = :a }
+                }
+                elsep = UnresolvedIdent{
+                  loc = test/testdata/desugar/op_eq.rb:9:5-9:6
+                  kind = Local
+                  name = <U a>
+                }
+              }
+              InsSeq{
+                loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                      kind = Local
+                      name = <D <U b> $2>
+                    }
+                    rhs = Local{
+                      loc = test/testdata/desugar/op_eq.rb:10:5-10:9
+                      localVariable = <U <self>>
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                      kind = Local
+                      name = <D <U b> $3>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                      flags = {privateOk}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                        kind = Local
+                        name = <D <U b> $2>
+                      }
+                      fun = <U b>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  }
+                ],
+                expr = If{
+                  loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                  cond = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                    kind = Local
+                    name = <D <U b> $3>
+                  }
+                  thenp = Send{
+                    loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                    flags = {privateOk}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                      kind = Local
+                      name = <D <U b> $2>
+                    }
+                    fun = <U b=>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/op_eq.rb:10:16-10:18, value = :b }
+                    ]
+                  }
+                  elsep = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:10:5-10:18
+                    kind = Local
+                    name = <D <U b> $3>
+                  }
+                }
+              }
+              InsSeq{
+                loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                      kind = Local
+                      name = <D <U []> $4>
+                    }
+                    rhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:11:5-11:6
+                      kind = Local
+                      name = <U a>
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:11:7-11:8
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:11:7-11:8
+                      kind = Local
+                      name = <D <U []> $5>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/op_eq.rb:11:7-11:8
+                      flags = {privateOk}
+                      recv = Local{
+                        loc = test/testdata/desugar/op_eq.rb:11:7-11:7
+                        localVariable = <U <self>>
+                      }
+                      fun = <U y>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:11:10-11:11
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:11:10-11:11
+                      kind = Local
+                      name = <D <U []> $6>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/op_eq.rb:11:10-11:11
+                      flags = {privateOk}
+                      recv = Local{
+                        loc = test/testdata/desugar/op_eq.rb:11:10-11:10
+                        localVariable = <U <self>>
+                      }
+                      fun = <U z>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                      kind = Local
+                      name = <D <U []> $7>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                      flags = {}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                        kind = Local
+                        name = <D <U []> $4>
+                      }
+                      fun = <U []>
+                      block = nullptr
+                      pos_args = 2
+                      args = [
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/op_eq.rb:11:7-11:8
+                          kind = Local
+                          name = <D <U []> $5>
+                        }
+                        UnresolvedIdent{
+                          loc = test/testdata/desugar/op_eq.rb:11:10-11:11
+                          kind = Local
+                          name = <D <U []> $6>
+                        }
+                      ]
+                    }
+                  }
+                ],
+                expr = If{
+                  loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                  cond = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                    kind = Local
+                    name = <D <U []> $7>
+                  }
+                  thenp = Send{
+                    loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                      kind = Local
+                      name = <D <U []> $4>
+                    }
+                    fun = <U []=>
+                    block = nullptr
+                    pos_args = 3
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:11:7-11:8
+                        kind = Local
+                        name = <D <U []> $5>
+                      }
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:11:10-11:11
+                        kind = Local
+                        name = <D <U []> $6>
+                      }
+                      Literal{ loc = test/testdata/desugar/op_eq.rb:11:17-11:18, value = 1 }
+                    ]
+                  }
+                  elsep = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:11:5-11:18
+                    kind = Local
+                    name = <D <U []> $7>
+                  }
+                }
+              }
+              If{
+                loc = test/testdata/desugar/op_eq.rb:14:5-14:13
+                cond = UnresolvedIdent{
+                  loc = test/testdata/desugar/op_eq.rb:14:5-14:6
+                  kind = Local
+                  name = <U a>
+                }
+                thenp = UnresolvedIdent{
+                  loc = test/testdata/desugar/op_eq.rb:14:5-14:6
+                  kind = Local
+                  name = <U a>
+                }
+                elsep = Assign{
+                  loc = test/testdata/desugar/op_eq.rb:14:5-14:13
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:14:5-14:6
+                    kind = Local
+                    name = <U a>
+                  }
+                  rhs = Literal{ loc = test/testdata/desugar/op_eq.rb:14:11-14:13, value = :a }
+                }
+              }
+              InsSeq{
+                loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                      kind = Local
+                      name = <D <U b> $8>
+                    }
+                    rhs = Local{
+                      loc = test/testdata/desugar/op_eq.rb:15:5-15:9
+                      localVariable = <U <self>>
+                    }
+                  }
+                  Assign{
+                    loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                      kind = Local
+                      name = <D <U b> $9>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                      flags = {privateOk}
+                      recv = UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                        kind = Local
+                        name = <D <U b> $8>
+                      }
+                      fun = <U b>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  }
+                ],
+                expr = If{
+                  loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                  cond = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                    kind = Local
+                    name = <D <U b> $9>
+                  }
+                  thenp = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                    kind = Local
+                    name = <D <U b> $9>
+                  }
+                  elsep = Send{
+                    loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                    flags = {privateOk}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:15:5-15:18
+                      kind = Local
+                      name = <D <U b> $8>
+                    }
+                    fun = <U b=>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/op_eq.rb:15:16-15:18, value = :b }
+                    ]
+                  }
+                }
+              }
+            ],
+            expr = InsSeq{
+              loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                    kind = Local
+                    name = <D <U []> $10>
+                  }
+                  rhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:16:5-16:6
+                    kind = Local
+                    name = <U a>
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/op_eq.rb:16:7-16:8
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:16:7-16:8
+                    kind = Local
+                    name = <D <U []> $11>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/op_eq.rb:16:7-16:8
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/op_eq.rb:16:7-16:7
+                      localVariable = <U <self>>
+                    }
+                    fun = <U y>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/op_eq.rb:16:10-16:11
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:16:10-16:11
+                    kind = Local
+                    name = <D <U []> $12>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/op_eq.rb:16:10-16:11
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/op_eq.rb:16:10-16:10
+                      localVariable = <U <self>>
+                    }
+                    fun = <U z>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                    kind = Local
+                    name = <D <U []> $13>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                      kind = Local
+                      name = <D <U []> $10>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 2
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:16:7-16:8
+                        kind = Local
+                        name = <D <U []> $11>
+                      }
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/op_eq.rb:16:10-16:11
+                        kind = Local
+                        name = <D <U []> $12>
+                      }
+                    ]
+                  }
+                }
+              ],
+              expr = If{
+                loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                cond = UnresolvedIdent{
+                  loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                  kind = Local
+                  name = <D <U []> $13>
+                }
+                thenp = UnresolvedIdent{
+                  loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                  kind = Local
+                  name = <D <U []> $13>
+                }
+                elsep = Send{
+                  loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/op_eq.rb:16:5-16:18
+                    kind = Local
+                    name = <D <U []> $10>
+                  }
+                  fun = <U []=>
+                  block = nullptr
+                  pos_args = 3
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:16:7-16:8
+                      kind = Local
+                      name = <D <U []> $11>
+                    }
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/op_eq.rb:16:10-16:11
+                      kind = Local
+                      name = <D <U []> $12>
+                    }
+                    Literal{ loc = test/testdata/desugar/op_eq.rb:16:17-16:18, value = 1 }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

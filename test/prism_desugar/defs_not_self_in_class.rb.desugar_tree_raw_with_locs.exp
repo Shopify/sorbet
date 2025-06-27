@@ -1,0 +1,54 @@
+ClassDef{
+  loc = test/testdata/desugar/defs_not_self_in_class.rb:3:1-7:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/defs_not_self_in_class.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/defs_not_self_in_class.rb:3:1-7:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/defs_not_self_in_class.rb:3:1-7:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/defs_not_self_in_class.rb:3:7-3:8
+        cnst = <C <U A>>
+        scope = EmptyTree{ loc = test/testdata/desugar/defs_not_self_in_class.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/defs_not_self_in_class.rb:3:1-7:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        Send{
+          loc = test/testdata/desugar/defs_not_self_in_class.rb:4:3-6:6
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/defs_not_self_in_class.rb:4:3-4:3
+            localVariable = <U <self>>
+          }
+          fun = <U private_class_method>
+          block = nullptr
+          pos_args = 1
+          args = [
+            MethodDef{
+              loc = test/testdata/desugar/defs_not_self_in_class.rb:4:24-6:6
+              flags = {self}
+              name = <U a><<U <todo method>>>
+              args = [BlockArg{ loc = test/testdata/desugar/defs_not_self_in_class.rb, expr = UnresolvedIdent{
+                  loc = test/testdata/desugar/defs_not_self_in_class.rb
+                  kind = Local
+                  name = <U <blk>>
+                } }]
+              rhs = Literal{ loc = test/testdata/desugar/defs_not_self_in_class.rb:5:5-5:6, value = 5 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

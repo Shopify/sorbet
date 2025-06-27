@@ -1,0 +1,209 @@
+ClassDef{
+  loc = test/testdata/desugar/oror_t_let.rb:2:1-11:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/oror_t_let.rb:2:1-11:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/oror_t_let.rb:2:1-2:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/oror_t_let.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/oror_t_let.rb:2:8-2:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/oror_t_let.rb:2:8-2:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+          }
+        }
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/oror_t_let.rb:4:1-4:25
+      flags = {}
+      name = <U returns_untyped><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/oror_t_let.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/oror_t_let.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+    }
+
+    Send{
+      loc = test/testdata/desugar/oror_t_let.rb:6:1-6:60
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/oror_t_let.rb:6:1-6:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/oror_t_let.rb:6:1-6:60
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/oror_t_let.rb:6:6-6:59
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/oror_t_let.rb:6:6-6:42
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/oror_t_let.rb:6:6-6:6
+              localVariable = <U <self>>
+            }
+            fun = <U params>
+            block = nullptr
+            pos_args = 0
+            args = [
+              Literal{ loc = test/testdata/desugar/oror_t_let.rb:6:13-6:21, value = :customer }
+              Send{
+                loc = test/testdata/desugar/oror_t_let.rb:6:23-6:41
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/oror_t_let.rb:6:23-6:24
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+                }
+                fun = <U nilable>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/oror_t_let.rb:6:33-6:40
+                    cnst = <C <U Integer>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+                  }
+                ]
+              }
+            ]
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/oror_t_let.rb:6:51-6:58
+              cnst = <C <U Integer>>
+              scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/oror_t_let.rb:7:1-11:4
+      flags = {}
+      name = <U call><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/oror_t_let.rb:7:10-7:18
+          kind = Local
+          name = <U customer>
+        }, BlockArg{ loc = test/testdata/desugar/oror_t_let.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/oror_t_let.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/oror_t_let.rb:8:3-10:11
+        stats = [
+          If{
+            loc = test/testdata/desugar/oror_t_let.rb:8:3-8:47
+            cond = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_t_let.rb:8:3-8:11
+              kind = Local
+              name = <U customer>
+            }
+            thenp = UnresolvedIdent{
+              loc = test/testdata/desugar/oror_t_let.rb:8:3-8:11
+              kind = Local
+              name = <U customer>
+            }
+            elsep = Assign{
+              loc = test/testdata/desugar/oror_t_let.rb:8:3-8:47
+              lhs = UnresolvedIdent{
+                loc = test/testdata/desugar/oror_t_let.rb:8:3-8:11
+                kind = Local
+                name = <U customer>
+              }
+              rhs = Send{
+                loc = test/testdata/desugar/oror_t_let.rb:8:16-8:47
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/oror_t_let.rb:8:16-8:17
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+                }
+                fun = <U let>
+                block = nullptr
+                pos_args = 2
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/oror_t_let.rb:8:22-8:37
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/oror_t_let.rb:8:22-8:22
+                      localVariable = <U <self>>
+                    }
+                    fun = <U returns_untyped>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/oror_t_let.rb:8:39-8:46
+                    cnst = <C <U Integer>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+                  }
+                ]
+              }
+            }
+          }
+          Send{
+            loc = test/testdata/desugar/oror_t_let.rb:9:3-9:26
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/oror_t_let.rb:9:3-9:4
+              cnst = <C <U T>>
+              scope = EmptyTree{ loc = test/testdata/desugar/oror_t_let.rb }
+            }
+            fun = <U reveal_type>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/oror_t_let.rb:9:17-9:25
+                kind = Local
+                name = <U customer>
+              }
+            ]
+          }
+        ],
+        expr = UnresolvedIdent{
+          loc = test/testdata/desugar/oror_t_let.rb:10:3-10:11
+          kind = Local
+          name = <U customer>
+        }
+      }
+    }
+  ]
+}

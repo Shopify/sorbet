@@ -1,0 +1,418 @@
+ClassDef{
+  loc = test/testdata/desugar/backref.rb:3:1-31:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/backref.rb:3:1-31:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Assign{
+      loc = test/testdata/desugar/backref.rb:3:1-3:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:3:1-3:3
+        kind = Local
+        name = <U x1>
+      }
+      rhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:3:6-3:8
+        kind = Global
+        name = <U $~>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:4:1-4:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:4:1-4:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:4:15-4:17
+          kind = Local
+          name = <U x1>
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/backref.rb:6:1-6:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:6:1-6:3
+        kind = Local
+        name = <U x2>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/backref.rb:6:6-6:8
+        flags = {}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/backref.rb:6:6-6:8
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <regex-backref>>
+        block = nullptr
+        pos_args = 1
+        args = [
+          Literal{ loc = test/testdata/desugar/backref.rb:6:6-6:8, value = :$& }
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:7:1-7:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:7:1-7:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:7:15-7:17
+          kind = Local
+          name = <U x2>
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/backref.rb:9:1-9:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:9:1-9:3
+        kind = Local
+        name = <U x3>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/backref.rb:9:6-9:8
+        flags = {}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/backref.rb:9:6-9:8
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <regex-backref>>
+        block = nullptr
+        pos_args = 1
+        args = [
+          Literal{ loc = test/testdata/desugar/backref.rb:9:6-9:8, value = :$` }
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:10:1-10:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:10:1-10:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:10:15-10:17
+          kind = Local
+          name = <U x3>
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/backref.rb:12:1-12:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:12:1-12:3
+        kind = Local
+        name = <U x4>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/backref.rb:12:6-12:8
+        flags = {}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/backref.rb:12:6-12:8
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <regex-backref>>
+        block = nullptr
+        pos_args = 1
+        args = [
+          Literal{ loc = test/testdata/desugar/backref.rb:12:6-12:8, value = :$' }
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:13:1-13:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:13:1-13:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:13:15-13:17
+          kind = Local
+          name = <U x4>
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/backref.rb:15:1-15:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:15:1-15:3
+        kind = Local
+        name = <U x5>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/backref.rb:15:6-15:8
+        flags = {}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/backref.rb:15:6-15:8
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <regex-backref>>
+        block = nullptr
+        pos_args = 1
+        args = [
+          Literal{ loc = test/testdata/desugar/backref.rb:15:6-15:8, value = :$+ }
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:16:1-16:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:16:1-16:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:16:15-16:17
+          kind = Local
+          name = <U x5>
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/backref.rb:18:1-18:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:18:1-18:3
+        kind = Local
+        name = <U x6>
+      }
+      rhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:18:6-18:8
+        kind = Global
+        name = <U 1>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:19:1-19:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:19:1-19:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:19:15-19:17
+          kind = Local
+          name = <U x6>
+        }
+      ]
+    }
+
+    Assign{
+      loc = test/testdata/desugar/backref.rb:21:1-21:8
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:21:1-21:3
+        kind = Local
+        name = <U x7>
+      }
+      rhs = UnresolvedIdent{
+        loc = test/testdata/desugar/backref.rb:21:6-21:8
+        kind = Global
+        name = <U 9>
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/backref.rb:22:1-22:18
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:22:1-22:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/backref.rb:22:15-22:17
+          kind = Local
+          name = <U x7>
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/backref.rb:24:1-31:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/backref.rb:24:7-24:29
+        cnst = <C <U TestNotPinningBackrefs>>
+        scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/backref.rb:24:1-31:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        Send{
+          loc = test/testdata/desugar/backref.rb:25:3-30:6
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/backref.rb:25:3-25:8
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/backref.rb:25:3-25:8
+              symbol = (class ::Regexp)
+              orig = nullptr
+            }
+            fun = <U new>
+            block = nullptr
+            pos_args = 2
+            args = [
+              Literal{ loc = test/testdata/desugar/backref.rb:25:3-25:8, value = "foo" }
+              Literal{ loc = test/testdata/desugar/backref.rb:25:7-25:8, value = 0 }
+            ]
+          }
+          fun = <U match>
+          block = Block {
+            loc = test/testdata/desugar/backref.rb:25:3-30:6
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/backref.rb:25:26-25:27
+                kind = Local
+                name = <U m>
+              }
+            ]
+            body = InsSeq{
+              loc = test/testdata/desugar/backref.rb:26:5-29:21
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/backref.rb:26:5-26:11
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/backref.rb:26:5-26:6
+                    kind = Local
+                    name = <U x>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/backref.rb:26:9-26:11
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/backref.rb:26:9-26:11
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <regex-backref>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/backref.rb:26:9-26:11, value = :$& }
+                    ]
+                  }
+                }
+                Send{
+                  loc = test/testdata/desugar/backref.rb:27:5-27:21
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/backref.rb:27:5-27:6
+                    cnst = <C <U T>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+                  }
+                  fun = <U reveal_type>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/backref.rb:27:19-27:20
+                      kind = Local
+                      name = <U x>
+                    }
+                  ]
+                }
+                Assign{
+                  loc = test/testdata/desugar/backref.rb:28:5-28:14
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/backref.rb:28:5-28:6
+                    kind = Local
+                    name = <U x>
+                  }
+                  rhs = Literal{ loc = test/testdata/desugar/backref.rb:28:9-28:14, value = false }
+                }
+              ],
+              expr = Send{
+                loc = test/testdata/desugar/backref.rb:29:5-29:21
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/backref.rb:29:5-29:6
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/backref.rb }
+                }
+                fun = <U reveal_type>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/backref.rb:29:19-29:20
+                    kind = Local
+                    name = <U x>
+                  }
+                ]
+              }
+            }
+          }
+          pos_args = 1
+          args = [
+            Literal{ loc = test/testdata/desugar/backref.rb:25:15-25:20, value = "foo" }
+          ]
+        }
+      ]
+    }
+  ]
+}

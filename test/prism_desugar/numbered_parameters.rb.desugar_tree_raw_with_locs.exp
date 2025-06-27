@@ -1,0 +1,524 @@
+ClassDef{
+  loc = test/testdata/desugar/numbered_parameters.rb:3:1-24:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/numbered_parameters.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/numbered_parameters.rb:3:1-24:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/numbered_parameters.rb:3:1-3:13
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/numbered_parameters.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/numbered_parameters.rb }
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:5:1-5:11
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:5:1-5:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:5:1-5:11
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:5:5-5:11
+            kind = Local
+            name = <U _1>
+          }
+        ]
+        body = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb:5:7-5:9
+          kind = Local
+          name = <U _1>
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:6:1-6:11
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:6:1-6:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:6:1-6:11
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _2>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _3>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _4>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _5>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _6>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _7>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _8>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:6:5-6:11
+            kind = Local
+            name = <U _9>
+          }
+        ]
+        body = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb:6:7-6:9
+          kind = Local
+          name = <U _9>
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:7:1-7:16
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:7:1-7:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:7:1-7:16
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:7:5-7:16
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:7:5-7:16
+            kind = Local
+            name = <U _2>
+          }
+        ]
+        body = Send{
+          loc = test/testdata/desugar/numbered_parameters.rb:7:7-7:14
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:7:7-7:9
+            kind = Local
+            name = <U _2>
+          }
+          fun = <U *>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:7:12-7:14
+              kind = Local
+              name = <U _1>
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:9:1-9:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:9:1-9:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:9:1-9:14
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:9:5-9:14
+            kind = Local
+            name = <U _1>
+          }
+        ]
+        body = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb:9:8-9:10
+          kind = Local
+          name = <U _1>
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:10:1-10:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:10:1-10:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:10:1-10:14
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _2>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _3>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _4>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _5>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _6>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _7>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _8>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:10:5-10:14
+            kind = Local
+            name = <U _9>
+          }
+        ]
+        body = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb:10:8-10:10
+          kind = Local
+          name = <U _9>
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:11:1-11:19
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:11:1-11:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:11:1-11:19
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:11:5-11:19
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:11:5-11:19
+            kind = Local
+            name = <U _2>
+          }
+        ]
+        body = Send{
+          loc = test/testdata/desugar/numbered_parameters.rb:11:8-11:15
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:11:8-11:10
+            kind = Local
+            name = <U _2>
+          }
+          fun = <U *>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:11:13-11:15
+              kind = Local
+              name = <U _1>
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:13:1-13:10
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/numbered_parameters.rb:13:1-13:10
+        cnst = <C <U Kernel>>
+        scope = EmptyTree{ loc = test/testdata/desugar/numbered_parameters.rb }
+      }
+      fun = <U lambda>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:13:1-13:10
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:13:1-13:10
+            kind = Local
+            name = <U _1>
+          }
+        ]
+        body = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb:13:6-13:8
+          kind = Local
+          name = <U _1>
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+        cnst = <C <U Kernel>>
+        scope = EmptyTree{ loc = test/testdata/desugar/numbered_parameters.rb }
+      }
+      fun = <U lambda>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _2>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _3>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _4>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _5>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _6>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _7>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _8>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:14:1-14:10
+            kind = Local
+            name = <U _9>
+          }
+        ]
+        body = UnresolvedIdent{
+          loc = test/testdata/desugar/numbered_parameters.rb:14:6-14:8
+          kind = Local
+          name = <U _9>
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:15:1-15:15
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/numbered_parameters.rb:15:1-15:15
+        cnst = <C <U Kernel>>
+        scope = EmptyTree{ loc = test/testdata/desugar/numbered_parameters.rb }
+      }
+      fun = <U lambda>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:15:1-15:15
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:15:1-15:15
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:15:1-15:15
+            kind = Local
+            name = <U _2>
+          }
+        ]
+        body = Send{
+          loc = test/testdata/desugar/numbered_parameters.rb:15:6-15:13
+          flags = {}
+          recv = UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:15:6-15:8
+            kind = Local
+            name = <U _2>
+          }
+          fun = <U *>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:15:11-15:13
+              kind = Local
+              name = <U _1>
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/numbered_parameters.rb:17:1-24:4
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/numbered_parameters.rb:17:1-17:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/numbered_parameters.rb:17:1-24:4
+        args = [
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:17:5-24:4
+            kind = Local
+            name = <U _1>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:17:5-24:4
+            kind = Local
+            name = <U _2>
+          }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:17:5-24:4
+            kind = Local
+            name = <U _3>
+          }
+        ]
+        body = InsSeq{
+          loc = test/testdata/desugar/numbered_parameters.rb:18:3-23:5
+          stats = [
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:18:3-18:5
+              kind = Local
+              name = <U _2>
+            }
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:19:3-19:5
+              kind = Local
+              name = <U _3>
+            }
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:20:3-20:5
+              kind = Local
+              name = <U _1>
+            }
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:21:3-21:5
+              kind = Local
+              name = <U _2>
+            }
+            UnresolvedIdent{
+              loc = test/testdata/desugar/numbered_parameters.rb:22:3-22:5
+              kind = Local
+              name = <U _3>
+            }
+          ],
+          expr = UnresolvedIdent{
+            loc = test/testdata/desugar/numbered_parameters.rb:23:3-23:5
+            kind = Local
+            name = <U _1>
+          }
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

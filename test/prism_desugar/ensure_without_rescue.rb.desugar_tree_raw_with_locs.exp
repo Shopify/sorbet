@@ -1,0 +1,93 @@
+ClassDef{
+  loc = test/testdata/desugar/ensure_without_rescue.rb:2:1-13:5
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/ensure_without_rescue.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/ensure_without_rescue.rb:2:1-13:5
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/ensure_without_rescue.rb:2:1-8:4
+      flags = {}
+      name = <U main><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/ensure_without_rescue.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/ensure_without_rescue.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Rescue{
+        loc = test/testdata/desugar/ensure_without_rescue.rb:3:5-7:8
+        body = Send{
+          loc = test/testdata/desugar/ensure_without_rescue.rb:4:9-4:10
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/ensure_without_rescue.rb:4:9-4:9
+            localVariable = <U <self>>
+          }
+          fun = <U a>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+        rescueCases = [
+        ]
+        else = EmptyTree{ loc = test/testdata/desugar/ensure_without_rescue.rb }
+        ensure = Send{
+          loc = test/testdata/desugar/ensure_without_rescue.rb:6:9-6:10
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/ensure_without_rescue.rb:6:9-6:9
+            localVariable = <U <self>>
+          }
+          fun = <U b>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/ensure_without_rescue.rb:10:1-10:11
+      flags = {}
+      name = <U a><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/ensure_without_rescue.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/ensure_without_rescue.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/ensure_without_rescue.rb }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/ensure_without_rescue.rb:11:1-11:11
+      flags = {}
+      name = <U b><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/ensure_without_rescue.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/ensure_without_rescue.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = EmptyTree{ loc = test/testdata/desugar/ensure_without_rescue.rb }
+    }
+
+    Send{
+      loc = test/testdata/desugar/ensure_without_rescue.rb:13:1-13:5
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/ensure_without_rescue.rb:13:1-13:1
+        localVariable = <U <self>>
+      }
+      fun = <U main>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

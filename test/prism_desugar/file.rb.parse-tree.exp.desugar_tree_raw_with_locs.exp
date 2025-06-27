@@ -1,0 +1,31 @@
+ClassDef{
+  loc = test/testdata/desugar/file.rb.parse-tree.exp:1:1-2:2
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/file.rb.parse-tree.exp }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/file.rb.parse-tree.exp:1:1-2:2
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/file.rb.parse-tree.exp:1:1-2:2
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/file.rb.parse-tree.exp:1:1-1:1
+        localVariable = <U <self>>
+      }
+      fun = <U FileLiteral>
+      block = Block {
+        loc = test/testdata/desugar/file.rb.parse-tree.exp:1:1-2:2
+        args = [
+        ]
+        body = EmptyTree{ loc = test/testdata/desugar/file.rb.parse-tree.exp }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

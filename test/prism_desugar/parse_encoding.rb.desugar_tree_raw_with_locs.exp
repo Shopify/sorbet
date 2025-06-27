@@ -1,0 +1,236 @@
+ClassDef{
+  loc = test/testdata/desugar/parse_encoding.rb:4:1-10:35
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/parse_encoding.rb:4:1-10:35
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Assign{
+      loc = test/testdata/desugar/parse_encoding.rb:4:1-4:17
+      lhs = UnresolvedIdent{
+        loc = test/testdata/desugar/parse_encoding.rb:4:1-4:2
+        kind = Local
+        name = <U x>
+      }
+      rhs = Send{
+        loc = test/testdata/desugar/parse_encoding.rb:4:5-4:17
+        flags = {}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/parse_encoding.rb:4:5-4:17
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <get-encoding>>
+        block = nullptr
+        pos_args = 0
+        args = [
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/parse_encoding.rb:5:1-5:17
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/parse_encoding.rb:5:1-5:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedIdent{
+          loc = test/testdata/desugar/parse_encoding.rb:5:15-5:16
+          kind = Local
+          name = <U x>
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/parse_encoding.rb:6:1-6:28
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/parse_encoding.rb:6:1-6:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/parse_encoding.rb:6:15-6:27
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/parse_encoding.rb:6:15-6:27
+            symbol = (class ::<Magic>)
+            orig = nullptr
+          }
+          fun = <U <get-encoding>>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/parse_encoding.rb:7:1-7:33
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/parse_encoding.rb:7:1-7:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/parse_encoding.rb:7:15-7:32
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/parse_encoding.rb:7:15-7:27
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/parse_encoding.rb:7:15-7:27
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <get-encoding>>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U name>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/parse_encoding.rb:8:1-8:34
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/parse_encoding.rb:8:1-8:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/parse_encoding.rb:8:15-8:33
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/parse_encoding.rb:8:15-8:27
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/parse_encoding.rb:8:15-8:27
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <get-encoding>>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U names>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/parse_encoding.rb:9:1-9:33
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/parse_encoding.rb:9:1-9:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/parse_encoding.rb:9:15-9:32
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/parse_encoding.rb:9:15-9:27
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/parse_encoding.rb:9:15-9:27
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <get-encoding>>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U to_s>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/parse_encoding.rb:10:1-10:35
+      flags = {}
+      recv = UnresolvedConstantLit{
+        loc = test/testdata/desugar/parse_encoding.rb:10:1-10:2
+        cnst = <C <U T>>
+        scope = EmptyTree{ loc = test/testdata/desugar/parse_encoding.rb }
+      }
+      fun = <U reveal_type>
+      block = nullptr
+      pos_args = 1
+      args = [
+        Send{
+          loc = test/testdata/desugar/parse_encoding.rb:10:15-10:34
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/parse_encoding.rb:10:15-10:27
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/parse_encoding.rb:10:15-10:27
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <get-encoding>>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U dummy?>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+ClassDef{
+  loc = test/testdata/desugar/pin_mlhs.rb:2:1-16:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/pin_mlhs.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/pin_mlhs.rb:2:1-16:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/pin_mlhs.rb:2:1-2:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/pin_mlhs.rb:2:1-2:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/pin_mlhs.rb:2:8-2:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/pin_mlhs.rb:2:8-2:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/pin_mlhs.rb }
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/pin_mlhs.rb:4:1-4:35
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/pin_mlhs.rb:4:1-4:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/pin_mlhs.rb:4:1-4:35
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/pin_mlhs.rb:4:7-4:33
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/pin_mlhs.rb:4:7-4:7
+            localVariable = <U <self>>
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Array{
+              loc = test/testdata/desugar/pin_mlhs.rb:4:15-4:32
+              elems = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/pin_mlhs.rb:4:16-4:23
+                  cnst = <C <U Integer>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/pin_mlhs.rb }
+                }
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/pin_mlhs.rb:4:25-4:31
+                  cnst = <C <U String>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/pin_mlhs.rb }
+                }
+              ]
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/pin_mlhs.rb:5:1-5:28
+      flags = {}
+      name = <U tuple_int_str><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/pin_mlhs.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/pin_mlhs.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Array{
+        loc = test/testdata/desugar/pin_mlhs.rb:5:21-5:28
+        elems = [
+          Literal{ loc = test/testdata/desugar/pin_mlhs.rb:5:22-5:23, value = 0 }
+          Literal{ loc = test/testdata/desugar/pin_mlhs.rb:5:25-5:27, value = "" }
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/pin_mlhs.rb:7:1-7:35
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/pin_mlhs.rb:7:1-7:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/pin_mlhs.rb:7:1-7:35
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/pin_mlhs.rb:7:7-7:33
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/pin_mlhs.rb:7:7-7:7
+            localVariable = <U <self>>
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Array{
+              loc = test/testdata/desugar/pin_mlhs.rb:7:15-7:32
+              elems = [
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/pin_mlhs.rb:7:16-7:22
+                  cnst = <C <U String>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/pin_mlhs.rb }
+                }
+                UnresolvedConstantLit{
+                  loc = test/testdata/desugar/pin_mlhs.rb:7:24-7:31
+                  cnst = <C <U Integer>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/pin_mlhs.rb }
+                }
+              ]
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/pin_mlhs.rb:8:1-8:28
+      flags = {}
+      name = <U tuple_str_int><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/pin_mlhs.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/pin_mlhs.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Array{
+        loc = test/testdata/desugar/pin_mlhs.rb:8:21-8:28
+        elems = [
+          Literal{ loc = test/testdata/desugar/pin_mlhs.rb:8:22-8:24, value = "" }
+          Literal{ loc = test/testdata/desugar/pin_mlhs.rb:8:26-8:27, value = 0 }
+        ]
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/pin_mlhs.rb:10:1-16:4
+      flags = {}
+      name = <U mlhs_example><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/pin_mlhs.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/pin_mlhs.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/pin_mlhs.rb:11:3-15:6
+        stats = [
+          InsSeq{
+            loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                  kind = Local
+                  name = <D <U <assignTemp>> $2>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:10-11:23
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/pin_mlhs.rb:11:10-11:10
+                    localVariable = <U <self>>
+                  }
+                  fun = <U tuple_str_int>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+              Assign{
+                loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                  kind = Local
+                  name = <D <U <assignTemp>> $3>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                    symbol = (class ::<Magic>)
+                    orig = nullptr
+                  }
+                  fun = <U <expand-splat>>
+                  block = nullptr
+                  pos_args = 3
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+                      kind = Local
+                      name = <D <U <assignTemp>> $2>
+                    }
+                    Literal{ loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23, value = 2 }
+                    Literal{ loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23, value = 0 }
+                  ]
+                }
+              }
+              Assign{
+                loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:4
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:4
+                  kind = Local
+                  name = <U x>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:4
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:4
+                    kind = Local
+                    name = <D <U <assignTemp>> $3>
+                  }
+                  fun = <U []>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23, value = 0 }
+                  ]
+                }
+              }
+              Assign{
+                loc = test/testdata/desugar/pin_mlhs.rb:11:6-11:7
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:6-11:7
+                  kind = Local
+                  name = <U _>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/pin_mlhs.rb:11:6-11:7
+                  flags = {}
+                  recv = UnresolvedIdent{
+                    loc = test/testdata/desugar/pin_mlhs.rb:11:6-11:7
+                    kind = Local
+                    name = <D <U <assignTemp>> $3>
+                  }
+                  fun = <U []>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23, value = 1 }
+                  ]
+                }
+              }
+            ],
+            expr = UnresolvedIdent{
+              loc = test/testdata/desugar/pin_mlhs.rb:11:3-11:23
+              kind = Local
+              name = <D <U <assignTemp>> $2>
+            }
+          }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/pin_mlhs.rb:12:3-15:6
+          flags = {}
+          recv = Literal{ loc = test/testdata/desugar/pin_mlhs.rb:12:3-12:4, value = 2 }
+          fun = <U times>
+          block = Block {
+            loc = test/testdata/desugar/pin_mlhs.rb:12:3-15:6
+            args = [
+            ]
+            body = InsSeq{
+              loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+              stats = [
+                Assign{
+                  loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                    kind = Local
+                    name = <D <U <assignTemp>> $4>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:12-13:25
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/pin_mlhs.rb:13:12-13:12
+                      localVariable = <U <self>>
+                    }
+                    fun = <U tuple_int_str>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                    kind = Local
+                    name = <D <U <assignTemp>> $5>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <expand-splat>>
+                    block = nullptr
+                    pos_args = 3
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                        kind = Local
+                        name = <D <U <assignTemp>> $4>
+                      }
+                      Literal{ loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25, value = 2 }
+                      Literal{ loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25, value = 0 }
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:6
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:6
+                    kind = Local
+                    name = <U y>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:6
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:6
+                      kind = Local
+                      name = <D <U <assignTemp>> $5>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25, value = 0 }
+                    ]
+                  }
+                }
+                Assign{
+                  loc = test/testdata/desugar/pin_mlhs.rb:13:8-13:9
+                  lhs = UnresolvedIdent{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:8-13:9
+                    kind = Local
+                    name = <U _>
+                  }
+                  rhs = Send{
+                    loc = test/testdata/desugar/pin_mlhs.rb:13:8-13:9
+                    flags = {}
+                    recv = UnresolvedIdent{
+                      loc = test/testdata/desugar/pin_mlhs.rb:13:8-13:9
+                      kind = Local
+                      name = <D <U <assignTemp>> $5>
+                    }
+                    fun = <U []>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25, value = 1 }
+                    ]
+                  }
+                }
+              ],
+              expr = UnresolvedIdent{
+                loc = test/testdata/desugar/pin_mlhs.rb:13:5-13:25
+                kind = Local
+                name = <D <U <assignTemp>> $4>
+              }
+            }
+          }
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+    }
+  ]
+}

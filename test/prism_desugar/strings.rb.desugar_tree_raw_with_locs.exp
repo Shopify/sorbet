@@ -1,0 +1,46 @@
+ClassDef{
+  loc = test/testdata/desugar/strings.rb:2:1-6:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/strings.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/strings.rb:2:1-6:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/strings.rb:2:1-6:4
+      flags = {}
+      name = <U test_strings><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/strings.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/strings.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/strings.rb:3:3-5:12
+        stats = [
+          Literal{ loc = test/testdata/desugar/strings.rb:3:3-3:7, value = "" }
+          Literal{ loc = test/testdata/desugar/strings.rb:4:3-4:8, value = "foo" }
+        ],
+        expr = Send{
+          loc = test/testdata/desugar/strings.rb:5:3-5:12
+          flags = {}
+          recv = ConstantLit{
+            loc = test/testdata/desugar/strings.rb:5:3-5:12
+            symbol = (class ::<Magic>)
+            orig = nullptr
+          }
+          fun = <U <string-interpolate>>
+          block = nullptr
+          pos_args = 2
+          args = [
+            Literal{ loc = test/testdata/desugar/strings.rb:5:4-5:7, value = "foo" }
+            Literal{ loc = test/testdata/desugar/strings.rb:5:9-5:10, value = 1 }
+          ]
+        }
+      }
+    }
+  ]
+}

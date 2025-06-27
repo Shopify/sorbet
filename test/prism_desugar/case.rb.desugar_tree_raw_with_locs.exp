@@ -1,0 +1,217 @@
+ClassDef{
+  loc = test/testdata/desugar/case.rb:2:1-20:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/case.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/case.rb:2:1-20:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      loc = test/testdata/desugar/case.rb:2:1-20:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/case.rb:2:7-2:11
+        cnst = <C <U Test>>
+        scope = EmptyTree{ loc = test/testdata/desugar/case.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/case.rb:2:1-20:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/case.rb:3:3-19:6
+          flags = {}
+          name = <U test_case><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/case.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/case.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/case.rb:4:5-18:8
+            stats = [
+              InsSeq{
+                loc = test/testdata/desugar/case.rb:4:5-11:8
+                stats = [
+                  Assign{
+                    loc = test/testdata/desugar/case.rb:4:10-4:11
+                    lhs = UnresolvedIdent{
+                      loc = test/testdata/desugar/case.rb:4:10-4:11
+                      kind = Local
+                      name = <D <U <assignTemp>> $2>
+                    }
+                    rhs = Send{
+                      loc = test/testdata/desugar/case.rb:4:10-4:11
+                      flags = {privateOk}
+                      recv = Local{
+                        loc = test/testdata/desugar/case.rb:4:10-4:10
+                        localVariable = <U <self>>
+                      }
+                      fun = <U a>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  }
+                ],
+                expr = If{
+                  loc = test/testdata/desugar/case.rb:5:5-6:9
+                  cond = Send{
+                    loc = test/testdata/desugar/case.rb:5:10-5:14
+                    flags = {}
+                    recv = Send{
+                      loc = test/testdata/desugar/case.rb:5:10-5:14
+                      flags = {privateOk}
+                      recv = Local{
+                        loc = test/testdata/desugar/case.rb:5:10-5:10
+                        localVariable = <U <self>>
+                      }
+                      fun = <U foo1>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                    fun = <U ===>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        loc = test/testdata/desugar/case.rb:4:10-4:11
+                        kind = Local
+                        name = <D <U <assignTemp>> $2>
+                      }
+                    ]
+                  }
+                  thenp = Literal{ loc = test/testdata/desugar/case.rb:6:7-6:9, value = :a }
+                  elsep = If{
+                    loc = test/testdata/desugar/case.rb:7:5-8:9
+                    cond = If{
+                      loc = test/testdata/desugar/case.rb:7:16-7:20
+                      cond = Send{
+                        loc = test/testdata/desugar/case.rb:7:16-7:20
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/case.rb:7:16-7:20
+                          flags = {privateOk}
+                          recv = Local{
+                            loc = test/testdata/desugar/case.rb:7:16-7:16
+                            localVariable = <U <self>>
+                          }
+                          fun = <U foo3>
+                          block = nullptr
+                          pos_args = 0
+                          args = [
+                          ]
+                        }
+                        fun = <U ===>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/case.rb:4:10-4:11
+                            kind = Local
+                            name = <D <U <assignTemp>> $2>
+                          }
+                        ]
+                      }
+                      thenp = Literal{ loc = test/testdata/desugar/case.rb:7:16-7:20, value = true }
+                      elsep = Send{
+                        loc = test/testdata/desugar/case.rb:7:10-7:14
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/case.rb:7:10-7:14
+                          flags = {privateOk}
+                          recv = Local{
+                            loc = test/testdata/desugar/case.rb:7:10-7:10
+                            localVariable = <U <self>>
+                          }
+                          fun = <U foo2>
+                          block = nullptr
+                          pos_args = 0
+                          args = [
+                          ]
+                        }
+                        fun = <U ===>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            loc = test/testdata/desugar/case.rb:4:10-4:11
+                            kind = Local
+                            name = <D <U <assignTemp>> $2>
+                          }
+                        ]
+                      }
+                    }
+                    thenp = Literal{ loc = test/testdata/desugar/case.rb:8:7-8:9, value = :b }
+                    elsep = Literal{ loc = test/testdata/desugar/case.rb:10:7-10:9, value = :c }
+                  }
+                }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/case.rb:14:5-15:9
+              cond = Send{
+                loc = test/testdata/desugar/case.rb:14:10-14:15
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/case.rb:14:10-14:10
+                  localVariable = <U <self>>
+                }
+                fun = <U test1>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+              thenp = Literal{ loc = test/testdata/desugar/case.rb:15:7-15:9, value = :a }
+              elsep = If{
+                loc = test/testdata/desugar/case.rb:16:5-17:9
+                cond = If{
+                  loc = test/testdata/desugar/case.rb:16:17-16:22
+                  cond = Send{
+                    loc = test/testdata/desugar/case.rb:16:17-16:22
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/case.rb:16:17-16:17
+                      localVariable = <U <self>>
+                    }
+                    fun = <U test3>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  thenp = Literal{ loc = test/testdata/desugar/case.rb:16:17-16:22, value = true }
+                  elsep = Send{
+                    loc = test/testdata/desugar/case.rb:16:10-16:15
+                    flags = {privateOk}
+                    recv = Local{
+                      loc = test/testdata/desugar/case.rb:16:10-16:10
+                      localVariable = <U <self>>
+                    }
+                    fun = <U test2>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                }
+                thenp = Literal{ loc = test/testdata/desugar/case.rb:17:7-17:9, value = :b }
+                elsep = EmptyTree{ loc = test/testdata/desugar/case.rb }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

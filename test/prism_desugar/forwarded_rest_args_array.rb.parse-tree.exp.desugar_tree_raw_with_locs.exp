@@ -1,0 +1,1071 @@
+ClassDef{
+  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:1:1-60:2
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:1:1-60:2
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:1:1-60:2
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:1:1-1:1
+        localVariable = <U <self>>
+      }
+      fun = <U Begin>
+      block = Block {
+        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:1:1-60:2
+        args = [
+        ]
+        body = Assign{
+          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:2:3-59:4
+          lhs = UnresolvedIdent{
+            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:2:3-2:8
+            kind = Local
+            name = <U stmts>
+          }
+          rhs = Array{
+            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:2:11-59:4
+            elems = [
+              Send{
+                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:3:5-45:6
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:3:5-3:5
+                  localVariable = <U <self>>
+                }
+                fun = <U DefMethod>
+                block = Block {
+                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:3:5-45:6
+                  args = [
+                  ]
+                  body = InsSeq{
+                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:7-44:8
+                    stats = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:7-4:16
+                        flags = {}
+                        recv = Assign{
+                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:7-4:13
+                          lhs = UnresolvedIdent{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:7-4:11
+                            kind = Local
+                            name = <U name>
+                          }
+                          rhs = UnresolvedConstantLit{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:12-4:13
+                            cnst = <C <U <ErrorNode>>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                          }
+                        }
+                        fun = <U <>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedConstantLit{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:15-4:16
+                            cnst = <C <U U>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                          }
+                        ]
+                      }
+                      Send{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:17-11:8
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:17-4:36
+                          flags = {privateOk}
+                          recv = Local{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:4:17-4:17
+                            localVariable = <U <self>>
+                          }
+                          fun = <U forwarded_rest_args>
+                          block = nullptr
+                          pos_args = 0
+                          args = [
+                          ]
+                        }
+                        fun = <U >>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Assign{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:5:7-11:8
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:5:7-5:11
+                              kind = Local
+                              name = <U args>
+                            }
+                            rhs = Send{
+                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:5:14-11:8
+                              flags = {privateOk}
+                              recv = Local{
+                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:5:14-5:14
+                                localVariable = <U <self>>
+                              }
+                              fun = <U Args>
+                              block = Block {
+                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:5:14-11:8
+                                args = [
+                                ]
+                                body = Assign{
+                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:6:9-10:10
+                                  lhs = UnresolvedIdent{
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:6:9-6:13
+                                    kind = Local
+                                    name = <U args>
+                                  }
+                                  rhs = Array{
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:6:16-10:10
+                                    elems = [
+                                      Send{
+                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:7:11-9:12
+                                        flags = {privateOk}
+                                        recv = Local{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:7:11-7:11
+                                          localVariable = <U <self>>
+                                        }
+                                        fun = <U Restarg>
+                                        block = Block {
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:7:11-9:12
+                                          args = [
+                                          ]
+                                          body = InsSeq{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:13-8:25
+                                            stats = [
+                                              Send{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:13-8:22
+                                                flags = {}
+                                                recv = Assign{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:13-8:19
+                                                  lhs = UnresolvedIdent{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:13-8:17
+                                                    kind = Local
+                                                    name = <U name>
+                                                  }
+                                                  rhs = UnresolvedConstantLit{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:18-8:19
+                                                    cnst = <C <U <ErrorNode>>>
+                                                    scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                  }
+                                                }
+                                                fun = <U <>
+                                                block = nullptr
+                                                pos_args = 1
+                                                args = [
+                                                  UnresolvedConstantLit{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:21-8:22
+                                                    cnst = <C <U U>>
+                                                    scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                  }
+                                                ]
+                                              }
+                                            ],
+                                            expr = Send{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:23-8:25
+                                              flags = {}
+                                              recv = Send{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:23-8:24
+                                                flags = {}
+                                                recv = ConstantLit{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:23-8:24
+                                                  symbol = (class ::<Magic>)
+                                                  orig = nullptr
+                                                }
+                                                fun = <U <splat>>
+                                                block = nullptr
+                                                pos_args = 1
+                                                args = [
+                                                  UnresolvedIdent{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:23-8:24
+                                                    kind = Local
+                                                    name = <U *>
+                                                  }
+                                                ]
+                                              }
+                                              fun = <U >>
+                                              block = nullptr
+                                              pos_args = 1
+                                              args = [
+                                                UnresolvedConstantLit{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:8:24-8:25
+                                                  cnst = <C <U <ErrorNode>>>
+                                                  scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                        pos_args = 0
+                                        args = [
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                              pos_args = 0
+                              args = [
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    expr = Assign{
+                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:12:7-44:8
+                      lhs = UnresolvedIdent{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:12:7-12:11
+                        kind = Local
+                        name = <U body>
+                      }
+                      rhs = Send{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:12:14-44:8
+                        flags = {privateOk}
+                        recv = Local{
+                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:12:14-12:14
+                          localVariable = <U <self>>
+                        }
+                        fun = <U Begin>
+                        block = Block {
+                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:12:14-44:8
+                          args = [
+                          ]
+                          body = Assign{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:13:9-43:10
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:13:9-13:14
+                              kind = Local
+                              name = <U stmts>
+                            }
+                            rhs = Array{
+                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:13:17-43:10
+                              elems = [
+                                Send{
+                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:14:11-30:12
+                                  flags = {privateOk}
+                                  recv = Local{
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:14:11-14:11
+                                    localVariable = <U <self>>
+                                  }
+                                  fun = <U Assign>
+                                  block = Block {
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:14:11-30:12
+                                    args = [
+                                    ]
+                                    body = InsSeq{
+                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:15:13-29:14
+                                      stats = [
+                                        Assign{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:15:13-17:14
+                                          lhs = UnresolvedIdent{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:15:13-15:16
+                                            kind = Local
+                                            name = <U lhs>
+                                          }
+                                          rhs = Send{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:15:19-17:14
+                                            flags = {privateOk}
+                                            recv = Local{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:15:19-15:19
+                                              localVariable = <U <self>>
+                                            }
+                                            fun = <U LVarLhs>
+                                            block = Block {
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:15:19-17:14
+                                              args = [
+                                              ]
+                                              body = InsSeq{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:15-16:28
+                                                stats = [
+                                                  Send{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:15-16:24
+                                                    flags = {}
+                                                    recv = Assign{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:15-16:21
+                                                      lhs = UnresolvedIdent{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:15-16:19
+                                                        kind = Local
+                                                        name = <U name>
+                                                      }
+                                                      rhs = UnresolvedConstantLit{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:20-16:21
+                                                        cnst = <C <U <ErrorNode>>>
+                                                        scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                      }
+                                                    }
+                                                    fun = <U <>
+                                                    block = nullptr
+                                                    pos_args = 1
+                                                    args = [
+                                                      UnresolvedConstantLit{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:23-16:24
+                                                        cnst = <C <U U>>
+                                                        scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                      }
+                                                    ]
+                                                  }
+                                                ],
+                                                expr = Send{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:25-16:28
+                                                  flags = {}
+                                                  recv = Send{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:25-16:27
+                                                    flags = {privateOk}
+                                                    recv = Local{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:25-16:25
+                                                      localVariable = <U <self>>
+                                                    }
+                                                    fun = <U xs>
+                                                    block = nullptr
+                                                    pos_args = 0
+                                                    args = [
+                                                    ]
+                                                  }
+                                                  fun = <U >>
+                                                  block = nullptr
+                                                  pos_args = 1
+                                                  args = [
+                                                    UnresolvedConstantLit{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:16:27-16:28
+                                                      cnst = <C <U <ErrorNode>>>
+                                                      scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            }
+                                            pos_args = 0
+                                            args = [
+                                            ]
+                                          }
+                                        }
+                                      ],
+                                      expr = Assign{
+                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:18:13-29:14
+                                        lhs = UnresolvedIdent{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:18:13-18:16
+                                          kind = Local
+                                          name = <U rhs>
+                                        }
+                                        rhs = Send{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:18:19-29:14
+                                          flags = {privateOk}
+                                          recv = Local{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:18:19-18:19
+                                            localVariable = <U <self>>
+                                          }
+                                          fun = <U Array>
+                                          block = Block {
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:18:19-29:14
+                                            args = [
+                                            ]
+                                            body = Assign{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:19:15-28:16
+                                              lhs = UnresolvedIdent{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:19:15-19:19
+                                                kind = Local
+                                                name = <U elts>
+                                              }
+                                              rhs = Array{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:19:22-28:16
+                                                elems = [
+                                                  Send{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:20:17-22:18
+                                                    flags = {privateOk}
+                                                    recv = Local{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:20:17-20:17
+                                                      localVariable = <U <self>>
+                                                    }
+                                                    fun = <U Symbol>
+                                                    block = Block {
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:20:17-22:18
+                                                      args = [
+                                                      ]
+                                                      body = InsSeq{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:19-21:35
+                                                        stats = [
+                                                          Send{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:19-21:27
+                                                            flags = {}
+                                                            recv = Assign{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:19-21:24
+                                                              lhs = UnresolvedIdent{
+                                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:19-21:22
+                                                                kind = Local
+                                                                name = <U val>
+                                                              }
+                                                              rhs = UnresolvedConstantLit{
+                                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:23-21:24
+                                                                cnst = <C <U <ErrorNode>>>
+                                                                scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                              }
+                                                            }
+                                                            fun = <U <>
+                                                            block = nullptr
+                                                            pos_args = 1
+                                                            args = [
+                                                              UnresolvedConstantLit{
+                                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:26-21:27
+                                                                cnst = <C <U U>>
+                                                                scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                              }
+                                                            ]
+                                                          }
+                                                        ],
+                                                        expr = Send{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:28-21:35
+                                                          flags = {}
+                                                          recv = Send{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:28-21:34
+                                                            flags = {privateOk}
+                                                            recv = Local{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:28-21:28
+                                                              localVariable = <U <self>>
+                                                            }
+                                                            fun = <U before>
+                                                            block = nullptr
+                                                            pos_args = 0
+                                                            args = [
+                                                            ]
+                                                          }
+                                                          fun = <U >>
+                                                          block = nullptr
+                                                          pos_args = 1
+                                                          args = [
+                                                            UnresolvedConstantLit{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:21:34-21:35
+                                                              cnst = <C <U <ErrorNode>>>
+                                                              scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    }
+                                                    pos_args = 0
+                                                    args = [
+                                                    ]
+                                                  }
+                                                  Send{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:23:17-24:18
+                                                    flags = {privateOk}
+                                                    recv = Local{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:23:17-23:17
+                                                      localVariable = <U <self>>
+                                                    }
+                                                    fun = <U ForwardedRestArg>
+                                                    block = Block {
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:23:17-24:18
+                                                      args = [
+                                                      ]
+                                                      body = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                    }
+                                                    pos_args = 0
+                                                    args = [
+                                                    ]
+                                                  }
+                                                  Send{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:25:17-27:18
+                                                    flags = {privateOk}
+                                                    recv = Local{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:25:17-25:17
+                                                      localVariable = <U <self>>
+                                                    }
+                                                    fun = <U Symbol>
+                                                    block = Block {
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:25:17-27:18
+                                                      args = [
+                                                      ]
+                                                      body = InsSeq{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:19-26:34
+                                                        stats = [
+                                                          Send{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:19-26:27
+                                                            flags = {}
+                                                            recv = Assign{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:19-26:24
+                                                              lhs = UnresolvedIdent{
+                                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:19-26:22
+                                                                kind = Local
+                                                                name = <U val>
+                                                              }
+                                                              rhs = UnresolvedConstantLit{
+                                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:23-26:24
+                                                                cnst = <C <U <ErrorNode>>>
+                                                                scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                              }
+                                                            }
+                                                            fun = <U <>
+                                                            block = nullptr
+                                                            pos_args = 1
+                                                            args = [
+                                                              UnresolvedConstantLit{
+                                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:26-26:27
+                                                                cnst = <C <U U>>
+                                                                scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                              }
+                                                            ]
+                                                          }
+                                                        ],
+                                                        expr = Send{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:28-26:34
+                                                          flags = {}
+                                                          recv = Send{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:28-26:33
+                                                            flags = {privateOk}
+                                                            recv = Local{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:28-26:28
+                                                              localVariable = <U <self>>
+                                                            }
+                                                            fun = <U after>
+                                                            block = nullptr
+                                                            pos_args = 0
+                                                            args = [
+                                                            ]
+                                                          }
+                                                          fun = <U >>
+                                                          block = nullptr
+                                                          pos_args = 1
+                                                          args = [
+                                                            UnresolvedConstantLit{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:26:33-26:34
+                                                              cnst = <C <U <ErrorNode>>>
+                                                              scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    }
+                                                    pos_args = 0
+                                                    args = [
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          }
+                                          pos_args = 0
+                                          args = [
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                  pos_args = 0
+                                  args = [
+                                  ]
+                                }
+                                Send{
+                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:31:11-42:12
+                                  flags = {privateOk}
+                                  recv = Local{
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:31:11-31:11
+                                    localVariable = <U <self>>
+                                  }
+                                  fun = <U Send>
+                                  block = Block {
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:31:11-42:12
+                                    args = [
+                                    ]
+                                    body = InsSeq{
+                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:32:13-41:14
+                                      stats = [
+                                        Assign{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:32:13-35:14
+                                          lhs = UnresolvedIdent{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:32:13-32:21
+                                            kind = Local
+                                            name = <U receiver>
+                                          }
+                                          rhs = Send{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:32:24-35:14
+                                            flags = {privateOk}
+                                            recv = Local{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:32:24-32:24
+                                              localVariable = <U <self>>
+                                            }
+                                            fun = <U Const>
+                                            block = Block {
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:32:24-35:14
+                                              args = [
+                                              ]
+                                              body = InsSeq{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:33:15-34:31
+                                                stats = [
+                                                  Assign{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:33:15-33:27
+                                                    lhs = UnresolvedIdent{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:33:15-33:20
+                                                      kind = Local
+                                                      name = <U scope>
+                                                    }
+                                                    rhs = UnresolvedConstantLit{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:33:23-33:27
+                                                      cnst = <C <U NULL>>
+                                                      scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                    }
+                                                  }
+                                                  Send{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:15-34:27
+                                                    flags = {}
+                                                    recv = Send{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:15-34:24
+                                                      flags = {}
+                                                      recv = Assign{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:15-34:21
+                                                        lhs = UnresolvedIdent{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:15-34:19
+                                                          kind = Local
+                                                          name = <U name>
+                                                        }
+                                                        rhs = UnresolvedConstantLit{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:20-34:21
+                                                          cnst = <C <U <ErrorNode>>>
+                                                          scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                        }
+                                                      }
+                                                      fun = <U <>
+                                                      block = nullptr
+                                                      pos_args = 1
+                                                      args = [
+                                                        UnresolvedConstantLit{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:23-34:24
+                                                          cnst = <C <U C>>
+                                                          scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                        }
+                                                      ]
+                                                    }
+                                                    fun = <U <>
+                                                    block = nullptr
+                                                    pos_args = 1
+                                                    args = [
+                                                      UnresolvedConstantLit{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:26-34:27
+                                                        cnst = <C <U U>>
+                                                        scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                      }
+                                                    ]
+                                                  }
+                                                ],
+                                                expr = Send{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:28-34:31
+                                                  flags = {}
+                                                  recv = UnresolvedConstantLit{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:28-34:29
+                                                    cnst = <C <U T>>
+                                                    scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                  }
+                                                  fun = <U >>>
+                                                  block = nullptr
+                                                  pos_args = 1
+                                                  args = [
+                                                    UnresolvedConstantLit{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:34:29-34:31
+                                                      cnst = <C <U <ErrorNode>>>
+                                                      scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            }
+                                            pos_args = 0
+                                            args = [
+                                            ]
+                                          }
+                                        }
+                                        Send{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:13-36:24
+                                          flags = {}
+                                          recv = Assign{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:13-36:21
+                                            lhs = UnresolvedIdent{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:13-36:19
+                                              kind = Local
+                                              name = <U method>
+                                            }
+                                            rhs = UnresolvedConstantLit{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:20-36:21
+                                              cnst = <C <U <ErrorNode>>>
+                                              scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                            }
+                                          }
+                                          fun = <U <>
+                                          block = nullptr
+                                          pos_args = 1
+                                          args = [
+                                            UnresolvedConstantLit{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:23-36:24
+                                              cnst = <C <U U>>
+                                              scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      expr = Send{
+                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:25-41:14
+                                        flags = {}
+                                        recv = Send{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:25-36:36
+                                          flags = {privateOk}
+                                          recv = Local{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:36:25-36:25
+                                            localVariable = <U <self>>
+                                          }
+                                          fun = <U reveal_type>
+                                          block = nullptr
+                                          pos_args = 0
+                                          args = [
+                                          ]
+                                        }
+                                        fun = <U >>
+                                        block = nullptr
+                                        pos_args = 1
+                                        args = [
+                                          Assign{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:37:13-41:14
+                                            lhs = UnresolvedIdent{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:37:13-37:17
+                                              kind = Local
+                                              name = <U args>
+                                            }
+                                            rhs = Array{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:37:20-41:14
+                                              elems = [
+                                                Send{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:38:15-40:16
+                                                  flags = {privateOk}
+                                                  recv = Local{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:38:15-38:15
+                                                    localVariable = <U <self>>
+                                                  }
+                                                  fun = <U LVar>
+                                                  block = Block {
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:38:15-40:16
+                                                    args = [
+                                                    ]
+                                                    body = InsSeq{
+                                                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:17-39:30
+                                                      stats = [
+                                                        Send{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:17-39:26
+                                                          flags = {}
+                                                          recv = Assign{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:17-39:23
+                                                            lhs = UnresolvedIdent{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:17-39:21
+                                                              kind = Local
+                                                              name = <U name>
+                                                            }
+                                                            rhs = UnresolvedConstantLit{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:22-39:23
+                                                              cnst = <C <U <ErrorNode>>>
+                                                              scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                            }
+                                                          }
+                                                          fun = <U <>
+                                                          block = nullptr
+                                                          pos_args = 1
+                                                          args = [
+                                                            UnresolvedConstantLit{
+                                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:25-39:26
+                                                              cnst = <C <U U>>
+                                                              scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                            }
+                                                          ]
+                                                        }
+                                                      ],
+                                                      expr = Send{
+                                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:27-39:30
+                                                        flags = {}
+                                                        recv = Send{
+                                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:27-39:29
+                                                          flags = {privateOk}
+                                                          recv = Local{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:27-39:27
+                                                            localVariable = <U <self>>
+                                                          }
+                                                          fun = <U xs>
+                                                          block = nullptr
+                                                          pos_args = 0
+                                                          args = [
+                                                          ]
+                                                        }
+                                                        fun = <U >>
+                                                        block = nullptr
+                                                        pos_args = 1
+                                                        args = [
+                                                          UnresolvedConstantLit{
+                                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:39:29-39:30
+                                                            cnst = <C <U <ErrorNode>>>
+                                                            scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  }
+                                                  pos_args = 0
+                                                  args = [
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                  pos_args = 0
+                                  args = [
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        }
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    }
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+              Send{
+                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:46:5-58:6
+                flags = {privateOk}
+                recv = Local{
+                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:46:5-46:5
+                  localVariable = <U <self>>
+                }
+                fun = <U DefMethod>
+                block = Block {
+                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:46:5-58:6
+                  args = [
+                  ]
+                  body = InsSeq{
+                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:7-57:18
+                    stats = [
+                      Send{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:7-47:16
+                        flags = {}
+                        recv = Assign{
+                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:7-47:13
+                          lhs = UnresolvedIdent{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:7-47:11
+                            kind = Local
+                            name = <U name>
+                          }
+                          rhs = UnresolvedConstantLit{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:12-47:13
+                            cnst = <C <U <ErrorNode>>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                          }
+                        }
+                        fun = <U <>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedConstantLit{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:15-47:16
+                            cnst = <C <U U>>
+                            scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                          }
+                        ]
+                      }
+                      Send{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:17-56:8
+                        flags = {}
+                        recv = Send{
+                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:17-47:32
+                          flags = {privateOk}
+                          recv = Local{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:47:17-47:17
+                            localVariable = <U <self>>
+                          }
+                          fun = <U start_dotdotdot>
+                          block = nullptr
+                          pos_args = 0
+                          args = [
+                          ]
+                        }
+                        fun = <U >>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Assign{
+                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:48:7-56:8
+                            lhs = UnresolvedIdent{
+                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:48:7-48:11
+                              kind = Local
+                              name = <U args>
+                            }
+                            rhs = Send{
+                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:48:14-56:8
+                              flags = {privateOk}
+                              recv = Local{
+                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:48:14-48:14
+                                localVariable = <U <self>>
+                              }
+                              fun = <U Args>
+                              block = Block {
+                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:48:14-56:8
+                                args = [
+                                ]
+                                body = Assign{
+                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:49:9-55:10
+                                  lhs = UnresolvedIdent{
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:49:9-49:13
+                                    kind = Local
+                                    name = <U args>
+                                  }
+                                  rhs = Array{
+                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:49:16-55:10
+                                    elems = [
+                                      Send{
+                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:50:11-52:12
+                                        flags = {privateOk}
+                                        recv = Local{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:50:11-50:11
+                                          localVariable = <U <self>>
+                                        }
+                                        fun = <U Restarg>
+                                        block = Block {
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:50:11-52:12
+                                          args = [
+                                          ]
+                                          body = InsSeq{
+                                            loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:13-51:25
+                                            stats = [
+                                              Send{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:13-51:22
+                                                flags = {}
+                                                recv = Assign{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:13-51:19
+                                                  lhs = UnresolvedIdent{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:13-51:17
+                                                    kind = Local
+                                                    name = <U name>
+                                                  }
+                                                  rhs = UnresolvedConstantLit{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:18-51:19
+                                                    cnst = <C <U <ErrorNode>>>
+                                                    scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                  }
+                                                }
+                                                fun = <U <>
+                                                block = nullptr
+                                                pos_args = 1
+                                                args = [
+                                                  UnresolvedConstantLit{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:21-51:22
+                                                    cnst = <C <U U>>
+                                                    scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                  }
+                                                ]
+                                              }
+                                            ],
+                                            expr = Send{
+                                              loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:23-51:25
+                                              flags = {}
+                                              recv = Send{
+                                                loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:23-51:24
+                                                flags = {}
+                                                recv = ConstantLit{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:23-51:24
+                                                  symbol = (class ::<Magic>)
+                                                  orig = nullptr
+                                                }
+                                                fun = <U <splat>>
+                                                block = nullptr
+                                                pos_args = 1
+                                                args = [
+                                                  UnresolvedIdent{
+                                                    loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:23-51:24
+                                                    kind = Local
+                                                    name = <U *>
+                                                  }
+                                                ]
+                                              }
+                                              fun = <U >>
+                                              block = nullptr
+                                              pos_args = 1
+                                              args = [
+                                                UnresolvedConstantLit{
+                                                  loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:51:24-51:25
+                                                  cnst = <C <U <ErrorNode>>>
+                                                  scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                        pos_args = 0
+                                        args = [
+                                        ]
+                                      }
+                                      Send{
+                                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:53:11-54:12
+                                        flags = {privateOk}
+                                        recv = Local{
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:53:11-53:11
+                                          localVariable = <U <self>>
+                                        }
+                                        fun = <U ForwardArg>
+                                        block = Block {
+                                          loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:53:11-54:12
+                                          args = [
+                                          ]
+                                          body = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                                        }
+                                        pos_args = 0
+                                        args = [
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                              pos_args = 0
+                              args = [
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    expr = Assign{
+                      loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:57:7-57:18
+                      lhs = UnresolvedIdent{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:57:7-57:11
+                        kind = Local
+                        name = <U body>
+                      }
+                      rhs = UnresolvedConstantLit{
+                        loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp:57:14-57:18
+                        cnst = <C <U NULL>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/forwarded_rest_args_array.rb.parse-tree.exp }
+                      }
+                    }
+                  }
+                }
+                pos_args = 0
+                args = [
+                ]
+              }
+            ]
+          }
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}

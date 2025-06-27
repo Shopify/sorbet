@@ -1,0 +1,130 @@
+ClassDef{
+  loc = test/testdata/desugar/anonymous_blockarg.rb:3:1-11:14
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/anonymous_blockarg.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/anonymous_blockarg.rb:3:1-11:14
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/anonymous_blockarg.rb:3:1-5:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/anonymous_blockarg.rb:3:9-3:13
+          kind = Local
+          name = <U args>
+        }, BlockArg{ loc = test/testdata/desugar/anonymous_blockarg.rb:3:16-3:16, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/anonymous_blockarg.rb:3:16-3:16
+          kind = Local
+          name = <P <U &> $2>
+        } }]
+      rhs = Send{
+        loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:15
+        flags = {privateOk}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:15
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <call-with-splat-and-block>>
+        block = nullptr
+        pos_args = 5
+        args = [
+          Local{
+            loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:3
+            localVariable = <U <self>>
+          }
+          Literal{ loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:3, value = :bar }
+          Send{
+            loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:3
+            flags = {}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:3
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <splat>>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/anonymous_blockarg.rb:4:8-4:12
+                kind = Local
+                name = <U args>
+              }
+            ]
+          }
+          Literal{ loc = test/testdata/desugar/anonymous_blockarg.rb:4:3-4:15, value = nil }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/anonymous_blockarg.rb:4:14-4:15
+            kind = Local
+            name = <U &>
+          }
+        ]
+      }
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/anonymous_blockarg.rb:7:1-9:4
+      flags = {}
+      name = <U bar><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/anonymous_blockarg.rb:7:9-7:13
+          kind = Local
+          name = <U args>
+        }, BlockArg{ loc = test/testdata/desugar/anonymous_blockarg.rb:7:16-7:16, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/anonymous_blockarg.rb:7:16-7:16
+          kind = Local
+          name = <P <U &> $3>
+        } }]
+      rhs = Send{
+        loc = test/testdata/desugar/anonymous_blockarg.rb:8:3-8:8
+        flags = {privateOk}
+        recv = ConstantLit{
+          loc = test/testdata/desugar/anonymous_blockarg.rb:8:3-8:8
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <call-with-block>>
+        block = nullptr
+        pos_args = 3
+        args = [
+          Local{
+            loc = test/testdata/desugar/anonymous_blockarg.rb:8:3-8:3
+            localVariable = <U <self>>
+          }
+          Literal{ loc = test/testdata/desugar/anonymous_blockarg.rb:8:3-8:3, value = :baz }
+          UnresolvedIdent{
+            loc = test/testdata/desugar/anonymous_blockarg.rb:8:7-8:8
+            kind = Local
+            name = <U &>
+          }
+        ]
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/anonymous_blockarg.rb:11:1-11:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/anonymous_blockarg.rb:11:1-11:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = Block {
+        loc = test/testdata/desugar/anonymous_blockarg.rb:11:1-11:14
+        args = [
+        ]
+        body = Literal{ loc = test/testdata/desugar/anonymous_blockarg.rb:11:11-11:12, value = 2 }
+      }
+      pos_args = 1
+      args = [
+        Literal{ loc = test/testdata/desugar/anonymous_blockarg.rb:11:6-11:7, value = 1 }
+      ]
+    }
+  ]
+}

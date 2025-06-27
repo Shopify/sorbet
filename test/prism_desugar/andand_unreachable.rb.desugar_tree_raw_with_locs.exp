@@ -1,0 +1,243 @@
+ClassDef{
+  loc = test/testdata/desugar/andand_unreachable.rb:3:1-16:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/andand_unreachable.rb:3:1-16:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Send{
+      loc = test/testdata/desugar/andand_unreachable.rb:3:1-3:14
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/andand_unreachable.rb:3:1-3:1
+        localVariable = <U <self>>
+      }
+      fun = <U extend>
+      block = nullptr
+      pos_args = 1
+      args = [
+        UnresolvedConstantLit{
+          loc = test/testdata/desugar/andand_unreachable.rb:3:8-3:14
+          cnst = <C <U Sig>>
+          scope = UnresolvedConstantLit{
+            loc = test/testdata/desugar/andand_unreachable.rb:3:8-3:9
+            cnst = <C <U T>>
+            scope = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+          }
+        }
+      ]
+    }
+
+    Send{
+      loc = test/testdata/desugar/andand_unreachable.rb:5:1-5:23
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/andand_unreachable.rb:5:1-5:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/andand_unreachable.rb:5:1-5:23
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/andand_unreachable.rb:5:6-5:22
+          flags = {privateOk}
+          recv = Local{
+            loc = test/testdata/desugar/andand_unreachable.rb:5:6-5:6
+            localVariable = <U <self>>
+          }
+          fun = <U returns>
+          block = nullptr
+          pos_args = 1
+          args = [
+            UnresolvedConstantLit{
+              loc = test/testdata/desugar/andand_unreachable.rb:5:14-5:21
+              cnst = <C <U Integer>>
+              scope = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+            }
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/andand_unreachable.rb:6:1-8:4
+      flags = {}
+      name = <U int><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/andand_unreachable.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/andand_unreachable.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = Literal{ loc = test/testdata/desugar/andand_unreachable.rb:7:3-7:4, value = 5 }
+    }
+
+    Send{
+      loc = test/testdata/desugar/andand_unreachable.rb:10:1-10:41
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/andand_unreachable.rb:10:1-10:1
+        localVariable = <U <self>>
+      }
+      fun = <U sig>
+      block = Block {
+        loc = test/testdata/desugar/andand_unreachable.rb:10:1-10:41
+        args = [
+        ]
+        body = Send{
+          loc = test/testdata/desugar/andand_unreachable.rb:10:6-10:40
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/andand_unreachable.rb:10:6-10:35
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/andand_unreachable.rb:10:6-10:6
+              localVariable = <U <self>>
+            }
+            fun = <U params>
+            block = nullptr
+            pos_args = 0
+            args = [
+              Literal{ loc = test/testdata/desugar/andand_unreachable.rb:10:13-10:14, value = :x }
+              Send{
+                loc = test/testdata/desugar/andand_unreachable.rb:10:16-10:34
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  loc = test/testdata/desugar/andand_unreachable.rb:10:16-10:17
+                  cnst = <C <U T>>
+                  scope = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+                }
+                fun = <U nilable>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedConstantLit{
+                    loc = test/testdata/desugar/andand_unreachable.rb:10:26-10:33
+                    cnst = <C <U Integer>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+                  }
+                ]
+              }
+            ]
+          }
+          fun = <U void>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+      }
+      pos_args = 0
+      args = [
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/andand_unreachable.rb:11:1-16:4
+      flags = {}
+      name = <U f><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/andand_unreachable.rb:11:7-11:8
+          kind = Local
+          name = <U x>
+        }, BlockArg{ loc = test/testdata/desugar/andand_unreachable.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/andand_unreachable.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = If{
+        loc = test/testdata/desugar/andand_unreachable.rb:12:3-15:6
+        cond = Send{
+          loc = test/testdata/desugar/andand_unreachable.rb:12:6-12:13
+          flags = {}
+          recv = Send{
+            loc = test/testdata/desugar/andand_unreachable.rb:12:7-12:13
+            flags = {}
+            recv = UnresolvedIdent{
+              loc = test/testdata/desugar/andand_unreachable.rb:12:7-12:8
+              kind = Local
+              name = <U x>
+            }
+            fun = <U nil?>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          fun = <U !>
+          block = nullptr
+          pos_args = 0
+          args = [
+          ]
+        }
+        thenp = InsSeq{
+          loc = test/testdata/desugar/andand_unreachable.rb:13:5-14:21
+          stats = [
+            If{
+              loc = test/testdata/desugar/andand_unreachable.rb:13:5-13:14
+              cond = UnresolvedIdent{
+                loc = test/testdata/desugar/andand_unreachable.rb:13:5-13:6
+                kind = Local
+                name = <U x>
+              }
+              thenp = Assign{
+                loc = test/testdata/desugar/andand_unreachable.rb:13:5-13:14
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/andand_unreachable.rb:13:5-13:6
+                  kind = Local
+                  name = <U x>
+                }
+                rhs = Send{
+                  loc = test/testdata/desugar/andand_unreachable.rb:13:11-13:14
+                  flags = {privateOk}
+                  recv = Local{
+                    loc = test/testdata/desugar/andand_unreachable.rb:13:11-13:11
+                    localVariable = <U <self>>
+                  }
+                  fun = <U int>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              }
+              elsep = UnresolvedIdent{
+                loc = test/testdata/desugar/andand_unreachable.rb:13:5-13:6
+                kind = Local
+                name = <U x>
+              }
+            }
+          ],
+          expr = Send{
+            loc = test/testdata/desugar/andand_unreachable.rb:14:5-14:21
+            flags = {}
+            recv = UnresolvedConstantLit{
+              loc = test/testdata/desugar/andand_unreachable.rb:14:5-14:6
+              cnst = <C <U T>>
+              scope = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+            }
+            fun = <U reveal_type>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/andand_unreachable.rb:14:19-14:20
+                kind = Local
+                name = <U x>
+              }
+            ]
+          }
+        }
+        elsep = EmptyTree{ loc = test/testdata/desugar/andand_unreachable.rb }
+      }
+    }
+  ]
+}

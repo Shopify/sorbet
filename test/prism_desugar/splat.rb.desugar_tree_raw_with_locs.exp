@@ -1,0 +1,769 @@
+ClassDef{
+  loc = test/testdata/desugar/splat.rb:2:1-55:4
+  kind = class
+  name = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      loc = test/testdata/desugar/splat.rb:2:1-55:4
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      loc = test/testdata/desugar/splat.rb:2:1-4:4
+      flags = {}
+      name = <U bar><<U <todo method>>>
+      args = [UnresolvedIdent{
+          loc = test/testdata/desugar/splat.rb:2:9-2:10
+          kind = Local
+          name = <U a>
+        }, BlockArg{ loc = test/testdata/desugar/splat.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/splat.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = UnresolvedIdent{
+        loc = test/testdata/desugar/splat.rb:3:5-3:6
+        kind = Local
+        name = <U a>
+      }
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/splat.rb:6:1-10:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/splat.rb:6:7-6:16
+        cnst = <C <U Splatable>>
+        scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/splat.rb:6:1-10:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/splat.rb:7:5-9:8
+          flags = {}
+          name = <U to_a><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/splat.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Array{
+            loc = test/testdata/desugar/splat.rb:8:9-8:12
+            elems = [
+              Literal{ loc = test/testdata/desugar/splat.rb:8:10-8:11, value = 1 }
+            ]
+          }
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/splat.rb:12:1-16:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/splat.rb:12:7-12:17
+        cnst = <C <U Rescueable>>
+        scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/splat.rb:12:1-16:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/splat.rb:13:5-15:8
+          flags = {}
+          name = <U to_a><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/splat.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Array{
+            loc = test/testdata/desugar/splat.rb:14:9-14:31
+            elems = [
+              UnresolvedConstantLit{
+                loc = test/testdata/desugar/splat.rb:14:10-14:16
+                cnst = <C <U String>>
+                scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+              }
+              UnresolvedConstantLit{
+                loc = test/testdata/desugar/splat.rb:14:18-14:30
+                cnst = <C <U RuntimeError>>
+                scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+              }
+            ]
+          }
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/splat.rb:18:1-22:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/splat.rb:18:7-18:13
+        cnst = <C <U Parent>>
+        scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [ConstantLit{
+          loc = test/testdata/desugar/splat.rb:18:1-22:4
+          symbol = (class ::<todo sym>)
+          orig = nullptr
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/splat.rb:19:5-21:8
+          flags = {}
+          name = <U foo><<U <todo method>>>
+          args = [UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb:19:13-19:14
+              kind = Local
+              name = <U a>
+            }, UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb:19:15-19:16
+              kind = Local
+              name = <U b>
+            }, BlockArg{ loc = test/testdata/desugar/splat.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = Array{
+            loc = test/testdata/desugar/splat.rb:20:9-20:15
+            elems = [
+              UnresolvedIdent{
+                loc = test/testdata/desugar/splat.rb:20:10-20:11
+                kind = Local
+                name = <U b>
+              }
+              UnresolvedIdent{
+                loc = test/testdata/desugar/splat.rb:20:13-20:14
+                kind = Local
+                name = <U a>
+              }
+            ]
+          }
+        }
+      ]
+    }
+
+    ClassDef{
+      loc = test/testdata/desugar/splat.rb:23:1-28:4
+      kind = class
+      name = UnresolvedConstantLit{
+        loc = test/testdata/desugar/splat.rb:23:7-23:12
+        cnst = <C <U Child>>
+        scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = [UnresolvedConstantLit{
+          loc = test/testdata/desugar/splat.rb:23:15-23:21
+          cnst = <C <U Parent>>
+          scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+        }]
+      rhs = [
+        MethodDef{
+          loc = test/testdata/desugar/splat.rb:24:5-27:8
+          flags = {}
+          name = <U foo><<U <todo method>>>
+          args = [BlockArg{ loc = test/testdata/desugar/splat.rb, expr = UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb
+              kind = Local
+              name = <U <blk>>
+            } }]
+          rhs = InsSeq{
+            loc = test/testdata/desugar/splat.rb:25:9-26:18
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/splat.rb:25:9-25:18
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/splat.rb:25:9-25:10
+                  kind = Local
+                  name = <U a>
+                }
+                rhs = Array{
+                  loc = test/testdata/desugar/splat.rb:25:13-25:18
+                  elems = [
+                    Literal{ loc = test/testdata/desugar/splat.rb:25:14-25:15, value = 1 }
+                    Literal{ loc = test/testdata/desugar/splat.rb:25:16-25:17, value = 2 }
+                  ]
+                }
+              }
+            ],
+            expr = Send{
+              loc = test/testdata/desugar/splat.rb:26:9-26:18
+              flags = {privateOk}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/splat.rb:26:9-26:18
+                symbol = (class ::<Magic>)
+                orig = nullptr
+              }
+              fun = <U <call-with-splat>>
+              block = nullptr
+              pos_args = 4
+              args = [
+                Local{
+                  loc = test/testdata/desugar/splat.rb:26:9-26:9
+                  localVariable = <U <self>>
+                }
+                Literal{ loc = test/testdata/desugar/splat.rb:26:9-26:9, value = :<super> }
+                Send{
+                  loc = test/testdata/desugar/splat.rb:26:9-26:9
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/splat.rb:26:9-26:9
+                    symbol = (class ::<Magic>)
+                    orig = nullptr
+                  }
+                  fun = <U <splat>>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/splat.rb:26:16-26:17
+                      kind = Local
+                      name = <U a>
+                    }
+                  ]
+                }
+                Literal{ loc = test/testdata/desugar/splat.rb:26:9-26:18, value = nil }
+              ]
+            }
+          }
+        }
+      ]
+    }
+
+    MethodDef{
+      loc = test/testdata/desugar/splat.rb:30:1-53:4
+      flags = {}
+      name = <U foo><<U <todo method>>>
+      args = [BlockArg{ loc = test/testdata/desugar/splat.rb, expr = UnresolvedIdent{
+          loc = test/testdata/desugar/splat.rb
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        loc = test/testdata/desugar/splat.rb:31:5-52:8
+        stats = [
+          Assign{
+            loc = test/testdata/desugar/splat.rb:31:5-31:12
+            lhs = UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb:31:5-31:6
+              kind = Local
+              name = <U a>
+            }
+            rhs = Array{
+              loc = test/testdata/desugar/splat.rb:31:9-31:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/splat.rb:31:10-31:11, value = 1 }
+              ]
+            }
+          }
+          Send{
+            loc = test/testdata/desugar/splat.rb:32:5-32:12
+            flags = {}
+            recv = Send{
+              loc = test/testdata/desugar/splat.rb:32:5-32:12
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/splat.rb:32:5-32:12
+                symbol = (class ::<Magic>)
+                orig = nullptr
+              }
+              fun = <U <splat>>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  loc = test/testdata/desugar/splat.rb:32:7-32:8
+                  kind = Local
+                  name = <U a>
+                }
+              ]
+            }
+            fun = <U concat>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Array{
+                loc = test/testdata/desugar/splat.rb:32:5-32:12
+                elems = [
+                  Literal{ loc = test/testdata/desugar/splat.rb:32:10-32:11, value = 2 }
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/splat.rb:33:5-33:12
+            flags = {}
+            recv = Array{
+              loc = test/testdata/desugar/splat.rb:33:5-33:12
+              elems = [
+                Literal{ loc = test/testdata/desugar/splat.rb:33:6-33:7, value = 1 }
+              ]
+            }
+            fun = <U concat>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Send{
+                loc = test/testdata/desugar/splat.rb:33:5-33:12
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/splat.rb:33:5-33:12
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <splat>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/splat.rb:33:10-33:11
+                    kind = Local
+                    name = <U a>
+                  }
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/splat.rb:34:5-34:15
+            flags = {}
+            recv = Send{
+              loc = test/testdata/desugar/splat.rb:34:5-34:15
+              flags = {}
+              recv = Array{
+                loc = test/testdata/desugar/splat.rb:34:5-34:15
+                elems = [
+                  Literal{ loc = test/testdata/desugar/splat.rb:34:6-34:7, value = 1 }
+                ]
+              }
+              fun = <U concat>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/splat.rb:34:5-34:15
+                  flags = {}
+                  recv = ConstantLit{
+                    loc = test/testdata/desugar/splat.rb:34:5-34:15
+                    symbol = (class ::<Magic>)
+                    orig = nullptr
+                  }
+                  fun = <U <splat>>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedIdent{
+                      loc = test/testdata/desugar/splat.rb:34:10-34:11
+                      kind = Local
+                      name = <U a>
+                    }
+                  ]
+                }
+              ]
+            }
+            fun = <U concat>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Array{
+                loc = test/testdata/desugar/splat.rb:34:5-34:15
+                elems = [
+                  Literal{ loc = test/testdata/desugar/splat.rb:34:13-34:14, value = 2 }
+                ]
+              }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/splat.rb:35:5-35:12
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/splat.rb:35:5-35:12
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat>>
+            block = nullptr
+            pos_args = 4
+            args = [
+              Local{
+                loc = test/testdata/desugar/splat.rb:35:5-35:5
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/splat.rb:35:5-35:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/splat.rb:35:5-35:5
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/splat.rb:35:5-35:5
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <splat>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/splat.rb:35:10-35:11
+                    kind = Local
+                    name = <U a>
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/splat.rb:35:5-35:12, value = nil }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/splat.rb:36:5-36:24
+            flags = {privateOk}
+            recv = ConstantLit{
+              loc = test/testdata/desugar/splat.rb:36:5-36:24
+              symbol = (class ::<Magic>)
+              orig = nullptr
+            }
+            fun = <U <call-with-splat>>
+            block = nullptr
+            pos_args = 4
+            args = [
+              Local{
+                loc = test/testdata/desugar/splat.rb:36:5-36:5
+                localVariable = <U <self>>
+              }
+              Literal{ loc = test/testdata/desugar/splat.rb:36:5-36:5, value = :bar }
+              Send{
+                loc = test/testdata/desugar/splat.rb:36:5-36:5
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/splat.rb:36:5-36:5
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <splat>>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Send{
+                    loc = test/testdata/desugar/splat.rb:36:10-36:23
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      loc = test/testdata/desugar/splat.rb:36:10-36:19
+                      cnst = <C <U Splatable>>
+                      scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                    }
+                    fun = <U new>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                ]
+              }
+              Literal{ loc = test/testdata/desugar/splat.rb:36:5-36:24, value = nil }
+            ]
+          }
+          Send{
+            loc = test/testdata/desugar/splat.rb:37:5-37:18
+            flags = {}
+            recv = Send{
+              loc = test/testdata/desugar/splat.rb:37:5-37:14
+              flags = {}
+              recv = UnresolvedConstantLit{
+                loc = test/testdata/desugar/splat.rb:37:5-37:10
+                cnst = <C <U Child>>
+                scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+              }
+              fun = <U new>
+              block = nullptr
+              pos_args = 0
+              args = [
+              ]
+            }
+            fun = <U foo>
+            block = nullptr
+            pos_args = 0
+            args = [
+            ]
+          }
+          Assign{
+            loc = test/testdata/desugar/splat.rb:38:5-38:23
+            lhs = UnresolvedIdent{
+              loc = test/testdata/desugar/splat.rb:38:5-38:6
+              kind = Local
+              name = <U b>
+            }
+            rhs = Send{
+              loc = test/testdata/desugar/splat.rb:38:9-38:23
+              flags = {}
+              recv = ConstantLit{
+                loc = test/testdata/desugar/splat.rb:38:9-38:23
+                symbol = (class ::<Magic>)
+                orig = nullptr
+              }
+              fun = <U <splat>>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Send{
+                  loc = test/testdata/desugar/splat.rb:38:10-38:23
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    loc = test/testdata/desugar/splat.rb:38:10-38:19
+                    cnst = <C <U Splatable>>
+                    scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                  }
+                  fun = <U new>
+                  block = nullptr
+                  pos_args = 0
+                  args = [
+                  ]
+                }
+              ]
+            }
+          }
+          InsSeq{
+            loc = test/testdata/desugar/splat.rb:40:5-42:8
+            stats = [
+              Assign{
+                loc = test/testdata/desugar/splat.rb:40:10-40:11
+                lhs = UnresolvedIdent{
+                  loc = test/testdata/desugar/splat.rb:40:10-40:11
+                  kind = Local
+                  name = <D <U <assignTemp>> $2>
+                }
+                rhs = Literal{ loc = test/testdata/desugar/splat.rb:40:10-40:11, value = 1 }
+              }
+            ],
+            expr = If{
+              loc = test/testdata/desugar/splat.rb:41:5-41:18
+              cond = Send{
+                loc = test/testdata/desugar/splat.rb:41:10-41:18
+                flags = {}
+                recv = ConstantLit{
+                  loc = test/testdata/desugar/splat.rb:40:5-42:8
+                  symbol = (class ::<Magic>)
+                  orig = nullptr
+                }
+                fun = <U <check-match-array>>
+                block = nullptr
+                pos_args = 2
+                args = [
+                  UnresolvedIdent{
+                    loc = test/testdata/desugar/splat.rb:40:10-40:11
+                    kind = Local
+                    name = <D <U <assignTemp>> $2>
+                  }
+                  Send{
+                    loc = test/testdata/desugar/splat.rb:41:10-41:18
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/splat.rb:41:10-41:18
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedConstantLit{
+                        loc = test/testdata/desugar/splat.rb:41:11-41:18
+                        cnst = <C <U Integer>>
+                        scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                      }
+                    ]
+                  }
+                ]
+              }
+              thenp = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+              elsep = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+            }
+          }
+          Rescue{
+            loc = test/testdata/desugar/splat.rb:46:5-46:27
+            body = Send{
+              loc = test/testdata/desugar/splat.rb:45:9-45:18
+              flags = {privateOk}
+              recv = Local{
+                loc = test/testdata/desugar/splat.rb:45:9-45:9
+                localVariable = <U <self>>
+              }
+              fun = <U raise>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Literal{ loc = test/testdata/desugar/splat.rb:45:15-45:18, value = "a" }
+              ]
+            }
+            rescueCases = [
+              RescueCase{
+                loc = test/testdata/desugar/splat.rb:46:5-46:27
+                exceptions = [
+                  Send{
+                    loc = test/testdata/desugar/splat.rb:46:5-46:27
+                    flags = {}
+                    recv = ConstantLit{
+                      loc = test/testdata/desugar/splat.rb:46:5-46:27
+                      symbol = (class ::<Magic>)
+                      orig = nullptr
+                    }
+                    fun = <U <splat>>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/splat.rb:46:13-46:27
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          loc = test/testdata/desugar/splat.rb:46:13-46:23
+                          cnst = <C <U Rescueable>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                        }
+                        fun = <U new>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ]
+                var = UnresolvedIdent{
+                  loc = test/testdata/desugar/splat.rb:46:5-46:11
+                  kind = Local
+                  name = <D <U <rescueTemp>> $3>
+                }
+                body = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+              }
+            ]
+            else = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+            ensure = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+          }
+        ],
+        expr = Rescue{
+          loc = test/testdata/desugar/splat.rb:51:5-51:41
+          body = Send{
+            loc = test/testdata/desugar/splat.rb:50:9-50:18
+            flags = {privateOk}
+            recv = Local{
+              loc = test/testdata/desugar/splat.rb:50:9-50:9
+              localVariable = <U <self>>
+            }
+            fun = <U raise>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Literal{ loc = test/testdata/desugar/splat.rb:50:15-50:18, value = "a" }
+            ]
+          }
+          rescueCases = [
+            RescueCase{
+              loc = test/testdata/desugar/splat.rb:51:5-51:41
+              exceptions = [
+                Send{
+                  loc = test/testdata/desugar/splat.rb:51:5-51:41
+                  flags = {}
+                  recv = Send{
+                    loc = test/testdata/desugar/splat.rb:51:5-51:41
+                    flags = {}
+                    recv = Array{
+                      loc = test/testdata/desugar/splat.rb:51:5-51:41
+                      elems = [
+                        UnresolvedConstantLit{
+                          loc = test/testdata/desugar/splat.rb:51:12-51:17
+                          cnst = <C <U Array>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                        }
+                      ]
+                    }
+                    fun = <U concat>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        loc = test/testdata/desugar/splat.rb:51:5-51:41
+                        flags = {}
+                        recv = ConstantLit{
+                          loc = test/testdata/desugar/splat.rb:51:5-51:41
+                          symbol = (class ::<Magic>)
+                          orig = nullptr
+                        }
+                        fun = <U <splat>>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Send{
+                            loc = test/testdata/desugar/splat.rb:51:20-51:34
+                            flags = {}
+                            recv = UnresolvedConstantLit{
+                              loc = test/testdata/desugar/splat.rb:51:20-51:30
+                              cnst = <C <U Rescueable>>
+                              scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                            }
+                            fun = <U new>
+                            block = nullptr
+                            pos_args = 0
+                            args = [
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  fun = <U concat>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Array{
+                      loc = test/testdata/desugar/splat.rb:51:5-51:41
+                      elems = [
+                        UnresolvedConstantLit{
+                          loc = test/testdata/desugar/splat.rb:51:36-51:41
+                          cnst = <C <U Float>>
+                          scope = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+              var = UnresolvedIdent{
+                loc = test/testdata/desugar/splat.rb:51:5-51:11
+                kind = Local
+                name = <D <U <rescueTemp>> $4>
+              }
+              body = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+            }
+          ]
+          else = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+          ensure = EmptyTree{ loc = test/testdata/desugar/splat.rb }
+        }
+      }
+    }
+
+    Send{
+      loc = test/testdata/desugar/splat.rb:55:1-55:4
+      flags = {privateOk}
+      recv = Local{
+        loc = test/testdata/desugar/splat.rb:55:1-55:1
+        localVariable = <U <self>>
+      }
+      fun = <U foo>
+      block = nullptr
+      pos_args = 0
+      args = [
+      ]
+    }
+  ]
+}
