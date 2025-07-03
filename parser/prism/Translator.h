@@ -63,9 +63,9 @@ private:
     core::LocOffsets translateLoc(pm_location_t loc);
 
     parser::NodeVec translateMulti(pm_node_list prismNodes);
-    void translateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
+    void translateMultiInto(parser::NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
-    NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
+    parser::NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);
     static bool isKeywordHashElement(sorbet::parser::Node *nd);
     std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
@@ -78,6 +78,14 @@ private:
     std::unique_ptr<parser::Regopt> translateRegexpOptions(pm_location_t closingLoc);
     std::unique_ptr<parser::Regexp> translateRegexp(pm_string_t unescaped, core::LocOffsets location,
                                                     pm_location_t closingLoc);
+
+    // String interpolation desugaring
+    sorbet::ast::ExpressionPtr desugarDString(core::LocOffsets loc, pm_node_list prismNodeList);
+
+    // Helper function for processing individual nodes during string interpolation
+    void processDStringNode(pm_node *prismNode, core::LocOffsets loc, bool &allStringsSoFar,
+                            absl::InlinedVector<ast::ExpressionPtr, 4> &stringsAccumulated,
+                            ast::Send::ARGS_store &interpArgs);
 
     template <typename PrismNode> std::unique_ptr<parser::Mlhs> translateMultiTargetLhs(PrismNode *);
 
@@ -95,7 +103,7 @@ private:
     // ... variations of the main translation functions for pattern-matching related nodes.
     std::unique_ptr<parser::Node> patternTranslate(pm_node_t *node);
     parser::NodeVec patternTranslateMulti(pm_node_list prismNodes);
-    void patternTranslateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
+    void patternTranslateMultiInto(parser::NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
     std::string_view sliceLocation(pm_location_t loc);
 
