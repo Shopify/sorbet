@@ -49,6 +49,71 @@ template <typename... TArgs>
     Exception::raise(reasonFormatStr, forward<TArgs>(args)...);
 }
 
+// Helper function to check if an AST expression is a string literal
+bool isStringLit(ast::ExpressionPtr &expr) {
+    if (auto lit = ast::cast_tree<ast::Literal>(expr)) {
+        return lit->isString();
+    }
+    return false;
+}
+
+// Helper function to merge multiple string literals into one
+ast::ExpressionPtr mergeStrings(core::MutableContext &ctx, core::LocOffsets loc,
+                                absl::InlinedVector<ast::ExpressionPtr, 4> stringsAccumulated) {
+    if (stringsAccumulated.size() == 1) {
+        return std::move(stringsAccumulated[0]);
+    } else {
+        std::string result;
+        for (const auto &expr : stringsAccumulated) {
+            if (ast::isa_tree<ast::EmptyTree>(expr)) {
+                // empty string - skip
+            } else {
+                result += ast::cast_tree<ast::Literal>(expr)->asString().shortName(ctx);
+            }
+        }
+        return MK::String(loc, ctx.state.enterNameUTF8(result));
+    }
+}
+
+// Member function implementation for desugarDString
+ast::ExpressionPtr Translator::desugarDString(core::LocOffsets loc, pm_node_list prismNodeList) {
+    if (prismNodeList.size == 0) {
+        return MK::String(loc, core::Names::empty());
+    }
+
+    absl::InlinedVector<ast::ExpressionPtr, 4> stringsAccumulated;
+    ast::Send::ARGS_store interpArgs;
+
+    bool allStringsSoFar = true;
+
+    auto prismNodes = absl::MakeSpan(prismNodeList.nodes, prismNodeList.size);
+    for (pm_node *prismNode : prismNodes) {
+        auto parserNode = translate(prismNode);
+        auto expr = parserNode->takeDesugaredExpr();
+        if (allStringsSoFar && isStringLit(expr)) {
+            stringsAccumulated.emplace_back(std::move(expr));
+        } else {
+            if (allStringsSoFar) {
+                // Transition from all strings to mixed content
+                allStringsSoFar = false;
+                if (!stringsAccumulated.empty()) {
+                    auto mergedStrings = mergeStrings(ctx, loc, std::move(stringsAccumulated));
+                    interpArgs.emplace_back(std::move(mergedStrings));
+                }
+            }
+            interpArgs.emplace_back(std::move(expr));
+        }
+    }
+
+    if (allStringsSoFar) {
+        return mergeStrings(ctx, loc, std::move(stringsAccumulated));
+    } else {
+        auto recv = MK::Magic(loc);
+        return MK::Send(loc, std::move(recv), core::Names::stringInterpolate(), loc.copyWithZeroLength(),
+                        static_cast<uint16_t>(interpArgs.size()), std::move(interpArgs));
+    }
+}
+
 template <typename PrismAssignmentNode, typename SorbetLHSNode>
 unique_ptr<parser::Assign> Translator::translateAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
@@ -139,13 +204,15 @@ unique_ptr<SorbetAssignmentNode> Translator::translateOpAssignment(pm_node_t *un
     }
 
     if constexpr (is_same_v<SorbetAssignmentNode, parser::OpAsgn>) {
-        // `OpAsgn` assign needs more information about the specific operator here, so it gets special handling here.
+        // `OpAsgn` assign needs more information about the specific operator here, so it gets special handling
+        // here.
         auto opLoc = translateLoc(node->binary_operator_loc);
         auto op = translateConstantName(node->binary_operator);
 
         return make_unique<parser::OpAsgn>(location, move(lhs), op, opLoc, move(rhs));
     } else {
-        // `AndAsgn` and `OrAsgn` are specific to a single operator, so don't need any extra information like `OpAsgn`.
+        // `AndAsgn` and `OrAsgn` are specific to a single operator, so don't need any extra information like
+        // `OpAsgn`.
         static_assert(is_same_v<SorbetAssignmentNode, parser::AndAsgn> ||
                       is_same_v<SorbetAssignmentNode, parser::OrAsgn>);
 
@@ -337,8 +404,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
 
             // Sorbet's legacy parser inserts locals (Shadowargs) into the block's Args node, along with its other
-            // parameters. So we need to extract the args vector from the Args node, and insert the locals at the end of
-            // it.
+            // parameters. So we need to extract the args vector from the Args node, and insert the locals at the
+            // end of it.
             auto sorbetArgsNode = translate(up_cast(paramsNode->parameters));
             auto argsNode = parser::cast_node<parser::Args>(sorbetArgsNode.get());
             auto sorbetShadowArgs = translateMulti(paramsNode->locals);
@@ -372,7 +439,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             core::LocOffsets messageLoc;
 
-            // When the message is empty, like `foo.()`, the message location is the same as the call operator location
+            // When the message is empty, like `foo.()`, the message location is the same as the call operator
+            // location
             if (callNode->message_loc.start == nullptr && callNode->message_loc.end == nullptr) {
                 messageLoc = translateLoc(callNode->call_operator_loc);
             } else {
@@ -466,7 +534,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::CaseMatch>(location, move(predicate), move(sorbetConditions), move(elseClause));
         }
-        case PM_CASE_NODE: { // A classic `case` statement that only uses `when` (and not pattern matching with `in`)
+        case PM_CASE_NODE: { // A classic `case` statement that only uses `when` (and not pattern matching with
+                             // `in`)
             auto caseNode = down_cast<pm_case_node>(node);
 
             auto predicate = translate(caseNode->predicate);
@@ -593,8 +662,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 // If the body is a PM_BEGIN_NODE instead of a PM_STATEMENTS_NODE, it means the method definition
                 // doesn't have an explicit begin block.
                 // If that's the case, we need to check if the body contains an ensure or rescue clause, and if so,
-                // we need to elevate that node to the top level of the method definition, without the Kwbegin node to
-                // match the behavior of Sorbet's legacy parser.
+                // we need to elevate that node to the top level of the method definition, without the Kwbegin node
+                // to match the behavior of Sorbet's legacy parser.
                 auto kwbeginNode = parser::cast_node<parser::Kwbegin>(body.get());
 
                 if (kwbeginNode != nullptr && kwbeginNode->stmts[0] != nullptr &&
@@ -791,7 +860,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_INSTANCE_VARIABLE_AND_WRITE_NODE: { // And-assignment to an instance variable, e.g. `@iv &&= false`
             return translateOpAssignment<pm_instance_variable_and_write_node, parser::AndAsgn, parser::IVarLhs>(node);
         }
-        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: { // Compound assignment to an instance variable, e.g. `@iv += 1`
+        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: { // Compound assignment to an instance variable, e.g. `@iv
+                                                         // += 1`
             return translateOpAssignment<pm_instance_variable_operator_write_node, parser::OpAsgn, parser::IVarLhs>(
                 node);
         }
@@ -870,7 +940,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             return make_unique<parser::MatchCurLine>(location, move(regex));
         }
-        case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE: { // A regular expression with interpolation, like `/a #{b} c/`
+        case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE: { // A regular expression with interpolation, like `/a #{b}
+                                                        // c/`
             auto interpolatedRegexNode = down_cast<pm_interpolated_regular_expression_node>(node);
 
             auto parts = translateMulti(interpolatedRegexNode->parts);
@@ -883,23 +954,45 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto sorbetParts = translateMulti(interpolatedStringNode->parts);
 
-            return make_unique<parser::DString>(location, move(sorbetParts));
+            if (hasExpr(sorbetParts)) {
+                auto expr = desugarDString(location, interpolatedStringNode->parts);
+                return make_node_with_expr<parser::DString>(std::move(expr), location, std::move(sorbetParts));
+            }
+
+            return make_unique<parser::DString>(location, std::move(sorbetParts));
         }
         case PM_INTERPOLATED_SYMBOL_NODE: { // A symbol like `:"a #{b} c"`
             auto interpolatedSymbolNode = down_cast<pm_interpolated_symbol_node>(node);
 
             auto sorbetParts = translateMulti(interpolatedSymbolNode->parts);
 
-            return make_unique<parser::DSymbol>(location, move(sorbetParts));
+            if (hasExpr(sorbetParts)) {
+                auto str = desugarDString(location, interpolatedSymbolNode->parts);
+                ast::ExpressionPtr expr =
+                    MK::Send0(location, std::move(str), core::Names::intern(), location.copyWithZeroLength());
+
+                return make_node_with_expr<parser::DSymbol>(std::move(expr), location, std::move(sorbetParts));
+            }
+
+            return make_unique<parser::DSymbol>(location, std::move(sorbetParts));
         }
         case PM_INTERPOLATED_X_STRING_NODE: { // An executable string with backticks, like `echo "Hello, world!"`
             auto interpolatedXStringNode = down_cast<pm_interpolated_x_string_node>(node);
 
             auto sorbetParts = translateMulti(interpolatedXStringNode->parts);
 
-            return make_unique<parser::XString>(location, move(sorbetParts));
+            if (hasExpr(sorbetParts)) {
+                auto str = desugarDString(location, interpolatedXStringNode->parts);
+                ast::ExpressionPtr expr = MK::Send1(location, MK::Self(location), core::Names::backtick(),
+                                                    location.copyWithZeroLength(), std::move(str));
+
+                return make_node_with_expr<parser::DSymbol>(std::move(expr), location, std::move(sorbetParts));
+            }
+
+            return make_unique<parser::XString>(location, std::move(sorbetParts));
         }
-        case PM_IT_LOCAL_VARIABLE_READ_NODE: { // The `it` implicit parameter added in Ruby 3.4, e.g. `a.map { it + 1 }`
+        case PM_IT_LOCAL_VARIABLE_READ_NODE: { // The `it` implicit parameter added in Ruby 3.4, e.g. `a.map { it +
+                                               // 1 }`
             [[fallthrough]];
         }
         case PM_IT_PARAMETERS_NODE: { // Used in a parameter list for lambdas that the `it` implicit parameter.
@@ -991,8 +1084,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto matchWriteNode = down_cast<pm_match_write_node>(node);
 
             // "Match writes" let you bind regex capture groups directly into new variables.
-            // Sorbet doesn't treat this syntax in a special way, so it doesn't know that it introduces new local var.
-            // It's treated as a normal call to `=~` with a Regexp receiver and the rhs as an argument.
+            // Sorbet doesn't treat this syntax in a special way, so it doesn't know that it introduces new local
+            // var. It's treated as a normal call to `=~` with a Regexp receiver and the rhs as an argument.
             //
             // This is why we just translate the `call` and completely ignore `matchWriteNode->targets`.
 
@@ -1081,7 +1174,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto lhs = translate(orNode->left);
             auto rhs = translate(orNode->right);
 
-            if (lhs->hasDesugaredExpr() && rhs->hasDesugaredExpr()) {
+            if (hasExpr(lhs, rhs)) {
                 auto lhsExpr = lhs->takeDesugaredExpr();
                 auto rhsExpr = rhs->takeDesugaredExpr();
 
@@ -1291,7 +1384,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_node_with_expr<parser::FileLiteral>(MK::String(location, core::Names::currentFile()), location);
         }
         case PM_SOURCE_LINE_NODE: { // The `__LINE__` keyword
-            return make_unique<parser::LineLiteral>(location);
+            auto details = ctx.locAt(location).toDetails(ctx);
+            ENFORCE(details.first.line == details.second.line, "position corrupted");
+            auto expr = MK::Int(location, details.first.line);
+            return make_node_with_expr<parser::LineLiteral>(std::move(expr), location);
         }
         case PM_SPLAT_NODE: { // A splat, like `*a` in an array literal or method call
             auto splatNode = down_cast<pm_splat_node>(node);
@@ -1465,7 +1561,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
         }
-        case PM_X_STRING_NODE: { // An interpolated x-string, like `/usr/bin/env ls`
+        case PM_X_STRING_NODE: { // An un-interpolated x-string, like `/usr/bin/env ls`
             auto strNode = down_cast<pm_x_string_node>(node);
 
             auto unescaped = &strNode->unescaped;
@@ -1502,12 +1598,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unreachable("Prism's parser never produces `PM_SCOPE_NODE` nodes.");
 
         case PM_MISSING_NODE:
-            // For now, we only report errors when we hit a missing node because we don't want to always report dynamic
-            // constant assignment errors
+            // For now, we only report errors when we hit a missing node because we don't want to always report
+            // dynamic constant assignment errors
             // TODO: We will improve this in the future when we handle more errored cases
             for (auto &error : parseErrors) {
-                // EOF error is always pointed to the very last line of the file, which can't be expressed in Sorbet's
-                // error comments
+                // EOF error is always pointed to the very last line of the file, which can't be expressed in
+                // Sorbet's error comments
                 if (error.id != PM_ERR_UNEXPECTED_TOKEN_CLOSE_CONTEXT) {
                     reportError(translateLoc(error.location), error.message);
                 }
@@ -1547,11 +1643,11 @@ void Translator::translateMultiInto(NodeVec &outSorbetNodes, absl::Span<pm_node_
 
 // Similar to `translate()`, but it's used for pattern-matching nodes.
 //
-// This is necessary because some Prism nodes get translated differently depending on whether they're part of "regular"
-// syntax, or pattern-matching syntax.
+// This is necessary because some Prism nodes get translated differently depending on whether they're part of
+// "regular" syntax, or pattern-matching syntax.
 //
-// E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the context
-// of a pattern.
+// E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the
+// context of a pattern.
 unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
@@ -1724,9 +1820,8 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                     sorbetGuard = make_unique<parser::UnlessGuard>(location, translate(unlessNode->predicate));
                 }
 
-                ENFORCE(
-                    conditionalStatements->body.size == 1,
-                    "In pattern-matching's `in` clause, a conditional (if/unless) guard must have a single statement.");
+                ENFORCE(conditionalStatements->body.size == 1, "In pattern-matching's `in` clause, a conditional "
+                                                               "(if/unless) guard must have a single statement.");
 
                 sorbetPattern = patternTranslate(conditionalStatements->body.nodes[0]);
             } else {
@@ -1918,8 +2013,9 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
 //   - `rescue`: a list of `Resbody` nodes, each representing a `rescue` clause.
 //   - `else_`: an optional node representing the `else` clause.
 //
-// This function and the PM_BEGIN_NODE case translate between the two representations by processing the `pm_rescue_node`
-// (and its linked `subsequent` nodes) and assembling the corresponding `Rescue` and `Resbody` nodes in Sorbet's AST.
+// This function and the PM_BEGIN_NODE case translate between the two representations by processing the
+// `pm_rescue_node` (and its linked `subsequent` nodes) and assembling the corresponding `Rescue` and `Resbody`
+// nodes in Sorbet's AST.
 unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescueNode, unique_ptr<parser::Node> bodyNode,
                                                      unique_ptr<parser::Node> elseNode) {
     auto rescueLoc = translateLoc(prismRescueNode->base.location);
@@ -1950,7 +2046,8 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescue
 }
 
 // Translates the given Prism Statements Node into a `parser::Begin` node or an inlined `parser::Node`.
-// @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one `parser::Node`
+// @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one
+// `parser::Node`
 unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle) {
     if (stmtsNode == nullptr)
         return nullptr;
@@ -1991,7 +2088,8 @@ unique_ptr<parser::Node> Translator::translateIfNode(core::LocOffsets location, 
 // The only exception is that dynamic constant path *operator* assignments inside of a method definition
 // do not raise a SyntaxError at runtime, so we want to skip the workaround in that case.
 // However, within this method, both regular constant path assignments and constant path operator assignments
-// are passed in as `pm_constant_path_node` types, so we need an extra boolean flag to know when to skip the workaround.
+// are passed in as `pm_constant_path_node` types, so we need an extra boolean flag to know when to skip the
+// workaround.
 //
 // Usually returns the `SorbetLHSNode`, but for constant writes and targets,
 // it can can return an `LVarLhs` as a workaround in the case of a dynamic constant assignment.
@@ -2024,7 +2122,8 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
         if (auto prismParentNode = node->parent; prismParentNode != nullptr) {
             // This constant reference is chained onto another constant reference.
-            // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the `name`.
+            // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the
+            // `name`.
             //   A::B::C
             //    /    \
             //  A::B   ::C
