@@ -137,6 +137,21 @@ test_suite(
     tags = ["prism_location_test"],
 )
 
+# Load the macro that checks desugar output with and without prism desugaring
+load("//test:prism_desugar_test.bzl", "prism_desugar_test_suite")
+
+# Run the macro
+prism_desugar_test_suite(
+    name = "prism_desugar_tests",
+    source_files = glob(["testdata/desugar/**/*.rb"]),
+)
+
+# Create a test suite to run all the prism desugar tests
+test_suite(
+    name = "prism_desugar_tests",
+    tags = ["prism_desugar_test"],
+)
+
 cc_test(
     name = "hello-test",
     size = "small",
