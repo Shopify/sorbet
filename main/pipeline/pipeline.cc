@@ -132,7 +132,7 @@ unique_ptr<parser::Node> runParser(core::GlobalState &gs, core::FileRef file, co
 }
 
 unique_ptr<parser::Node> runPrismParser(core::GlobalState &gs, core::FileRef file, bool stopAfterParser,
-                                        const options::Printers &print) {
+                                        const options::Printers &print, bool disablePrismDesugaring) {
     core::MutableContext ctx(gs, core::Symbols::root(), file);
 
     auto source = file.data(gs).source();
@@ -146,7 +146,7 @@ unique_ptr<parser::Node> runPrismParser(core::GlobalState &gs, core::FileRef fil
         return std::unique_ptr<parser::Node>();
     }
 
-    auto nodes = Prism::Translator(move(parser), ctx, file).translate(move(parseResult));
+    auto nodes = Prism::Translator(move(parser), ctx, file, disablePrismDesugaring).translate(move(parseResult));
 
     if (print.ParseTree.enabled) {
         print.ParseTree.fmt("{}\n", nodes->toStringWithTabs(gs, 0));
@@ -247,7 +247,7 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                     parseTree = runParser(lgs, file, print, opts.traceLexer, opts.traceParser);
                     break;
                 case options::Parser::PRISM:
-                    parseTree = runPrismParser(lgs, file, stopAfterParser, print);
+                    parseTree = runPrismParser(lgs, file, stopAfterParser, print, opts.disablePrismDesugaring);
                     break;
             }
 

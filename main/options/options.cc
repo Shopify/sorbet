@@ -729,6 +729,10 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
 
     options.add_options("dev")("parser", "Which parser to use", cxxopts::value<string>()->default_value("sorbet"),
                                "{sorbet, prism}");
+    options.add_options("dev")("disable-prism-desugaring",
+                               "Disable prism desugaring (generates plain Node instead of NodeWithExpr). "
+                               "Must be used with --parser=prism",
+                               cxxopts::value<bool>());
 
     for (auto &provider : semanticExtensionProviders) {
         provider->injectOptions(options);
@@ -978,6 +982,13 @@ void readOptions(Options &opts,
         }
         opts.stopAfterPhase = extractStopAfter(raw, logger);
         opts.parser = extractParser(raw, logger);
+        opts.disablePrismDesugaring = raw["disable-prism-desugaring"].as<bool>();
+
+        // Validate that disable-prism-desugaring is only used with prism parser
+        if (opts.disablePrismDesugaring && opts.parser != Parser::PRISM) {
+            logger->error("--disable-prism-desugaring can only be used with --parser=prism");
+            throw EarlyReturnWithCode(1);
+        }
 
         opts.silenceErrors = raw["quiet"].as<bool>();
         opts.autocorrect = raw["autocorrect"].as<bool>();

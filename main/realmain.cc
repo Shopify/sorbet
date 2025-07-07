@@ -440,6 +440,7 @@ int realmain(int argc, char *argv[]) {
 
     gs->requiresAncestorEnabled = opts.requiresAncestorEnabled;
     gs->parseWithPrism = opts.parser == options::Parser::PRISM;
+    gs->disablePrismDesugaring = opts.disablePrismDesugaring;
 
     logger->trace("building initial global state");
     unique_ptr<const OwnedKeyValueStore> kvstore = cache::maybeCreateKeyValueStore(logger, opts);

@@ -15,11 +15,14 @@ namespace sorbet::parser::Prism {
 
 using sorbet::ast::MK;
 
-// Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
-unique_ptr<NodeWithExpr> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
+std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
-    return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+    if (disablePrismDesugaring) {
+        return move(whiteQuarkNode);
+    } else {
+        return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+    }
 }
 
 // Indicates that a particular code path should never be reached, with an explanation of why.
@@ -1993,7 +1996,7 @@ template <typename PrismNode> std::unique_ptr<parser::Mlhs> Translator::translat
 // Context management methods
 Translator Translator::enterMethodDef() {
     auto isInMethodDef = true;
-    return Translator(parser, ctx, file, parseErrors, isInMethodDef, uniqueCounter);
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, uniqueCounter, disablePrismDesugaring);
 }
 
 void Translator::reportError(core::LocOffsets loc, const std::string &message) {
