@@ -1774,6 +1774,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::NthRef *var) {
+                TRANSLATED_BY_PRISM(dctx, var);
+
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global,
                                                                      dctx.ctx.state.enterNameUTF8(to_string(var->ref)));
                 result = std::move(res);
@@ -2370,6 +2372,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::LineLiteral *line) {
+                TRANSLATED_BY_PRISM(dctx, line);
+
                 auto pos = dctx.ctx.locAt(loc).position(dctx.ctx);
                 ENFORCE(pos.first.line == pos.second.line, "position corrupted");
                 auto res = MK::Int(loc, pos.first.line);
@@ -2438,6 +2442,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Backref *backref) {
+                TRANSLATED_BY_PRISM(dctx, backref);
+
                 auto recv = MK::Magic(loc);
                 auto arg = MK::Symbol(backref->loc, backref->name);
                 result = MK::Send1(loc, std::move(recv), core::Names::regexBackref(), locZeroLen, std::move(arg));
