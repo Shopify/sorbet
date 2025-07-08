@@ -1,9 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "Building Sorbet..."
-./bazel build //main:sorbet --config=dbg
-
 echo "Verifying parse trees..."
 
 mismatched_files=()
@@ -27,7 +24,9 @@ for file in test/prism_regression/*.rb; do
 done
 
 # Clean up temporary file
-rm temp_parse_tree.txt
+if [[ -f temp_parse_tree.txt ]]; then
+  rm temp_parse_tree.txt
+fi
 
 if [ ${#mismatched_files[@]} -gt 0 ]; then
   echo ""

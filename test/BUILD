@@ -350,6 +350,15 @@ test_suite(
     tests = ["prism_regression_corpus"],
 )
 
+sh_test(
+    name = "prism_regression_verify",
+    srcs = ["//tools/scripts:verify_prism_regression_tests.sh"],
+    data = [
+        "//main:sorbet",
+    ],
+    size = "medium",
+)
+
 sh_binary(
     name = "single_package_runner",
     srcs = ["test_single_package_runner.sh"],
