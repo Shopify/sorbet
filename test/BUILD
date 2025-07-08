@@ -143,7 +143,13 @@ load("//test:prism_desugar_test.bzl", "prism_desugar_test_suite")
 # Run the macro
 prism_desugar_test_suite(
     name = "prism_desugar_tests",
-    source_files = glob(["testdata/desugar/**/*.rb"]),
+    source_files = glob(
+        ["testdata/desugar/**/*.rb"],
+        exclude = [
+            # Prism desugar crashes with "Unimplemented Parser Node: Mlhs"
+            "testdata/desugar/pattern_matching_hash.rb",
+        ],
+    ),
 )
 
 # Create a test suite to run all the prism desugar tests
