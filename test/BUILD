@@ -355,6 +355,7 @@ sh_test(
     srcs = ["//tools/scripts:verify_prism_regression_tests.sh"],
     data = [
         "//main:sorbet",
+        "//test:prism_regression_corpus",
     ],
     size = "medium",
 )
