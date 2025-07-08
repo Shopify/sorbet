@@ -602,6 +602,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
     if (!test.minimizeRBI.empty()) {
         auto gsForMinimize = emptyGs->deepCopy();
         auto opts = realmain::options::Options{};
+        opts.parser = parser;
         auto minimizeRBI = test.folder + test.minimizeRBI;
         realmain::Minimize::indexAndResolveForMinimize(gs, gsForMinimize, opts, *workers, minimizeRBI);
         auto printerConfig = realmain::options::PrinterConfig{};
@@ -615,7 +616,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             *gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
     }
 
-    // Simulate what pipeline.cc does: We want to start typeckecking big files first because it helps with better work
+    // Simulate what pipeline.cc does: We want to start typechecking big files first because it helps with better work
     // distribution
     fast_sort(trees, [&](const auto &lhs, const auto &rhs) -> bool {
         return lhs.file.data(*gs).source().size() > rhs.file.data(*gs).source().size();
@@ -922,8 +923,8 @@ int main(int argc, char *argv[]) {
     options.allow_unrecognised_options().add_options()("single_test", "run over single test.",
                                                        cxxopts::value<std::string>()->default_value(""), "testpath");
     options.allow_unrecognised_options().add_options()("parser", "The parser to use while testing.",
-                                                       cxxopts::value<std::string>()->default_value("sorbet"),
-                                                       "{prism, sorbet}");
+                                                       cxxopts::value<std::string>()->default_value("original"),
+                                                       "{original, prism}");
     auto res = options.parse(argc, argv);
 
     if (res.count("single_test") != 1) {
@@ -934,11 +935,24 @@ int main(int argc, char *argv[]) {
     sorbet::test::singleTest = res["single_test"].as<std::string>();
 
     std::string parserOpt = res["parser"].as<std::string>();
+    bool foundParser = false;
     for (auto &known : sorbet::realmain::options::parser_options) {
         if (known.option == parserOpt) {
             sorbet::test::parser = known.flag;
+            foundParser = true;
             break;
         }
+    }
+
+    if (!foundParser) {
+        printf("Invalid parser option: '%s'. Valid options are: ", parserOpt.c_str());
+        for (size_t i = 0; i < sorbet::realmain::options::parser_options.size(); i++) {
+            if (i > 0)
+                printf(", ");
+            printf("'%s'", sorbet::realmain::options::parser_options[i].option.c_str());
+        }
+        printf("\n");
+        return 1;
     }
 
     doctest::Context context(argc, argv);
