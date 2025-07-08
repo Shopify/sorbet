@@ -194,6 +194,7 @@ struct Options {
     bool noErrorSections = false;
     /** Prefix to remove from all printed paths. */
     std::string pathPrefix;
+    bool disablePrismDesugaring = false;
 
     uint32_t reserveClassTableCapacity = 0;
     uint32_t reserveMethodTableCapacity = 0;

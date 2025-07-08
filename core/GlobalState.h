@@ -326,6 +326,7 @@ public:
 
     bool requiresAncestorEnabled = false;
     bool parseWithPrism = false;
+    bool disablePrismDesugaring = false;
 
     bool shouldReportErrorOn(Loc loc, ErrorClass what) const;
 

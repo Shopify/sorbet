@@ -2088,6 +2088,7 @@ unique_ptr<GlobalState> GlobalState::deepCopy(bool keepId) const {
     result->sleepInSlowPathSeconds = this->sleepInSlowPathSeconds;
     result->requiresAncestorEnabled = this->requiresAncestorEnabled;
     result->parseWithPrism = this->parseWithPrism;
+    result->disablePrismDesugaring = this->disablePrismDesugaring;
     result->ruby3KeywordArgs = this->ruby3KeywordArgs;
     result->typedSuper = this->typedSuper;
     result->suppressPayloadSuperclassRedefinitionFor = this->suppressPayloadSuperclassRedefinitionFor;
@@ -2189,6 +2190,7 @@ unique_ptr<GlobalState> GlobalState::copyForIndex() const {
     result->sleepInSlowPathSeconds = this->sleepInSlowPathSeconds;
     result->requiresAncestorEnabled = this->requiresAncestorEnabled;
     result->parseWithPrism = this->parseWithPrism;
+    result->disablePrismDesugaring = this->disablePrismDesugaring;
     result->ruby3KeywordArgs = this->ruby3KeywordArgs;
     result->typedSuper = this->typedSuper;
     result->suppressPayloadSuperclassRedefinitionFor = this->suppressPayloadSuperclassRedefinitionFor;

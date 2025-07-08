@@ -28,6 +28,7 @@ class Translator final {
 
     // Context variables
     bool isInMethodDef = false;
+    bool disablePrismDesugaring = false;
 
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
@@ -40,9 +41,9 @@ class Translator final {
     Translator &operator=(Translator &&) = delete;      // Move assignment
     Translator &operator=(const Translator &) = delete; // Copy assignment
 public:
-    Translator(Parser parser, core::MutableContext &ctx, core::FileRef file)
-        : parser(std::move(parser)), ctx(ctx), file(file), uniqueCounterStorage(1),
-          uniqueCounter(&this->uniqueCounterStorage) {}
+    Translator(Parser parser, core::MutableContext &ctx, core::FileRef file, bool disablePrismDesugaring = false)
+        : parser(std::move(parser)), ctx(ctx), file(file), disablePrismDesugaring(disablePrismDesugaring),
+          uniqueCounterStorage(1), uniqueCounter(&this->uniqueCounterStorage) {}
 
     int nextUniqueID() {
         return *uniqueCounter += 1;
@@ -56,9 +57,10 @@ private:
     // Private constructor used only for creating child translators
     // uniqueCounterStorage is passed as the minimum integer value and is never used
     Translator(Parser parser, core::MutableContext &ctx, core::FileRef file, std::vector<ParseError> parseErrors,
-               bool isInMethodDef, int *uniqueCounter)
+               bool isInMethodDef, int *uniqueCounter, bool disablePrismDesugaring = false)
         : parser(parser), ctx(ctx), file(file), parseErrors(parseErrors), isInMethodDef(isInMethodDef),
-          uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(uniqueCounter) {}
+          disablePrismDesugaring(disablePrismDesugaring), uniqueCounterStorage(std::numeric_limits<int>::min()),
+          uniqueCounter(uniqueCounter) {}
     void reportError(core::LocOffsets loc, const std::string &message);
 
     core::LocOffsets translateLoc(pm_location_t loc);
@@ -102,6 +104,10 @@ private:
 
     // Context management helpers. These return a copy of `this` with some change to the context.
     Translator enterMethodDef();
+
+    // Helper function for creating nodes with cached expressions
+    template <typename SorbetNode, typename... TArgs>
+    std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
 };
 
 } // namespace sorbet::parser::Prism

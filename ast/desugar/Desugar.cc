@@ -705,8 +705,8 @@ public:
 };
 
 // This macro indicates a code path that should never be reached if we're using Prism.
-#define TRANSLATED_BY_PRISM(dctx, node)       \
-    ENFORCE(!(dctx).ctx.state.parseWithPrism, \
+#define TRANSLATED_BY_PRISM(dctx, node)                                                  \
+    ENFORCE(!(dctx).ctx.state.parseWithPrism || (dctx).ctx.state.disablePrismDesugaring, \
             "The {} node should have already been desugared by the Prism Translator.", (node)->nodeName())
 
 ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) {
