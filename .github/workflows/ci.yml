@@ -22,6 +22,8 @@ jobs:
           disk-cache: ${{ github.workflow }}
           # Share repository cache between workflows.
           repository-cache: true
+      - name: Build sorbet
+        run: ./bazel build //main:sorbet --config=dbg
       - name: Verify parse trees
         run: ./bazel test //test:prism_regression_verify --config=dbg --test_output=errors
       - name: Run tests
