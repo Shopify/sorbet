@@ -24,6 +24,8 @@ jobs:
           repository-cache: true
       - name: Build sorbet
         run: ./bazel build //main:sorbet --config=dbg
+      - name: Verify parse trees (sequential)
+        run: ./tools/scripts/verify_prism_regression_tests.sh 1
       - name: Verify parse trees
         run: ./bazel test //test:prism_regression_verify --config=dbg --test_output=errors
       - name: Run tests

@@ -3,6 +3,12 @@ set -euo pipefail
 
 echo "Verifying parse trees..."
 
+# Parse command line arguments
+BATCH_PARALLELISM=""
+if [ $# -gt 0 ]; then
+    BATCH_PARALLELISM="$1"
+fi
+
 # Collect all files to process
 # Use find to ensure glob works in all environments
 files_array=()
@@ -42,20 +48,25 @@ process_batch() {
 
 export -f process_batch
 
-# Calculate optimal batch size based on CPU cores
-# Use sysctl on macOS, nproc on Linux
-if command -v nproc >/dev/null 2>&1; then
-  MAX_JOBS=$(nproc)
-elif command -v sysctl >/dev/null 2>&1; then
-  MAX_JOBS=$(sysctl -n hw.ncpu)
+# Calculate optimal batch size based on CPU cores or provided argument
+if [ -n "$BATCH_PARALLELISM" ]; then
+    MAX_JOBS="$BATCH_PARALLELISM"
+    echo "Using provided batch parallelism: $MAX_JOBS"
 else
-  MAX_JOBS=4  # fallback
-fi
+    # Use sysctl on macOS, nproc on Linux
+    if command -v nproc >/dev/null 2>&1; then
+      MAX_JOBS=$(nproc)
+    elif command -v sysctl >/dev/null 2>&1; then
+      MAX_JOBS=$(sysctl -n hw.ncpu)
+    else
+      MAX_JOBS=4  # fallback
+    fi
 
-if [ "$MAX_JOBS" -gt 16 ]; then
-  MAX_JOBS=16
-elif [ "$MAX_JOBS" -lt 4 ]; then
-  MAX_JOBS=4
+    if [ "$MAX_JOBS" -gt 16 ]; then
+      MAX_JOBS=16
+    elif [ "$MAX_JOBS" -lt 4 ]; then
+      MAX_JOBS=4
+    fi
 fi
 
 # Batch size: divide files among available cores
