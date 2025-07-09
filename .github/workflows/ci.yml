@@ -23,14 +23,14 @@ jobs:
           # Share repository cache between workflows.
           repository-cache: true
       - name: Build sorbet
-        run: ./bazel build //main:sorbet --config=dbg
+        run: ./bazel build //main:sorbet --config=buildfarm-sanitized-linux
       - name: Verify parse trees (sequential)
         run: ./tools/scripts/verify_prism_regression_tests.sh 1
       - name: Verify parse trees
-        run: ./bazel test //test:prism_regression_verify --config=dbg --test_output=errors
+        run: ./bazel test //test:prism_regression_verify --config=buildfarm-sanitized-linux --test_output=errors
       - name: Run tests
-        run: ./bazel test //test:prism_regression --config=dbg --test_output=errors
+        run: ./bazel test //test:prism_regression --config=buildfarm-sanitized-linux --test_output=errors
       - name: Run location tests
-        run: ./bazel test //test:prism_location_tests --config=dbg --test_output=errors
+        run: ./bazel test //test:prism_location_tests --config=buildfarm-sanitized-linux --test_output=errors
       - name: Run corpus tests
-        run: ./bazel test //test:test_corpus_prism --config=dbg --test_output=errors
+        run: ./bazel test //test:test_corpus_prism --config=buildfarm-sanitized-linux --test_output=errors
