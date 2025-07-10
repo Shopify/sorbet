@@ -1312,15 +1312,19 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto strNode = down_cast<pm_x_string_node>(node);
 
             auto unescaped = &strNode->unescaped;
-            auto source = parser.extractString(unescaped);
 
             // TODO: handle different string encodings
-            unique_ptr<parser::Node> string = make_unique<parser::String>(location, ctx.state.enterNameUTF8(source));
+            auto content = ctx.state.enterNameUTF8(parser.extractString(unescaped));
+            unique_ptr<parser::Node> string =
+                make_node_with_expr<parser::String>(MK::String(location, content), location, content);
 
             NodeVec nodes{};
             nodes.emplace_back(move(string)); // Multiple nodes is only possible for interpolated x strings.
 
-            return make_unique<parser::XString>(location, move(nodes));
+            return make_node_with_expr<parser::XString>(MK::Send1(location, MK::Self(location), core::Names::backtick(),
+                                                                  location.copyWithZeroLength(),
+                                                                  MK::String(location, content)),
+                                                        location, move(nodes));
         }
         case PM_YIELD_NODE: { // The `yield` keyword, like `yield`, `yield 1, 2, 3`
             auto yieldNode = down_cast<pm_yield_node>(node);
