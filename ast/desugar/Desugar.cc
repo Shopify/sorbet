@@ -1628,6 +1628,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Kwarg *arg) {
+                TRANSLATED_BY_PRISM(dctx, arg);
+
                 ExpressionPtr res = MK::KeywordArg(loc, arg->name);
                 result = std::move(res);
             },
@@ -1646,6 +1648,8 @@ ExpressionPtr node2TreeImpl(DesugarContext dctx, unique_ptr<parser::Node> what) 
                 result = std::move(res);
             },
             [&](parser::Shadowarg *arg) {
+                TRANSLATED_BY_PRISM(dctx, arg);
+
                 ExpressionPtr res = MK::ShadowArg(loc, MK::Local(loc, arg->name));
                 result = std::move(res);
             },
