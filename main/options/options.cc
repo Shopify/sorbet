@@ -723,11 +723,11 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
                                  "Show help. Can pass an optional SECTION to show help for only one section instead of "
                                  "the default of all sections",
                                  cxxopts::value<vector<string>>()->implicit_value("all"), "SECTION");
-    options.add_options(section)("parser",
-                                 "Which parser to use. Prism support is experimental and still under active development."
-                                 "Correct code should still parse correctly, but error diagnostics and auto-corrections "
-                                 "are a work-in-progress.",
-                                 cxxopts::value<string>()->default_value("original"), "{[original], prism}");
+    options.add_options(section)(
+        "parser",
+        "Which parser to use. Prism support is experimental and still under active development. Correct code should "
+        "still parse correctly, but error diagnostics and auto-corrections are a work-in-progress.",
+        cxxopts::value<string>()->default_value("original"), "{[original], prism}");
 
     // }}}
 
