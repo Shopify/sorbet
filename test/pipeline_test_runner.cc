@@ -267,11 +267,21 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
         // Desugarer
         ast::ParsedFile desugared;
-        {
-            core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
+        switch (parser) {
+            case realmain::options::Parser::ORIGINAL: {
+                core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
 
-            core::MutableContext ctx(gs, core::Symbols::root(), file);
-            desugared = testSerialize(gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file});
+                core::MutableContext ctx(gs, core::Symbols::root(), file);
+                desugared = testSerialize(gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), file});
+                break;
+            }
+            case realmain::options::Parser::PRISM: {
+                core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
+
+                core::MutableContext ctx(gs, core::Symbols::root(), file);
+                desugared = testSerialize(gs, ast::ParsedFile{ast::prismDesugar::node2Tree(ctx, move(nodes)), file});
+                break;
+            }
         }
 
         handler.addObserved(gs, "desugar-tree", [&]() { return desugared.tree.toString(gs); });
