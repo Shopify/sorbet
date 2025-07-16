@@ -46,6 +46,7 @@ NameDef names[] = {
     {"squareBracketsEq", "[]="},
     {"unaryPlus", "+@"},
     {"unaryMinus", "-@"},
+    {"unaryTilde", "~"},
     {"plus", "+"},
     {"minus", "-"},
     {"star", "*"},
