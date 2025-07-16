@@ -40,7 +40,6 @@
 #include "namer/namer.h"
 #include "parser/parser.h"
 #include "parser/prism/Parser.h"
-#include "parser/prism/Translator.h"
 #include "payload/binary/binary.h"
 #include "pipeline.h"
 #include "rbs/AssertionsRewriter.h"
@@ -398,9 +397,6 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                     if (opts.stopAfterPhase == options::Phase::PARSER) {
                         return emptyParsedFile(file);
                     }
-
-                    // RBS rewriting is not yet supported for Prism. https://github.com/Shopify/sorbet/issues/574
-                    ENFORCE(opts.stopAfterPhase != options::Phase::RBS_REWRITER);
 
                     break;
                 }
