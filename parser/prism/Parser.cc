@@ -20,7 +20,7 @@ pm_parser_t *Parser::getRawParserPointer() {
 
 ParseResult Parser::parse() {
     pm_node_t *root = pm_parse(&parser);
-    return ParseResult{*this, root, collectErrors()};
+    return ParseResult{*this, root, collectErrors(), collectComments()};
 };
 
 core::LocOffsets Parser::translateLocation(pm_location_t location) const {
@@ -56,5 +56,23 @@ vector<ParseError> Parser::collectErrors() {
     }
 
     return parseErrors;
+}
+
+vector<ParseComment> Parser::collectComments() {
+    vector<ParseComment> parseComments;
+    parseComments.reserve(parser.comment_list.size);
+
+    auto commentList = parser.comment_list;
+
+    for (auto *node = commentList.head; node != nullptr; node = node->next) {
+        auto *comment = reinterpret_cast<pm_comment_t *>(node);
+
+        core::LocOffsets location = translateLocation(comment->location);
+        ParseComment parseComment(location);
+
+        parseComments.push_back(parseComment);
+    }
+
+    return parseComments;
 }
 }; // namespace sorbet::parser::Prism

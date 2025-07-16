@@ -27,6 +27,15 @@ public:
     pm_error_level_t level;
 };
 
+// TODO @kaan: For now simple object that's not needed to be abstracted but we could store the comment text in the
+// future
+class ParseComment {
+public:
+    ParseComment(core::LocOffsets location) : location(location) {}
+
+    core::LocOffsets location;
+};
+
 class Parser final {
     // The version of Ruby syntax that we're parsing with Prism. This determines what syntax is supported or not.
     static constexpr std::string_view ParsedRubyVersion = "3.3.0";
@@ -63,6 +72,7 @@ public:
 
 private:
     std::vector<ParseError> collectErrors();
+    std::vector<ParseComment> collectComments();
     pm_parser_t *getRawParserPointer();
 };
 
@@ -81,9 +91,11 @@ class ParseResult final {
     Parser &parser;
     std::unique_ptr<pm_node_t, NodeDeleter> node;
     std::vector<ParseError> parseErrors;
+    std::vector<ParseComment> parseComments;
 
-    ParseResult(Parser &parser, pm_node_t *node, std::vector<ParseError> parseErrors)
-        : parser{parser}, node{node, NodeDeleter{parser}}, parseErrors{parseErrors} {}
+    ParseResult(Parser &parser, pm_node_t *node, std::vector<ParseError> parseErrors,
+                std::vector<ParseComment> parseComments)
+        : parser{parser}, node{node, NodeDeleter{parser}}, parseErrors{parseErrors}, parseComments{parseComments} {}
 
     ParseResult(const ParseResult &) = delete;            // Copy constructor
     ParseResult &operator=(const ParseResult &) = delete; // Copy assignment
