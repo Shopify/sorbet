@@ -15,6 +15,7 @@ extern "C" {
 namespace sorbet::parser::Prism {
 
 class ParseResult;
+class TranslateResult;
 
 class ParseError {
 public:
@@ -63,7 +64,7 @@ public:
     Parser(Parser &&) = delete;
     Parser &operator=(Parser &&) = delete;
 
-    static std::unique_ptr<parser::Node> run(core::GlobalState &gs, core::FileRef file);
+    static TranslateResult run(core::GlobalState &gs, core::FileRef file);
 
     ParseResult parse();
     core::LocOffsets translateLocation(pm_location_t location) const;

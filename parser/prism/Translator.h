@@ -12,6 +12,15 @@ extern "C" {
 
 namespace sorbet::parser::Prism {
 
+class TranslateResult final {
+public:
+    const ParseResult &parseResult;
+    std::unique_ptr<parser::Node> tree;
+
+    TranslateResult(const ParseResult &parseResult, std::unique_ptr<parser::Node> tree)
+        : parseResult(parseResult), tree(std::move(tree)) {}
+};
+
 class Translator final {
     const Parser &parser;
 
@@ -49,7 +58,7 @@ public:
 
     // Translates the given AST from Prism's node types into the equivalent AST in Sorbet's legacy parser node types.
     std::unique_ptr<parser::Node> translate(pm_node_t *node);
-    std::unique_ptr<parser::Node> translate(const ParseResult &parseResult);
+    TranslateResult translate(const ParseResult &parseResult);
 
 private:
     // Private constructor used only for creating child translators
