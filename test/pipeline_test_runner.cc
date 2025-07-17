@@ -234,9 +234,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             }
             case realmain::options::Parser::PRISM: {
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
-
-                auto nodes = parser::Prism::Parser::run(gs, file);
-                parseResult = parser::ParseResult{move(nodes), {}};
+                parseResult = parser::Prism::Parser::run(gs, file);
                 break;
             }
         }
@@ -698,8 +696,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                auto nodes = parser::Prism::Parser::run(ctx, f.file);
-                parseResult = parser::ParseResult{move(nodes), {}};
+                parseResult = parser::Prism::Parser::run(*gs, f.file);
                 break;
             }
         }
