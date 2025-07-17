@@ -1870,6 +1870,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = std::move(res);
             },
             [&](parser::Float *floatNode) {
+                TRANSLATED_BY_PRISM(dctx, floatNode);
+
                 double val;
                 auto underscorePos = floatNode->val.find("_");
 
