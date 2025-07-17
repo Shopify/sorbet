@@ -705,6 +705,11 @@ public:
     }
 };
 
+// This macro indicates a code path that should never be reached if we're using Prism.
+#define TRANSLATED_BY_PRISM(dctx, node)       \
+    ENFORCE(!(dctx).ctx.state.parseWithPrism, \
+            "The {} node should have already been desugared by the Prism Translator.", (node)->nodeName())
+
 // Translate a tree to an expression. NOTE: this should only be called from `node2TreeImpl`.
 ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
     try {
@@ -715,6 +720,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
         auto locZeroLen = what->loc.copyWithZeroLength();
         ENFORCE(loc.exists(), "parse-tree node has no location: {}", what->toString(dctx.ctx));
         ExpressionPtr result;
+
+        categoryCounterInc("node2TreeImpl", "check_for_prism");
         typecase(
             what,
             // The top N clauses here are ordered according to observed
