@@ -512,6 +512,7 @@ unique_ptr<parser::Node> MethodTypeToParserNode::methodSignature(const parser::N
         for (auto &param : typeParams) {
             typeParamsVector.emplace_back(parser::MK::Symbol(param.first, param.second));
         }
+        // ast::MK::Send
         sigBuilder = parser::MK::Send(fullTypeLoc, move(sigBuilder), core::Names::typeParameters(), fullTypeLoc,
                                       move(typeParamsVector));
     }

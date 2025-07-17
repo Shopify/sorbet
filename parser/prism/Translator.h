@@ -13,6 +13,15 @@ extern "C" {
 
 namespace sorbet::parser::Prism {
 
+class TranslateResult final {
+public:
+    std::vector<core::LocOffsets> commentLocations;
+    std::unique_ptr<parser::Node> tree;
+
+    TranslateResult(std::vector<core::LocOffsets> commentLocations, std::unique_ptr<parser::Node> tree)
+        : commentLocations(std::move(commentLocations)), tree(std::move(tree)) {}
+};
+
 class Translator final {
     const Parser &parser;
 

@@ -7,12 +7,13 @@ using namespace std;
 
 namespace sorbet::parser::Prism {
 
-unique_ptr<parser::Node> Parser::run(core::GlobalState &gs, core::FileRef file) {
+TranslateResult Parser::run(core::GlobalState &gs, core::FileRef file) {
     auto source = file.data(gs).source();
     Prism::Parser parser{source};
     Prism::ParseResult parseResult = parser.parse();
-
-    return Prism::Translator(parser, gs, file, parseResult.parseErrors).translate(parseResult.getRawNodePointer());
+    auto translatedTree =
+        Prism::Translator(parser, gs, file, parseResult.parseErrors).translate(parseResult.getRawNodePointer());
+    return TranslateResult(std::move(parseResult.commentLocations), std::move(translatedTree));
 }
 
 pm_parser_t *Parser::getRawParserPointer() {
