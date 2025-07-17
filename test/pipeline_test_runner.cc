@@ -224,7 +224,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             continue;
         }
 
-        parser::Parser::ParseResult parseResult;
+        parser::ParseResult parseResult;
         switch (parser) {
             case realmain::options::Parser::ORIGINAL: {
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
@@ -236,7 +236,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
 
                 auto nodes = parser::Prism::Parser::run(gs, file);
-                parseResult = parser::Parser::ParseResult{move(nodes), {}};
+                parseResult = parser::ParseResult{move(nodes), {}};
                 break;
             }
         }
@@ -690,7 +690,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
 
         // this replicates the logic of pipeline::indexOne
-        parser::Parser::ParseResult parseResult;
+        parser::ParseResult parseResult;
         switch (parser) {
             case realmain::options::Parser::ORIGINAL: {
                 auto settings = parser::Parser::Settings{false, false, false, gs->cacheSensitiveOptions.rbsEnabled};
@@ -699,7 +699,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             }
             case realmain::options::Parser::PRISM: {
                 auto nodes = parser::Prism::Parser::run(ctx, f.file);
-                parseResult = parser::Parser::ParseResult{move(nodes), {}};
+                parseResult = parser::ParseResult{move(nodes), {}};
                 break;
             }
         }
