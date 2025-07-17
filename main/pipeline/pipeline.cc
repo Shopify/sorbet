@@ -319,6 +319,24 @@ ast::ExpressionPtr runDesugar(core::GlobalState &gs, core::FileRef file, unique_
     return ast;
 }
 
+ast::ExpressionPtr runPrismDesugar(core::GlobalState &gs, core::FileRef file, unique_ptr<parser::Node> parseTree,
+                                   const options::Printers &print, bool preserveConcreteSyntax = false) {
+    Timer timeit(gs.tracer(), "runDesugar", {{"file", string(file.data(gs).path())}});
+    ast::ExpressionPtr ast;
+    core::MutableContext ctx(gs, core::Symbols::root(), file);
+    {
+        core::UnfreezeNameTable nameTableAccess(gs); // creates temporaries during desugaring
+        ast = ast::desugar::node2Tree(ctx, move(parseTree), preserveConcreteSyntax);
+    }
+    if (print.DesugarTree.enabled) {
+        print.DesugarTree.fmt("{}\n", ast.toStringWithTabs(gs, 0));
+    }
+    if (print.DesugarTreeRaw.enabled) {
+        print.DesugarTreeRaw.fmt("{}\n", ast.showRaw(gs));
+    }
+    return ast;
+}
+
 ast::ExpressionPtr runRewriter(core::GlobalState &gs, core::FileRef file, ast::ExpressionPtr ast) {
     core::MutableContext ctx(gs, core::Symbols::root(), file);
     Timer timeit(gs.tracer(), "runRewriter", {{"file", string(file.data(gs).path())}});
@@ -407,7 +425,16 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                 }
             }
 
-            tree = runDesugar(lgs, file, move(parseTree), print);
+            switch (parser) {
+                case options::Parser::ORIGINAL: {
+                    tree = runDesugar(lgs, file, move(parseTree), print);
+                    break;
+                }
+                case options::Parser::PRISM: {
+                    tree = runPrismDesugar(lgs, file, move(parseTree), print);
+                    break;
+                }
+            }
             if (opts.stopAfterPhase == options::Phase::DESUGARER) {
                 return emptyParsedFile(file);
             }

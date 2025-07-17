@@ -12,6 +12,24 @@ namespace sorbet::parser::Prism {
 
 using sorbet::ast::MK;
 
+// Base case, helper for the function below.
+bool hasExpr() {
+    return true;
+}
+
+// Returns true if all nodes have a desugared expr.
+// Call this with all of a node's children, to check if that node can be desugared.
+template <typename... Rest> bool hasExpr(const std::unique_ptr<parser::Node> &first, const Rest &...rest) {
+    return first->hasDesugaredExpr() && hasExpr(rest...);
+}
+
+// Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
+template <typename SorbetNode, typename... TArgs>
+unique_ptr<NodeWithExpr> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
+    auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
+    return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+}
+
 // Indicates that a particular code path should never be reached, with an explanation of why.
 // Throws a `sorbet::SorbetException` when triggered to help with debugging.
 template <typename... TArgs>
@@ -556,7 +574,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unreachable("PM_ENSURE_NODE is handled separately as part of PM_BEGIN_NODE, see its docs for details.");
         }
         case PM_FALSE_NODE: { // The `false` keyword
-            return make_unique<parser::False>(location);
+            return make_node_with_expr<parser::False>(MK::False(location), location);
         }
         case PM_FLOAT_NODE: { // A floating point number literal, e.g. `1.23`
             auto floatNode = down_cast<pm_float_node>(node);
@@ -931,7 +949,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Next>(location, move(arguments));
         }
         case PM_NIL_NODE: { // The `nil` keyword
-            return make_unique<parser::Nil>(location);
+            return make_node_with_expr<parser::Nil>(MK::Nil(location), location);
         }
         case PM_NO_KEYWORDS_PARAMETER_NODE: { // `**nil`, such as in `def foo(**nil)` or `h in { k: v, **nil}`
             unreachable("PM_NO_KEYWORDS_PARAMETER_NODE is handled separately in `PM_HASH_PATTERN_NODE` and "
@@ -1142,7 +1160,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Retry>(location);
         }
         case PM_SELF_NODE: { // The `self` keyword
-            return make_unique<parser::Self>(location);
+            return make_node_with_expr<parser::Self>(MK::Self(location), location);
         }
         case PM_SHAREABLE_CONSTANT_NODE: {
             // Sorbet doesn't handle `shareable_constant_value` yet (https://bugs.ruby-lang.org/issues/17273).
@@ -1160,10 +1178,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
         }
         case PM_SOURCE_ENCODING_NODE: { // The `__ENCODING__` keyword
-            return make_unique<parser::EncodingLiteral>(location);
+            return make_node_with_expr<parser::EncodingLiteral>(
+                MK::Send0(location, MK::Magic(location), core::Names::getEncoding(), location.copyWithZeroLength()),
+                location);
         }
         case PM_SOURCE_FILE_NODE: { // The `__FILE__` keyword
-            return make_unique<parser::FileLiteral>(location);
+            return make_node_with_expr<parser::FileLiteral>(MK::String(location, core::Names::currentFile()), location);
         }
         case PM_SOURCE_LINE_NODE: { // The `__LINE__` keyword
             return make_unique<parser::LineLiteral>(location);
@@ -1222,7 +1242,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Symbol>(location, gs.enterNameUTF8(source));
         }
         case PM_TRUE_NODE: { // The `true` keyword
-            return make_unique<parser::True>(location);
+            return make_node_with_expr<parser::True>(MK::True(location), location);
         }
         case PM_UNDEF_NODE: { // The `undef` keyword, like `undef :method_to_undef
             auto undefNode = down_cast<pm_undef_node>(node);
@@ -1807,11 +1827,15 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
         return make_unique<LVarLhs>(location, core::Names::dynamicConstAssign());
     }
 
+    auto constantName = gs.enterNameConstant(name);
+
     auto constexpr isConstantPath = is_same_v<PrismLhsNode, pm_constant_path_target_node> ||
                                     is_same_v<PrismLhsNode, pm_constant_path_write_node> ||
                                     is_same_v<PrismLhsNode, pm_constant_path_node>;
 
     unique_ptr<parser::Node> parent;
+    ast::ExpressionPtr parentExpr = nullptr;
+
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
         if (auto prismParentNode = node->parent; prismParentNode != nullptr) {
             // This constant reference is chained onto another constant reference.
@@ -1822,9 +1846,11 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
             //  /  \
             // A   ::B
             parent = translate(prismParentNode);
+            parentExpr = parent ? parent->takeDesugaredExpr() : nullptr;
         } else { // This is the root of a fully qualified constant reference, like `::A`.
             auto delimiterLoc = translateLoc(node->delimiter_loc); // The location of the `::`
             parent = make_unique<parser::Cbase>(delimiterLoc);
+            parentExpr = MK::Constant(delimiterLoc, core::Symbols::root());
         }
     } else { // Handle plain constants like `A`, that aren't part of a constant path.
         static_assert(
@@ -1841,9 +1867,15 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
             location = translateLoc(node->name_loc);
         }
         parent = nullptr;
+        parentExpr = MK::EmptyTree();
     }
 
-    return make_unique<SorbetLHSNode>(location, move(parent), gs.enterNameConstant(name));
+    if (parentExpr != nullptr) {
+        ast::ExpressionPtr desugaredExpr = MK::UnresolvedConstant(location, move(parentExpr), constantName);
+        return make_node_with_expr<SorbetLHSNode>(move(desugaredExpr), location, move(parent), constantName);
+    } else {
+        return make_unique<SorbetLHSNode>(location, move(parent), constantName);
+    }
 }
 
 core::NameRef Translator::translateConstantName(pm_constant_id_t constantId) {
