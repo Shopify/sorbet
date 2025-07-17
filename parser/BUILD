@@ -15,6 +15,7 @@ cc_library(
         "parser.h",
     ],
     hdrs = [
+        "ParseResult.h",
         "parser.h",
     ],
     linkstatic = select({
