@@ -2113,6 +2113,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Retry *ret) {
+                TRANSLATED_BY_PRISM(dctx, ret);
+
                 ExpressionPtr res = make_expression<Retry>(loc);
                 result = std::move(res);
             },
