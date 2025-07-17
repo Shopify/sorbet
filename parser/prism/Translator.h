@@ -12,6 +12,16 @@ extern "C" {
 
 namespace sorbet::parser::Prism {
 
+class TranslateResult final {
+public:
+    // @kaan Hold `ParseResult` as a whole instead?
+    std::vector<core::LocOffsets> commentLocations;
+    std::unique_ptr<parser::Node> tree;
+
+    TranslateResult(std::vector<core::LocOffsets> commentLocations, std::unique_ptr<parser::Node> tree)
+        : commentLocations(std::move(commentLocations)), tree(std::move(tree)) {}
+};
+
 class Translator final {
     const Parser &parser;
 
@@ -49,7 +59,7 @@ public:
 
     // Translates the given AST from Prism's node types into the equivalent AST in Sorbet's legacy parser node types.
     std::unique_ptr<parser::Node> translate(pm_node_t *node);
-    std::unique_ptr<parser::Node> translate(const ParseResult &parseResult);
+    TranslateResult translate(const ParseResult &parseResult);
 
 private:
     // Private constructor used only for creating child translators

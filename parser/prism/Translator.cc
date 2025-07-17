@@ -1321,9 +1321,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
     }
 }
 
-unique_ptr<parser::Node> Translator::translate(const ParseResult &parseResult) {
+TranslateResult Translator::translate(const ParseResult &parseResult) {
     this->parseErrors = parseResult.parseErrors;
-    return translate(parseResult.getRawNodePointer());
+    auto translatedTree = translate(parseResult.getRawNodePointer());
+    return TranslateResult(parseResult.commentLocations, std::move(translatedTree));
 }
 
 core::LocOffsets Translator::translateLoc(pm_location_t loc) {

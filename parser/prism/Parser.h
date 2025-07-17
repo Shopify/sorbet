@@ -15,6 +15,7 @@ extern "C" {
 namespace sorbet::parser::Prism {
 
 class ParseResult;
+class TranslateResult;
 
 class ParseError {
 public:
@@ -25,6 +26,15 @@ public:
     std::string message;
     pm_location_t location;
     pm_error_level_t level;
+};
+
+// TODO @kaan: For now simple object that's not needed to be abstracted but we could store the comment text in the
+// future
+class ParseComment {
+public:
+    ParseComment(core::LocOffsets location) : location(location) {}
+
+    core::LocOffsets location;
 };
 
 class Parser final {
@@ -54,7 +64,7 @@ public:
     Parser(Parser &&) = delete;
     Parser &operator=(Parser &&) = delete;
 
-    static std::unique_ptr<parser::Node> run(core::GlobalState &gs, core::FileRef file);
+    static TranslateResult run(core::GlobalState &gs, core::FileRef file);
 
     ParseResult parse();
     core::LocOffsets translateLocation(pm_location_t location) const;

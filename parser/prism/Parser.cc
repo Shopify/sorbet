@@ -6,7 +6,7 @@ using namespace std;
 
 namespace sorbet::parser::Prism {
 
-unique_ptr<parser::Node> Parser::run(core::GlobalState &gs, core::FileRef file) {
+TranslateResult Parser::run(core::GlobalState &gs, core::FileRef file) {
     auto source = file.data(gs).source();
     Prism::Parser parser{source};
     Prism::ParseResult parseResult = parser.parse();
