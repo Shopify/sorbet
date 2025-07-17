@@ -1007,12 +1007,6 @@ void readOptions(Options &opts,
         opts.stopAfterPhase = extractStopAfter(raw, logger);
 
         opts.parser = extractParser(raw["parser"].as<string>(), logger).value_or(Parser::ORIGINAL);
-        if (opts.parser == Parser::PRISM && opts.cacheSensitiveOptions.rbsEnabled) {
-            logger->error("Prism support is experimental and still under active development. It is not yet compatible "
-                          "with RBS signatures. https://github.com/Shopify/sorbet/issues/574");
-            throw EarlyReturnWithCode(1);
-        }
-
         opts.silenceErrors = raw["quiet"].as<bool>();
         opts.autocorrect = raw["autocorrect"].as<bool>();
         opts.didYouMean = raw["did-you-mean"].as<bool>();
@@ -1379,11 +1373,6 @@ void readOptions(Options &opts,
             if (maybeExtension) {
                 configuredExtensions.emplace_back(move(maybeExtension));
             }
-        }
-
-        if (opts.print.RBSRewriteTree.enabled && !opts.cacheSensitiveOptions.rbsEnabled) {
-            logger->error("--print=rbs-rewrite-tree must also include `{}`", "--enable-experimental-rbs-comments");
-            throw EarlyReturnWithCode(1);
         }
 
         // Allow semanticExtensionProviders to print something when --version is given before we throw.
