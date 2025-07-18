@@ -384,7 +384,13 @@ void CommentsAssociator::walkNode(parser::Node *node) {
             //   puts x
             //   x #: as String
             // }
+
+            // fmt::print("BEGIN: beginOffset: {}, endOffset: {}\n", node->loc.beginPos(), node->loc.endPos());
+            // fmt::print("begin->stmts[0]->loc.endPos(): {}\n", begin->stmts[0]->loc.endPos());
+            // fmt::print("node->loc.endPos(): {}\n", node->loc.endPos());
+
             if (begin->stmts.size() > 0 && begin->stmts[0]->loc.endPos() + 1 == node->loc.endPos()) {
+                fmt::print("Associating comments to begin\n");
                 associateAssertionCommentsToNode(node);
             }
 
@@ -687,6 +693,8 @@ void CommentsAssociator::walkNode(parser::Node *node) {
             consumeCommentsInsideNode(node, "while");
         },
         [&](parser::Node *other) {
+            // fmt::print("Other name: {}\n", other->nodeName());
+            // fmt::print("OTHER: beginOffset: {}, endOffset: {}\n", node->loc.beginPos(), node->loc.endPos());
             associateAssertionCommentsToNode(node);
             consumeCommentsInsideNode(node, "other");
         });
