@@ -721,7 +721,7 @@ public:
     }
 };
 
-[[noreturn]] [[maybe_unused]] void desugaredByPrismTranslator(parser::Node *node) {
+[[noreturn]] void desugaredByPrismTranslator(parser::Node *node) {
     Exception::raise("The {} node should have already been desugared by the Prism Translator.", node->nodeName());
 }
 
@@ -1570,10 +1570,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 auto res = MK::InsSeq1(csend->loc, std::move(assgn), std::move(iff));
                 result = std::move(res);
             },
-            [&](parser::Self *self) {
-                ExpressionPtr res = MK::Self(loc);
-                result = std::move(res);
-            },
+            [&](parser::Self *self) { desugaredByPrismTranslator(self); },
             [&](parser::DSymbol *dsymbol) {
                 if (dsymbol->nodes.empty()) {
                     ExpressionPtr res = MK::Symbol(loc, core::Names::empty());
@@ -1586,10 +1583,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
 
                 result = std::move(res);
             },
-            [&](parser::FileLiteral *fileLiteral) {
-                ExpressionPtr res = MK::String(loc, core::Names::currentFile());
-                result = std::move(res);
-            },
+            [&](parser::FileLiteral *fileLiteral) { desugaredByPrismTranslator(fileLiteral); },
             [&](parser::ConstLhs *constLhs) {
                 auto scope = node2TreeImpl(dctx, constLhs->scope);
                 ExpressionPtr res = MK::UnresolvedConstant(loc, std::move(scope), constLhs->name);
@@ -1746,6 +1740,10 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = std::move(res);
             },
             [&](parser::Nil *wl) {
+                // This can still be hit because of the call to `make_unique<parser::Nil>(loc)`
+                // in the `parser::Send` case below.
+                // desugaredByPrismTranslator(wl);
+
                 ExpressionPtr res = MK::Nil(loc);
                 result = std::move(res);
             },
@@ -2243,14 +2241,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
 
                 result = std::move(res);
             },
-            [&](parser::True *t) {
-                auto res = MK::True(loc);
-                result = std::move(res);
-            },
-            [&](parser::False *t) {
-                auto res = MK::False(loc);
-                result = std::move(res);
-            },
+            [&](parser::True *t) { desugaredByPrismTranslator(t); },
+            [&](parser::False *t) { desugaredByPrismTranslator(t); },
             [&](parser::Case *case_) {
                 if (dctx.preserveConcreteSyntax) {
                     // Desugar to:
@@ -2466,10 +2458,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 auto res = unsupportedNode(dctx, redo);
                 result = std::move(res);
             },
-            [&](parser::EncodingLiteral *encodingLiteral) {
-                auto recv = MK::Magic(loc);
-                result = MK::Send0(loc, std::move(recv), core::Names::getEncoding(), locZeroLen);
-            },
+            [&](parser::EncodingLiteral *encodingLiteral) { desugaredByPrismTranslator(encodingLiteral); },
             [&](parser::MatchPattern *pattern) {
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs.get());
                 result = std::move(res);
