@@ -32,3 +32,16 @@ TEST_CASE("SimpleDesugar") { // NOLINT
     sorbet::core::MutableContext ctx(gs, sorbet::core::Symbols::root(), fileId);
     auto o1 = sorbet::ast::desugar::node2Tree(ctx, move(ast));
 }
+
+TEST_CASE("SimplePrismDesugar") { // NOLINT
+    sorbet::core::GlobalState gs(errorQueue);
+    gs.initEmpty();
+    sorbet::core::UnfreezeNameTable nameTableAccess(gs);
+    sorbet::core::UnfreezeFileTable ft(gs);
+
+    sorbet::core::FileRef fileId = gs.enterFile("<test>", "def hello_world; p :hello; end");
+    auto settings = sorbet::parser::Parser::Settings{};
+    auto ast = sorbet::parser::Parser::run(gs, fileId, settings).tree;
+    sorbet::core::MutableContext ctx(gs, sorbet::core::Symbols::root(), fileId);
+    auto o1 = sorbet::ast::prismDesugar::node2Tree(ctx, move(ast));
+}
