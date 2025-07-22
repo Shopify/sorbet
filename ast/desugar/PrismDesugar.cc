@@ -17,6 +17,22 @@ namespace sorbet::ast::prismDesugar {
 
 using namespace std;
 
+// A helper around `parser::cast_node` that can cast a `NodeWithExpr` _as if_ it was its wrapped node.
+template <class To> To *cast_node(parser::Node *what) {
+    if (auto casted = parser::cast_node<To>(what)) {
+        categoryCounterInc("cast_node", "correct");
+        return casted;
+    }
+
+    if (auto wrapper = parser::cast_node<parser::NodeWithExpr>(what)) {
+        categoryCounterInc("cast_node", "delegated");
+        return parser::cast_node<To>(wrapper->wrappedNode.get());
+    } else {
+        categoryCounterInc("cast_node", "miss");
+        return nullptr;
+    }
+}
+
 namespace {
 
 struct DesugarContext final {
@@ -50,7 +66,7 @@ core::NameRef blockArg2Name(DesugarContext dctx, const BlockArg &blkArg) {
 // Get the num from the name of the Node if it's a LVar.
 // Return -1 otherwise.
 int numparamNum(DesugarContext dctx, parser::Node *decl) {
-    if (auto *lvar = parser::cast_node<parser::LVar>(decl)) {
+    if (auto *lvar = prismDesugar::cast_node<parser::LVar>(decl)) {
         auto name_str = lvar->name.show(dctx.ctx);
         return name_str[1] - 48;
     }
@@ -74,7 +90,7 @@ int numparamMax(DesugarContext dctx, parser::NodeVec *decls) {
 // Return a dummy variable if no declaration is found for `num`.
 ExpressionPtr numparamTree(DesugarContext dctx, int num, parser::NodeVec *decls) {
     for (auto &decl : *decls) {
-        if (auto *lvar = parser::cast_node<parser::LVar>(decl.get())) {
+        if (auto *lvar = prismDesugar::cast_node<parser::LVar>(decl.get())) {
             if (numparamNum(dctx, decl.get()) == num) {
                 return MK::Local(lvar->loc, lvar->name);
             }
@@ -93,7 +109,7 @@ pair<MethodDef::ARGS_store, InsSeq::STATS_store> desugarArgs(DesugarContext dctx
     MethodDef::ARGS_store args;
     InsSeq::STATS_store destructures;
 
-    if (auto *oargs = parser::cast_node<parser::Args>(argnode)) {
+    if (auto *oargs = prismDesugar::cast_node<parser::Args>(argnode)) {
         args.reserve(oargs->args.size());
         for (auto &arg : oargs->args) {
             if (parser::isa_node<parser::Mlhs>(arg.get())) {
@@ -105,7 +121,7 @@ pair<MethodDef::ARGS_store, InsSeq::STATS_store> desugarArgs(DesugarContext dctx
                 destructures.emplace_back(node2TreeImpl(dctx, destructure));
             } else if (parser::isa_node<parser::Kwnilarg>(arg.get())) {
                 // TODO implement logic for `**nil` args
-            } else if (auto *fargs = parser::cast_node<parser::ForwardArg>(arg.get())) {
+            } else if (auto *fargs = prismDesugar::cast_node<parser::ForwardArg>(arg.get())) {
                 // we desugar (m, n, ...) into (m, n, *<fwd-args>, **<fwd-kwargs>, &<fwd-block>)
                 // add `*<fwd-args>`
                 unique_ptr<parser::Node> rest =
@@ -121,7 +137,7 @@ pair<MethodDef::ARGS_store, InsSeq::STATS_store> desugarArgs(DesugarContext dctx
                 args.emplace_back(node2TreeImpl(dctx, arg));
             }
         }
-    } else if (auto *numparams = parser::cast_node<parser::NumParams>(argnode)) {
+    } else if (auto *numparams = prismDesugar::cast_node<parser::NumParams>(argnode)) {
         // The block uses numbered parameters like `_1` or `_9` so we add them as parameters
         // from _1 to the highest number used.
         for (int i = 1; i <= numparamMax(dctx, &numparams->decls); i++) {
@@ -443,7 +459,7 @@ ExpressionPtr desugarMlhs(DesugarContext dctx, core::LocOffsets loc, parser::Mlh
     bool didSplat = false;
 
     for (auto &c : lhs->exprs) {
-        if (auto *splat = parser::cast_node<parser::SplatLhs>(c.get())) {
+        if (auto *splat = prismDesugar::cast_node<parser::SplatLhs>(c.get())) {
             ENFORCE(!didSplat, "did splat already");
             didSplat = true;
 
@@ -472,7 +488,7 @@ ExpressionPtr desugarMlhs(DesugarContext dctx, core::LocOffsets loc, parser::Mlh
             auto val = MK::Send1(c->loc, MK::Local(c->loc, tempExpanded), core::Names::squareBrackets(),
                                  loc.copyWithZeroLength(), MK::Int(loc, i));
 
-            if (auto *mlhs = parser::cast_node<parser::Mlhs>(c.get())) {
+            if (auto *mlhs = prismDesugar::cast_node<parser::Mlhs>(c.get())) {
                 stats.emplace_back(desugarMlhs(dctx, mlhs->loc, mlhs, std::move(val)));
             } else {
                 ExpressionPtr lh = node2TreeImpl(dctx, c);
@@ -503,33 +519,33 @@ ExpressionPtr desugarMlhs(DesugarContext dctx, core::LocOffsets loc, parser::Mlh
 
 // Map all MatchVars used in `pattern` to local variables initialized from magic calls
 void desugarPatternMatchingVars(InsSeq::STATS_store &vars, DesugarContext dctx, parser::Node *node) {
-    if (auto var = parser::cast_node<parser::MatchVar>(node)) {
+    if (auto var = prismDesugar::cast_node<parser::MatchVar>(node)) {
         auto loc = var->loc;
         auto val = MK::RaiseUnimplemented(loc);
         vars.emplace_back(MK::Assign(loc, var->name, std::move(val)));
-    } else if (auto rest = parser::cast_node<parser::MatchRest>(node)) {
+    } else if (auto rest = prismDesugar::cast_node<parser::MatchRest>(node)) {
         desugarPatternMatchingVars(vars, dctx, rest->var.get());
-    } else if (auto pair = parser::cast_node<parser::Pair>(node)) {
+    } else if (auto pair = prismDesugar::cast_node<parser::Pair>(node)) {
         desugarPatternMatchingVars(vars, dctx, pair->value.get());
-    } else if (auto as_pattern = parser::cast_node<parser::MatchAs>(node)) {
+    } else if (auto as_pattern = prismDesugar::cast_node<parser::MatchAs>(node)) {
         auto loc = as_pattern->as->loc;
-        auto name = parser::cast_node<parser::MatchVar>(as_pattern->as.get())->name;
+        auto name = prismDesugar::cast_node<parser::MatchVar>(as_pattern->as.get())->name;
         auto val = MK::RaiseUnimplemented(loc);
         vars.emplace_back(MK::Assign(loc, name, std::move(val)));
         desugarPatternMatchingVars(vars, dctx, as_pattern->value.get());
-    } else if (auto array_pattern = parser::cast_node<parser::ArrayPattern>(node)) {
+    } else if (auto array_pattern = prismDesugar::cast_node<parser::ArrayPattern>(node)) {
         for (auto &elt : array_pattern->elts) {
             desugarPatternMatchingVars(vars, dctx, elt.get());
         }
-    } else if (auto array_pattern = parser::cast_node<parser::ArrayPatternWithTail>(node)) {
+    } else if (auto array_pattern = prismDesugar::cast_node<parser::ArrayPatternWithTail>(node)) {
         for (auto &elt : array_pattern->elts) {
             desugarPatternMatchingVars(vars, dctx, elt.get());
         }
-    } else if (auto hash_pattern = parser::cast_node<parser::HashPattern>(node)) {
+    } else if (auto hash_pattern = prismDesugar::cast_node<parser::HashPattern>(node)) {
         for (auto &elt : hash_pattern->pairs) {
             desugarPatternMatchingVars(vars, dctx, elt.get());
         }
-    } else if (auto alt_pattern = parser::cast_node<parser::MatchAlt>(node)) {
+    } else if (auto alt_pattern = prismDesugar::cast_node<parser::MatchAlt>(node)) {
         desugarPatternMatchingVars(vars, dctx, alt_pattern->left.get());
         desugarPatternMatchingVars(vars, dctx, alt_pattern->right.get());
     }
@@ -560,7 +576,7 @@ ClassDef::RHS_store scopeNodeToBody(DesugarContext dctx, unique_ptr<parser::Node
     auto inAnyBlock = false;
     DesugarContext dctx1(dctx.ctx, uniqueCounter, dctx.enclosingBlockArg, dctx.enclosingMethodLoc,
                          dctx.enclosingMethodName, inAnyBlock, dctx.inModule, dctx.preserveConcreteSyntax);
-    if (auto *begin = parser::cast_node<parser::Begin>(node.get())) {
+    if (auto *begin = prismDesugar::cast_node<parser::Begin>(node.get())) {
         body.reserve(begin->stmts.size());
         for (auto &stat : begin->stmts) {
             body.emplace_back(node2TreeImpl(dctx1, stat));
@@ -705,6 +721,10 @@ public:
     }
 };
 
+[[noreturn]] [[maybe_unused]] void desugaredByPrismTranslator(parser::Node *node) {
+    Exception::raise("The {} node should have already been desugared by the Prism Translator.", node->nodeName());
+}
+
 // Translate a tree to an expression. NOTE: this should only be called from `node2TreeImpl`.
 ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
     try {
@@ -759,7 +779,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
 
                     // Deconstruct the kwargs hash if it's present.
                     if (!send->args.empty()) {
-                        if (auto *hash = parser::cast_node<parser::Hash>(send->args.back().get())) {
+                        if (auto *hash = prismDesugar::cast_node<parser::Hash>(send->args.back().get())) {
                             if (hash->kwargs) {
                                 // hold a reference to the node, and remove it from the back of the send list
                                 auto node = std::move(send->args.back());
@@ -822,7 +842,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     auto it = absl::c_find_if(argnodes,
                                               [](auto &arg) { return parser::isa_node<parser::BlockPass>(arg.get()); });
                     if (it != argnodes.end()) {
-                        auto *bp = parser::cast_node<parser::BlockPass>(it->get());
+                        auto *bp = prismDesugar::cast_node<parser::BlockPass>(it->get());
                         if (bp->block == nullptr) {
                             anonymousBlockPass = true;
                             bpLoc = bp->loc;
@@ -927,7 +947,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                         }
 
                         // Deconstruct the kwargs hash if it's present.
-                        if (auto *hash = parser::cast_node<parser::Hash>(send->args[kwargsHashIndex].get())) {
+                        if (auto *hash = prismDesugar::cast_node<parser::Hash>(send->args[kwargsHashIndex].get())) {
                             if (hash->kwargs) {
                                 numPosArgs--;
 
@@ -966,7 +986,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     bool anonymousBlockPass = false;
                     core::LocOffsets bpLoc;
                     for (auto &stat : send->args) {
-                        if (auto bp = parser::cast_node<parser::BlockPass>(stat.get())) {
+                        if (auto bp = prismDesugar::cast_node<parser::BlockPass>(stat.get())) {
                             ENFORCE(block == nullptr, "passing a block where there is no block");
                             if (bp->block == nullptr) {
                                 anonymousBlockPass = true;
@@ -1083,7 +1103,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 //   acc = <Magic>.<merge-hash>(acc, remaining)
                 //   acc
                 for (auto &pairAsExpression : hash->pairs) {
-                    auto *pair = parser::cast_node<parser::Pair>(pairAsExpression.get());
+                    auto *pair = prismDesugar::cast_node<parser::Pair>(pairAsExpression.get());
                     if (pair != nullptr) {
                         auto key = node2TreeImpl(dctx, pair->key);
                         hashKeyDupes.check(key);
@@ -1096,13 +1116,14 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                         continue;
                     }
 
-                    auto *splat = parser::cast_node<parser::Kwsplat>(pairAsExpression.get());
+                    auto *splat = prismDesugar::cast_node<parser::Kwsplat>(pairAsExpression.get());
 
                     ExpressionPtr expr;
                     if (splat != nullptr) {
                         expr = node2TreeImpl(dctx, splat->expr);
                     } else {
-                        auto *fwdKwrestArg = parser::cast_node<parser::ForwardedKwrestArg>(pairAsExpression.get());
+                        auto *fwdKwrestArg =
+                            prismDesugar::cast_node<parser::ForwardedKwrestArg>(pairAsExpression.get());
                         ENFORCE(fwdKwrestArg != nullptr, "kwsplat and fwdkwrestarg cast failed");
 
                         auto fwdKwargs = MK::Local(loc, core::Names::fwdKwargs());
@@ -1643,7 +1664,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = std::move(res);
             },
             [&](parser::DefS *method) {
-                auto *self = parser::cast_node<parser::Self>(method->singleton.get());
+                auto *self = prismDesugar::cast_node<parser::Self>(method->singleton.get());
                 if (self == nullptr) {
                     if (auto e = dctx.ctx.beginIndexerError(method->singleton->loc,
                                                             core::errors::Desugar::InvalidSingletonDef)) {
@@ -1662,7 +1683,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::SClass *sclass) {
                 // This will be a nested ClassDef which we leave in the tree
                 // which will get the symbol of `class.singleton_class`
-                auto *self = parser::cast_node<parser::Self>(sclass->expr.get());
+                auto *self = prismDesugar::cast_node<parser::Self>(sclass->expr.get());
                 if (self == nullptr) {
                     if (auto e =
                             dctx.ctx.beginIndexerError(sclass->expr->loc, core::errors::Desugar::InvalidSingletonDef)) {
@@ -1776,7 +1797,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 MethodDef::ARGS_store args;
                 bool canProvideNiceDesugar = true;
                 auto mlhsNode = std::move(for_->vars);
-                if (auto *mlhs = parser::cast_node<parser::Mlhs>(mlhsNode.get())) {
+                if (auto *mlhs = prismDesugar::cast_node<parser::Mlhs>(mlhsNode.get())) {
                     for (auto &c : mlhs->exprs) {
                         if (!parser::isa_node<parser::LVarLhs>(c.get())) {
                             canProvideNiceDesugar = false;
@@ -2215,7 +2236,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = std::move(iff);
             },
             [&](parser::Masgn *masgn) {
-                auto *lhs = parser::cast_node<parser::Mlhs>(masgn->lhs.get());
+                auto *lhs = prismDesugar::cast_node<parser::Mlhs>(masgn->lhs.get());
                 ENFORCE(lhs != nullptr, "Failed to get lhs of Masgn");
 
                 auto res = desugarMlhs(dctx, loc, lhs, node2TreeImpl(dctx, masgn->rhs));
@@ -2242,7 +2263,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     Send::ARGS_store patterns;
                     Send::ARGS_store bodies;
                     for (auto it = case_->whens.begin(); it != case_->whens.end(); ++it) {
-                        auto when = parser::cast_node<parser::When>(it->get());
+                        auto when = prismDesugar::cast_node<parser::When>(it->get());
                         ENFORCE(when != nullptr, "case without a when?");
                         for (auto &cnode : when->patterns) {
                             patterns.emplace_back(node2TreeImpl(dctx, cnode));
@@ -2271,7 +2292,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
                 ExpressionPtr res = node2TreeImpl(dctx, case_->else_);
                 for (auto it = case_->whens.rbegin(); it != case_->whens.rend(); ++it) {
-                    auto when = parser::cast_node<parser::When>(it->get());
+                    auto when = prismDesugar::cast_node<parser::When>(it->get());
                     ENFORCE(when != nullptr, "case without a when?");
                     ExpressionPtr cond;
                     for (auto &cnode : when->patterns) {
@@ -2402,7 +2423,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
 
                 // Desugar each `in` as an `if` branch calling `Magic.<pattern-match>()`
                 for (auto it = caseMatch->inBodies.rbegin(); it != caseMatch->inBodies.rend(); ++it) {
-                    auto inPattern = parser::cast_node<parser::InPattern>(it->get());
+                    auto inPattern = prismDesugar::cast_node<parser::InPattern>(it->get());
                     ENFORCE(inPattern != nullptr, "case pattern without a in?");
 
                     // Keep the `in` body for the `then` body of the new `if`
@@ -2462,9 +2483,17 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = make_expression<ConstantLit>(resolvedConst->loc, std::move(resolvedConst->symbol));
             },
 
+            [&](parser::NodeWithExpr *nodeWithExpr) {
+                result = nodeWithExpr->takeDesugaredExpr();
+                ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
+            },
+
             [&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
-            [&](parser::Node *node) { Exception::raise("Unimplemented Parser Node: {}", node->nodeName()); });
-        ENFORCE(result.get() != nullptr, "desugar result unset");
+            [&](parser::Node *node) {
+                Exception::raise("Unimplemented Parser Node: {} (class: {})", node->nodeName(),
+                                 demangle(typeid(*node).name()));
+            });
+        ENFORCE(result.get() != nullptr, "desugar result unset, (node class was: {})", demangle(typeid(*what).name()));
         return result;
     } catch (SorbetException &) {
         Exception::failInFuzzer();
