@@ -1294,6 +1294,18 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto undefNode = down_cast<pm_undef_node>(node);
 
             auto names = translateMulti(undefNode->names);
+            auto numPosArgs = names.size();
+
+            if (hasExpr(names)) {
+                auto args = nodeVecToStore<ast::Send::ARGS_store>(names);
+
+                auto expr = MK::Send(location, MK::Constant(location, core::Symbols::Kernel()), core::Names::undef(),
+                                     location.copyWithZeroLength(), numPosArgs, std::move(args));
+                // It wasn't a Send to begin with--there's no way this could result in a private
+                // method call error.
+                ast::cast_tree_nonnull<ast::Send>(expr).flags.isPrivateOk = true;
+                return make_node_with_expr<parser::Undef>(std::move(expr), location, std::move(names));
+            }
 
             return make_unique<parser::Undef>(location, move(names));
         }
