@@ -177,10 +177,36 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_AND_NODE: { // operator `&&` and `and`
             auto andNode = down_cast<pm_and_node>(node);
 
-            auto left = translate(andNode->left);
-            auto right = translate(andNode->right);
+            auto lhs = translate(andNode->left);
+            auto rhs = translate(andNode->right);
 
-            return make_unique<parser::And>(location, move(left), move(right));
+            if (lhs->hasDesugaredExpr() && rhs->hasDesugaredExpr()) {
+                auto lhsExpr = lhs->takeDesugaredExpr();
+                auto rhsExpr = rhs->takeDesugaredExpr();
+
+                if (isa_reference(lhsExpr)) {
+                    auto cond = MK::cpRef(lhsExpr);
+                    auto iff = MK::If(location, std::move(cond), std::move(rhsExpr), std::move(lhsExpr));
+                    return make_node_with_expr<parser::And>(std::move(iff), location, std::move(lhs), std::move(rhs));
+                } else {
+                    // For non-reference expressions, create a temporary variable
+                    core::NameRef tempLocalName =
+                        ctx.state.freshNameUnique(core::UniqueNameKind::Parser, core::Names::andAnd(), nextUniqueID());
+                    auto lhsLoc = lhs->loc;
+                    auto rhsLoc = rhs->loc;
+                    auto condLoc = lhsLoc.exists() && rhsLoc.exists()
+                                       ? core::LocOffsets{lhsLoc.endPos(), rhsLoc.beginPos()}
+                                       : lhsLoc;
+                    auto temp = MK::Assign(location, tempLocalName, std::move(lhsExpr));
+                    auto iff = MK::If(location, MK::Local(condLoc, tempLocalName), std::move(rhsExpr),
+                                      MK::Local(lhsLoc, tempLocalName));
+                    auto wrapped = MK::InsSeq1(location, std::move(temp), std::move(iff));
+                    return make_node_with_expr<parser::And>(std::move(wrapped), location, std::move(lhs),
+                                                            std::move(rhs));
+                }
+            }
+
+            return make_unique<parser::And>(location, move(lhs), move(rhs));
         }
         case PM_ARGUMENTS_NODE: { // A list of arguments in one of several places:
             // 1. The arguments to a method call, e.g the `1, 2, 3` in `f(1, 2, 3)`.
