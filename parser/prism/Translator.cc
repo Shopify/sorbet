@@ -1033,10 +1033,36 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_OR_NODE: { // operator `||` and `or`
             auto orNode = down_cast<pm_or_node>(node);
 
-            auto left = translate(orNode->left);
-            auto right = translate(orNode->right);
+            auto lhs = translate(orNode->left);
+            auto rhs = translate(orNode->right);
 
-            return make_unique<parser::Or>(location, move(left), move(right));
+            if (lhs->hasDesugaredExpr() && rhs->hasDesugaredExpr()) {
+                auto lhsExpr = lhs->takeDesugaredExpr();
+                auto rhsExpr = rhs->takeDesugaredExpr();
+
+                if (isa_reference(lhsExpr)) {
+                    auto cond = MK::cpRef(lhsExpr);
+                    auto iff = MK::If(location, std::move(cond), std::move(lhsExpr), std::move(rhsExpr));
+                    return make_node_with_expr<parser::Or>(std::move(iff), location, std::move(lhs), std::move(rhs));
+                } else {
+                    // For non-reference expressions, create a temporary variable
+                    core::NameRef tempLocalName =
+                        ctx.state.freshNameUnique(core::UniqueNameKind::Parser, core::Names::orOr(), nextUniqueID());
+                    auto lhsLoc = lhs->loc;
+                    auto rhsLoc = rhs->loc;
+                    auto condLoc = lhsLoc.exists() && rhsLoc.exists()
+                                       ? core::LocOffsets{lhsLoc.endPos(), rhsLoc.beginPos()}
+                                       : lhsLoc;
+                    auto temp = MK::Assign(location, tempLocalName, std::move(lhsExpr));
+                    auto iff = MK::If(location, MK::Local(condLoc, tempLocalName), MK::Local(lhsLoc, tempLocalName),
+                                      std::move(rhsExpr));
+                    auto wrapped = MK::InsSeq1(location, std::move(temp), std::move(iff));
+                    return make_node_with_expr<parser::Or>(std::move(wrapped), location, std::move(lhs),
+                                                           std::move(rhs));
+                }
+            }
+
+            return make_unique<parser::Or>(location, move(lhs), move(rhs));
         }
         case PM_PARAMETERS_NODE: { // The parameters declared at the top of a PM_DEF_NODE
             auto paramsNode = down_cast<pm_parameters_node>(node);
