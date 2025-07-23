@@ -1067,10 +1067,42 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_OR_NODE: { // operator `||` and `or`
             auto orNode = down_cast<pm_or_node>(node);
 
-            auto left = translate(orNode->left);
-            auto right = translate(orNode->right);
+            auto lhs = translate(orNode->left);
+            auto rhs = translate(orNode->right);
 
-            return make_unique<parser::Or>(location, move(left), move(right));
+            if (lhs->hasDesugaredExpr() && rhs->hasDesugaredExpr()) {
+                auto lhsExpr = lhs->takeDesugaredExpr();
+                auto rhsExpr = rhs->takeDesugaredExpr();
+
+                if (preserveConcreteSyntax) {
+                    auto orOrLoc = core::LocOffsets{lhs->loc.endPos(), rhs->loc.beginPos()};
+                    auto magicSend = MK::Send2(location, MK::Magic(location.copyWithZeroLength()), core::Names::orOr(),
+                                               orOrLoc, std::move(lhsExpr), std::move(rhsExpr));
+                    return make_node_with_expr<parser::Or>(std::move(magicSend), location, std::move(lhs),
+                                                           std::move(rhs));
+                }
+
+                if (isa_reference(lhsExpr)) {
+                    auto cond = MK::cpRef(lhsExpr);
+                    auto iff = MK::If(location, std::move(cond), std::move(lhsExpr), std::move(rhsExpr));
+                    return make_node_with_expr<parser::Or>(std::move(iff), location, std::move(lhs), std::move(rhs));
+                }
+
+                // For non-reference expressions, create a temporary variable
+                core::NameRef tempLocalName =
+                    ctx.state.freshNameUnique(core::UniqueNameKind::Parser, core::Names::orOr(), nextUniqueID());
+                auto lhsLoc = lhs->loc;
+                auto rhsLoc = rhs->loc;
+                auto condLoc =
+                    lhsLoc.exists() && rhsLoc.exists() ? core::LocOffsets{lhsLoc.endPos(), rhsLoc.beginPos()} : lhsLoc;
+                auto temp = MK::Assign(location, tempLocalName, std::move(lhsExpr));
+                auto iff = MK::If(location, MK::Local(condLoc, tempLocalName), MK::Local(lhsLoc, tempLocalName),
+                                  std::move(rhsExpr));
+                auto wrapped = MK::InsSeq1(location, std::move(temp), std::move(iff));
+                return make_node_with_expr<parser::Or>(std::move(wrapped), location, std::move(lhs), std::move(rhs));
+            }
+
+            return make_unique<parser::Or>(location, move(lhs), move(rhs));
         }
         case PM_PARAMETERS_NODE: { // The parameters declared at the top of a PM_DEF_NODE
             auto paramsNode = down_cast<pm_parameters_node>(node);
@@ -1459,12 +1491,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unreachable("Prism's parser never produces `PM_SCOPE_NODE` nodes.");
 
         case PM_MISSING_NODE:
-            // For now, we only report errors when we hit a missing node because we don't want to always report dynamic
-            // constant assignment errors
+            // For now, we only report errors when we hit a missing node because we don't want to always report
+            // dynamic constant assignment errors
             // TODO: We will improve this in the future when we handle more errored cases
             for (auto &error : parseErrors) {
-                // EOF error is always pointed to the very last line of the file, which can't be expressed in Sorbet's
-                // error comments
+                // EOF error is always pointed to the very last line of the file, which can't be expressed in
+                // Sorbet's error comments
                 if (error.id != PM_ERR_UNEXPECTED_TOKEN_CLOSE_CONTEXT) {
                     reportError(translateLoc(error.location), error.message);
                 }
@@ -1499,11 +1531,11 @@ void Translator::translateMultiInto(NodeVec &outSorbetNodes, absl::Span<pm_node_
 
 // Similar to `translate()`, but it's used for pattern-matching nodes.
 //
-// This is necessary because some Prism nodes get translated differently depending on whether they're part of "regular"
-// syntax, or pattern-matching syntax.
+// This is necessary because some Prism nodes get translated differently depending on whether they're part of
+// "regular" syntax, or pattern-matching syntax.
 //
-// E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the context
-// of a pattern.
+// E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the
+// context of a pattern.
 unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
@@ -1676,9 +1708,8 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                     sorbetGuard = make_unique<parser::UnlessGuard>(location, translate(unlessNode->predicate));
                 }
 
-                ENFORCE(
-                    conditionalStatements->body.size == 1,
-                    "In pattern-matching's `in` clause, a conditional (if/unless) guard must have a single statement.");
+                ENFORCE(conditionalStatements->body.size == 1, "In pattern-matching's `in` clause, a conditional "
+                                                               "(if/unless) guard must have a single statement.");
 
                 sorbetPattern = patternTranslate(conditionalStatements->body.nodes[0]);
             } else {
@@ -1870,8 +1901,9 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
 //   - `rescue`: a list of `Resbody` nodes, each representing a `rescue` clause.
 //   - `else_`: an optional node representing the `else` clause.
 //
-// This function and the PM_BEGIN_NODE case translate between the two representations by processing the `pm_rescue_node`
-// (and its linked `subsequent` nodes) and assembling the corresponding `Rescue` and `Resbody` nodes in Sorbet's AST.
+// This function and the PM_BEGIN_NODE case translate between the two representations by processing the
+// `pm_rescue_node` (and its linked `subsequent` nodes) and assembling the corresponding `Rescue` and `Resbody`
+// nodes in Sorbet's AST.
 unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescueNode, unique_ptr<parser::Node> bodyNode,
                                                      unique_ptr<parser::Node> elseNode) {
     auto rescueLoc = translateLoc(prismRescueNode->base.location);
@@ -1902,7 +1934,8 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_rescue_node *prismRescue
 }
 
 // Translates the given Prism Statements Node into a `parser::Begin` node or an inlined `parser::Node`.
-// @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one `parser::Node`
+// @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one
+// `parser::Node`
 unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle) {
     if (stmtsNode == nullptr)
         return nullptr;
@@ -1928,7 +1961,8 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
 // The only exception is that dynamic constant path *operator* assignments inside of a method definition
 // do not raise a SyntaxError at runtime, so we want to skip the workaround in that case.
 // However, within this method, both regular constant path assignments and constant path operator assignments
-// are passed in as `pm_constant_path_node` types, so we need an extra boolean flag to know when to skip the workaround.
+// are passed in as `pm_constant_path_node` types, so we need an extra boolean flag to know when to skip the
+// workaround.
 //
 // Usually returns the `SorbetLHSNode`, but for constant writes and targets,
 // it can can return an `LVarLhs` as a workaround in the case of a dynamic constant assignment.
@@ -1957,7 +1991,8 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
         if (auto prismParentNode = node->parent; prismParentNode != nullptr) {
             // This constant reference is chained onto another constant reference.
-            // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the `name`.
+            // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the
+            // `name`.
             //   A::B::C
             //    /    \
             //  A::B   ::C
