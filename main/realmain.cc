@@ -448,6 +448,7 @@ int realmain(int argc, char *argv[]) {
     unique_ptr<core::GlobalState> gs =
         make_unique<core::GlobalState>(make_shared<core::ErrorQueue>(*typeErrorsConsole, *logger, errorFlusher));
     gs->parseWithPrism = opts.parser == options::Parser::PRISM;
+    gs->desugarInPrismTranslator = opts.desugarInPrismTranslator;
 
     logger->trace("building initial global state");
 

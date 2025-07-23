@@ -433,16 +433,9 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                 }
             }
 
-            switch (parser) {
-                case options::Parser::ORIGINAL: {
-                    tree = runDesugar(lgs, file, move(parseTree), print);
-                    break;
-                }
-                case options::Parser::PRISM: {
-                    tree = runPrismDesugar(lgs, file, move(parseTree), print);
-                    break;
-                }
-            }
+            tree = opts.desugarInPrismTranslator ? runPrismDesugar(lgs, file, move(parseTree), print)
+                                                 : runDesugar(lgs, file, move(parseTree), print);
+
             if (opts.stopAfterPhase == options::Phase::DESUGARER) {
                 return emptyParsedFile(file);
             }
