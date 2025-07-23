@@ -731,17 +731,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
         handler.addObserved(*gs, "rbs-rewrite-tree", [&]() { return nodes->toString(*gs); });
 
-        ast::ParsedFile file;
-        switch (parser) {
-            case realmain::options::Parser::ORIGINAL: {
-                file = testSerialize(*gs, ast::ParsedFile{ast::desugar::node2Tree(ctx, move(nodes)), f.file});
-                break;
-            }
-            case realmain::options::Parser::PRISM: {
-                file = testSerialize(*gs, ast::ParsedFile{ast::prismDesugar::node2Tree(ctx, move(nodes)), f.file});
-                break;
-            }
-        }
+        auto ast = opts.desugarInPrismTranslator ? ast::prismDesugar::node2Tree(ctx, move(nodes))
+                                                 : ast::desugar::node2Tree(ctx, move(nodes));
+        ast::ParsedFile file = testSerialize(*gs, ast::ParsedFile{move(ast), f.file});
 
         handler.addObserved(*gs, "desguar-tree", [&]() { return file.tree.toString(*gs); });
         handler.addObserved(*gs, "desugar-tree-raw", [&]() { return file.tree.showRaw(*gs); });

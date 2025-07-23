@@ -101,6 +101,10 @@ private:
 
     // Context management helpers. These return a copy of `this` with some change to the context.
     Translator enterMethodDef();
+
+    // Helper function for creating nodes with cached expressions
+    template <typename SorbetNode, typename... TArgs>
+    std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
 };
 
 } // namespace sorbet::parser::Prism
