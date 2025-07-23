@@ -301,7 +301,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto right = translate(andNode->right);
 
             // TODO: remove `desugaredExprIsReference` once those cases can all be handled
-            if (!directlyDesugar || !hasExpr(left, right) || !left->desugaredExprIsReference()) {
+            if (!directlyDesugar || !hasExpr(left, right) || !isa_reference(left->peekDesugaredExpr())) {
                 return make_unique<parser::And>(location, move(left), move(right));
             }
 
