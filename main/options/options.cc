@@ -743,6 +743,12 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
                                  "development. Correct code should still parse correctly, but error diagnostics "
                                  "and auto-corrections are a work-in-progress.",
                                  cxxopts::value<string>()->default_value("original"), "{[original], prism}");
+    options.add_options(section)("disable-prism-desugaring",
+                                 "A development option for testing Prism desugaring. When true, the Prism Translator "
+                                 "will only generate plain Nodes (instead of NodeWith Expr), which will be desugared "
+                                 "by the regular `Desugar.cc` instead of `PrismDesugar.cc`. "
+                                 "Must be used with --parser=prism",
+                                 cxxopts::value<bool>());
 
     // }}}
 
@@ -1019,6 +1025,13 @@ void readOptions(Options &opts,
                           "with RBS signatures. https://github.com/Shopify/sorbet/issues/574");
             throw EarlyReturnWithCode(1);
         }
+
+        auto desugarInPrismTranslator = raw["disable-prism-desugaring"].as<bool>();
+        if (desugarInPrismTranslator && opts.parser != Parser::PRISM) {
+            logger->error("--disable-prism-desugaring can only be used with --parser=prism");
+            throw EarlyReturnWithCode(1);
+        }
+        opts.desugarInPrismTranslator = opts.parser == Parser::PRISM && !opts.desugarInPrismTranslator;
 
         opts.silenceErrors = raw["quiet"].as<bool>();
         opts.autocorrect = raw["autocorrect"].as<bool>();
