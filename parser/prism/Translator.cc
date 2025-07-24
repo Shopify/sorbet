@@ -1252,9 +1252,17 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto expr = translate(splatNode->expression);
             if (expr == nullptr) { // An anonymous splat like `f(*)`
-                return make_unique<parser::ForwardedRestArg>(location);
+                auto var = MK::Local(location, core::Names::star());
+                auto splatExpr = MK::Splat(location, std::move(var));
+                return make_node_with_expr<parser::ForwardedRestArg>(std::move(splatExpr), location);
             } else { // Splatting an expression like `f(*a)`
-                return make_unique<parser::Splat>(location, move(expr));
+                if (hasExpr(expr)) {
+                    auto childExpr = expr->takeDesugaredExpr();
+                    auto splatExpr = MK::Splat(location, std::move(childExpr));
+                    return make_node_with_expr<parser::Splat>(std::move(splatExpr), location, std::move(expr));
+                } else {
+                    return make_unique<parser::Splat>(location, move(expr));
+                }
             }
         }
         case PM_STATEMENTS_NODE: { // A sequence of statements, such a in a `begin` block, `()`, etc.

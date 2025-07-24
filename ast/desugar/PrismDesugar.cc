@@ -2229,14 +2229,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
                 result = move(res);
             },
-            [&](parser::Splat *splat) {
-                auto res = MK::Splat(loc, node2TreeImpl(dctx, splat->var));
-                result = move(res);
-            },
-            [&](parser::ForwardedRestArg *fra) {
-                auto var = ast::MK::Local(loc, core::Names::star());
-                result = MK::Splat(loc, move(var));
-            },
+            [&](parser::Splat *splat) { desugaredByPrismTranslator(splat); },
+            [&](parser::ForwardedRestArg *fra) { desugaredByPrismTranslator(fra); },
             [&](parser::Alias *alias) {
                 auto res = MK::Send2(loc, MK::Self(loc), core::Names::aliasMethod(), locZeroLen,
                                      node2TreeImpl(dctx, alias->from), node2TreeImpl(dctx, alias->to));
