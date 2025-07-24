@@ -1528,8 +1528,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto expr = translate(splatNode->expression);
             if (expr == nullptr) { // An anonymous splat like `f(*)`
-                return make_unique<parser::ForwardedRestArg>(location);
+                auto var = MK::Local(location, core::Names::star());
+                auto splatExpr = MK::Splat(location, move(var));
+                return make_node_with_expr<parser::ForwardedRestArg>(move(splatExpr), location);
             } else { // Splatting an expression like `f(*a)`
+                // Don't desugar here - let the parent (Array/Send) handle it
                 return make_unique<parser::Splat>(location, move(expr));
             }
         }

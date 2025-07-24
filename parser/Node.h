@@ -61,7 +61,7 @@ class NodeWithExpr final : public Node {
     ast::ExpressionPtr desugaredExpr;
 
 public:
-    const std::unique_ptr<Node> wrappedNode;
+    std::unique_ptr<Node> wrappedNode;
 
     NodeWithExpr(std::unique_ptr<Node> wrappedNode, ast::ExpressionPtr desugaredExpr)
         : Node(wrappedNode->loc), desugaredExpr(std::move(desugaredExpr)), wrappedNode(std::move(wrappedNode)) {
