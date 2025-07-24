@@ -1241,8 +1241,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto symNode = down_cast<pm_symbol_node>(node);
 
             auto unescaped = &symNode->unescaped;
-
-            auto source = parser.extractString(unescaped);
+            // TODO: can these have different encodings?
+            auto content = ctx.state.enterNameUTF8(parser.extractString(unescaped));
 
             // If the opening location is null, the symbol is used as a key with a colon postfix, like `{a: 1}`
             // In those cases, the location should not include the colon.
@@ -1250,8 +1250,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 location = translateLoc(symNode->value_loc);
             }
 
-            // TODO: can these have different encodings?
-            return make_unique<parser::Symbol>(location, ctx.state.enterNameUTF8(source));
+            return make_node_with_expr<parser::Symbol>(MK::Symbol(location, content), location, content);
         }
         case PM_TRUE_NODE: { // The `true` keyword
             return make_node_with_expr<parser::True>(MK::True(location), location);
