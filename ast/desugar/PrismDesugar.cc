@@ -719,29 +719,26 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 auto newEndIt = remove_if(send->args.begin(), send->args.end(), [&](auto &arg) {
                     bool eraseFromArgs = false;
 
-                    typecase(
-                        arg.get(),
-                        [&](parser::ForwardedArgs *fwdArgs) {
-                            // Pull out the ForwardedArgs (the `...` argument in a method call, like `foo(...)`)
+                    if (parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
+                        // Pull out the ForwardedArgs (the `...` argument in a method call, like `foo(...)`)
 
                             ENFORCE(blockPassArg == nullptr, "The parser should have rejected `foo(&, ...)`");
                             // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
                             blockPassArg = MK::Local(loc, core::Names::fwdBlock());
 
-                            hasFwdArgs = true;
-                            eraseFromArgs = true;
-                        },
-                        [&](parser::ForwardedRestArg *fwdRestArg) {
-                            // Pull out the ForwardedRestArg (an anonymous splat like `f(*)`)
-                            hasFwdRestArg = true;
-                            eraseFromArgs = true;
-                        },
-                        [&](parser::Splat *splat) {
-                            // Detect if there's a splat in the argument list
-                            hasSplat = true;
-                            eraseFromArgs = false;
-                        },
-                        [&](parser::Node *node) { eraseFromArgs = false; });
+                        hasFwdArgs = true;
+                        eraseFromArgs = true;
+                    } else if (parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get())) {
+                        // Pull out the ForwardedRestArg (an anonymous splat like `f(*)`)
+                        hasFwdRestArg = true;
+                        eraseFromArgs = true;
+                    } else if (parser::NodeWithExpr::isa_node<parser::Splat>(arg.get())) {
+                        // Detect if there's a splat in the argument list
+                        hasSplat = true;
+                        eraseFromArgs = false;
+                    } else {
+                        eraseFromArgs = false;
+                    }
 
                     return eraseFromArgs;
                 });
@@ -2183,8 +2180,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
 
             [&](parser::NodeWithExpr *nodeWithExpr) {
-                result = nodeWithExpr->takeDesugaredExpr();
-                ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
+                if (parser::NodeWithExpr::isa_node<parser::Splat>(nodeWithExpr->wrappedNode.get())) {
+                    result = node2TreeImpl(dctx, nodeWithExpr->wrappedNode);
+                } else {
+                    result = nodeWithExpr->takeDesugaredExpr();
+                    ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
+                }
             },
 
             [&](parser::BlockPass *blockPass) { Exception::raise("Send should have already handled the BlockPass"); },
