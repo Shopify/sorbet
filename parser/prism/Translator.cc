@@ -888,6 +888,15 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto ifTrue = translate(up_cast(ifNode->statements));
             auto ifFalse = translate(ifNode->subsequent);
 
+            if (hasExpr(predicate, ifTrue, ifFalse)) {
+                auto cond_expr = predicate->takeDesugaredExpr();
+                auto then_expr = ifTrue ? ifTrue->takeDesugaredExpr() : MK::EmptyTree();
+                auto else_expr = ifFalse ? ifFalse->takeDesugaredExpr() : MK::EmptyTree();
+                auto if_node = MK::If(location, move(cond_expr), move(then_expr), move(else_expr));
+                return make_node_with_expr<parser::If>(move(if_node), location, move(predicate), move(ifTrue),
+                                                       move(ifFalse));
+            }
+
             return make_unique<parser::If>(location, move(predicate), move(ifTrue), move(ifFalse));
         }
         case PM_IMAGINARY_NODE: { // An imaginary number literal, like `1.0i`, `+1.0i`, or `-1.0i`
