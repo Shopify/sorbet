@@ -236,6 +236,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             case realmain::options::Parser::PRISM: {
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
 
+                fmt::print("Running tests with PRISM parser\n");
                 auto translateResult = parser::Prism::Parser::run(gs, file);
                 parseResult =
                     parser::Parser::ParseResult{move(translateResult.tree), move(translateResult.commentLocations)};

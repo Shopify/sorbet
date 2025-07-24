@@ -390,6 +390,7 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                 }
                 case options::Parser::PRISM: {
                     auto translateResult = runPrismParser(lgs, file, print);
+                    fmt::print("PARSED BY PRISM\n");
                     parseTree = runRBSRewrite(lgs, file, move(translateResult.tree),
                                               move(translateResult.commentLocations), print);
 
