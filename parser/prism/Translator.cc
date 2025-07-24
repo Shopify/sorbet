@@ -1321,9 +1321,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
     }
 }
 
-unique_ptr<parser::Node> Translator::translate(const ParseResult &parseResult) {
+TranslateResult Translator::translate(const ParseResult &parseResult) {
     this->parseErrors = parseResult.parseErrors;
-    return translate(parseResult.getRawNodePointer());
+    auto translatedTree = translate(parseResult.getRawNodePointer());
+    return TranslateResult(parseResult.commentLocations, std::move(translatedTree));
 }
 
 core::LocOffsets Translator::translateLoc(pm_location_t loc) {
@@ -1700,10 +1701,24 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
         body = translate(prismLambdaNode->body);
     }
 
+    auto blockLoc = sendNode->loc;
+
+    // Modify send node's endLoc to be position before first space
+    if (sendNode->loc.exists()) {
+        auto source = file.data(gs).source();
+        auto beginPos = sendNode->loc.beginPos();
+
+        // Find first space character starting from begin position
+        auto spacePos = source.find(' ', beginPos);
+        if (spacePos != std::string_view::npos) {
+            sendNode->loc = core::LocOffsets{beginPos, static_cast<uint32_t>(spacePos)};
+        }
+    }
+
     if (parser::cast_node<parser::NumParams>(parametersNode.get())) {
-        return make_unique<parser::NumBlock>(sendNode->loc, move(sendNode), move(parametersNode), move(body));
+        return make_unique<parser::NumBlock>(blockLoc, move(sendNode), move(parametersNode), move(body));
     } else {
-        return make_unique<parser::Block>(sendNode->loc, move(sendNode), move(parametersNode), move(body));
+        return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
     }
 }
 

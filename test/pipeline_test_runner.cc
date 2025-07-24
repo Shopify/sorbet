@@ -38,6 +38,7 @@
 #include "packager/packager.h"
 #include "parser/parser.h"
 #include "parser/prism/Parser.h"
+#include "parser/prism/Translator.h"
 #include "payload/binary/binary.h"
 #include "payload/payload.h"
 #include "rbs/AssertionsRewriter.h"
@@ -235,8 +236,10 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             case realmain::options::Parser::PRISM: {
                 core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
 
-                auto nodes = parser::Prism::Parser::run(gs, file);
-                parseResult = parser::Parser::ParseResult{move(nodes), {}};
+                fmt::print("Running tests with PRISM parser\n");
+                auto translateResult = parser::Prism::Parser::run(gs, file);
+                parseResult =
+                    parser::Parser::ParseResult{move(translateResult.tree), move(translateResult.commentLocations)};
                 break;
             }
         }
@@ -698,8 +701,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                auto nodes = parser::Prism::Parser::run(ctx, f.file);
-                parseResult = parser::Parser::ParseResult{move(nodes), {}};
+                auto translateResult = parser::Prism::Parser::run(ctx, f.file);
+                parseResult =
+                    parser::Parser::ParseResult{move(translateResult.tree), move(translateResult.commentLocations)};
                 break;
             }
         }
