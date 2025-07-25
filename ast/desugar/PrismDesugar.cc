@@ -1896,13 +1896,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                                       MK::String(loc, value));
                 result = std::move(send);
             },
-            [&](parser::Rational *complex) {
-                auto kernel = MK::Constant(loc, core::Symbols::Kernel());
-                core::NameRef complex_name = core::Names::Constants::Rational().dataCnst(dctx.ctx)->original;
-                core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->val);
-                auto send = MK::Send1(loc, std::move(kernel), complex_name, locZeroLen, MK::String(loc, value));
-                result = std::move(send);
-            },
+            [&](parser::Rational *rational) { desugaredByPrismTranslator(rational); },
             [&](parser::Array *array) {
                 Array::ENTRY_store elems;
                 elems.reserve(array->elts.size());
