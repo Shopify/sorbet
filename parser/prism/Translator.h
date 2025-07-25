@@ -105,6 +105,11 @@ private:
     // Helper function for creating nodes with cached expressions
     template <typename SorbetNode, typename... TArgs>
     std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
+
+    // Helper function for creating if nodes with optional desugaring
+    std::unique_ptr<parser::Node> translateIfNode(core::LocOffsets location, std::unique_ptr<parser::Node> predicate,
+                                                  std::unique_ptr<parser::Node> ifTrue,
+                                                  std::unique_ptr<parser::Node> ifFalse);
 };
 
 } // namespace sorbet::parser::Prism
