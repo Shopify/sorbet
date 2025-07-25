@@ -1313,7 +1313,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto source = parser.extractString(unescaped);
 
             // TODO: handle different string encodings
-            unique_ptr<parser::Node> string = make_unique<parser::String>(location, ctx.state.enterNameUTF8(source));
+            auto content = ctx.state.enterNameUTF8(source);
+            auto string = make_node_with_expr<parser::String>(MK::String(location, content), location, content);
 
             NodeVec nodes{};
             nodes.emplace_back(move(string)); // Multiple nodes is only possible for interpolated x strings.
@@ -1899,7 +1900,8 @@ unique_ptr<parser::Regexp> Translator::translateRegexp(pm_string_t unescaped, co
     parser::NodeVec parts;
     auto source = parser.extractString(&unescaped);
     if (!source.empty()) {
-        auto sourceStringNode = make_unique<parser::String>(location, ctx.state.enterNameUTF8(source));
+        auto content = ctx.state.enterNameUTF8(source);
+        auto sourceStringNode = make_node_with_expr<parser::String>(MK::String(location, content), location, content);
         parts.emplace_back(move(sourceStringNode));
     }
 
