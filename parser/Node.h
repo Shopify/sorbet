@@ -30,7 +30,7 @@ public:
         return nullptr;
     }
 
-    virtual bool hasDesugaredExpr() {
+    virtual bool hasDesugaredExpr() const {
         return false;
     }
 
@@ -70,6 +70,10 @@ public:
                 wrappedNode->nodeName());
     }
     virtual ~NodeWithExpr() = default;
+
+    virtual bool hasDesugaredExpr() const {
+        return this->desugaredExpr != nullptr;
+    }
 
     virtual std::string toStringWithTabs(const core::GlobalState &gs, int tabs = 0) const final {
         return wrappedNode->toStringWithTabs(gs, tabs);
