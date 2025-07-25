@@ -4,6 +4,8 @@
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
 
+#include "absl/algorithm/container.h"
+
 template class std::unique_ptr<sorbet::parser::Node>;
 
 using namespace std;
@@ -275,6 +277,23 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             } else if (beginNode->statements != nullptr) {
                 // Handle just `begin ... end` without ensure or rescue
                 statements = translateMulti(beginNode->statements->body);
+            }
+
+            if (statements.empty()) {
+                return make_node_with_expr<parser::Kwbegin>(MK::Nil(location), location, std::move(statements));
+            }
+
+            if (hasExpr(statements)) {
+                ast::InsSeq::STATS_store args;
+                args.reserve(statements.size());
+                for (auto &statement : statements) {
+                    args.emplace_back(statement->takeDesugaredExpr());
+                }
+
+                auto finalExpr = std::move(args.back());
+                args.pop_back();
+                auto expr = MK::InsSeq(location, std::move(args), std::move(finalExpr));
+                return make_node_with_expr<parser::Kwbegin>(std::move(expr), location, std::move(statements));
             }
 
             return make_unique<parser::Kwbegin>(location, move(statements));
@@ -1295,7 +1314,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             // TODO: handle different string encodings
             auto content = ctx.state.enterNameUTF8(parser.extractString(unescaped));
 
-            return make_node_with_expr<parser::String>(MK::String(location, content), location, content);
+            auto expr = MK::String(location, content);
+            return make_node_with_expr<parser::String>(std::move(expr), location, content);
         }
         case PM_SUPER_NODE: { // The `super` keyword, like `super`, `super(a, b)`
             auto superNode = down_cast<pm_super_node>(node);
