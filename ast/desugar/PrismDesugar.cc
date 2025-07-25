@@ -2329,12 +2329,10 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = std::move(res);
             },
             [&](parser::Splat *splat) {
-                auto res = MK::Splat(loc, node2TreeImpl(dctx, splat->var));
-                result = std::move(res);
+                desugaredByPrismTranslator(splat);
             },
             [&](parser::ForwardedRestArg *fra) {
-                auto var = ast::MK::Local(loc, core::Names::star());
-                result = MK::Splat(loc, std::move(var));
+                desugaredByPrismTranslator(fra);
             },
             [&](parser::Alias *alias) {
                 auto res = MK::Send2(loc, MK::Self(loc), core::Names::aliasMethod(), locZeroLen,
