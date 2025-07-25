@@ -1772,11 +1772,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Instance, var->name);
                 result = std::move(res);
             },
-            [&](parser::NthRef *var) {
-                ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global,
-                                                                     dctx.ctx.state.enterNameUTF8(to_string(var->ref)));
-                result = std::move(res);
-            },
+            [&](parser::NthRef *var) { desugaredByPrismTranslator(var); },
             [&](parser::Super *super) {
                 // Desugar super into a call to a normal method named `super`;
                 // Do this by synthesizing a `Send` parse node and letting our
@@ -2366,12 +2362,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     MK::Send(loc, MK::Magic(loc), core::Names::defined_p(), locZeroLen, numPosArgs, std::move(args));
                 result = std::move(res);
             },
-            [&](parser::LineLiteral *line) {
-                auto details = dctx.ctx.locAt(loc).toDetails(dctx.ctx);
-                ENFORCE(details.first.line == details.second.line, "position corrupted");
-                auto res = MK::Int(loc, details.first.line);
-                result = std::move(res);
-            },
+            [&](parser::LineLiteral *line) { desugaredByPrismTranslator(line); },
             [&](parser::XString *xstring) {
                 auto res = MK::Send1(loc, MK::Self(loc), core::Names::backtick(), locZeroLen,
                                      desugarDString(dctx, loc, std::move(xstring->nodes)));
@@ -2434,11 +2425,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 res = MK::InsSeq1(loc, std::move(exprVar), std::move(res));
                 result = std::move(res);
             },
-            [&](parser::Backref *backref) {
-                auto recv = MK::Magic(loc);
-                auto arg = MK::Symbol(backref->loc, backref->name);
-                result = MK::Send1(loc, std::move(recv), core::Names::regexBackref(), locZeroLen, std::move(arg));
-            },
+            [&](parser::Backref *backref) { desugaredByPrismTranslator(backref); },
             [&](parser::EFlipflop *eflipflop) {
                 auto res = unsupportedNode(dctx, eflipflop);
                 result = std::move(res);
