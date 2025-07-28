@@ -733,9 +733,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             // add entries here, without consulting the "node.*" counters from a
             // run over a representative code base.
             [&](parser::Const *const_) {
-                auto scope = node2TreeImpl(dctx, const_->scope);
-                ExpressionPtr res = MK::UnresolvedConstant(loc, std::move(scope), const_->name);
-                result = std::move(res);
+                desugaredByPrismTranslator(const_);
             },
             [&](parser::Send *send) {
                 Send::Flags flags;
@@ -1580,9 +1578,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::FileLiteral *fileLiteral) { desugaredByPrismTranslator(fileLiteral); },
             [&](parser::ConstLhs *constLhs) {
-                auto scope = node2TreeImpl(dctx, constLhs->scope);
-                ExpressionPtr res = MK::UnresolvedConstant(loc, std::move(scope), constLhs->name);
-                result = std::move(res);
+                desugaredByPrismTranslator(constLhs);
             },
             [&](parser::Cbase *cbase) { desugaredByPrismTranslator(cbase); },
             [&](parser::Kwbegin *kwbegin) { result = desugarBegin(dctx, loc, kwbegin->stmts); },

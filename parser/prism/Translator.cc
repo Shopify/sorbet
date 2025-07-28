@@ -1887,12 +1887,8 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
         parentExpr = MK::EmptyTree();
     }
 
-    if (parentExpr != nullptr) {
-        ast::ExpressionPtr desugaredExpr = MK::UnresolvedConstant(location, move(parentExpr), constantName);
-        return make_node_with_expr<SorbetLHSNode>(move(desugaredExpr), location, move(parent), constantName);
-    } else {
-        return make_unique<SorbetLHSNode>(location, move(parent), constantName);
-    }
+    ast::ExpressionPtr desugaredExpr = MK::UnresolvedConstant(location, move(parentExpr), constantName);
+    return make_node_with_expr<SorbetLHSNode>(move(desugaredExpr), location, move(parent), constantName);
 }
 
 core::NameRef Translator::translateConstantName(pm_constant_id_t constant_id) {
