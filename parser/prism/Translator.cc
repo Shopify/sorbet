@@ -1119,6 +1119,32 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto left = translate(rangeNode->left);
             auto right = translate(rangeNode->right);
 
+            if (hasExpr(left, right)) {
+                auto recv = MK::Magic(location);
+                auto locZeroLen = core::LocOffsets{location.beginPos(), location.beginPos()};
+
+                auto fromExpr = left ? left->takeDesugaredExpr() : MK::EmptyTree();
+                auto toExpr = right ? right->takeDesugaredExpr() : MK::EmptyTree();
+
+                ast::ExpressionPtr excludeEnd;
+                if (PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // `...`
+                    excludeEnd = MK::True(location);
+                } else { // `..`
+                    excludeEnd = MK::False(location);
+                }
+
+                auto desugaredExpr = MK::Send3(location, std::move(recv), core::Names::buildRange(), locZeroLen,
+                                               std::move(fromExpr), std::move(toExpr), std::move(excludeEnd));
+
+                if (PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // `...`
+                    return make_node_with_expr<parser::ERange>(std::move(desugaredExpr), location, move(left),
+                                                               move(right));
+                } else { // `..`
+                    return make_node_with_expr<parser::IRange>(std::move(desugaredExpr), location, move(left),
+                                                               move(right));
+                }
+            }
+
             if (PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // `...`
                 return make_unique<parser::ERange>(location, move(left), move(right));
             } else { // `..`
