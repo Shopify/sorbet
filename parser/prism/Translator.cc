@@ -937,7 +937,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto name = translate(moduleNode->constant_path);
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
-            auto body = translate(moduleNode->body);
+
+            auto moduleTranslator = enterModule();
+            auto body = moduleTranslator.translate(moduleNode->body);
 
             return make_unique<parser::Module>(location, declLoc, move(name), move(body));
         }
@@ -1727,15 +1729,17 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
     unique_ptr<parser::Node> parametersNode;
     unique_ptr<parser::Node> body;
 
+    auto blockTranslator = enterBlock();
+
     if (PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_BLOCK_NODE)) {
         auto prismBlockNode = down_cast<pm_block_node>(prismBlockOrLambdaNode);
         parametersNode = translate(prismBlockNode->parameters);
-        body = translate(prismBlockNode->body);
+        body = blockTranslator.translate(prismBlockNode->body);
     } else {
         ENFORCE(PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_LAMBDA_NODE))
         auto prismLambdaNode = down_cast<pm_lambda_node>(prismBlockOrLambdaNode);
         parametersNode = translate(prismLambdaNode->parameters);
-        body = translate(prismLambdaNode->body);
+        body = blockTranslator.translate(prismLambdaNode->body);
     }
 
     if (parser::cast_node<parser::NumParams>(parametersNode.get())) {
@@ -1985,7 +1989,22 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
 // Context management methods
 Translator Translator::enterMethodDef() {
     auto isInMethodDef = true;
-    return Translator(parser, ctx, file, parseErrors, isInMethodDef, uniqueCounter);
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, isInAnyBlock, isInModule, uniqueCounter);
+}
+
+Translator Translator::enterBlock() {
+    auto newInAnyBlock = true;
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, newInAnyBlock, isInModule, uniqueCounter);
+}
+
+Translator Translator::enterModule() {
+    auto newInModule = true;
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, isInAnyBlock, newInModule, uniqueCounter);
+}
+
+core::NameRef Translator::maybeTypedSuper() {
+    return (ctx.state.cacheSensitiveOptions.typedSuper && !isInAnyBlock && !isInModule) ? core::Names::super()
+                                                                                        : core::Names::untypedSuper();
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
