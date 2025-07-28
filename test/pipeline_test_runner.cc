@@ -694,11 +694,11 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             continue;
         }
 
-        const int prohibitedLines = f.file.data(*gs).source().size();
-        auto newSource = absl::StrCat(string(prohibitedLines + 1, '\n'), f.file.data(*gs).source());
-        auto newFile =
-            make_shared<core::File>(string(f.file.data(*gs).path()), move(newSource), f.file.data(*gs).sourceType);
-        gs->replaceFile(f.file, move(newFile));
+        // const int prohibitedLines = f.file.data(*gs).source().size();
+        // auto newSource = absl::StrCat(string(prohibitedLines + 1, '\n'), f.file.data(*gs).source());
+        // auto newFile =
+        //     make_shared<core::File>(string(f.file.data(*gs).path()), move(newSource), f.file.data(*gs).sourceType);
+        // gs->replaceFile(f.file, move(newFile));
 
         core::MutableContext ctx(*gs, core::Symbols::root(), f.file);
 

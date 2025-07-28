@@ -7,6 +7,8 @@
 
 #include "absl/strings/str_replace.h"
 
+#include "core/errors/desugar.h"
+
 template class std::unique_ptr<sorbet::parser::Node>;
 
 using namespace std;
@@ -1195,7 +1197,31 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto arguments = translateArguments(nextNode->arguments);
 
-            return make_unique<parser::Next>(location, move(arguments));
+            if (arguments.size() == 0) {
+                auto expr = MK::Next(location, MK::EmptyTree());
+                return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
+            }
+
+            if (!hasExpr(arguments)) {
+                return make_unique<parser::Next>(location, move(arguments));
+            }
+
+            bool hasBlock = absl::c_any_of(arguments, [](const auto &node) {
+                return node != nullptr && parser::isa_node<parser::BlockPass>(node.get());
+            });
+            ENFORCE(!hasBlock, "Prism expected to disallow block argument for `next` as invalid syntax.");
+
+            ExpressionPtr nextArgs;
+            if (arguments.size() == 1) {
+                auto &first = arguments[0];
+                nextArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+            } else {
+                auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
+                auto arrayLocation = parser.translateLocation(nextNode->arguments->base.location);
+                nextArgs = MK::Array(arrayLocation, std::move(args));
+            }
+            auto expr = MK::Next(location, move(nextArgs));
+            return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
         }
         case PM_NIL_NODE: { // The `nil` keyword
             return make_node_with_expr<parser::Nil>(MK::Nil(location), location);
