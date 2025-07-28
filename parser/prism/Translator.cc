@@ -7,6 +7,36 @@ using namespace std;
 
 namespace sorbet::parser::Prism {
 
+using sorbet::ast::MK;
+
+// Returns true if all nodes have a desugared expr or are null.
+// Call this with all of a node's children, to check if that node can be desugared.
+template <typename... Rest> bool hasExpr(const std::unique_ptr<parser::Node> &first, const Rest &...rest) {
+    bool firstHasExpr = first == nullptr || first->hasDesugaredExpr();
+    if constexpr (sizeof...(rest) == 0) {
+        return firstHasExpr;
+    } else {
+        return firstHasExpr && hasExpr(rest...);
+    }
+}
+
+// Check if all nodes in NodeVec are null or have a desugared expr.
+bool hasExpr(const parser::NodeVec &nodes) {
+    return absl::c_find_if(nodes, [](const auto &node) { return node != nullptr && !node->hasDesugaredExpr(); }) ==
+           nodes.end();
+}
+
+// Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
+template <typename SorbetNode, typename... TArgs>
+std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
+    auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
+    if (ctx.state.desugarInPrismTranslator) {
+        return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+    } else {
+        return whiteQuarkNode;
+    }
+}
+
 // Indicates that a particular code path should never be reached, with an explanation of why.
 // Throws a `sorbet::SorbetException` when triggered to help with debugging.
 template <typename... TArgs>

@@ -79,6 +79,8 @@ void setGlobalStateOptions(core::GlobalState &gs, const options::Options &opts) 
     if (opts.noErrorSections) {
         gs.includeErrorSections = false;
     }
+    gs.parseWithPrism = opts.parser == options::Parser::PRISM;
+    gs.desugarInPrismTranslator = opts.desugarInPrismTranslator;
     gs.ruby3KeywordArgs = opts.ruby3KeywordArgs;
     gs.suppressPayloadSuperclassRedefinitionFor = opts.suppressPayloadSuperclassRedefinitionFor;
     if (!opts.uniquelyDefinedBehavior) {
@@ -308,7 +310,8 @@ ast::ExpressionPtr runDesugar(core::GlobalState &gs, core::FileRef file, unique_
     core::MutableContext ctx(gs, core::Symbols::root(), file);
     {
         core::UnfreezeNameTable nameTableAccess(gs); // creates temporaries during desugaring
-        ast = ast::desugar::node2Tree(ctx, move(parseTree), preserveConcreteSyntax);
+        ast = gs.desugarInPrismTranslator ? ast::prismDesugar::node2Tree(ctx, move(parseTree), preserveConcreteSyntax)
+                                          : ast::desugar::node2Tree(ctx, move(parseTree), preserveConcreteSyntax);
     }
     if (print.DesugarTree.enabled) {
         print.DesugarTree.fmt("{}\n", ast.toStringWithTabs(gs, 0));

@@ -337,6 +337,13 @@ public:
     // If 'true', enforce use of Ruby 3.0-style keyword args.
     bool ruby3KeywordArgs = false;
 
+    // If 'true', use the Prism parser.
+    bool parseWithPrism = false;
+
+    // If 'true', the Prism Translator will desugar the Prism AST directly into ExpressPtrs used by `PrismDesugar.cc`,
+    // else the Prism Translator will only translate the parse tree, which will be desugared by the usual `Desugar.cc`.
+    bool desugarInPrismTranslator = false;
+
     // Some options change the behavior of things that might be cached, including ASTs, the file
     // table, the name table, the symbol table, etc.
     //
