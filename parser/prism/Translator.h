@@ -28,6 +28,8 @@ class Translator final {
 
     // Context variables
     bool isInMethodDef = false;
+    bool isInAnyBlock = false;
+    bool isInModule = false;
 
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
@@ -55,8 +57,9 @@ private:
     // Private constructor used only for creating child translators
     // uniqueCounterStorage is passed as the minimum integer value and is never used
     Translator(const Parser &parser, core::MutableContext &ctx, core::FileRef file, std::vector<ParseError> parseErrors,
-               bool isInMethodDef, int *uniqueCounter)
+               bool isInMethodDef, bool isInAnyBlock, bool isInModule, int *uniqueCounter)
         : parser(parser), ctx(ctx), file(file), parseErrors(parseErrors), isInMethodDef(isInMethodDef),
+          isInAnyBlock(isInAnyBlock), isInModule(isInModule),
           uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(uniqueCounter) {}
     void reportError(core::LocOffsets loc, const std::string &message);
 
@@ -101,10 +104,15 @@ private:
 
     // Context management helpers. These return a copy of `this` with some change to the context.
     Translator enterMethodDef();
+    Translator enterBlock();
+    Translator enterModule();
 
     // Helper function for creating nodes with cached expressions
     template <typename SorbetNode, typename... TArgs>
     std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
+    
+    // Helper function to determine which super method to use
+    core::NameRef maybeTypedSuper();
 };
 
 } // namespace sorbet::parser::Prism

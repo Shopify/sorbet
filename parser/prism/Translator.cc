@@ -937,6 +937,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto name = translate(moduleNode->constant_path);
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
+
             auto body = translate(moduleNode->body);
 
             return make_unique<parser::Module>(location, declLoc, move(name), move(body));
@@ -1985,7 +1986,22 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
 // Context management methods
 Translator Translator::enterMethodDef() {
     auto isInMethodDef = true;
-    return Translator(parser, ctx, file, parseErrors, isInMethodDef, uniqueCounter);
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, isInAnyBlock, isInModule, uniqueCounter);
+}
+
+Translator Translator::enterBlock() {
+    auto newInAnyBlock = true;
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, newInAnyBlock, isInModule, uniqueCounter);
+}
+
+Translator Translator::enterModule() {
+    auto newInModule = true;
+    return Translator(parser, ctx, file, parseErrors, isInMethodDef, isInAnyBlock, newInModule, uniqueCounter);
+}
+
+core::NameRef Translator::maybeTypedSuper() {
+    return (ctx.state.cacheSensitiveOptions.typedSuper && !isInAnyBlock && !isInModule) ? core::Names::super()
+                                                                                        : core::Names::untypedSuper();
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
