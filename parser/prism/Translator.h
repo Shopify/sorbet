@@ -120,6 +120,9 @@ private:
     // Helper function for creating nodes with cached expressions
     template <typename SorbetNode, typename... TArgs>
     std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const;
+
+    // Helper to determine whether to use super or untypedSuper based on context
+    core::NameRef maybeTypedSuper() const;
 };
 
 } // namespace sorbet::parser::Prism
