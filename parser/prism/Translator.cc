@@ -31,6 +31,16 @@ bool hasExpr(const parser::NodeVec &nodes) {
            nodes.end();
 }
 
+// Helper to convert nodes to ARGS_store with takeDesugaredExpr or EmptyTree for nulls
+ast::Send::ARGS_store nodeVecToArgsStore(const parser::NodeVec &nodes) {
+    ast::Send::ARGS_store args;
+    args.reserve(nodes.size());
+    for (const auto &node : nodes) {
+        args.emplace_back(node ? node->takeDesugaredExpr() : MK::EmptyTree());
+    }
+    return args;
+};
+
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
 std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
@@ -1454,13 +1464,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto numPosArgs = names.size();
 
             if (hasExpr(names)) {
-                ast::Send::ARGS_store args;
-                args.reserve(names.size());
-                for (auto &name : names) {
-                    auto expr = (name == nullptr) ? MK::EmptyTree() : name->takeDesugaredExpr();
-                    args.emplace_back(std::move(expr));
-                }
-
+                auto args = nodeVecToArgsStore(names);
                 auto expr = MK::Send(location, MK::Constant(location, core::Symbols::Kernel()), core::Names::undef(),
                                      location.copyWithZeroLength(), numPosArgs, std::move(args));
                 // It wasn't a Send to begin with--there's no way this could result in a private
@@ -1579,6 +1583,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto yieldNode = down_cast<pm_yield_node>(node);
 
             auto yieldArgs = translateArguments(yieldNode->arguments);
+
+            if (hasExpr(yieldArgs)) {
+                auto args = nodeVecToArgsStore(yieldArgs);
+                auto recv = MK::EmptyTree();
+                auto expr = MK::Send(location, std::move(recv), core::Names::call(), location.copyWithZeroLength(),
+                                     args.size(), std::move(args));
+                return make_node_with_expr<parser::Yield>(std::move(expr), location, move(yieldArgs));
+            }
 
             return make_unique<parser::Yield>(location, move(yieldArgs));
         }
