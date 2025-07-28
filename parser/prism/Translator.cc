@@ -31,9 +31,13 @@ bool hasExpr(const parser::NodeVec &nodes) {
 
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
-unique_ptr<NodeWithExpr> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
+std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
-    return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+    if (ctx.state.desugarInPrismTranslator) {
+        return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+    } else {
+        return whiteQuarkNode;
+    }
 }
 
 // Indicates that a particular code path should never be reached, with an explanation of why.
