@@ -184,6 +184,10 @@ public:
         return make_expression<ast::Self>(loc);
     }
 
+    static ExpressionPtr Retry(core::LocOffsets loc) {
+        return make_expression<ast::Retry>(loc);
+    }
+
     static ExpressionPtr InsSeq(core::LocOffsets loc, InsSeq::STATS_store stats, ExpressionPtr expr) {
         if (!stats.empty()) {
             return make_expression<ast::InsSeq>(loc, std::move(stats), std::move(expr));
