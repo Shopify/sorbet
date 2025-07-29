@@ -23,6 +23,9 @@ class Translator final {
     // Needed for reporting diagnostics
     const core::FileRef file;
 
+    // TODO: document me
+    const bool preserveConcreteSyntax;
+
     // The parse errors that occurred while parsing the root node
     std::vector<ParseError> parseErrors;
 
@@ -43,8 +46,9 @@ class Translator final {
     Translator &operator=(Translator &&) = delete;      // Move assignment
     Translator &operator=(const Translator &) = delete; // Copy assignment
 public:
-    Translator(const Parser &parser, core::MutableContext &ctx, core::FileRef file)
-        : parser(parser), ctx(ctx), file(file), uniqueCounterStorage(1), uniqueCounter(&this->uniqueCounterStorage) {}
+    Translator(const Parser &parser, core::MutableContext &ctx, core::FileRef file, bool preserveConcreteSyntax)
+        : parser(parser), ctx(ctx), file(file), preserveConcreteSyntax(preserveConcreteSyntax), uniqueCounterStorage(1),
+          uniqueCounter(&this->uniqueCounterStorage) {}
 
     int nextUniqueID() {
         return *uniqueCounter += 1;
@@ -59,7 +63,8 @@ private:
     // uniqueCounterStorage is passed as the minimum integer value and is never used
     Translator(const Translator &parent, core::LocOffsets enclosingMethodLoc, core::NameRef enclosingMethodName,
                bool inAnyBlock, bool isInModule)
-        : parser(parent.parser), ctx(parent.ctx), file(parent.file), parseErrors(parent.parseErrors),
+        : parser(parent.parser), ctx(parent.ctx), file(parent.file),
+          preserveConcreteSyntax(parent.preserveConcreteSyntax), parseErrors(parent.parseErrors),
           uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(parent.uniqueCounter),
           enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName), inAnyBlock(inAnyBlock),
           isInModule(isInModule) {}
