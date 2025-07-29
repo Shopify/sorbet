@@ -417,10 +417,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
             auto classNode = down_cast<pm_class_node>(node);
 
-            auto name = translate(classNode->constant_path);
-            auto declLoc = translateLoc(classNode->class_keyword_loc).join(name->loc);
-            auto superclass = translate(classNode->superclass);
-            auto body = translate(classNode->body);
+            Translator childContext = this->enterClassContext();
+            auto name = childContext.translate(classNode->constant_path);
+            auto declLoc = childContext.translateLoc(classNode->class_keyword_loc).join(name->loc);
+            auto superclass = childContext.translate(classNode->superclass);
+            auto body = childContext.translate(classNode->body);
 
             if (superclass != nullptr) {
                 declLoc = declLoc.join(superclass->loc);
@@ -514,7 +515,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto isSingletonMethod = defNode->receiver != nullptr;
 
             // These 2 need to be called on a new Translator with isInMethod set to true
-            Translator childContext = this->enterMethodDef(declLoc);
+            Translator childContext =
+                this->isInModule ? this->enterMethodDef(declLoc).enterModuleContext() : this->enterMethodDef(declLoc);
 
             unique_ptr<parser::Node> params;
 
@@ -936,9 +938,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
             auto moduleNode = down_cast<pm_module_node>(node);
 
-            auto name = translate(moduleNode->constant_path);
-            auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
-            auto body = translate(moduleNode->body);
+            Translator childContext = this->enterModuleContext();
+            auto name = childContext.translate(moduleNode->constant_path);
+            auto declLoc = childContext.translateLoc(moduleNode->module_keyword_loc).join(name->loc);
+            auto body = childContext.translate(moduleNode->body);
 
             return make_unique<parser::Module>(location, declLoc, move(name), move(body));
         }
@@ -1186,8 +1189,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto classNode = down_cast<pm_singleton_class_node>(node);
             pm_location_t declLoc = classNode->class_keyword_loc;
 
-            auto expr = translate(classNode->expression);
-            auto body = translate(classNode->body);
+            Translator childContext = this->enterClassContext();
+            auto expr = childContext.translate(classNode->expression);
+            auto body = childContext.translate(classNode->body);
 
             return make_unique<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
         }
@@ -1977,7 +1981,17 @@ bool Translator::isInMethodDef() const {
 }
 
 Translator Translator::enterMethodDef(core::LocOffsets methodLoc) const {
-    return Translator(*this, methodLoc);
+    return Translator(*this, methodLoc, this->isInModule);
+}
+
+Translator Translator::enterModuleContext() const {
+    auto isInModule = true;
+    return Translator(*this, this->enclosingMethodLoc, isInModule);
+}
+
+Translator Translator::enterClassContext() const {
+    auto isInModule = false;
+    return Translator(*this, this->enclosingMethodLoc, isInModule);
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
