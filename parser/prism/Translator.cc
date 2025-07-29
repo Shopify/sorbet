@@ -521,8 +521,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 params = translate(up_cast(defNode->parameters));
             }
 
-            Translator methodContext =
-                this->isInModule ? this->enterMethodDef(declLoc).enterModuleContext() : this->enterMethodDef(declLoc);
+            Translator methodContext = this->isInModule ? this->enterMethodDef(declLoc, name).enterModuleContext()
+                                                        : this->enterMethodDef(declLoc, name);
             auto body = methodContext.translate(defNode->body);
 
             if (defNode->body != nullptr && PM_NODE_TYPE_P(defNode->body, PM_BEGIN_NODE)) {
@@ -1967,18 +1967,18 @@ bool Translator::isInMethodDef() const {
     return enclosingMethodLoc.exists();
 }
 
-Translator Translator::enterMethodDef(core::LocOffsets methodLoc) const {
-    return Translator(*this, methodLoc, this->isInModule);
+Translator Translator::enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const {
+    return Translator(*this, methodLoc, methodName, this->isInModule);
 }
 
 Translator Translator::enterModuleContext() const {
     auto isInModule = true;
-    return Translator(*this, this->enclosingMethodLoc, isInModule);
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
 }
 
 Translator Translator::enterClassContext() const {
     auto isInModule = false;
-    return Translator(*this, this->enclosingMethodLoc, isInModule);
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
