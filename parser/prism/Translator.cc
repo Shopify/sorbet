@@ -1716,18 +1716,20 @@ bool Translator::isKeywordHashElement(sorbet::parser::Node *node) {
 // or `pm_lambda_node *`, and wrapping it around the given `Send` node.
 unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
                                                             unique_ptr<parser::Node> sendNode) {
+    Translator childContext = this->enterBlockContext();
+
     unique_ptr<parser::Node> parametersNode;
     unique_ptr<parser::Node> body;
 
     if (PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_BLOCK_NODE)) {
         auto prismBlockNode = down_cast<pm_block_node>(prismBlockOrLambdaNode);
-        parametersNode = translate(prismBlockNode->parameters);
-        body = translate(prismBlockNode->body);
+        parametersNode = childContext.translate(prismBlockNode->parameters);
+        body = childContext.translate(prismBlockNode->body);
     } else {
         ENFORCE(PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_LAMBDA_NODE))
         auto prismLambdaNode = down_cast<pm_lambda_node>(prismBlockOrLambdaNode);
-        parametersNode = translate(prismLambdaNode->parameters);
-        body = translate(prismLambdaNode->body);
+        parametersNode = childContext.translate(prismLambdaNode->parameters);
+        body = childContext.translate(prismLambdaNode->body);
     }
 
     if (parser::cast_node<parser::NumParams>(parametersNode.get())) {
@@ -1968,17 +1970,24 @@ bool Translator::isInMethodDef() const {
 }
 
 Translator Translator::enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const {
-    return Translator(*this, methodLoc, methodName, this->isInModule);
+    return Translator(*this, methodLoc, methodName, this->isInAnyBlock, this->isInModule);
+}
+
+Translator Translator::enterBlockContext() const {
+    auto isInAnyBlock = true;
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInAnyBlock, this->isInModule);
 }
 
 Translator Translator::enterModuleContext() const {
     auto isInModule = true;
-    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
+    auto isInAnyBlock = false; // Blocks never persist across a class/module boundary
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInAnyBlock, isInModule);
 }
 
 Translator Translator::enterClassContext() const {
-    auto isInModule = false;
-    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
+    auto isInModule = true;
+    auto isInAnyBlock = false; // Blocks never persist across a class/module boundary
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInAnyBlock, isInModule);
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
