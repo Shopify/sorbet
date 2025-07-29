@@ -511,8 +511,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto name = translateConstantName(defNode->name);
 
+            auto isSingletonMethod = defNode->receiver != nullptr;
+
             // These 2 need to be called on a new Translator with isInMethod set to true
-            Translator childContext = enterMethodDef();
+            Translator childContext = this->enterMethodDef(declLoc);
 
             unique_ptr<parser::Node> params;
 
@@ -547,13 +549,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
 
-            if (auto receiver = defNode->receiver; receiver != nullptr) {
-                auto sorbetReceiver = translate(receiver);
-                return make_unique<parser::DefS>(location, declLoc, move(sorbetReceiver), name, move(params),
-                                                 move(body));
+            if (isSingletonMethod) {
+                return make_unique<parser::DefS>(location, declLoc, childContext.translate(defNode->receiver), name,
+                                                 move(params), move(body));
+            } else {
+                return make_unique<parser::DefMethod>(location, declLoc, name, move(params), move(body));
             }
-
-            return make_unique<parser::DefMethod>(location, declLoc, name, move(params), move(body));
         }
         case PM_DEFINED_NODE: {
             auto definedNode = down_cast<pm_defined_node>(node);
@@ -1833,7 +1834,7 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node, bool rep
     // so that the name is available for the rest of the pipeline.
     auto name = translateConstantName(node->name);
 
-    if (isInMethodDef && replaceWithDynamicConstAssign) {
+    if (this->isInMethodDef() && replaceWithDynamicConstAssign) {
         // Check if this is a dynamic constant assignment (SyntaxError at runtime)
         // This is a copy of a workaround from `Desugar.cc`, which substitues in a fake assignment,
         // so the parsing can continue. See other usages of `dynamicConstAssign` for more details.
@@ -1971,9 +1972,12 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
 }
 
 // Context management methods
-Translator Translator::enterMethodDef() const {
-    auto isInMethodDef = true;
-    return Translator(*this, isInMethodDef);
+bool Translator::isInMethodDef() const {
+    return enclosingMethodLoc.exists();
+}
+
+Translator Translator::enterMethodDef(core::LocOffsets methodLoc) const {
+    return Translator(*this, methodLoc);
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
