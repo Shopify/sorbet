@@ -25,14 +25,14 @@ class Translator final {
     // Whether to directly desugar during in the Translator, or wait until the usual `Desugar.cc` code path.
     const bool directlyDesugar;
 
-    // Context variables
-    const bool isInMethodDef = false;
-
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
     // uniqueCounter is a pointer to uniqueCounterStorage and is passed down to child Translators
     int uniqueCounterStorage;
     int *const uniqueCounter;
+
+    // Context variables
+    const bool isInMethodDef = false;
 
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
@@ -52,13 +52,12 @@ public:
     std::unique_ptr<parser::Node> translate(pm_node_t *node);
 
 private:
-    // Private constructor used only for creating child translators
+    // This private constructor is used for creating child translators with modified context.
     // uniqueCounterStorage is passed as the minimum integer value and is never used
-    Translator(const Parser &parser, core::MutableContext ctx, const absl::Span<const ParseError> &parseErrors,
-               bool directlyDesugar, bool isInMethodDef, int *uniqueCounter)
-        : parser(parser), ctx(ctx), parseErrors(parseErrors), directlyDesugar(directlyDesugar),
-          isInMethodDef(isInMethodDef), uniqueCounterStorage(std::numeric_limits<int>::min()),
-          uniqueCounter(uniqueCounter) {}
+    Translator(const Translator &parent, bool isInMethodDef)
+        : parser(parent.parser), ctx(parent.ctx), parseErrors(parent.parseErrors),
+          directlyDesugar(parent.directlyDesugar), uniqueCounterStorage(std::numeric_limits<int>::min()),
+          uniqueCounter(parent.uniqueCounter), isInMethodDef(isInMethodDef) {}
     void reportError(core::LocOffsets loc, const std::string &message) const;
 
     template <typename SorbetNode, typename... TArgs>
