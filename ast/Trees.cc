@@ -1036,7 +1036,7 @@ string Self::showRaw(const core::GlobalState &gs, int tabs) const {
 }
 
 string Self::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true));
+    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc));
 }
 
 const ast::Block *Send::block() const {
@@ -1535,7 +1535,7 @@ string ClassDef::showRawWithLocs(const core::GlobalState &gs, core::FileRef file
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "kind = {}\n", kind == ClassDef::Kind::Module ? "module" : "class");
     printTabs(buf, tabs + 1);
@@ -1575,7 +1575,7 @@ string MethodDef::showRawWithLocs(const core::GlobalState &gs, core::FileRef fil
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
 
     auto stringifiedFlags = vector<string>{};
@@ -1623,7 +1623,7 @@ string If::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int 
 
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "cond = {}\n", this->cond.showRawWithLocs(gs, file, tabs + 1));
     printTabs(buf, tabs + 1);
@@ -1640,7 +1640,7 @@ string While::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, i
 
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "cond = {}\n", this->cond.showRawWithLocs(gs, file, tabs + 1));
     printTabs(buf, tabs + 1);
@@ -1655,7 +1655,7 @@ string Assign::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, 
 
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "lhs = {}\n", this->lhs.showRawWithLocs(gs, file, tabs + 1));
     printTabs(buf, tabs + 1);
@@ -1666,7 +1666,7 @@ string Assign::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, 
 }
 
 string EmptyTree::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true));
+    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc));
 }
 
 string ConstantLit::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
@@ -1674,7 +1674,7 @@ string ConstantLit::showRawWithLocs(const core::GlobalState &gs, core::FileRef f
 
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc()).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc()));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "symbol = ({} {})\n", this->symbol().showKind(gs),
                    this->symbol().showFullName(gs));
@@ -1698,7 +1698,7 @@ string UnresolvedIdent::showRawWithLocs(const core::GlobalState &gs, core::FileR
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "kind = ");
     switch (this->kind) {
@@ -1728,7 +1728,7 @@ string Send::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, in
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
 
     vector<string> stringifiedFlags;
     if (this->flags.isPrivateOk) {
@@ -1771,7 +1771,7 @@ string Send::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, in
 }
 
 string Literal::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, value = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, value = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        this->toStringWithTabs(gs, 0));
 }
 
@@ -1779,7 +1779,7 @@ string UnresolvedConstantLit::showRawWithLocs(const core::GlobalState &gs, core:
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "cnst = {}\n", this->cnst.showRaw(gs));
     printTabs(buf, tabs + 1);
@@ -1793,7 +1793,7 @@ string Block::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, i
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{} {{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "args = [\n");
     for (auto &a : this->args) {
@@ -1810,20 +1810,19 @@ string Block::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, i
 }
 
 string ZSuperArgs::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true));
+    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc));
 }
 
 string RuntimeMethodDefinition::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
     return fmt::format("{}{{ loc = {}, name = {}, isSelfMethod = {} }}", nodeName(),
-                       core::Loc(file, this->loc).filePosToString(gs, true), this->name.toString(gs),
-                       this->isSelfMethod);
+                       core::Loc::getRelativePath(gs, file, this->loc), this->name.toString(gs), this->isSelfMethod);
 }
 
 string InsSeq::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "stats = [\n");
     for (auto &a : this->stats) {
@@ -1843,7 +1842,7 @@ string Array::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, i
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "elems = [\n");
     for (auto &a : elems) {
@@ -1858,7 +1857,7 @@ string Array::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, i
 }
 
 string Next::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        this->expr.showRawWithLocs(gs, file, tabs + 1));
 }
 
@@ -1866,7 +1865,7 @@ string RescueCase::showRawWithLocs(const core::GlobalState &gs, core::FileRef fi
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "exceptions = [\n");
     for (auto &a : exceptions) {
@@ -1885,12 +1884,12 @@ string RescueCase::showRawWithLocs(const core::GlobalState &gs, core::FileRef fi
 }
 
 string ShadowArg::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        expr.showRawWithLocs(gs, file, tabs));
 }
 
 string Break::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        this->expr.showRawWithLocs(gs, file, tabs + 1));
 }
 
@@ -1898,7 +1897,7 @@ string Hash::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, in
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "pairs = [\n");
     int i = -1;
@@ -1925,7 +1924,7 @@ string Cast::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, in
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 2);
     fmt::format_to(std::back_inserter(buf), "cast = {},\n", this->cast.showRaw(gs));
     printTabs(buf, tabs + 2);
@@ -1940,21 +1939,21 @@ string Cast::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, in
 }
 
 string BlockArg::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        expr.showRawWithLocs(gs, file, tabs));
 }
 
 string Retry::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true));
+    return fmt::format("{}{{ loc = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc));
 }
 
 string KeywordArg::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        expr.showRawWithLocs(gs, file, tabs));
 }
 
 string Return::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        this->expr.showRawWithLocs(gs, file, tabs + 1));
 }
 
@@ -1962,7 +1961,7 @@ string Local::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, i
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "localVariable = {}\n", this->localVariable.showRaw(gs));
     printTabs(buf, tabs);
@@ -1974,7 +1973,7 @@ string Rescue::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, 
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "body = {}\n", this->body.showRawWithLocs(gs, file, tabs + 1));
     printTabs(buf, tabs + 1);
@@ -1995,7 +1994,7 @@ string Rescue::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, 
 }
 
 string RestArg::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, int tabs) const {
-    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc(file, this->loc).filePosToString(gs, true),
+    return fmt::format("{}{{ loc = {}, expr = {} }}", nodeName(), core::Loc::getRelativePath(gs, file, this->loc),
                        expr.showRawWithLocs(gs, file, tabs));
 }
 
@@ -2003,7 +2002,7 @@ string OptionalArg::showRawWithLocs(const core::GlobalState &gs, core::FileRef f
     fmt::memory_buffer buf;
     fmt::format_to(std::back_inserter(buf), "{}{{\n", nodeName());
     printTabs(buf, tabs + 1);
-    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc(file, this->loc).filePosToString(gs, true));
+    fmt::format_to(std::back_inserter(buf), "loc = {}\n", core::Loc::getRelativePath(gs, file, this->loc));
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "expr = {}\n", expr.showRawWithLocs(gs, file, tabs + 1));
     if (default_) {

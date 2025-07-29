@@ -100,6 +100,10 @@ public:
     std::string filePosToString(const GlobalState &gs, bool showFull = false) const;
     std::optional<std::string_view> source(const GlobalState &gs) const;
 
+    // Get relative path from file location, starting from baseDir (default "test")
+    static std::string getRelativePath(const GlobalState &gs, FileRef file, LocOffsets loc,
+                                       const std::string &baseDir = "test");
+
     bool operator==(const Loc &rhs) const;
 
     bool operator!=(const Loc &rhs) const;

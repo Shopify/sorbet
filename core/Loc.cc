@@ -405,4 +405,23 @@ Loc Loc::truncateToFirstLine(const GlobalState &gs) const {
     return Loc(this->file(), this->beginPos(), firstNewline);
 }
 
+std::string Loc::getRelativePath(const GlobalState &gs, FileRef file, LocOffsets loc, const std::string &baseDir) {
+    std::string fullLoc = Loc(file, loc).filePosToString(gs, true);
+
+    std::string pattern = baseDir + "/";
+    auto pos = fullLoc.find(pattern);
+    if (pos != std::string::npos) {
+        std::string result = fullLoc.substr(pos);
+
+        // Remove trailing "}" if present
+        if (!result.empty() && result.back() == '}') {
+            result.pop_back();
+        }
+
+        return result;
+    }
+
+    return fullLoc;
+}
+
 } // namespace sorbet::core
