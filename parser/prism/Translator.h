@@ -25,6 +25,9 @@ class Translator final {
     // Whether to directly desugar during in the Translator, or wait until the usual `Desugar.cc` code path.
     const bool directlyDesugar;
 
+    // TODO: document me
+    const bool preserveConcreteSyntax;
+
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
     // uniqueCounter is a pointer to uniqueCounterStorage and is passed down to child Translators
@@ -43,8 +46,9 @@ class Translator final {
     Translator &operator=(const Translator &) = delete; // Copy assignment
 public:
     Translator(const Parser &parser, core::MutableContext ctx, const absl::Span<const ParseError> parseErrors,
-               bool directlyDesugar)
-        : parser(parser), ctx(ctx), parseErrors(parseErrors), directlyDesugar(directlyDesugar), uniqueCounterStorage(1),
+               bool directlyDesugar, bool preserveConcreteSyntax)
+        : parser(parser), ctx(ctx), parseErrors(parseErrors), directlyDesugar(directlyDesugar),
+          preserveConcreteSyntax(preserveConcreteSyntax), uniqueCounterStorage(1),
           uniqueCounter(&this->uniqueCounterStorage) {}
 
     int nextUniqueID() {
@@ -60,7 +64,7 @@ private:
     Translator(const Translator &parent, bool resetUniqueCounter, core::LocOffsets enclosingMethodLoc,
                core::NameRef enclosingMethodName, bool isInAnyBlock, bool isInModule)
         : parser(parent.parser), ctx(parent.ctx), parseErrors(parent.parseErrors),
-          directlyDesugar(parent.directlyDesugar),
+          directlyDesugar(parent.directlyDesugar), preserveConcreteSyntax(parent.preserveConcreteSyntax),
           uniqueCounterStorage(resetUniqueCounter ? 1 : std::numeric_limits<int>::min()),
           uniqueCounter(resetUniqueCounter ? &this->uniqueCounterStorage : parent.uniqueCounter),
           enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName), isInAnyBlock(isInAnyBlock),
