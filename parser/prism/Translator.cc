@@ -31,7 +31,7 @@ bool hasExpr(const parser::NodeVec &nodes) {
 
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
-std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
+std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const {
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
     if (ctx.state.desugarInPrismTranslator) {
         return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
@@ -1364,7 +1364,7 @@ unique_ptr<parser::Node> Translator::translate(const ParseResult &parseResult) {
     return translate(parseResult.getRawNodePointer());
 }
 
-core::LocOffsets Translator::translateLoc(pm_location_t loc) {
+core::LocOffsets Translator::translateLoc(pm_location_t loc) const {
     return parser.translateLocation(loc);
 }
 
@@ -1915,7 +1915,7 @@ unique_ptr<parser::Regexp> Translator::translateRegexp(pm_string_t unescaped, co
     return make_unique<parser::Regexp>(location, move(parts), move(options));
 }
 
-string_view Translator::sliceLocation(pm_location_t loc) {
+string_view Translator::sliceLocation(pm_location_t loc) const {
     return cast_prism_string(loc.start, loc.end - loc.start);
 }
 
@@ -1971,7 +1971,7 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
 }
 
 // Context management methods
-Translator Translator::enterMethodDef() {
+Translator Translator::enterMethodDef() const {
     auto isInMethodDef = true;
     return Translator(parser, ctx, file, parseErrors, isInMethodDef, uniqueCounter);
 }
