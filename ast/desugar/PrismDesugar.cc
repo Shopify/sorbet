@@ -1598,18 +1598,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = std::move(res);
             },
             [&](parser::Class *klass) {
-                DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockArg, dctx.enclosingMethodLoc,
-                                     dctx.enclosingMethodName, dctx.inAnyBlock, false, dctx.preserveConcreteSyntax);
-                ClassDef::RHS_store body = scopeNodeToBody(dctx1, std::move(klass->body));
-                ClassDef::ANCESTORS_store ancestors;
-                if (klass->superclass == nullptr) {
-                    ancestors.emplace_back(MK::Constant(loc, core::Symbols::todo()));
-                } else {
-                    ancestors.emplace_back(node2TreeImpl(dctx, klass->superclass));
-                }
-                ExpressionPtr res = MK::Class(klass->loc, klass->declLoc, node2TreeImpl(dctx, klass->name),
-                                              std::move(ancestors), std::move(body));
-                result = std::move(res);
+                desugaredByPrismTranslator(klass);
             },
             [&](parser::Arg *arg) {
                 ExpressionPtr res = MK::Local(loc, arg->name);
