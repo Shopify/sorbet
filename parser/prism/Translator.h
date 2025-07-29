@@ -23,16 +23,16 @@ class Translator final {
     const absl::Span<const ParseError> parseErrors;
 
     // Whether to directly desugar during in the Translator, or wait until the usual `Desugar.cc` code path.
-    bool directlyDesugar;
+    const bool directlyDesugar;
 
     // Context variables
-    bool isInMethodDef = false;
+    const bool isInMethodDef = false;
 
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
     // uniqueCounter is a pointer to uniqueCounterStorage and is passed down to child Translators
     int uniqueCounterStorage;
-    int *uniqueCounter;
+    int *const uniqueCounter;
 
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
@@ -59,19 +59,19 @@ private:
         : parser(parser), ctx(ctx), parseErrors(parseErrors), directlyDesugar(directlyDesugar),
           isInMethodDef(isInMethodDef), uniqueCounterStorage(std::numeric_limits<int>::min()),
           uniqueCounter(uniqueCounter) {}
-    void reportError(core::LocOffsets loc, const std::string &message);
+    void reportError(core::LocOffsets loc, const std::string &message) const;
 
     template <typename SorbetNode, typename... TArgs>
-    std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
+    std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const;
 
-    core::LocOffsets translateLoc(pm_location_t loc);
+    core::LocOffsets translateLoc(pm_location_t loc) const;
 
     parser::NodeVec translateMulti(pm_node_list prismNodes);
     void translateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
     NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);
-    static bool isKeywordHashElement(sorbet::parser::Node *nd);
+    static bool isKeywordHashElement(sorbet::parser::Node *node);
     std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
                                                          std::unique_ptr<parser::Node> sendNode);
     std::unique_ptr<parser::Node> translateRescue(pm_rescue_node *prismRescueNode,
@@ -101,10 +101,10 @@ private:
     parser::NodeVec patternTranslateMulti(pm_node_list prismNodes);
     void patternTranslateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
-    std::string_view sliceLocation(pm_location_t loc);
+    std::string_view sliceLocation(pm_location_t loc) const;
 
     // Context management helpers. These return a copy of `this` with some change to the context.
-    Translator enterMethodDef();
+    Translator enterMethodDef() const;
 };
 
 } // namespace sorbet::parser::Prism
