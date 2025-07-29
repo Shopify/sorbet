@@ -446,6 +446,29 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto arguments = translateArguments(breakNode->arguments);
 
+            if (arguments.size() == 0) {
+                auto expr = MK::Break(location, MK::EmptyTree());
+                return make_node_with_expr<parser::Break>(move(expr), location, move(arguments));
+            }
+
+            if (hasExpr(arguments)) {
+                bool hasBlock = absl::c_find_if(arguments, [](const auto &node) {
+                                    return node != nullptr && parser::isa_node<parser::BlockPass>(node.get());
+                                }) != arguments.end();
+                ENFORCE(!hasBlock, "Prism expected to disallow block argument for `break` as invalid syntax.");
+
+                ExpressionPtr breakArgs;
+                if (arguments.size() == 1) {
+                    auto first = arguments[0].get();
+                    breakArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                } else {
+                    auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
+                    breakArgs = MK::Array(location, std::move(args));
+                }
+                auto expr = MK::Break(location, std::move(breakArgs));
+                return make_node_with_expr<parser::Break>(move(expr), location, move(arguments));
+            }
+
             return make_unique<parser::Break>(location, move(arguments));
         }
         case PM_CALL_AND_WRITE_NODE: { // And-assignment to a method call, e.g. `a.b &&= false`
@@ -502,7 +525,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             unique_ptr<parser::Node> sendNode;
 
-            if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) { // Handle conditional send, e.g. `a&.b`
+            if (PM_NODE_FLAG_P(callNode,
+                               PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) { // Handle conditional send, e.g. `a&.b`
                 sendNode = make_unique<parser::CSend>(loc, move(receiver), ctx.state.enterNameUTF8(constantNameString),
                                                       messageLoc, move(args));
             } else { // Regular send, e.g. `a.b`
