@@ -515,8 +515,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto isSingletonMethod = defNode->receiver != nullptr;
 
             // These 2 need to be called on a new Translator with isInMethod set to true
-            Translator childContext =
-                this->isInModule ? this->enterMethodDef(declLoc).enterModuleContext() : this->enterMethodDef(declLoc);
+            Translator childContext = this->isInModule ? this->enterMethodDef(declLoc, name).enterModuleContext()
+                                                       : this->enterMethodDef(declLoc, name);
 
             unique_ptr<parser::Node> params;
 
@@ -1980,18 +1980,18 @@ bool Translator::isInMethodDef() const {
     return enclosingMethodLoc.exists();
 }
 
-Translator Translator::enterMethodDef(core::LocOffsets methodLoc) const {
-    return Translator(*this, methodLoc, this->isInModule);
+Translator Translator::enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const {
+    return Translator(*this, methodLoc, methodName, this->isInModule);
 }
 
 Translator Translator::enterModuleContext() const {
     auto isInModule = true;
-    return Translator(*this, this->enclosingMethodLoc, isInModule);
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
 }
 
 Translator Translator::enterClassContext() const {
     auto isInModule = false;
-    return Translator(*this, this->enclosingMethodLoc, isInModule);
+    return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
