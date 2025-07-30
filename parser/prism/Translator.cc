@@ -3,6 +3,7 @@
 
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
+#include "core/errors/desugar.h"
 
 template class std::unique_ptr<sorbet::parser::Node>;
 
@@ -35,6 +36,21 @@ std::unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
     if (ctx.state.desugarInPrismTranslator) {
         return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
+    } else {
+        return whiteQuarkNode;
+    }
+}
+
+// Like `make_node_with_expr`, but specifically for unsupported nodes.
+template <typename SorbetNode, typename... TArgs>
+std::unique_ptr<parser::Node> Translator::make_unsupported_node(TArgs &&...args) {
+    auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
+    if (ctx.state.desugarInPrismTranslator) {
+        if (auto e = ctx.beginIndexerError(whiteQuarkNode->loc, core::errors::Desugar::UnsupportedNode)) {
+            e.setHeader("Unsupported node type `{}`", whiteQuarkNode->nodeName());
+        }
+
+        return make_unique<NodeWithExpr>(move(whiteQuarkNode), MK::EmptyTree());
     } else {
         return whiteQuarkNode;
     }
@@ -601,9 +617,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto right = patternTranslate(flipFlopNode->right);
 
             if (PM_NODE_FLAG_P(flipFlopNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // 3 dots: `flip...flop`
-                return make_unique<parser::EFlipflop>(location, move(left), move(right));
+                return make_unsupported_node<parser::EFlipflop>(location, move(left), move(right));
             } else { // 2 dots: `flip..flop`
-                return make_unique<parser::IFlipflop>(location, move(left), move(right));
+                return make_unsupported_node<parser::IFlipflop>(location, move(left), move(right));
             }
         }
         case PM_FOR_NODE: { // `for x in a; ...; end`
@@ -803,7 +819,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto options = translateRegexpOptions(interpolatedMatchLastLineNode->closing_loc);
             auto regex = make_unique<parser::Regexp>(location, move(parts), move(options));
 
-            return make_unique<parser::MatchCurLine>(location, move(regex));
+            return make_unsupported_node<parser::MatchCurLine>(location, move(regex));
         }
         case PM_INTERPOLATED_REGULAR_EXPRESSION_NODE: { // A regular expression with interpolation, like `/a #{b} c/`
             auto interpolatedRegexNode = down_cast<pm_interpolated_regular_expression_node>(node);
@@ -903,7 +919,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto regex = translateRegexp(matchLastLineNode->unescaped, location, matchLastLineNode->closing_loc);
 
-            return make_unique<parser::MatchCurLine>(location, move(regex));
+            return make_unsupported_node<parser::MatchCurLine>(location, move(regex));
         }
         case PM_MATCH_REQUIRED_NODE: {
             auto matchRequiredNode = down_cast<pm_match_required_node>(node);
@@ -1078,7 +1094,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_PRE_EXECUTION_NODE: {
             auto preExecutionNode = down_cast<pm_pre_execution_node>(node);
             auto body = translateStatements(preExecutionNode->statements);
-            return make_unique<parser::Preexe>(location, move(body));
+            return make_unsupported_node<parser::Preexe>(location, move(body));
         }
         case PM_PROGRAM_NODE: { // The root node of the parse tree, representing the entire program
             pm_program_node *programNode = down_cast<pm_program_node>(node);
@@ -1088,7 +1104,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_POST_EXECUTION_NODE: {
             auto postExecutionNode = down_cast<pm_post_execution_node>(node);
             auto body = translateStatements(postExecutionNode->statements);
-            return make_unique<parser::Postexe>(location, move(body));
+            return make_unsupported_node<parser::Postexe>(location, move(body));
         }
         case PM_RANGE_NODE: { // A Range literal, e.g. `a..b`, `a..`, `..b`, `a...b`, `a...`, `...b`
             auto rangeNode = down_cast<pm_range_node>(node);
@@ -1114,7 +1130,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::Rational>(location, value);
         }
         case PM_REDO_NODE: { // The `redo` keyword
-            return make_unique<parser::Redo>(location);
+            return make_unsupported_node<parser::Redo>(location);
         }
         case PM_REGULAR_EXPRESSION_NODE: { // A regular expression literal, e.g. `/foo/`
             auto regexNode = down_cast<pm_regular_expression_node>(node);

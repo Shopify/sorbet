@@ -105,6 +105,10 @@ private:
     // Helper function for creating nodes with cached expressions
     template <typename SorbetNode, typename... TArgs>
     std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
+
+    // Like `make_node_with_expr`, but specifically for unsupported nodes.
+    template <typename SorbetNode, typename... TArgs>
+    std::unique_ptr<parser::Node> make_unsupported_node(TArgs &&...args);
 };
 
 } // namespace sorbet::parser::Prism
