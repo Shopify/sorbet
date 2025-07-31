@@ -6,7 +6,7 @@ using namespace std;
 
 namespace sorbet::parser::Prism {
 
-unique_ptr<parser::Node> Parser::run(core::GlobalState &gs, core::FileRef file) {
+TranslateResult Parser::run(core::GlobalState &gs, core::FileRef file) {
     auto source = file.data(gs).source();
     Prism::Parser parser{source};
     Prism::ParseResult parseResult = parser.parse();
@@ -20,7 +20,7 @@ pm_parser_t *Parser::getRawParserPointer() {
 
 ParseResult Parser::parse() {
     pm_node_t *root = pm_parse(&parser);
-    return ParseResult{*this, root, collectErrors()};
+    return ParseResult{*this, root, collectErrors(), collectCommentLocations()};
 };
 
 core::LocOffsets Parser::translateLocation(pm_location_t location) const {
@@ -56,5 +56,21 @@ vector<ParseError> Parser::collectErrors() {
     }
 
     return parseErrors;
+}
+
+vector<core::LocOffsets> Parser::collectCommentLocations() {
+    auto commentList = parser.comment_list;
+    vector<core::LocOffsets> commentLocations;
+    commentLocations.reserve(parser.comment_list.size);
+
+    for (auto *node = commentList.head; node != nullptr; node = node->next) {
+        auto *comment = reinterpret_cast<pm_comment_t *>(node);
+
+        core::LocOffsets location = translateLocation(comment->location);
+
+        commentLocations.push_back(location);
+    }
+
+    return commentLocations;
 }
 }; // namespace sorbet::parser::Prism
