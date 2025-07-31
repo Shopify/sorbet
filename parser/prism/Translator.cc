@@ -156,6 +156,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto newName = translate(aliasMethodNode->new_name);
             auto oldName = translate(aliasMethodNode->old_name);
 
+            if (hasExpr(newName, oldName)) {
+                auto toExpr = newName->takeDesugaredExpr();
+                auto fromExpr = oldName->takeDesugaredExpr();
+
+                auto expr = MK::Send2(location, MK::Self(location), core::Names::aliasMethod(),
+                                      location.copyWithZeroLength(), std::move(fromExpr), std::move(toExpr));
+
+                return make_node_with_expr<parser::Alias>(move(expr), location, move(newName), move(oldName));
+            }
+
             return make_unique<parser::Alias>(location, move(newName), move(oldName));
         }
         case PM_AND_NODE: { // operator `&&` and `and`
