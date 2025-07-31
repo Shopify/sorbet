@@ -307,8 +307,21 @@ pipeline_tests(
             "testdata/**/*.rb",
             "testdata/**/*.exp",
         ],
+        exclude = [
+            "testdata/desugar/**/*.rb",
+            "testdata/desugar/**/*.exp",
+        ],
     ),
     "PosTests",
+)
+
+pipeline_tests(
+    "test_desugar",
+    glob([
+        "testdata/desugar/**/*.rb",
+        "testdata/desugar/**/*.exp",
+    ]),
+    "PosTests"
 )
 
 pipeline_tests(

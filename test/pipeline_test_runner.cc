@@ -696,15 +696,21 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
         // this replicates the logic of pipeline::indexOne
         parser::Parser::ParseResult parseResult;
+        parser::Parser::ParseResult prismDesugaredParseResult;
+        cout << "parser == prism " << (parser == realmain::options::Parser::PRISM) << endl;
         switch (parser) {
             case realmain::options::Parser::ORIGINAL: {
                 auto settings = parser::Parser::Settings{false, false, false, gs->cacheSensitiveOptions.rbsEnabled};
                 parseResult = parser::Parser::run(*gs, f.file, settings);
+                prismDesugaredParseResult = parser::Parser::ParseResult{nullptr, {}};
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                auto nodes = parser::Prism::Parser::run(ctx, f.file);
-                parseResult = parser::Parser::ParseResult{move(nodes), {}};
+                gs->desugarInPrismTranslator = false;
+                parseResult = parser::Parser::ParseResult{parser::Prism::Parser::run(ctx, f.file), {}};
+
+                gs->desugarInPrismTranslator = true;
+                prismDesugaredParseResult = parser::Parser::ParseResult{parser::Prism::Parser::run(ctx, f.file), {}};
                 break;
             }
         }
@@ -724,8 +730,25 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
         handler.addObserved(*gs, "rbs-rewrite-tree", [&]() { return nodes->toString(*gs); });
 
-        auto ast = gs->desugarInPrismTranslator ? ast::prismDesugar::node2Tree(ctx, move(nodes))
-                                                : ast::desugar::node2Tree(ctx, move(nodes));
+        auto legacyAST = ast::desugar::node2Tree(ctx, move(nodes));
+
+        ast::ExpressionPtr ast;
+        if (prismDesugaredParseResult.tree != nullptr) {
+            auto prismAST = ast::prismDesugar::node2Tree(ctx, move(prismDesugaredParseResult.tree));
+
+            if (prismAST != legacyAST) {
+                // print.DesugarTreeRawWithLocs.fmt("{}\n", legacyAST.showRawWithLocs(gs, file));
+                // print.DesugarTreeRawWithLocs.fmt("{}\n", prismAST.showRawWithLocs(gs, file));
+                // ADD_FAIL_CHECK_AT(file.data(gs).path(), 1, "Prism desugared tree does not match legacy desugared
+                // tree");
+                FAIL_CHECK("Prism desugared tree does not match legacy desugared tree");
+                exit(123);
+            }
+            ast = move(prismAST);
+        } else {
+            ast = move(legacyAST);
+        }
+
         ast::ParsedFile file = testSerialize(*gs, ast::ParsedFile{move(ast), f.file});
 
         handler.addObserved(*gs, "desguar-tree", [&]() { return file.tree.toString(*gs); });
