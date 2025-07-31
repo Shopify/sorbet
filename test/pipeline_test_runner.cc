@@ -736,13 +736,11 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         if (prismDesugaredParseResult.tree != nullptr) {
             auto prismAST = ast::prismDesugar::node2Tree(ctx, move(prismDesugaredParseResult.tree));
 
-            if (prismAST != legacyAST) {
-                // print.DesugarTreeRawWithLocs.fmt("{}\n", legacyAST.showRawWithLocs(gs, file));
-                // print.DesugarTreeRawWithLocs.fmt("{}\n", prismAST.showRawWithLocs(gs, file));
-                // ADD_FAIL_CHECK_AT(file.data(gs).path(), 1, "Prism desugared tree does not match legacy desugared
-                // tree");
-                FAIL_CHECK("Prism desugared tree does not match legacy desugared tree");
-                exit(123);
+            if (legacyAST.structurallyEqual(*gs, prismAST, f.file)) {
+                auto expected = legacyAST.showRawWithLocs(*gs, f.file);
+                auto actual = prismAST.showRawWithLocs(*gs, f.file);
+                CHECK_EQ_DIFF(expected, actual,
+                              fmt::format("Prism desugared tree does not match legacy desugared tree"));
             }
             ast = move(prismAST);
         } else {

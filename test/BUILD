@@ -320,8 +320,11 @@ pipeline_tests(
     glob([
         "testdata/desugar/**/*.rb",
         "testdata/desugar/**/*.exp",
+    ], exclude = [
+        "testdata/desugar/pattern_matching_hash.rb", # This one crashes with "Unimplemented Parser Node: Mlhs"
     ]),
-    "PosTests"
+    "PosTests",
+    parser = "prism"
 )
 
 pipeline_tests(
