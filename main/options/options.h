@@ -183,6 +183,7 @@ struct Options {
     bool noErrorSections = false;
     /** Prefix to remove from all printed paths. */
     std::string pathPrefix;
+    bool desugarInPrismTranslator = false;
 
     // Options which affect the contents of the `--cache-dir`.
     // If these options change, the cache needs to be invalidated.
