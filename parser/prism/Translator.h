@@ -28,6 +28,8 @@ class Translator final {
     // Context variables
     bool isInMethodDef = false;
 
+    bool preserveConcreteSyntax = false;
+
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
     // uniqueCounter is a pointer to uniqueCounterStorage and is passed down to child Translators
