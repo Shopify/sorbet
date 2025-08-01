@@ -1595,6 +1595,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto yieldArgs = translateArguments(yieldNode->arguments);
 
+            if (hasExpr(yieldArgs)) {
+                auto args = nodeVecToStore<ast::Send::ARGS_store>(yieldArgs);
+                auto recv = MK::EmptyTree();
+                auto expr = MK::Send(location, std::move(recv), core::Names::call(), location.copyWithZeroLength(),
+                                     args.size(), std::move(args));
+                return make_node_with_expr<parser::Yield>(std::move(expr), location, move(yieldArgs));
+            }
+
             return make_unique<parser::Yield>(location, move(yieldArgs));
         }
 
