@@ -8,6 +8,7 @@
 #include "absl/strings/str_replace.h"
 
 #include "absl/algorithm/container.h"
+#include "core/errors/desugar.h"
 
 template class std::unique_ptr<sorbet::parser::Node>;
 
@@ -1162,6 +1163,29 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto arguments = translateArguments(nextNode->arguments);
 
+            if (arguments.size() == 0) {
+                auto expr = MK::Next(location, MK::EmptyTree());
+                return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
+            }
+
+            if (hasExpr(arguments)) {
+                bool hasBlock = absl::c_find_if(arguments, [](const auto &node) {
+                                    return node != nullptr && parser::isa_node<parser::BlockPass>(node.get());
+                                }) != arguments.end();
+                ENFORCE(!hasBlock, "Prism expected to disallow block argument for `next` as invalid syntax.");
+
+                ExpressionPtr nextArgs;
+                if (arguments.size() == 1) {
+                    auto first = arguments[0].get();
+                    nextArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                } else {
+                    auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
+                    nextArgs = MK::Array(location, std::move(args));
+                }
+                auto expr = MK::Next(location, move(nextArgs));
+                return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
+            }
+
             return make_unique<parser::Next>(location, move(arguments));
         }
         case PM_NIL_NODE: { // The `nil` keyword
@@ -1181,7 +1205,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             params.reserve(paramCount);
 
             for (auto i = 1; i <= paramCount; i++) {
-                // The location is arbitrary and not really used, since these aren't explicitly written in the source.
+                // The location is arbitrary and not really used, since these aren't explicitly written in the
+                // source.
                 auto paramNode = make_unique<parser::LVar>(location, ctx.state.enterNameUTF8("_" + to_string(i)));
                 params.emplace_back(move(paramNode));
             }
