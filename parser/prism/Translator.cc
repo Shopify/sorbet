@@ -783,7 +783,65 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto sorbetParts = translateMulti(interpolatedStringNode->parts);
 
-            return make_unique<parser::DString>(location, move(sorbetParts));
+            // Post-process: split any String nodes that contain newlines
+            parser::NodeVec flattenedParts;
+            for (auto &part : sorbetParts) {
+                if (auto stringNode = parser::cast_node<parser::String>(part.get())) {
+                    auto content = stringNode->val.shortName(gs);
+                    auto newlinePos = content.find('\n');
+
+                    if (newlinePos == string::npos) {
+                        // No newlines, keep as-is
+                        flattenedParts.emplace_back(std::move(part));
+                    } else {
+                        // Split at newline boundaries
+                        size_t start = 0;
+                        uint32_t currentOffset = stringNode->loc.beginPos();
+
+                        while (start < content.length()) {
+                            auto nextNewline = content.find('\n', start);
+
+                            if (nextNewline == string::npos) {
+                                // No more newlines, take the rest
+                                if (start < content.length()) {
+                                    auto substring = content.substr(start);
+                                    uint32_t partEndOffset = currentOffset + static_cast<uint32_t>(substring.length());
+
+                                    core::LocOffsets partLocation{currentOffset, partEndOffset};
+                                    flattenedParts.emplace_back(
+                                        make_unique<parser::String>(partLocation, gs.enterNameUTF8(substring)));
+                                }
+                                break;
+                            } else {
+                                // Content before newline
+                                if (nextNewline > start) {
+                                    auto beforeNewline = content.substr(start, nextNewline - start);
+                                    uint32_t beforeEndOffset =
+                                        currentOffset + static_cast<uint32_t>(beforeNewline.length());
+
+                                    core::LocOffsets beforeLocation{currentOffset, beforeEndOffset};
+                                    flattenedParts.emplace_back(
+                                        make_unique<parser::String>(beforeLocation, gs.enterNameUTF8(beforeNewline)));
+                                    currentOffset = beforeEndOffset;
+                                }
+
+                                // Newline character
+                                core::LocOffsets newlineLocation{currentOffset, currentOffset + 1};
+                                flattenedParts.emplace_back(
+                                    make_unique<parser::String>(newlineLocation, gs.enterNameUTF8("\n")));
+
+                                start = nextNewline + 1;
+                                currentOffset += 1;
+                            }
+                        }
+                    }
+                } else {
+                    // Non-string node (expression), keep as-is
+                    flattenedParts.emplace_back(std::move(part));
+                }
+            }
+
+            return make_unique<parser::DString>(location, move(flattenedParts));
         }
         case PM_INTERPOLATED_SYMBOL_NODE: { // A symbol like `:"a #{b} c"`
             auto interpolatedSymbolNode = down_cast<pm_interpolated_symbol_node>(node);
@@ -1184,8 +1242,71 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto unescaped = &strNode->unescaped;
             auto source = parser.extractString(unescaped);
 
-            // TODO: handle different string encodings
-            return make_unique<parser::String>(location, gs.enterNameUTF8(source));
+            // Check if this is a standalone string literal (has quotes/heredoc marker)
+            // vs a string part within an interpolated context (no quotes)
+            auto originalSource = sliceLocation(strNode->base.location);
+            bool isHeredoc = originalSource.size() >= 2 && originalSource.substr(0, 2) == "<<";
+            bool hasQuotes =
+                !originalSource.empty() && (originalSource.front() == '"' || originalSource.front() == '\'');
+            bool isStandalone = isHeredoc || hasQuotes;
+
+            // Only create DString for standalone literals with newlines
+            bool hasNewlines = false;
+            if (isStandalone) {
+                if (isHeredoc) {
+                    // For heredocs, check unescaped content
+                    hasNewlines = source.find('\n') != string::npos;
+                } else {
+                    // For quoted strings, check original source
+                    hasNewlines = originalSource.find('\n') != string::npos;
+                }
+            }
+
+            if (!hasNewlines) {
+                // No newlines, return a single String node
+                // TODO: handle different string encodings
+                return make_unique<parser::String>(location, gs.enterNameUTF8(source));
+            } else {
+                // Contains newlines, split into multiple String nodes and return a DString
+                parser::NodeVec parts;
+
+                size_t start = 0;
+                uint32_t currentOffset = location.beginPos();
+
+                while (start < source.length()) {
+                    auto nextNewline = source.find('\n', start);
+
+                    if (nextNewline == string::npos) {
+                        // No more newlines, take the rest of the string
+                        auto substring = source.substr(start);
+                        uint32_t partEndOffset = currentOffset + static_cast<uint32_t>(substring.length());
+
+                        core::LocOffsets partLocation{currentOffset, partEndOffset};
+                        parts.emplace_back(make_unique<parser::String>(partLocation, gs.enterNameUTF8(substring)));
+                        break;
+                    } else {
+                        // Split at newline boundary: content before newline
+                        if (nextNewline > start) {
+                            auto beforeNewline = source.substr(start, nextNewline - start);
+                            uint32_t beforeEndOffset = currentOffset + static_cast<uint32_t>(beforeNewline.length());
+
+                            core::LocOffsets beforeLocation{currentOffset, beforeEndOffset};
+                            parts.emplace_back(
+                                make_unique<parser::String>(beforeLocation, gs.enterNameUTF8(beforeNewline)));
+                            currentOffset = beforeEndOffset;
+                        }
+
+                        // Create separate node for the newline character
+                        core::LocOffsets newlineLocation{currentOffset, currentOffset + 1};
+                        parts.emplace_back(make_unique<parser::String>(newlineLocation, gs.enterNameUTF8("\n")));
+
+                        start = nextNewline + 1;
+                        currentOffset += 1;
+                    }
+                }
+
+                return make_unique<parser::DString>(location, move(parts));
+            }
         }
         case PM_SUPER_NODE: { // The `super` keyword, like `super`, `super(a, b)`
             auto superNode = down_cast<pm_super_node>(node);
