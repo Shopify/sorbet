@@ -3,6 +3,7 @@
 
 #include "ast/Helpers.h"
 #include "ast/Trees.h"
+#include "core/errors/desugar.h"
 
 template class std::unique_ptr<sorbet::parser::Node>;
 
@@ -1183,8 +1184,38 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t declLoc = classNode->class_keyword_loc;
 
             auto expr = translate(classNode->expression);
-            auto body = this->enterClassContext().translate(classNode->body);
 
+            if (hasExpr(expr)) {
+                auto *self = parser::NodeWithExpr::cast_node<parser::Self>(expr.get());
+                if (self == nullptr) {
+                    if (auto e = ctx.state.beginIndexerError(core::Loc(file, expr->loc),
+                                                             core::errors::Desugar::InvalidSingletonDef)) {
+                        e.setHeader("`{}` is only supported for `{}`", "class << EXPRESSION", "class << self");
+                    }
+                    auto emptyTree = MK::EmptyTree();
+                    return make_node_with_expr<parser::SClass>(std::move(emptyTree), location, translateLoc(declLoc),
+                                                               std::move(expr), nullptr);
+                }
+
+                auto body = this->enterClassContext().translate(classNode->body);
+
+                auto bodyExprsOpt = bodyToRHSStore(body);
+                if (!bodyExprsOpt) {
+                    return make_unique<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
+                }
+                auto bodyExprs = std::move(*bodyExprsOpt);
+
+                ast::ClassDef::ANCESTORS_store emptyAncestors;
+                auto classDef = MK::Class(location, translateLoc(declLoc),
+                                          ast::make_expression<ast::UnresolvedIdent>(
+                                              expr->loc, ast::UnresolvedIdent::Kind::Class, core::Names::singleton()),
+                                          std::move(emptyAncestors), std::move(bodyExprs));
+
+                return make_node_with_expr<parser::SClass>(std::move(classDef), location, translateLoc(declLoc),
+                                                           std::move(expr), std::move(body));
+            }
+
+            auto body = this->enterClassContext().translate(classNode->body);
             return make_unique<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
         }
         case PM_SOURCE_ENCODING_NODE: { // The `__ENCODING__` keyword
@@ -1988,6 +2019,34 @@ Translator Translator::enterClassContext() const {
     auto isInModule = true;
     auto isInAnyBlock = false; // Blocks never persist across a class/module boundary
     return Translator(*this, this->enclosingMethodLoc, this->enclosingMethodName, isInAnyBlock, isInModule);
+}
+
+std::optional<ast::ClassDef::RHS_store> Translator::bodyToRHSStore(std::unique_ptr<parser::Node> &body) {
+    ast::ClassDef::RHS_store bodyExprs;
+
+    if (!body) {
+        return bodyExprs; // empty body
+    }
+
+    if (auto *begin = parser::NodeWithExpr::cast_node<parser::Begin>(body.get())) {
+        // Handle Begin node - extract all statements
+        for (auto &stmt : begin->stmts) {
+            if (hasExpr(stmt)) {
+                bodyExprs.emplace_back(stmt->takeDesugaredExpr());
+            } else {
+                // Not all statements desugared
+                return std::nullopt;
+            }
+        }
+    } else if (hasExpr(body)) {
+        // Single expression body
+        bodyExprs.emplace_back(body->takeDesugaredExpr());
+    } else {
+        // Body not desugared yet
+        return std::nullopt;
+    }
+
+    return bodyExprs;
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) {
