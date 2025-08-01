@@ -33,6 +33,7 @@ class Translator final {
 
     // Context variables
     const core::LocOffsets enclosingMethodLoc = core::LocOffsets::none();
+    const bool isInModule = false;
 
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
@@ -54,10 +55,10 @@ public:
 private:
     // This private constructor is used for creating child translators with modified context.
     // uniqueCounterStorage is passed as the minimum integer value and is never used
-    Translator(const Translator &parent, core::LocOffsets enclosingMethodLoc)
+    Translator(const Translator &parent, core::LocOffsets enclosingMethodLoc, bool isInModule)
         : parser(parent.parser), ctx(parent.ctx), file(parent.file), parseErrors(parent.parseErrors),
           uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(parent.uniqueCounter),
-          enclosingMethodLoc(enclosingMethodLoc) {}
+          enclosingMethodLoc(enclosingMethodLoc), isInModule(isInModule) {}
 
     void reportError(core::LocOffsets loc, const std::string &message);
 
@@ -103,6 +104,8 @@ private:
     // Context management helpers. These return a copy of `this` with some change to the context.
     bool isInMethodDef() const;
     Translator enterMethodDef(core::LocOffsets methodLoc) const;
+    Translator enterModuleContext() const;
+    Translator enterClassContext() const;
 
     // Helper function for creating nodes with cached expressions
     template <typename SorbetNode, typename... TArgs>
