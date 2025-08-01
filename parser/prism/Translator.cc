@@ -32,6 +32,17 @@ bool hasExpr(const parser::NodeVec &nodes) {
     return absl::c_all_of(nodes, [](const auto &node) { return node == nullptr || node->hasDesugaredExpr(); });
 }
 
+// Helper template to convert nodes to any store type with takeDesugaredExpr or EmptyTree for nulls
+// This is used to convert the arguments of a `Send` or `InsSeq` to the corresponding store type.
+template <typename StoreType> StoreType nodeVecToStore(const sorbet::parser::NodeVec &nodes) {
+    StoreType store;
+    store.reserve(nodes.size());
+    for (const auto &node : nodes) {
+        store.emplace_back(node ? node->takeDesugaredExpr() : sorbet::ast::MK::EmptyTree());
+    }
+    return store;
+}
+
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
 unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const {
