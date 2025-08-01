@@ -34,6 +34,7 @@ class Translator final {
     // Context variables
     const core::LocOffsets enclosingMethodLoc = core::LocOffsets::none();
     const core::NameRef enclosingMethodName;
+    const bool isInModule = false;
 
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
@@ -56,12 +57,12 @@ private:
     // This private constructor is used for creating child translators with modified context.
     // uniqueCounterStorage is passed as the minimum integer value and is never used
     Translator(const Translator &parent, bool resetUniqueCounter, core::LocOffsets enclosingMethodLoc,
-               core::NameRef enclosingMethodName)
+               core::NameRef enclosingMethodName, bool isInModule)
         : parser(parent.parser), ctx(parent.ctx), parseErrors(parent.parseErrors),
           directlyDesugar(parent.directlyDesugar),
           uniqueCounterStorage(resetUniqueCounter ? 1 : std::numeric_limits<int>::min()),
           uniqueCounter(resetUniqueCounter ? &this->uniqueCounterStorage : parent.uniqueCounter),
-          enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName) {}
+          enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName), isInModule(isInModule) {}
 
     void reportError(core::LocOffsets loc, const std::string &message) const;
 
@@ -110,6 +111,8 @@ private:
     // Context management helpers. These return a copy of `this` with some change to the context.
     bool isInMethodDef() const;
     Translator enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const;
+    Translator enterModuleContext() const;
+    Translator enterClassContext() const;
 };
 
 } // namespace sorbet::parser::Prism

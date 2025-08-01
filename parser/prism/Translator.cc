@@ -434,7 +434,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = translate(classNode->constant_path);
             auto declLoc = translateLoc(classNode->class_keyword_loc).join(name->loc);
             auto superclass = translate(classNode->superclass);
-            auto body = translate(classNode->body);
+            auto body = this->enterClassContext().translate(classNode->body);
 
             if (superclass != nullptr) {
                 declLoc = declLoc.join(superclass->loc);
@@ -535,7 +535,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 params = translate(up_cast(defNode->parameters));
             }
 
-            Translator methodContext = this->enterMethodDef(declLoc, name);
+            Translator methodContext = this->isInModule ? this->enterMethodDef(declLoc, name).enterModuleContext()
+                                                        : this->enterMethodDef(declLoc, name);
             auto body = methodContext.translate(defNode->body);
 
             if (defNode->body != nullptr && PM_NODE_TYPE_P(defNode->body, PM_BEGIN_NODE)) {
@@ -958,7 +959,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto name = translate(moduleNode->constant_path);
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
-            auto body = translate(moduleNode->body);
+            auto body = this->enterModuleContext().translate(moduleNode->body);
 
             return make_unique<parser::Module>(location, declLoc, move(name), move(body));
         }
@@ -1207,7 +1208,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             pm_location_t declLoc = classNode->class_keyword_loc;
 
             auto expr = translate(classNode->expression);
-            auto body = translate(classNode->body);
+            auto body = this->enterClassContext().translate(classNode->body);
 
             return make_unique<parser::SClass>(location, translateLoc(declLoc), move(expr), move(body));
         }
@@ -2003,7 +2004,19 @@ bool Translator::isInMethodDef() const {
 
 Translator Translator::enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const {
     auto resetUniqueCounter = true;
-    return Translator(*this, resetUniqueCounter, methodLoc, methodName);
+    return Translator(*this, resetUniqueCounter, methodLoc, methodName, this->isInModule);
+}
+
+Translator Translator::enterModuleContext() const {
+    auto resetUniqueCounter = true;
+    auto isInModule = true;
+    return Translator(*this, resetUniqueCounter, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
+}
+
+Translator Translator::enterClassContext() const {
+    auto resetUniqueCounter = true;
+    auto isInModule = false;
+    return Translator(*this, resetUniqueCounter, this->enclosingMethodLoc, this->enclosingMethodName, isInModule);
 }
 
 void Translator::reportError(core::LocOffsets loc, const string &message) const {
