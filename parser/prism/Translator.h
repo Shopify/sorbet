@@ -20,29 +20,35 @@ class Translator final {
     core::MutableContext ctx;
 
     // Needed for reporting diagnostics
-    core::FileRef file;
+    const core::FileRef file;
+
+    // TODO: document me
+    const bool preserveConcreteSyntax;
 
     // The errors that were found by Prism during parsing
     const absl::Span<const ParseError> parseErrors;
-
-    // Context variables
-    bool isInMethodDef = false;
 
     // Keep track of the unique ID counter
     // uniqueCounterStorage is the source of truth maintained by the parent Translator
     // uniqueCounter is a pointer to uniqueCounterStorage and is passed down to child Translators
     int uniqueCounterStorage;
-    int *uniqueCounter;
+    int *const uniqueCounter;
+
+    // Context variables
+    const core::LocOffsets enclosingMethodLoc = core::LocOffsets::none();
+    const core::NameRef enclosingMethodName;
+    const bool isInAnyBlock = false;
+    const bool isInModule = false;
 
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
     Translator &operator=(Translator &&) = delete;      // Move assignment
     Translator &operator=(const Translator &) = delete; // Copy assignment
 public:
-    Translator(const Parser &parser, core::MutableContext ctx, core::FileRef file,
+    Translator(const Parser &parser, core::MutableContext ctx, core::FileRef file, bool preserveConcreteSyntax,
                const absl::Span<const ParseError> parseErrors)
-        : parser(parser), ctx(ctx), file(file), parseErrors(parseErrors), uniqueCounterStorage(1),
-          uniqueCounter(&this->uniqueCounterStorage) {}
+        : parser(parser), ctx(ctx), file(file), preserveConcreteSyntax(preserveConcreteSyntax),
+          parseErrors(parseErrors), uniqueCounterStorage(1), uniqueCounter(&this->uniqueCounterStorage) {}
 
     int nextUniqueID() {
         return *uniqueCounter += 1;
@@ -52,22 +58,26 @@ public:
     std::unique_ptr<parser::Node> translate(pm_node_t *node);
 
 private:
-    // Private constructor used only for creating child translators
+    // This private constructor is used for creating child translators with modified context.
     // uniqueCounterStorage is passed as the minimum integer value and is never used
-    Translator(const Parser &parser, core::MutableContext ctx, core::FileRef file,
-               const absl::Span<const ParseError> &parseErrors, bool isInMethodDef, int *uniqueCounter)
-        : parser(parser), ctx(ctx), file(file), parseErrors(parseErrors), isInMethodDef(isInMethodDef),
-          uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(uniqueCounter) {}
+    Translator(const Translator &parent, core::LocOffsets enclosingMethodLoc, core::NameRef enclosingMethodName,
+               bool isInAnyBlock, bool isInModule)
+        : parser(parent.parser), ctx(parent.ctx), file(parent.file),
+          preserveConcreteSyntax(parent.preserveConcreteSyntax), parseErrors(parent.parseErrors),
+          uniqueCounterStorage(std::numeric_limits<int>::min()), uniqueCounter(parent.uniqueCounter),
+          enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName), isInAnyBlock(isInAnyBlock),
+          isInModule(isInModule) {}
+
     void reportError(core::LocOffsets loc, const std::string &message);
 
-    core::LocOffsets translateLoc(pm_location_t loc);
+    core::LocOffsets translateLoc(pm_location_t loc) const;
 
     parser::NodeVec translateMulti(pm_node_list prismNodes);
     void translateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
     NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);
-    static bool isKeywordHashElement(sorbet::parser::Node *nd);
+    static bool isKeywordHashElement(sorbet::parser::Node *node);
     std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
                                                          std::unique_ptr<parser::Node> sendNode);
     std::unique_ptr<parser::Node> translateRescue(pm_rescue_node *prismRescueNode,
@@ -97,14 +107,18 @@ private:
     parser::NodeVec patternTranslateMulti(pm_node_list prismNodes);
     void patternTranslateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
-    std::string_view sliceLocation(pm_location_t loc);
+    std::string_view sliceLocation(pm_location_t loc) const;
 
     // Context management helpers. These return a copy of `this` with some change to the context.
-    Translator enterMethodDef();
+    bool isInMethodDef() const;
+    Translator enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const;
+    Translator enterBlockContext() const;
+    Translator enterModuleContext() const;
+    Translator enterClassContext() const;
 
     // Helper function for creating nodes with cached expressions
     template <typename SorbetNode, typename... TArgs>
-    std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args);
+    std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const;
 };
 
 } // namespace sorbet::parser::Prism
