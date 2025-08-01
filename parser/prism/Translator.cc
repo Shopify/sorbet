@@ -1451,6 +1451,29 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto returnValues = translateArguments(returnNode->arguments);
 
+            if (returnValues.size() == 0) {
+                auto expr = MK::Return(location, MK::EmptyTree());
+                return make_node_with_expr<parser::Return>(move(expr), location, move(returnValues));
+            }
+
+            if (hasExpr(returnValues)) {
+                bool hasBlock = absl::c_find_if(returnValues, [](const auto &node) {
+                                    return node != nullptr && parser::isa_node<parser::BlockPass>(node.get());
+                                }) != returnValues.end();
+                ENFORCE(!hasBlock, "Prism expected to disallow block argument for `return` as invalid syntax.");
+
+                ExpressionPtr returnArgs;
+                if (returnValues.size() == 1) {
+                    auto first = returnValues[0].get();
+                    returnArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                } else {
+                    auto args = nodeVecToStore<ast::Array::ENTRY_store>(std::move(returnValues));
+                    returnArgs = MK::Array(location, std::move(args));
+                }
+                auto expr = MK::Return(location, std::move(returnArgs));
+                return make_node_with_expr<parser::Return>(move(expr), location, std::move(returnValues));
+            }
+
             return make_unique<parser::Return>(location, move(returnValues));
         }
         case PM_RETRY_NODE: { // The `retry` keyword
