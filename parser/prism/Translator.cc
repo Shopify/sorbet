@@ -47,8 +47,10 @@ template <typename... TArgs>
     Exception::raise(reasonFormatStr, forward<TArgs>(args)...);
 }
 
+// This return type is temporarily widened to `parser::Node` during migration.
+// TODO(post-migration): narrow the type back down to `ast::Assign`
 template <typename PrismAssignmentNode, typename SorbetLHSNode>
-unique_ptr<parser::Assign> Translator::translateAssignment(pm_node_t *untypedNode) {
+unique_ptr<parser::Node> Translator::translateAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
     auto location = translateLoc(untypedNode->location);
     auto rhs = translate(node->value);
@@ -68,7 +70,12 @@ unique_ptr<parser::Assign> Translator::translateAssignment(pm_node_t *untypedNod
         lhs = make_unique<SorbetLHSNode>(translateLoc(node->name_loc), name);
     }
 
-    return make_unique<parser::Assign>(location, move(lhs), move(rhs));
+    if (hasExpr(lhs, rhs)) {
+        auto expr = MK::Assign(location, move(lhs->takeDesugaredExpr()), move(rhs->takeDesugaredExpr()));
+        return make_node_with_expr<parser::Assign>(move(expr), location, move(lhs), move(rhs));
+    } else {
+        return make_unique<parser::Assign>(location, move(lhs), move(rhs));
+    }
 }
 
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
