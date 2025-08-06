@@ -1567,7 +1567,10 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 auto res = MK::InsSeq1(csend->loc, std::move(assgn), std::move(iff));
                 result = std::move(res);
             },
-            [&](parser::Self *self) { desugaredByPrismTranslator(self); },
+            [&](parser::Self *self) {
+                ExpressionPtr res = MK::Self(loc);
+                result = std::move(res);
+            },
             [&](parser::DSymbol *dsymbol) {
                 if (dsymbol->nodes.empty()) {
                     ExpressionPtr res = MK::Symbol(loc, core::Names::empty());
@@ -2234,7 +2237,10 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
 
                 result = std::move(res);
             },
-            [&](parser::True *t) { desugaredByPrismTranslator(t); },
+            [&](parser::True *t) {
+                auto res = MK::True(loc);
+                result = std::move(res);
+            },
             [&](parser::False *t) { desugaredByPrismTranslator(t); },
             [&](parser::Case *case_) {
                 if (dctx.preserveConcreteSyntax) {
