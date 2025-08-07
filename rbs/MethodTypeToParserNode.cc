@@ -48,20 +48,20 @@ core::LocOffsets adjustNameLoc(const RBSDeclaration &declaration, rbs_node_t *no
 }
 
 bool isSelfOrKernel(parser::Node *node) {
-    if (parser::isa_node<parser::Self>(node)) {
+    if (parser::NodeWithExpr::isa_node<parser::Self>(node)) {
         return true;
     }
 
-    if (auto constant = parser::cast_node<parser::Const>(node)) {
+    if (auto constant = parser::NodeWithExpr::cast_node<parser::Const>(node)) {
         return constant->name == core::Names::Constants::Kernel() &&
-               (constant->scope == nullptr || parser::isa_node<parser::Cbase>(constant->scope.get()));
+               (constant->scope == nullptr || parser::NodeWithExpr::isa_node<parser::Cbase>(constant->scope.get()));
     }
 
     return false;
 }
 
 bool isRaise(parser::Node *node) {
-    auto raise = parser::cast_node<parser::Send>(node);
+    auto raise = parser::NodeWithExpr::cast_node<parser::Send>(node);
 
     if (!raise) {
         return false;
@@ -100,7 +100,7 @@ core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pa
 }
 
 void ensureAbstractMethodRaises(core::MutableContext ctx, const parser::Node *node) {
-    if (auto method = parser::cast_node<parser::DefMethod>((parser::Node *)node)) {
+    if (auto method = parser::NodeWithExpr::cast_node<parser::DefMethod>((parser::Node *)node)) {
         if (isRaise(method->body.get())) {
             // If the method raises properly, we remove the body the body to not error later (see error 5019)
             method->body = nullptr;
@@ -112,7 +112,7 @@ void ensureAbstractMethodRaises(core::MutableContext ctx, const parser::Node *no
             auto autocorrect = autocorrectAbstractBody(ctx, method, method->declLoc, method->body.get());
             e.addAutocorrect(move(autocorrect));
         }
-    } else if (auto method = parser::cast_node<parser::DefS>((parser::Node *)node)) {
+    } else if (auto method = parser::NodeWithExpr::cast_node<parser::DefS>((parser::Node *)node)) {
         if (isRaise(method->body.get())) {
             // If the method raises properly, we remove the body the body to not error later (see error 5019)
             method->body = nullptr;
@@ -216,7 +216,8 @@ string nodeKindToString(const parser::Node *node) {
 
 optional<core::AutocorrectSuggestion> autocorrectArg(core::MutableContext ctx, const parser::Node *methodArg,
                                                      RBSArg arg, unique_ptr<parser::Node> type) {
-    if (arg.kind == RBSArg::Kind::Block || parser::isa_node<parser::Blockarg>((parser::Node *)methodArg)) {
+    if (arg.kind == RBSArg::Kind::Block ||
+        parser::NodeWithExpr::isa_node<parser::Blockarg>((parser::Node *)methodArg)) {
         // Block arguments are not autocorrected
         return nullopt;
     }
@@ -316,7 +317,7 @@ parser::Args *getMethodArgs(const parser::Node *node) {
             Exception::raise("Unexpected expression type: {}", ((parser::Node *)node)->nodeName());
         });
 
-    return parser::cast_node<parser::Args>(args);
+    return parser::NodeWithExpr::cast_node<parser::Args>(args);
 }
 
 void collectArgs(const RBSDeclaration &declaration, rbs_node_list_t *field, vector<RBSArg> &args, RBSArg::Kind kind) {
