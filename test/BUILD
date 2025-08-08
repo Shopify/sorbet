@@ -301,6 +301,7 @@ pipeline_tests(
         exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
             "testdata/rbs/assertions_heredoc_modified.rb",
+            "testdata/rbs/signatures_types_modified.rb",
         ],
     ),
     "PosTests",
@@ -358,6 +359,7 @@ pipeline_tests(
 
             # Prism doesn't have enough context to reject f(&b, 1), and attempts to treat it equivalently to f(1, &b)
             "testdata/desugar/bad_block_pass.rb",
+            "testdata/rbs/signatures_types.rb",
         ],
     ),
     "PrismPosTests",

@@ -39,6 +39,7 @@
 #include "packager/packager.h"
 #include "parser/parser.h"
 #include "parser/prism/Parser.h"
+#include "parser/prism/Translator.h"
 #include "payload/binary/binary.h"
 #include "payload/payload.h"
 #include "rbs/AssertionsRewriter.h"
@@ -144,7 +145,7 @@ public:
 
     ExpectationHandler(Expectations &test, shared_ptr<core::ErrorQueue> &errorQueue,
                        shared_ptr<core::ErrorCollector> &errorCollector)
-        : test(test), errorQueue(errorQueue), errorCollector(errorCollector){};
+        : test(test), errorQueue(errorQueue), errorCollector(errorCollector) {};
 
     bool hasExpectation(string_view expectationType) {
         return test.expectations.contains(expectationType);
@@ -253,13 +254,31 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 }
                 case realmain::options::Parser::PRISM: {
                     if (gs.cacheSensitiveOptions.rbsEnabled) {
-                        continue;
-                    }
+                        realmain::options::Printers print{};
+                        auto source = ctx.file.data(ctx).source();
+                        parser::Prism::Parser prismParser{source};
 
-                    try {
-                        prismParseResult = parser::Prism::Parser::run(ctx);
-                    } catch (parser::Prism::PrismFallback &) {
-                        continue;
+                        bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
+
+                        auto prismParseWithoutTranslationResult = prismParser.parseWithoutTranslation(collectComments);
+
+                        pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
+                            gs, file, prismParseWithoutTranslationResult.getRawNodePointer(),
+                            prismParseWithoutTranslationResult.getCommentLocations(), print, ctx, prismParser);
+
+                        auto translatedTree =
+                            parser::Prism::Translator(prismParser, ctx,
+                                                      prismParseWithoutTranslationResult.getParseErrors(), false)
+                                .translate_TODO(rewrittenNode);
+
+                        prismParseResult = parser::ParseResult{
+                            move(translatedTree), prismParseWithoutTranslationResult.getCommentLocations()};
+                    } else {
+                        try {
+                            prismParseResult = parser::Prism::Parser::run(ctx);
+                        } catch (parser::Prism::PrismFallback &) {
+                            continue;
+                        }
                     }
 
                     break;
@@ -548,8 +567,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         realmain::Minimize::writeDiff(*gs, *gsForMinimize, printerConfig);
 
         auto addNewline = false;
-        handler.addObserved(
-            *gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
+        handler.addObserved(*gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
     }
 
     // Simulate what pipeline.cc does: We want to start typechecking big files first because it helps with better work
@@ -732,7 +750,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
     // Allow later phases to have errors that we didn't test for
     errorQueue->flushAllErrors(*gs);
-    { auto _ = errorCollector->drainErrors(); }
+    {
+        auto _ = errorCollector->drainErrors();
+    }
 
     // now we test the incremental resolver
 
@@ -770,12 +790,28 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                if (gs->cacheSensitiveOptions.rbsEnabled) {
-                    continue;
-                }
-
                 try {
-                    parseResult = parser::Prism::Parser::run(ctx);
+                    if (gs->cacheSensitiveOptions.rbsEnabled) {
+                        realmain::options::Printers print{};
+                        auto source = ctx.file.data(ctx).source();
+                        parser::Prism::Parser prismParser{source};
+
+                        bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
+
+                        auto prismParseResult = prismParser.parseWithoutTranslation(collectComments);
+
+                        pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
+                            *gs, f.file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
+                            print, ctx, prismParser);
+
+                        auto translatedTree =
+                            parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false)
+                                .translate_TODO(rewrittenNode);
+
+                        parseResult = parser::ParseResult{move(translatedTree), prismParseResult.getCommentLocations()};
+                    } else {
+                        parseResult = parser::Prism::Parser::run(ctx);
+                    }
                 } catch (parser::Prism::PrismFallback &) {
                     continue;
                 }
@@ -893,7 +929,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
     // and drain all the remaining errors
     errorQueue->flushAllErrors(*gs);
-    { auto _ = errorCollector->drainErrors(); }
+    {
+        auto _ = errorCollector->drainErrors();
+    }
 
     {
         INFO("the incremental resolver should not add new symbols");
