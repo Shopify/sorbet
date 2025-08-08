@@ -17,6 +17,25 @@ parser::ParseResult Parser::run(core::MutableContext &ctx, bool directlyDesugar)
     return parser::ParseResult{move(translatedTree), move(parseResult.commentLocations)};
 }
 
+parser::Parser::ParseResult Parser::parseOnly(std::string_view sourceCode) {
+    Prism::Parser parser{sourceCode};
+    Prism::ParseResult parseResult = parser.parse();
+    return parser::Parser::ParseResult{std::move(parseResult.node), std::move(parseResult.commentLocations)};
+}
+
+TranslateResult Parser::translateOnly(core::GlobalState &gs, core::FileRef file, std::string_view sourceCode,
+                                      const SimpleParseResult &parseResult) {
+    // @kaan TODO: Don't reparse
+    Prism::Parser parser{sourceCode};
+    Prism::ParseResult tempParseResult = parser.parse();
+
+    absl::Span<const ParseError> errorSpan(parseResult.parseErrors);
+    auto translatedTree = Prism::Translator(parser, gs, file, errorSpan).translate(tempParseResult.getRawNodePointer());
+
+    vector<core::LocOffsets> commentLocationsCopy = parseResult.commentLocations;
+    return TranslateResult(std::move(commentLocationsCopy), std::move(translatedTree));
+}
+
 pm_parser_t *Parser::getRawParserPointer() {
     return &parser;
 }

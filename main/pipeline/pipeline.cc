@@ -47,6 +47,9 @@
 #include "rbs/AssertionsRewriter.h"
 #include "rbs/CommentsAssociator.h"
 #include "rbs/SigsRewriter.h"
+#include "rbs/prism/AssertionsRewriterPrism.h"
+#include "rbs/prism/CommentsAssociatorPrism.h"
+#include "rbs/prism/SigsRewriterPrism.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 
