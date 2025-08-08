@@ -204,13 +204,6 @@ ast::ExpressionPtr Translator::make_unsupported_node(core::LocOffsets loc, std::
     return MK::EmptyTree();
 }
 
-// Indicates that a particular code path should never be reached, with an explanation of why.
-// Throws a `sorbet::SorbetException` when triggered to help with debugging.
-template <typename... TArgs>
-[[noreturn]] void unreachable(fmt::format_string<TArgs...> reasonFormatStr, TArgs &&...args) {
-    Exception::raise(reasonFormatStr, forward<TArgs>(args)...);
-}
-
 // Helper function to check if an AST expression is a string literal
 bool isStringLit(const ast::ExpressionPtr &expr) {
     if (auto lit = ast::cast_tree<ast::Literal>(expr)) {
@@ -4757,7 +4750,16 @@ ast::ExpressionPtr Translator::desugarStatements(pm_statements_node *stmtsNode, 
         // Cover the locations spanned from the first to the last statements.
         // This can be different from the `stmtsNode->base.location`,
         // because of the special case (handled by `startLoc()` and `endLoc()`).
-        beginNodeLoc = translateLoc(startLoc(prismStatements.front()), endLoc(prismStatements.back()));
+        auto start = startLoc(prismStatements.front());
+        auto end = endLoc(prismStatements.back());
+
+        // TODO: Crash without it
+        if (start <= end) {
+            beginNodeLoc = translateLoc(start, end);
+        } else {
+            // Fallback to the statements node's own location if ordering is invalid
+            beginNodeLoc = translateLoc(stmtsNode->base.location);
+        }
     }
 
     auto statements = nodeListToStore<ast::InsSeq::STATS_store>(stmtsNode->body);
@@ -4829,7 +4831,53 @@ ast::ExpressionPtr Translator::translateConst(pm_node_t *anyNode) {
     ast::ExpressionPtr parentExpr;
 
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
-        if (auto *prismParentNode = node->parent) {
+        {
+            absl::InlinedVector<core::NameRef, 4> fullPath;
+            bool isRootAnchored = false;
+            pm_node_t *current = up_cast(const_cast<PrismLhsNode *>(node));
+            while (current != nullptr) {
+                switch (PM_NODE_TYPE(current)) {
+                    case PM_CONSTANT_PATH_NODE: {
+                        auto *p = down_cast<pm_constant_path_node>(current);
+                        fullPath.push_back(translateConstantName(p->name));
+                        if (p->parent != nullptr) {
+                            current = p->parent;
+                        } else {
+                            isRootAnchored = true;
+                            current = nullptr;
+                        }
+                        break;
+                    }
+                    case PM_CONSTANT_READ_NODE: {
+                        auto *r = down_cast<pm_constant_read_node>(current);
+                        fullPath.push_back(translateConstantName(r->name));
+                        current = nullptr;
+                        break;
+                    }
+                    default:
+                        current = nullptr;
+                        break;
+                }
+            }
+            if (!fullPath.empty()) {
+                absl::c_reverse(fullPath);
+                if (isRootAnchored) {
+                    if (fullPath.size() == 3 && fullPath[0] == ctx.state.enterNameUTF8("Sorbet") &&
+                        fullPath[1] == ctx.state.enterNameUTF8("Private") &&
+                        fullPath[2] == ctx.state.enterNameUTF8("Static")) {
+                        // return make_unique<parser::ResolvedConst>(location, core::Symbols::Sorbet_Private_Static());
+                        return MK::Constant(location, core::Symbols::Sorbet_Private_Static());
+                    }
+                    if (fullPath.size() == 3 && fullPath[0] == ctx.state.enterNameUTF8("T") &&
+                        fullPath[1] == ctx.state.enterNameUTF8("Sig") &&
+                        fullPath[2] == ctx.state.enterNameUTF8("WithoutRuntime")) {
+                        // return make_unique<parser::ResolvedConst>(location, core::Symbols::T_Sig_WithoutRuntime());
+                        return MK::Constant(location, core::Symbols::T_Sig_WithoutRuntime());
+                    }
+                }
+            }
+        }
+        if (auto prismParentNode = node->parent) {
             // This constant reference is chained onto another constant reference.
             // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the
             // `name`.
