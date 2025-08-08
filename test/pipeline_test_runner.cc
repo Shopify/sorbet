@@ -39,6 +39,7 @@
 #include "packager/packager.h"
 #include "parser/parser.h"
 #include "parser/prism/Parser.h"
+#include "parser/prism/Translator.h"
 #include "payload/binary/binary.h"
 #include "payload/payload.h"
 #include "rbs/AssertionsRewriter.h"
@@ -253,13 +254,31 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 }
                 case realmain::options::Parser::PRISM: {
                     if (gs.cacheSensitiveOptions.rbsEnabled) {
-                        continue;
-                    }
+                        realmain::options::Printers print{};
+                        auto source = ctx.file.data(ctx).source();
+                        parser::Prism::Parser prismParser{source};
 
-                    try {
-                        prismParseResult = parser::Prism::Parser::run(ctx);
-                    } catch (parser::Prism::PrismFallback &) {
-                        continue;
+                        bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
+
+                        auto prismParseWithoutTranslationResult = prismParser.parseWithoutTranslation(collectComments);
+
+                        pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
+                            gs, file, prismParseWithoutTranslationResult.getRawNodePointer(),
+                            prismParseWithoutTranslationResult.getCommentLocations(), print, ctx, prismParser);
+
+                        auto translatedTree =
+                            parser::Prism::Translator(prismParser, ctx,
+                                                      prismParseWithoutTranslationResult.getParseErrors(), false)
+                                .translate_TODO(rewrittenNode);
+
+                        prismParseResult = parser::ParseResult{
+                            move(translatedTree), prismParseWithoutTranslationResult.getCommentLocations()};
+                    } else {
+                        try {
+                            prismParseResult = parser::Prism::Parser::run(ctx);
+                        } catch (parser::Prism::PrismFallback &) {
+                            continue;
+                        }
                     }
 
                     break;
@@ -301,7 +320,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             if (prismParseResult.tree != nullptr) {
                 auto prismDirectDesugarAST = ast::prismDesugar::node2Tree(ctx, move(prismParseResult.tree));
 
-                if (!disableParserComparison) {
+                if (!disableParserComparison && !gs.cacheSensitiveOptions.rbsEnabled) {
                     ast::ExpressionPtr legacyDesugarAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
 
                     if (!legacyDesugarAST.prismDesugarEqual(gs, prismDirectDesugarAST, file)) {
@@ -777,12 +796,28 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                if (gs->cacheSensitiveOptions.rbsEnabled) {
-                    continue;
-                }
-
                 try {
-                    parseResult = parser::Prism::Parser::run(ctx);
+                    if (gs->cacheSensitiveOptions.rbsEnabled) {
+                        realmain::options::Printers print{};
+                        auto source = ctx.file.data(ctx).source();
+                        parser::Prism::Parser prismParser{source};
+
+                        bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
+
+                        auto prismParseResult = prismParser.parseWithoutTranslation(collectComments);
+
+                        pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
+                            *gs, f.file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
+                            print, ctx, prismParser);
+
+                        auto translatedTree =
+                            parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false)
+                                .translate_TODO(rewrittenNode);
+
+                        parseResult = parser::ParseResult{move(translatedTree), prismParseResult.getCommentLocations()};
+                    } else {
+                        parseResult = parser::Prism::Parser::run(ctx);
+                    }
                 } catch (parser::Prism::PrismFallback &) {
                     continue;
                 }

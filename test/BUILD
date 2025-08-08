@@ -274,6 +274,7 @@ pipeline_tests(
         exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
             "testdata/rbs/assertions_heredoc_modified.rb",
+            "testdata/rbs/signatures_types_modified.rb",
         ],
     ),
     "PosTests",
@@ -463,6 +464,7 @@ pipeline_tests(
             "testdata/packager/empty_package_file/**",
             "testdata/packager/package-no-spec/**",
             "testdata/packager/unpackaged-error/**",
+            "testdata/rbs/signatures_types.rb",
         ],
     ),
     "PrismPosTests",
