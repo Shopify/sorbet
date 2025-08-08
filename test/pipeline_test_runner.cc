@@ -60,6 +60,12 @@
 #include <vector>
 
 using namespace std;
+
+// Forward declarations for pipeline functions
+pm_node_t *runRBSRewritePrism(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
+                              const std::vector<core::LocOffsets> &commentLocations, const realmain::options::Printers &print,
+                              core::MutableContext &ctx);
+
 namespace sorbet::test {
 
 string singleTest;
@@ -239,8 +245,19 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 core::MutableContext ctx(gs, core::Symbols::root(), file);
                 // The RBS rewriter produces plain Whitequark nodes and not `NodeWithExpr` which causes errors in
                 // `PrismDesugar.cc`. For now, disable all direct translation, and fallback to `Desugar.cc`.
-                auto directlyTranslate = !gs.cacheSensitiveOptions.rbsEnabled;
-                parseResult = parser::Prism::Parser::run(ctx, directlyTranslate);
+                if (gs.cacheSensitiveOptions.rbsEnabled) {
+                    realmain::options::Printers print{};
+                    auto prismParseResult = parser::Prism::Parser::parseOnly(ctx);
+                    pm_node_t *rewrittenNode = runRBSRewritePrism(gs, file, prismParseResult.getRawNodePointer(),
+                                                                  prismParseResult.getCommentLocations(), print, ctx);
+                    parseResult = parser::Prism::Parser::translateOnly(ctx, prismParseResult.getParser(),
+                                                                      rewrittenNode,
+                                                                      prismParseResult.getParseErrors(),
+                                                                      prismParseResult.getCommentLocations());
+                } else {
+                    auto directlyTranslate = !gs.cacheSensitiveOptions.rbsEnabled;
+                    parseResult = parser::Prism::Parser::run(ctx, directlyTranslate);
+                }
                 break;
             }
         }
@@ -718,10 +735,18 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                parseResult = parser::Prism::Parser::run(ctx, false);
                 if (gs->cacheSensitiveOptions.rbsEnabled) {
+                    realmain::options::Printers print{};
+                    auto prismParseResult = parser::Prism::Parser::parseOnly(ctx);
+                    pm_node_t *rewrittenNode = runRBSRewritePrism(*gs, file, prismParseResult.getRawNodePointer(),
+                                                                  prismParseResult.getCommentLocations(), print, ctx);
+                    parseResult = parser::Prism::Parser::translateOnly(ctx, prismParseResult.getParser(),
+                                                                      rewrittenNode,
+                                                                      prismParseResult.getParseErrors(),
+                                                                      prismParseResult.getCommentLocations());
                     directlyDesugaredTree = nullptr;
                 } else {
+                    parseResult = parser::Prism::Parser::run(ctx, false);
                     directlyDesugaredTree = parser::Prism::Parser::run(ctx).tree;
                 }
                 break;
