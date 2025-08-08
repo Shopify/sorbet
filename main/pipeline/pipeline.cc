@@ -47,6 +47,9 @@
 #include "rbs/AssertionsRewriter.h"
 #include "rbs/CommentsAssociator.h"
 #include "rbs/SigsRewriter.h"
+#include "rbs/prism/AssertionsRewriterPrism.h"
+#include "rbs/prism/CommentsAssociatorPrism.h"
+#include "rbs/prism/SigsRewriterPrism.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 
@@ -274,29 +277,58 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     return node;
 }
 
-parser::Prism::TranslateResult runPrismParser(core::GlobalState &gs, core::FileRef file,
-                                              const options::Printers &print) {
+pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
+                              std::vector<core::LocOffsets> commentLocations, const options::Printers &print) {
+    if (gs.cacheSensitiveOptions.rbsEnabled) {
+        Timer timeit(gs.tracer(), "runPrismRBSRewrite", {{"file", string(file.data(gs).path())}});
+
+        core::MutableContext ctx(gs, core::Symbols::root(), file);
+        core::UnfreezeNameTable nameTableAccess(gs);
+
+        auto associator = rbs::CommentsAssociatorPrism(ctx, commentLocations);
+        auto commentMap = associator.run(node);
+
+        auto sigsRewriter = rbs::SigsRewriterPrism(ctx, commentMap.signaturesForNode);
+        node = sigsRewriter.run(node);
+
+        auto assertionsRewriter = rbs::AssertionsRewriterPrism(ctx, commentMap.assertionsForNode);
+        node = assertionsRewriter.run(node);
+
+        if (print.RBSRewriteTree.enabled) {
+            // TODO: Need to implement printing for Prism nodes
+        }
+    }
+    return node;
+}
+
+unique_ptr<parser::Node> runPrismParser(core::GlobalState &gs, core::FileRef file, const options::Printers &print) {
     Timer timeit(gs.tracer(), "runParser", {{"file", string(file.data(gs).path())}});
 
-    parser::Prism::TranslateResult translateResult = [&]() {
-        core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
-        return parser::Prism::Parser::run(gs, file);
-    }();
+    auto source = file.data(gs).source();
+
+    parser::Prism::Parser parser{source};
+    auto parseResult = parser.parse();
+
+    pm_node_t *rewrittenNode =
+        runPrismRBSRewrite(gs, file, parseResult.getRawNodePointer(), parseResult.getCommentLocations(), print);
+
+    parser::Prism::Translator translator(parser, gs, file, parseResult.getParseErrors());
+    auto sorbetAst = translator.translate(rewrittenNode);
 
     if (print.ParseTree.enabled) {
-        print.ParseTree.fmt("{}\n", translateResult.tree->toStringWithTabs(gs, 0));
+        print.ParseTree.fmt("{}\n", sorbetAst->toStringWithTabs(gs, 0));
     }
     if (print.ParseTreeJson.enabled) {
-        print.ParseTreeJson.fmt("{}\n", translateResult.tree->toJSON(gs, 0));
+        print.ParseTreeJson.fmt("{}\n", sorbetAst->toJSON(gs, 0));
     }
     if (print.ParseTreeJsonWithLocs.enabled) {
-        print.ParseTreeJson.fmt("{}\n", translateResult.tree->toJSONWithLocs(gs, file, 0));
+        print.ParseTreeJson.fmt("{}\n", sorbetAst->toJSONWithLocs(gs, file, 0));
     }
     if (print.ParseTreeWhitequark.enabled) {
-        print.ParseTreeWhitequark.fmt("{}\n", translateResult.tree->toWhitequark(gs, 0));
+        print.ParseTreeWhitequark.fmt("{}\n", sorbetAst->toWhitequark(gs, 0));
     }
 
-    return translateResult;
+    return sorbetAst;
 }
 
 ast::ExpressionPtr runDesugar(core::GlobalState &gs, core::FileRef file, unique_ptr<parser::Node> parseTree,
@@ -397,9 +429,7 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                     break;
                 }
                 case options::Parser::PRISM: {
-                    auto translateResult = runPrismParser(lgs, file, print);
-                    parseTree = runRBSRewrite(lgs, file, move(translateResult.tree),
-                                              move(translateResult.commentLocations), print);
+                    parseTree = runPrismParser(lgs, file, print);
 
                     if (opts.stopAfterPhase == options::Phase::PARSER) {
                         return emptyParsedFile(file);
