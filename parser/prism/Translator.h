@@ -32,7 +32,8 @@ class Translator final {
     int *const uniqueCounter;
 
     // Context variables
-    const bool isInMethodDef = false;
+    const core::LocOffsets enclosingMethodLoc = core::LocOffsets::none();
+    const core::NameRef enclosingMethodName;
 
     Translator(Translator &&) = delete;                 // Move constructor
     Translator(const Translator &) = delete;            // Copy constructor
@@ -54,10 +55,14 @@ public:
 private:
     // This private constructor is used for creating child translators with modified context.
     // uniqueCounterStorage is passed as the minimum integer value and is never used
-    Translator(const Translator &parent, bool isInMethodDef)
+    Translator(const Translator &parent, bool resetUniqueCounter, core::LocOffsets enclosingMethodLoc,
+               core::NameRef enclosingMethodName)
         : parser(parent.parser), ctx(parent.ctx), parseErrors(parent.parseErrors),
-          directlyDesugar(parent.directlyDesugar), uniqueCounterStorage(std::numeric_limits<int>::min()),
-          uniqueCounter(parent.uniqueCounter), isInMethodDef(isInMethodDef) {}
+          directlyDesugar(parent.directlyDesugar),
+          uniqueCounterStorage(resetUniqueCounter ? 1 : std::numeric_limits<int>::min()),
+          uniqueCounter(resetUniqueCounter ? &this->uniqueCounterStorage : parent.uniqueCounter),
+          enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName) {}
+
     void reportError(core::LocOffsets loc, const std::string &message) const;
 
     template <typename SorbetNode, typename... TArgs>
@@ -103,7 +108,8 @@ private:
     std::string_view sliceLocation(pm_location_t loc) const;
 
     // Context management helpers. These return a copy of `this` with some change to the context.
-    Translator enterMethodDef() const;
+    bool isInMethodDef() const;
+    Translator enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const;
 };
 
 } // namespace sorbet::parser::Prism
