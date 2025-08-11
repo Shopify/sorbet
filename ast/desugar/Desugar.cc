@@ -1797,13 +1797,11 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     }
                 }
 
+                ExpressionPtr res = MK::Int(loc, val);
                 if (hasTilde) {
-                    core::LocOffsets adjustedLoc = dctx.ctx.locAt(loc).adjust(dctx.ctx, 1, 1).offsets();
-                    result = MK::Int(adjustedLoc, val);
-                    result = MK::Send0(loc, move(result), core::Names::tilde(), loc.copyEndWithZeroLength());
-                } else {
-                    result = MK::Int(loc, val);
+                    res = MK::Send0(loc, move(res), core::Names::unaryTilde(), loc.copyEndWithZeroLength());
                 }
+                result = std::move(res);
             },
             [&](parser::DString *dstring) {
                 ExpressionPtr res = desugarDString(dctx, loc, std::move(dstring->nodes));
