@@ -325,7 +325,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             // Handle `~[Integer]`, like `~42`
             // Unlike `-[Integer]`, Prism treats `~[Integer]` as a method call
             // But Sorbet's legacy parser treats both `~[Integer]` and `-[Integer]` as integer literals
-            if (constantNameString == "~" && parser::cast_node<parser::Integer>(receiver.get())) {
+            if (constantNameString == "~" && parser::NodeWithExpr::cast_node<parser::Integer>(receiver.get())) {
                 string valueString(sliceLocation(callNode->base.location));
 
                 return make_unique<parser::Integer>(location, move(valueString));
@@ -814,8 +814,19 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
 
-            ExpressionPtr expr = MK::Int(location, hasTilde ? ~val : val);
+            // Should desugar to Send node (like `42.~()`)
+            // ExpressionPtr expr = MK::Int(location, hasTilde ? ~val : val);
+            ExpressionPtr expr;
 
+            if (hasTilde) {
+                auto loc = location.copyEndWithZeroLength();
+                loc.endLoc += 20;
+                expr = MK::Send0(location, MK::Int(loc, val), core::Names::tilde(), loc);
+            } else {
+                expr = MK::Int(location, val);
+            }
+
+            // But the parser node shuold still be a single integer `~42`, like `+42` or `-42` would be.
             return make_node_with_expr<parser::Integer>(move(expr), location, move(valueString));
         }
         case PM_INTERPOLATED_MATCH_LAST_LINE_NODE: { // An interpolated regex literal in a conditional...
