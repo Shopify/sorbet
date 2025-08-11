@@ -335,6 +335,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
 
             pm_node_t *prismBlock = callNode->block;
+
             NodeVec args;
             // PM_BLOCK_ARGUMENT_NODE models the `&b` in `a.map(&b)`,
             // but not an explicit block with `{ ... }` or `do ... end`
@@ -354,12 +355,58 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             unique_ptr<parser::Node> sendNode;
 
+            auto name = ctx.state.enterNameUTF8(constantNameString);
+
             if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) { // Handle conditional send, e.g. `a&.b`
-                sendNode = make_unique<parser::CSend>(loc, move(receiver), ctx.state.enterNameUTF8(constantNameString),
-                                                      messageLoc, move(args));
+                sendNode = make_unique<parser::CSend>(loc, move(receiver), name, messageLoc, move(args));
             } else { // Regular send, e.g. `a.b`
-                sendNode = make_unique<parser::Send>(loc, move(receiver), ctx.state.enterNameUTF8(constantNameString),
-                                                     messageLoc, move(args));
+                // Method calls are really complex, and we're building support for different kinds of arguments bit by
+                // bit. This bool is true when this particular method call is supported by our desugar logic.
+
+                // The keyword arguments hash can be the last argument if there is no block
+                // or second to last argument otherwise
+                auto hasBlockArgs = prismBlock != nullptr;
+                auto kwargsHashIndex = hasBlockArgs ? (args.size() - 2) : (args.size() - 1);
+                auto hasKwargsHash = kwargsHashIndex < args.size() &&
+                                     parser::NodeWithExpr::isa_node<parser::Hash>(args[kwargsHashIndex].get());
+
+                auto splatOrForward = absl::c_any_of(args, [](auto &arg) {
+                    return parser::NodeWithExpr::isa_node<parser::Splat>(arg.get()) ||
+                           parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get()) ||
+                           parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get());
+                });
+
+                auto supportedCallType = receiver == nullptr && args.empty() &&
+                                         constantNameString != "block_given?" !hasKwargsHash && !hasBlockArgs &&
+                                         !splatOrForward;
+
+                if (supportedCallType && hasExpr(receiver) && hasExpr(args)) {
+                    ast::Send::Flags flags;
+                    auto receiverExpr = receiver == nullptr ? MK::EmptyTree() : receiver->takeDesugaredExpr();
+                    if (ast::isa_tree<ast::EmptyTree>(receiverExpr)) {
+                        // 0-sized Loc, since `self.` doesn't appear in the original file.
+                        receiverExpr = MK::Self(loc.copyWithZeroLength());
+                        flags.isPrivateOk = true;
+                    } else if (receiverExpr.isSelfReference()) {
+                        // As of Ruby 2.7, private method calls aren't limited to only `foo()`.
+                        // `self.foo()` is also allowed.
+                        flags.isPrivateOk = true;
+                    }
+
+                    int numPosArgs = args.size() - (hasKwargsHash ? 1 : 0) - (hasBlockArgs ? 1 : 0);
+                    ast::Send::ARGS_store sendArgs{};
+
+                    for (auto &arg : args) {
+                        sendArgs.emplace_back(arg->takeDesugaredExpr());
+                    }
+
+                    auto expr =
+                        MK::Send(location, move(receiverExpr), name, messageLoc, numPosArgs, move(sendArgs), flags);
+                    sendNode = make_node_with_expr<parser::Send>(move(expr), loc, move(receiver), name, messageLoc,
+                                                                 move(args));
+                } else {
+                    sendNode = make_unique<parser::Send>(loc, move(receiver), name, messageLoc, move(args));
+                }
             }
 
             if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
