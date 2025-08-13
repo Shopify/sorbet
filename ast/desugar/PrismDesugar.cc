@@ -988,14 +988,8 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     }
                 }
             },
-            [&](parser::String *string) {
-                ExpressionPtr res = MK::String(loc, string->val);
-                result = move(res);
-            },
-            [&](parser::Symbol *symbol) {
-                ExpressionPtr res = MK::Symbol(loc, symbol->val);
-                result = move(res);
-            },
+            [&](parser::String *string) { desugaredByPrismTranslator(string); },
+            [&](parser::Symbol *symbol) { desugaredByPrismTranslator(symbol); },
             [&](parser::LVar *var) {
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = move(res);
@@ -1775,24 +1769,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 ExpressionPtr res = desugarDString(dctx, loc, move(dstring->nodes));
                 result = move(res);
             },
-            [&](parser::Float *floatNode) {
-                double val;
-                auto underscorePos = floatNode->val.find("_");
-
-                const string &withoutUnderscores =
-                    (underscorePos == string::npos) ? floatNode->val : absl::StrReplaceAll(floatNode->val, {{"_", ""}});
-                if (!absl::SimpleAtod(withoutUnderscores, &val)) {
-                    val = numeric_limits<double>::quiet_NaN();
-                    if (auto e = dctx.ctx.beginIndexerError(loc, core::errors::Desugar::FloatOutOfRange)) {
-                        e.setHeader("Unsupported float literal: `{}`", floatNode->val);
-                        e.addErrorNote("This likely represents a bug in Sorbet. Please report an issue:\n"
-                                       "    https://github.com/sorbet/sorbet/issues");
-                    }
-                }
-
-                ExpressionPtr res = MK::Float(loc, val);
-                result = move(res);
-            },
+            [&](parser::Float *floatNode) { desugaredByPrismTranslator(floatNode); },
             [&](parser::Complex *complex) {
                 auto kernel = MK::Constant(loc, core::Symbols::Kernel());
                 core::NameRef complex_name = core::Names::Constants::Complex().dataCnst(dctx.ctx)->original;
