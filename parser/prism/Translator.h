@@ -114,6 +114,9 @@ private:
 
     std::string_view sliceLocation(pm_location_t loc) const;
 
+    // Helper to determine whether to use super or untypedSuper based on context
+    core::NameRef maybeTypedSuper() const;
+
     // Context management helpers. These return a copy of `this` with some change to the context.
     bool isInMethodDef() const;
     Translator enterMethodDef(core::LocOffsets methodLoc, core::NameRef methodName) const;
