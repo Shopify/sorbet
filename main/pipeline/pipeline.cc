@@ -251,11 +251,8 @@ parser::Parser::ParseResult runParser(core::GlobalState &gs, core::FileRef file,
     return result;
 }
 
-unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file,
-                                       parser::Parser::ParseResult &&parseResult, const options::Printers &print) {
-    auto node = move(parseResult.tree);
-    auto commentLocations = move(parseResult.commentLocations);
-
+unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file, unique_ptr<parser::Node> node,
+                                       std::vector<core::LocOffsets> commentLocations, const options::Printers &print) {
     if (gs.cacheSensitiveOptions.rbsEnabled) {
         Timer timeit(gs.tracer(), "runRBSRewrite", {{"file", string(file.data(gs).path())}});
         core::MutableContext ctx(gs, core::Symbols::root(), file);
@@ -277,30 +274,33 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     return node;
 }
 
-unique_ptr<parser::Node> runPrismParser(core::GlobalState &gs, core::FileRef file, const options::Printers &print) {
+parser::Parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, const options::Printers &print) {
     Timer timeit(gs.tracer(), "runParser", {{"file", string(file.data(gs).path())}});
 
-    unique_ptr<parser::Node> nodes;
-    {
+    parser::Parser::ParseResult parseResult = [&]() {
         core::MutableContext ctx(gs, core::Symbols::root(), file);
         core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
-        nodes = parser::Prism::Parser::run(ctx);
-    }
+        if (gs.cacheSensitiveOptions.rbsEnabled) {
+            return parser::Prism::Parser::run(ctx, false);
+        } else {
+            return parser::Prism::Parser::run(ctx);
+        }
+    }();
 
     if (print.ParseTree.enabled) {
-        print.ParseTree.fmt("{}\n", nodes->toStringWithTabs(gs, 0));
+        print.ParseTree.fmt("{}\n", parseResult.tree->toStringWithTabs(gs, 0));
     }
     if (print.ParseTreeJson.enabled) {
-        print.ParseTreeJson.fmt("{}\n", nodes->toJSON(gs, 0));
+        print.ParseTreeJson.fmt("{}\n", parseResult.tree->toJSON(gs, 0));
     }
     if (print.ParseTreeJsonWithLocs.enabled) {
-        print.ParseTreeJson.fmt("{}\n", nodes->toJSONWithLocs(gs, file, 0));
+        print.ParseTreeJson.fmt("{}\n", parseResult.tree->toJSONWithLocs(gs, file, 0));
     }
     if (print.ParseTreeWhitequark.enabled) {
-        print.ParseTreeWhitequark.fmt("{}\n", nodes->toWhitequark(gs, 0));
+        print.ParseTreeWhitequark.fmt("{}\n", parseResult.tree->toWhitequark(gs, 0));
     }
 
-    return nodes;
+    return parseResult;
 }
 
 ast::ExpressionPtr runDesugar(core::GlobalState &gs, core::FileRef file, unique_ptr<parser::Node> parseTree,
@@ -356,7 +356,7 @@ ast::ExpressionPtr desugarOne(const options::Options &opts, core::GlobalState &g
         }
         auto parseResult = runParser(gs, file, print, opts.traceLexer, opts.traceParser);
 
-        auto parseTree = runRBSRewrite(gs, file, move(parseResult), print);
+        auto parseTree = runRBSRewrite(gs, file, move(parseResult.tree), move(parseResult.commentLocations), print);
 
         return runDesugar(gs, file, move(parseTree), print, preserveConcreteSyntax);
     } catch (SorbetException &) {
@@ -392,7 +392,8 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                         return emptyParsedFile(file);
                     }
 
-                    parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
+                    parseTree =
+                        runRBSRewrite(lgs, file, move(parseResult.tree), move(parseResult.commentLocations), print);
                     if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
                         return emptyParsedFile(file);
                     }
@@ -400,14 +401,13 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                     break;
                 }
                 case options::Parser::PRISM: {
-                    parseTree = runPrismParser(lgs, file, print);
+                    auto parseResult = runPrismParser(lgs, file, print);
+                    parseTree =
+                        runRBSRewrite(lgs, file, move(parseResult.tree), move(parseResult.commentLocations), print);
 
                     if (opts.stopAfterPhase == options::Phase::PARSER) {
                         return emptyParsedFile(file);
                     }
-
-                    // RBS rewriting is not yet supported for Prism. https://github.com/Shopify/sorbet/issues/574
-                    ENFORCE(opts.stopAfterPhase != options::Phase::RBS_REWRITER);
 
                     break;
                 }
