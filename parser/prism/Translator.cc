@@ -272,10 +272,45 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_AND_NODE: { // operator `&&` and `and`
             auto andNode = down_cast<pm_and_node>(node);
 
-            auto left = translate(andNode->left);
-            auto right = translate(andNode->right);
+            auto lhs = translate(andNode->left);
+            auto rhs = translate(andNode->right);
 
-            return make_unique<parser::And>(location, move(left), move(right));
+            ENFORCE(lhs != nullptr && rhs != nullptr, "AND must have non-null left and right");
+
+            if (!hasExpr(lhs, rhs) || !isa_reference(lhs->copyDesugaredExpr())) {
+                return make_unique<parser::And>(location, move(lhs), move(rhs));
+            }
+
+            auto lhsExpr = lhs->takeDesugaredExpr();
+            auto rhsExpr = rhs->takeDesugaredExpr();
+
+            if (preserveConcreteSyntax) {
+                auto andAndLoc = core::LocOffsets{lhs->loc.endPos(), rhs->loc.beginPos()};
+                auto magicSend = MK::Send2(location, MK::Magic(location.copyWithZeroLength()), core::Names::andAnd(),
+                                           andAndLoc, std::move(lhsExpr), std::move(rhsExpr));
+                return make_node_with_expr<parser::And>(std::move(magicSend), location, std::move(lhs), std::move(rhs));
+            }
+
+            if (isa_reference(lhsExpr)) {
+                auto cond = MK::cpRef(lhsExpr);
+                auto if_ = MK::If(location, std::move(cond), std::move(rhsExpr), std::move(lhsExpr));
+                return make_node_with_expr<parser::And>(std::move(if_), location, std::move(lhs), std::move(rhs));
+            }
+
+            ENFORCE(false, "all freshNameUnique must be handled at the same time");
+
+            // For non-reference expressions, create a temporary variable so we don't evaluate the LHS twice.
+            // E.g. `x = 1 && 2` becomes `x = (temp = 1; temp ? temp : 2)`
+            core::NameRef tempLocalName = nextUniqueDesugarName(core::Names::andAnd());
+            auto lhsLoc = lhs->loc;
+            auto rhsLoc = rhs->loc;
+            auto condLoc =
+                lhsLoc.exists() && rhsLoc.exists() ? core::LocOffsets{lhsLoc.endPos(), rhsLoc.beginPos()} : lhsLoc;
+            auto temp = MK::Assign(location, tempLocalName, std::move(lhsExpr));
+            auto if_ = MK::If(location, MK::Local(condLoc, tempLocalName), std::move(rhsExpr),
+                              MK::Local(lhsLoc, tempLocalName));
+            auto wrapped = MK::InsSeq1(location, std::move(temp), std::move(if_));
+            return make_node_with_expr<parser::And>(std::move(wrapped), location, std::move(lhs), std::move(rhs));
         }
         case PM_ARGUMENTS_NODE: { // A list of arguments in one of several places:
             // 1. The arguments to a method call, e.g the `1, 2, 3` in `f(1, 2, 3)`.
@@ -1266,6 +1301,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto lhs = translate(orNode->left);
             auto rhs = translate(orNode->right);
+
+            ENFORCE(lhs != nullptr && rhs != nullptr, "OR must have non-null left and right");
 
             if (!hasExpr(lhs, rhs) || !isa_reference(lhs->copyDesugaredExpr())) {
                 return make_unique<parser::Or>(location, move(lhs), move(rhs));
