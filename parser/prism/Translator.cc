@@ -888,16 +888,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto ifTrue = translate(up_cast(ifNode->statements));
             auto ifFalse = translate(ifNode->subsequent);
 
-            if (hasExpr(predicate, ifTrue, ifFalse)) {
-                auto cond_expr = predicate->takeDesugaredExpr();
-                auto then_expr = ifTrue ? ifTrue->takeDesugaredExpr() : MK::EmptyTree();
-                auto else_expr = ifFalse ? ifFalse->takeDesugaredExpr() : MK::EmptyTree();
-                auto if_node = MK::If(location, move(cond_expr), move(then_expr), move(else_expr));
-                return make_node_with_expr<parser::If>(move(if_node), location, move(predicate), move(ifTrue),
-                                                       move(ifFalse));
-            }
-
-            return make_unique<parser::If>(location, move(predicate), move(ifTrue), move(ifFalse));
+            return translateIfNode(location, move(predicate), move(ifTrue), move(ifFalse));
         }
         case PM_IMAGINARY_NODE: { // An imaginary number literal, like `1.0i`, `+1.0i`, or `-1.0i`
             auto imaginaryNode = down_cast<pm_imaginary_node>(node);
@@ -1555,7 +1546,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto ifFalse = translate(up_cast(unlessNode->statements));
             auto ifTrue = translate(up_cast(unlessNode->else_clause));
 
-            return make_unique<parser::If>(location, move(predicate), move(ifTrue), move(ifFalse));
+            return translateIfNode(location, move(predicate), move(ifTrue), move(ifFalse));
         }
         case PM_UNTIL_NODE: { // A `until` loop, like `until stop_condition; ...; end`
             auto untilNode = down_cast<pm_until_node>(node);
@@ -2084,6 +2075,21 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
     parser::NodeVec sorbetStmts = translateMulti(stmtsNode->body);
 
     return make_unique<parser::Begin>(translateLoc(stmtsNode->base.location), move(sorbetStmts));
+}
+
+// Helper function for creating if nodes with optional desugaring
+unique_ptr<parser::Node> Translator::translateIfNode(core::LocOffsets location, unique_ptr<parser::Node> predicate,
+                                                     unique_ptr<parser::Node> ifTrue,
+                                                     unique_ptr<parser::Node> ifFalse) {
+    if (!hasExpr(predicate, ifTrue, ifFalse)) {
+        return make_unique<parser::If>(location, move(predicate), move(ifTrue), move(ifFalse));
+    }
+
+    auto condExpr = predicate->takeDesugaredExpr();
+    auto thenExpr = ifTrue ? ifTrue->takeDesugaredExpr() : MK::EmptyTree();
+    auto elseExpr = ifFalse ? ifFalse->takeDesugaredExpr() : MK::EmptyTree();
+    auto ifNode = MK::If(location, move(condExpr), move(thenExpr), move(elseExpr));
+    return make_node_with_expr<parser::If>(move(ifNode), location, move(predicate), move(ifTrue), move(ifFalse));
 }
 
 // Handles any one of the Prism nodes that models any kind of constant or constant path.
