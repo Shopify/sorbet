@@ -732,6 +732,7 @@ unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, co
     auto name = translateConstantName(callNode->read_name);
     auto receiver = translate(callNode->receiver);
     auto messageLoc = translateLoc(callNode->message_loc);
+    auto loc = core::LocOffsets{location.beginPos(), messageLoc.endPos()};
 
     if (PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
         // Handle operator assignment to the result of a safe method call, like `a&.b += 1`
@@ -742,9 +743,9 @@ unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, co
 
     // Handle operator assignment to the result of a method call, like `a.b += 1`
     if (!directlyDesugar || !hasExpr(receiver)) {
-        auto lhs = make_unique<parser::Send>(location, move(receiver), name, messageLoc, NodeVec{});
-        auto result = translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, parser::Send>(
-            callNode, location, move(lhs));
+        auto lhs = make_unique<parser::Send>(loc, move(receiver), name, messageLoc, NodeVec{});
+        auto result =
+            translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, parser::Send>(callNode, loc, move(lhs));
         return result;
     }
     auto receiverExpr = receiver->takeDesugaredExpr();
@@ -752,11 +753,10 @@ unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, co
     ast::Send::Flags flags;
     flags.isPrivateOk = PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
 
-    auto send = MK::Send(location, move(receiverExpr), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
-    auto lhs = make_node_with_expr<parser::Send>(move(send), location, move(receiver), name, messageLoc, NodeVec{});
+    auto send = MK::Send(loc, move(receiverExpr), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
+    auto lhs = make_node_with_expr<parser::Send>(move(send), loc, move(receiver), name, messageLoc, NodeVec{});
 
-    return translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, parser::Send>(callNode, location,
-                                                                                             move(lhs));
+    return translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, parser::Send>(callNode, loc, move(lhs));
 }
 
 unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveConcreteSyntax) {
