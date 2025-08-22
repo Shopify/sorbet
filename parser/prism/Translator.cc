@@ -726,12 +726,22 @@ unique_ptr<parser::Node> Translator::translateCSendAssignment(PrismAssignmentNod
     return move(lhs);
 }
 
+// Used the 3 kinds of assignment that lower to `Send` nodes:
+// 1. `recv.a &&= b`
+// 2. `recv.a ||= b`
+// 3. `recv.a  += b`
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
 unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, core::LocOffsets location) {
     auto callNode = down_cast<PrismAssignmentNode>(node);
     auto name = translateConstantName(callNode->read_name);
     auto receiver = translate(callNode->receiver);
     auto messageLoc = translateLoc(callNode->message_loc);
+
+    // The assign's location spans from the start of the receiver to the end of the message,
+    // not including the operator or RHS:
+    //     recv.a += b
+    //     ^^^^^^^^^^^
+    location = core::LocOffsets{location.beginPos(), messageLoc.endPos()};
 
     if (PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
         // Handle operator assignment to the result of a safe method call, like `a&.b += 1`
