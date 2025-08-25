@@ -1275,10 +1275,35 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto left = translate(rangeNode->left);
             auto right = translate(rangeNode->right);
 
+            if (!directlyDesugar || !hasExpr(left, right)) {
+                if (PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // `...`
+                    return make_unique<parser::ERange>(location, move(left), move(right));
+                } else { // `..`
+                    return make_unique<parser::IRange>(location, move(left), move(right));
+                }
+            }
+
+            auto recv = MK::Magic(location);
+            auto locZeroLen = core::LocOffsets{location.beginPos(), location.beginPos()};
+
+            auto fromExpr = left ? left->takeDesugaredExpr() : MK::EmptyTree();
+            auto toExpr = right ? right->takeDesugaredExpr() : MK::EmptyTree();
+
+            ast::ExpressionPtr excludeEnd;
             if (PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // `...`
-                return make_unique<parser::ERange>(location, move(left), move(right));
+                excludeEnd = MK::True(location);
             } else { // `..`
-                return make_unique<parser::IRange>(location, move(left), move(right));
+                excludeEnd = MK::False(location);
+            }
+
+            // Desugar to `Kernel.buildRange(from, to, excludeEnd)`
+            auto desugaredExpr = MK::Send3(location, move(recv), core::Names::buildRange(), locZeroLen, move(fromExpr),
+                                           move(toExpr), move(excludeEnd));
+
+            if (PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END)) { // `...`
+                return make_node_with_expr<parser::ERange>(move(desugaredExpr), location, move(left), move(right));
+            } else { // `..`
+                return make_node_with_expr<parser::IRange>(move(desugaredExpr), location, move(left), move(right));
             }
         }
         case PM_RATIONAL_NODE: { // A rational number literal, e.g. `1r`
