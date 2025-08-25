@@ -1,6 +1,8 @@
 # typed: strict
 # enable-experimental-rbs-comments: true
 
+# Modified for Prism, contains minor differences in the exp file
+
 HEREDOC1 = <<~MSG.strip # error: Constants must have type annotations with `T.let` when specifying `# typed: strict
   #: Integer
 MSG
