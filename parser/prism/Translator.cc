@@ -721,7 +721,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                                  move(body));
             }
 
-            return make_unique<parser::DefMethod>(location, declLoc, name, move(params), move(body));
+            // Method defs are complex, and we're building support for different kinds of arguments bit by bit.
+            // This bool is true when this particular method def is supported by our desugar logic.
+            auto supportedMethodDef = defNode->parameters == nullptr && hasExpr(params, body);
+
+            if (!supportedMethodDef) {
+                return make_unique<parser::DefMethod>(location, declLoc, name, move(params), move(body));
+            }
+
+            auto exprArgs = ast::MethodDef::ARGS_store{};
+            auto bodyExpr = body == nullptr ? MK::EmptyTree() : body->takeDesugaredExpr();
+
+            auto expr = MK::Method(location, declLoc, name, move(exprArgs), move(bodyExpr));
+            return make_node_with_expr<parser::DefMethod>(move(expr), location, declLoc, name, move(params),
+                                                          move(body));
         }
         case PM_DEFINED_NODE: {
             auto definedNode = down_cast<pm_defined_node>(node);
