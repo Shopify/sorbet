@@ -584,8 +584,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             // The keyword arguments hash (if there is one) can be the last argument if there is no block,
             // and is otherwise located in the second-to-last argument, before the block.
-            auto hasBlockArg = prismBlock != nullptr;
-            auto kwargsHashIndex = hasBlockArg ? (args.size() - 2) : (args.size() - 1);
+            auto kwargsHashIndex = args.size() - 1;
             auto hasKwargsHash = kwargsHashIndex < args.size() &&
                                  parser::NodeWithExpr::isa_node<parser::Hash>(args[kwargsHashIndex].get());
 
@@ -616,11 +615,26 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     }
                 }
             }
+            unique_ptr<parser::Node> blockBody;       // e.g. `123` in `foo { |x| 123 }`
+            unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
+            bool supportedBlock;
+            if (prismBlock != nullptr) {
+                if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                    auto blockNode = down_cast<pm_block_node>(prismBlock);
+                    blockBody = translate(blockNode->body);
+                    blockParameters = translate(blockNode->parameters);
+                    supportedBlock = blockNode->parameters == nullptr && hasExpr(blockBody, blockParameters);
+                }
+            } else {
+                // If there's no block, we support the call
+                supportedBlock = true;
+            }
 
-            // Method calls are really complex, and we're building support for different kinds of arguments bit by
+            // Method defs are really complex, and we're building support for different kinds of arguments bit by
             // bit. This bool is true when this particular method call is supported by our desugar logic.
-            auto supportedCallType = constantNameString != "block_given?" && !hasKwargsHash && !hasBlockArg &&
-                                     !hasFwdArgs && !hasFwdRestArg && !hasSplat && hasExpr(receiver) && hasExpr(args);
+            auto supportedCallType = constantNameString != "block_given?" && !hasKwargsHash && !hasFwdArgs &&
+                                     !hasFwdRestArg && !hasSplat && supportedBlock && hasExpr(receiver) &&
+                                     hasExpr(args);
 
             if (!supportedCallType) {
                 sendNode = make_unique<parser::Send>(loc, move(receiver), name, messageLoc, move(args));
@@ -657,7 +671,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
             }
 
-            int numPosArgs = args.size() - (hasKwargsHash ? 1 : 0) - (hasBlockArg ? 1 : 0);
+            int numPosArgs = args.size() - (hasKwargsHash ? 1 : 0);
 
             ast::Send::ARGS_store sendArgs{};
             sendArgs.reserve(args.size());
@@ -665,16 +679,37 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 sendArgs.emplace_back(arg->takeDesugaredExpr());
             }
 
+            if (prismBlock != nullptr) {
+                if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                    auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
+                    sendArgs.emplace_back(MK::Block(location, move(blockBodyExpr), ast::MethodDef::ARGS_store{}));
+                    flags.hasBlock = true;
+                } else {
+                    unreachable("Found a {} block type, which is not implemented yet ",
+                                pm_node_type_to_str(PM_NODE_TYPE(prismBlock)));
+                }
+            }
+
             auto expr = MK::Send(location, move(receiverExpr), name, messageLoc, numPosArgs, move(sendArgs), flags);
             sendNode = make_node_with_expr<parser::Send>(move(expr), loc, move(receiver), name, messageLoc, move(args));
 
-            if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                // PM_BLOCK_NODE models an explicit block arg with `{ ... }` or
-                // `do ... end`, but not a forwarded block like the `&b` in `a.map(&b)`.
-                // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child, but the
-                // The legacy parser inverts this , with a parent "Block" with a child
-                // "Send".
-                return translateCallWithBlock(prismBlock, move(sendNode));
+            if (prismBlock != nullptr) {
+                if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                    // PM_BLOCK_NODE models an explicit block arg with `{ ... }` or
+                    // `do ... end`, but not a forwarded block like the `&b` in `a.map(&b)`.
+                    // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child, but the
+                    // The legacy parser inverts this , with a parent "Block" with a child
+                    // "Send".
+                    ENFORCE(blockParameters == nullptr, "Blocks with parameters are not implemented yet.");
+
+                    auto blockNode =
+                        make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), sendNode->loc, move(sendNode),
+                                                           move(blockParameters), move(blockBody));
+                    return blockNode;
+                } else {
+                    unreachable("Found a {} block type, which is not implemented yet ",
+                                pm_node_type_to_str(PM_NODE_TYPE(prismBlock)));
+                }
             }
 
             return sendNode;
