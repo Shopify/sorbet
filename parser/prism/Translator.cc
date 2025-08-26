@@ -1532,8 +1532,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto splatExpr = MK::Splat(location, move(var));
                 return make_node_with_expr<parser::ForwardedRestArg>(move(splatExpr), location);
             } else { // Splatting an expression like `f(*a)`
-                // Don't desugar here - let the parent (Array/Send) handle it
-                return make_unique<parser::Splat>(location, move(expr));
+                if (hasExpr(expr)) {
+                    auto childExpr = expr->takeDesugaredExpr();
+                    auto splatExpr = MK::Splat(location, move(childExpr));
+                    return make_node_with_expr<parser::Splat>(move(splatExpr), location, move(expr));
+                } else {
+                    return make_unique<parser::Splat>(location, move(expr));
+                }
             }
         }
         case PM_STATEMENTS_NODE: { // A sequence of statements, such a in a `begin` block, `()`, etc.
