@@ -1,5 +1,75 @@
 Begin {
   stmts = [
+    DefMethod {
+      name = <U with_named_block_paramer>
+      args = Args {
+        args = [
+          Blockarg {
+            name = <U block>
+          }
+        ]
+      }
+      body = Begin {
+        stmts = [
+          Yield {
+            exprs = [
+            ]
+          }
+          Yield {
+            exprs = [
+              Integer {
+                val = "123"
+              }
+            ]
+          }
+          Yield {
+            exprs = [
+              String {
+                val = <U multiple>
+              }
+              String {
+                val = <U values>
+              }
+            ]
+          }
+        ]
+      }
+    }
+    DefMethod {
+      name = <U with_anonymous_block_paramer>
+      args = Args {
+        args = [
+          Blockarg {
+            name = <P <U &> $2>
+          }
+        ]
+      }
+      body = Begin {
+        stmts = [
+          Yield {
+            exprs = [
+            ]
+          }
+          Yield {
+            exprs = [
+              Integer {
+                val = "123"
+              }
+            ]
+          }
+          Yield {
+            exprs = [
+              String {
+                val = <U multiple>
+              }
+              String {
+                val = <U values>
+              }
+            ]
+          }
+        ]
+      }
+    }
     Yield {
       exprs = [
       ]

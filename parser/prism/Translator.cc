@@ -1719,6 +1719,32 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto yieldArgs = translateArguments(yieldNode->arguments);
 
+            ast::ExpressionPtr recv;
+            if (hasExpr(yieldArgs)) {
+                auto blockArgName = this->enclosingBlockParamName;
+                if (blockArgName.exists()) {
+                    // We always want to report an error if we're using yield with a synthesized name in strict mode
+                    if (blockArgName == core::Names::blkArg()) {
+                        if (auto e = ctx.beginIndexerError(this->enclosingMethodLoc,
+                                                           core::errors::Desugar::UnnamedBlockParameter)) {
+                            e.setHeader("Method `{}` uses `{}` but does not mention a block parameter",
+                                        this->enclosingMethodName.show(ctx), "yield");
+                            e.addErrorLine(ctx.locAt(location), "Arising from use of `{}` in method body", "yield");
+                        }
+                    }
+
+                    recv = MK::Local(location, blockArgName);
+                } else {
+                    // No enclosing block arg can happen when yield is called outside a method, e.g. at the top-level.
+                    recv = MK::RaiseUnimplemented(location);
+                }
+
+                auto args = nodeVecToStore<ast::Send::ARGS_store>(yieldArgs);
+                auto expr = MK::Send(location, move(recv), core::Names::call(), location.copyWithZeroLength(),
+                                     args.size(), move(args));
+                return make_node_with_expr<parser::Yield>(move(expr), location, move(yieldArgs));
+            }
+
             return make_unique<parser::Yield>(location, move(yieldArgs));
         }
 
