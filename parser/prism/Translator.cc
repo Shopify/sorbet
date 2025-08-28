@@ -2677,6 +2677,14 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
         body = this->enterBlockContext().translate(prismLambdaNode->body);
     }
 
+    auto attemptToDesugarParams = hasExpr(body, sendNode);
+
+    ast::MethodDef::ARGS_store argsStore;
+    ast::InsSeq::STATS_store statsStore;
+    bool didDesugarParams = false;
+    std::tie(argsStore, statsStore, didDesugarParams) = desugarParametersNode(
+        parser::NodeWithExpr::cast_node<parser::Args>(parametersNode.get()), attemptToDesugarParams);
+
     auto blockLoc = sendNode->loc;
 
     // Modify send node's endLoc to be position before first space
@@ -2708,10 +2716,25 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
         }
     }
 
+    auto sendExpr = sendNode->takeDesugaredExpr();
+
+    if (!directlyDesugar || !didDesugarParams || sendExpr == nullptr) {
+        if (parser::NodeWithExpr::cast_node<parser::NumParams>(parametersNode.get())) {
+            return make_unique<parser::NumBlock>(blockLoc, move(sendNode), move(parametersNode), move(body));
+        } else {
+            return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
+        }
+    }
+
+    // TODO the send->block's loc is too big and includes the whole send
+    ast::cast_tree_nonnull<ast::Send>(sendExpr).setBlock(MK::Block(blockLoc, MK::EmptyTree(), move(argsStore)));
+
     if (parser::NodeWithExpr::cast_node<parser::NumParams>(parametersNode.get())) {
-        return make_unique<parser::NumBlock>(blockLoc, move(sendNode), move(parametersNode), move(body));
+        return make_node_with_expr<parser::NumBlock>(move(sendExpr), blockLoc, move(sendNode), move(parametersNode),
+                                                     move(body));
     } else {
-        return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
+        return make_node_with_expr<parser::Block>(move(sendExpr), blockLoc, move(sendNode), move(parametersNode),
+                                                  move(body));
     }
 }
 

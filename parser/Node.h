@@ -97,8 +97,18 @@ public:
     }
 
     virtual ast::ExpressionPtr takeDesugaredExpr() final {
+        std::cout << "Taking expr from " << this->wrappedNode->nodeName() << " @ " << (void *)this << std::endl;
+
+        if (this->wrappedNode->nodeName() == "Arg") {
+            std::cout << "Arg" << std::endl;
+        }
+        if (this->desugaredExpr == nullptr) {
+            std::cout << "Tried to call make a second call to `takeDesugaredExpr()` on a NodeWithExpr @ "
+                      << (void *)this << std::endl;
+        }
+
         ENFORCE(this->desugaredExpr != nullptr,
-                "Tried to call make a second call to `takeDesugaredExpr()` on a NodeWithExpr");
+                "Tried to call make a second call to `takeDesugaredExpr()` on a NodeWithExpr @ {}", (void *)this);
 
         // We know each `NodeAndExpr` object's `takeDesugaredExpr()` will be called at most once, either:
         // 1. When its parent node is being translated in `prism/Translator.cc`,
