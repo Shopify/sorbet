@@ -824,15 +824,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         }
         case PM_FORWARDING_SUPER_NODE: { // `super` with no `(...)`
             auto forwardingSuperNode = down_cast<pm_forwarding_super_node>(node);
-            auto translatedNode = make_unique<parser::ZSuper>(location);
+
+            auto expr = MK::ZSuper(location, maybeTypedSuper());
+            auto translatedNode = make_node_with_expr<parser::ZSuper>(move(expr), location);
 
             auto blockArgumentNode = forwardingSuperNode->block;
-
             if (blockArgumentNode != nullptr) { // always a PM_BLOCK_NODE
                 return translateCallWithBlock(up_cast(blockArgumentNode), move(translatedNode));
             }
 
-            return move(translatedNode);
+            return translatedNode;
         }
         case PM_GLOBAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a global variable, e.g. `$g &&= false`
             return translateOpAssignment<pm_global_variable_and_write_node, parser::AndAsgn, parser::GVarLhs>(node);
@@ -2426,6 +2427,11 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
     translateMultiInto(sorbetLhs, prismRights);
 
     return make_unique<parser::Mlhs>(location, move(sorbetLhs));
+}
+
+core::NameRef Translator::maybeTypedSuper() const {
+    return (ctx.state.cacheSensitiveOptions.typedSuper && !isInAnyBlock && !isInModule) ? core::Names::super()
+                                                                                        : core::Names::untypedSuper();
 }
 
 // Context management methods
