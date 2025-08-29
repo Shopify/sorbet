@@ -2181,7 +2181,24 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
 
             [&](parser::NodeWithExpr *nodeWithExpr) {
                 if (parser::NodeWithExpr::isa_node<parser::Splat>(nodeWithExpr->wrappedNode.get())) {
-                    result = node2TreeImpl(dctx, nodeWithExpr->wrappedNode);
+                    // result = node2TreeImpl(dctx, nodeWithExpr->wrappedNode);
+
+                    // Special case for Splats, because the `parser::Array *` case modifies their locs in some cases.
+                    // `splat` was created in Translator.cc, before the location modification (stat->loc = loc) could
+                    // happen, so its desugared expr is a splat with an unmodified location (incorrect). We discard that
+                    // ast::Expression, and instead build a new Splat from the updated location.
+                    // We can reuse the child `var` expr though.
+
+                    auto splat = parser::NodeWithExpr::cast_node<parser::Splat>(nodeWithExpr->wrappedNode.get());
+
+                    if (splat->var->hasDesugaredExpr()) {
+                        // auto expr = nodeWithExpr->wrappedNode->takeDesugaredExpr();
+                        // cout << "Expr pointer: " << expr.get() << endl;
+                        result = MK::Splat(loc, splat->var->takeDesugaredExpr());
+                    } else {
+                        cout << "Fallback path" << endl;
+                        result = node2TreeImpl(dctx, nodeWithExpr->wrappedNode);
+                    }
                 } else {
                     result = nodeWithExpr->takeDesugaredExpr();
                     ENFORCE(result != nullptr, "NodeWithExpr has no cached desugared expr");
