@@ -663,11 +663,13 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             // add entries here, without consulting the "node.*" counters from a
             // run over a representative code base.
             [&](parser::Const *const_) {
+                categoryCounterInc("PrismDesugar.cc node", "Const");
                 auto scope = node2TreeImpl(dctx, const_->scope);
                 ExpressionPtr res = MK::UnresolvedConstant(loc, move(scope), const_->name);
                 result = move(res);
             },
             [&](parser::Send *send) {
+                categoryCounterInc("PrismDesugar.cc node", "Send");
                 Send::Flags flags;
                 auto rec = node2TreeImpl(dctx, send->receiver);
                 if (isa_tree<EmptyTree>(rec)) {
@@ -904,18 +906,22 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::String *string) {
+                categoryCounterInc("PrismDesugar.cc node", "String");
                 ExpressionPtr res = MK::String(loc, string->val);
                 result = move(res);
             },
             [&](parser::Symbol *symbol) {
+                categoryCounterInc("PrismDesugar.cc node", "Symbol");
                 ExpressionPtr res = MK::Symbol(loc, symbol->val);
                 result = move(res);
             },
             [&](parser::LVar *var) {
+                categoryCounterInc("PrismDesugar.cc node", "LVar");
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = move(res);
             },
             [&](parser::Hash *hash) {
+                categoryCounterInc("PrismDesugar.cc node", "Hash");
                 InsSeq::STATS_store updateStmts;
                 updateStmts.reserve(hash->pairs.size());
 
@@ -1040,9 +1046,16 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     result = MK::InsSeq(loc, move(updateStmts), MK::Local(loc, acc));
                 }
             },
-            [&](parser::Block *block) { result = desugarBlock(dctx, block); },
-            [&](parser::Begin *begin) { result = desugarBegin(dctx, loc, begin->stmts); },
+            [&](parser::Block *block) {
+                categoryCounterInc("PrismDesugar.cc node", "Block");
+                result = desugarBlock(dctx, block);
+            },
+            [&](parser::Begin *begin) {
+                categoryCounterInc("PrismDesugar.cc node", "Begin");
+                result = desugarBegin(dctx, loc, begin->stmts);
+            },
             [&](parser::Assign *asgn) {
+                categoryCounterInc("PrismDesugar.cc node", "Assign");
                 auto lhs = node2TreeImpl(dctx, asgn->lhs);
                 auto rhs = node2TreeImpl(dctx, asgn->rhs);
                 // Ensure that X = <ErrorNode> always looks like a proper static field, rather
@@ -1062,6 +1075,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             // END hand-ordered clauses
             [&](parser::And *and_) {
+                categoryCounterInc("PrismDesugar.cc node", "And");
                 auto lhs = node2TreeImpl(dctx, and_->left);
                 auto rhs = node2TreeImpl(dctx, and_->right);
                 if (dctx.preserveConcreteSyntax) {
@@ -1112,6 +1126,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Or *or_) {
+                categoryCounterInc("PrismDesugar.cc node", "Or");
                 auto lhs = node2TreeImpl(dctx, or_->left);
                 auto rhs = node2TreeImpl(dctx, or_->right);
                 if (dctx.preserveConcreteSyntax) {
@@ -1136,6 +1151,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::AndAsgn *andAsgn) {
+                categoryCounterInc("PrismDesugar.cc node", "AndAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::andAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, andAsgn->left), node2TreeImpl(dctx, andAsgn->right));
@@ -1206,6 +1222,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::OrAsgn *orAsgn) {
+                categoryCounterInc("PrismDesugar.cc node", "OrAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::orAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, orAsgn->left), node2TreeImpl(dctx, orAsgn->right));
@@ -1300,6 +1317,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::OpAsgn *opAsgn) {
+                categoryCounterInc("PrismDesugar.cc node", "OpAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::opAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, opAsgn->left), node2TreeImpl(dctx, opAsgn->right));
@@ -1370,6 +1388,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::CSend *csend) {
+                categoryCounterInc("PrismDesugar.cc node", "CSend");
                 if (dctx.preserveConcreteSyntax) {
                     // Desugaring to a InsSeq + If causes a problem for Extract to Variable; the fake If will be where
                     // the new variable is inserted, which is incorrect. Instead, desugar to a regular send, so that the
@@ -1422,6 +1441,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::Self *self) { desugaredByPrismTranslator(self); },
             [&](parser::DSymbol *dsymbol) {
+                categoryCounterInc("PrismDesugar.cc node", "DSymbol");
                 if (dsymbol->nodes.empty()) {
                     ExpressionPtr res = MK::Symbol(loc, core::Names::empty());
                     result = move(res);
@@ -1435,13 +1455,18 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::FileLiteral *fileLiteral) { desugaredByPrismTranslator(fileLiteral); },
             [&](parser::ConstLhs *constLhs) {
+                categoryCounterInc("PrismDesugar.cc node", "ConstLhs");
                 auto scope = node2TreeImpl(dctx, constLhs->scope);
                 ExpressionPtr res = MK::UnresolvedConstant(loc, move(scope), constLhs->name);
                 result = move(res);
             },
             [&](parser::Cbase *cbase) { desugaredByPrismTranslator(cbase); },
-            [&](parser::Kwbegin *kwbegin) { result = desugarBegin(dctx, loc, kwbegin->stmts); },
+            [&](parser::Kwbegin *kwbegin) {
+                categoryCounterInc("PrismDesugar.cc node", "Kwbegin");
+                result = desugarBegin(dctx, loc, kwbegin->stmts);
+            },
             [&](parser::Module *module) {
+                categoryCounterInc("PrismDesugar.cc node", "Module");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockParamName,
                                      dctx.enclosingMethodLoc, dctx.enclosingMethodName, dctx.inAnyBlock, true,
                                      dctx.preserveConcreteSyntax);
@@ -1451,6 +1476,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Class *klass) {
+                categoryCounterInc("PrismDesugar.cc node", "Class");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockParamName,
                                      dctx.enclosingMethodLoc, dctx.enclosingMethodName, dctx.inAnyBlock, false,
                                      dctx.preserveConcreteSyntax);
@@ -1467,36 +1493,43 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::Param *param) { desugaredByPrismTranslator(param); },
             [&](parser::RestParam *param) {
+                categoryCounterInc("PrismDesugar.cc node", "RestParam");
                 ExpressionPtr res = MK::RestParam(loc, MK::Local(param->nameLoc, param->name));
                 result = move(res);
             },
             [&](parser::Kwrestarg *arg) {
+                categoryCounterInc("PrismDesugar.cc node", "Kwrestarg");
                 ExpressionPtr res = MK::RestParam(loc, MK::KeywordArg(loc, arg->name));
                 result = move(res);
             },
             [&](parser::Kwarg *arg) { desugaredByPrismTranslator(arg); },
             [&](parser::BlockParam *param) {
+                categoryCounterInc("PrismDesugar.cc node", "BlockParam");
                 ExpressionPtr res = MK::BlockParam(loc, MK::Local(loc, param->name));
                 result = move(res);
             },
             [&](parser::Kwoptarg *arg) {
+                categoryCounterInc("PrismDesugar.cc node", "Kwoptarg");
                 ExpressionPtr res =
                     MK::OptionalParam(loc, MK::KeywordArg(arg->nameLoc, arg->name), node2TreeImpl(dctx, arg->default_));
                 result = move(res);
             },
             [&](parser::OptParam *param) {
+                categoryCounterInc("PrismDesugar.cc node", "Optarg");
                 ExpressionPtr res = MK::OptionalParam(loc, MK::Local(param->nameLoc, param->name),
                                                       node2TreeImpl(dctx, param->default_));
                 result = move(res);
             },
             [&](parser::Shadowarg *arg) { desugaredByPrismTranslator(arg); },
             [&](parser::DefMethod *method) {
+                categoryCounterInc("PrismDesugar.cc node", "DefMethod");
                 bool isSelf = false;
                 ExpressionPtr res = buildMethod(dctx, method->loc, method->declLoc, method->name, method->params.get(),
                                                 method->body, isSelf);
                 result = move(res);
             },
             [&](parser::DefS *method) {
+                categoryCounterInc("PrismDesugar.cc node", "DefS");
                 auto *self = parser::NodeWithExpr::cast_node<parser::Self>(method->singleton.get());
                 if (self == nullptr) {
                     if (auto e = dctx.ctx.beginIndexerError(method->singleton->loc,
@@ -1514,6 +1547,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::SClass *sclass) {
+                categoryCounterInc("PrismDesugar.cc node", "SClass");
                 // This will be a nested ClassDef which we leave in the tree
                 // which will get the symbol of `class.singleton_class`
                 auto *self = parser::NodeWithExpr::cast_node<parser::Self>(sclass->expr.get());
@@ -1540,12 +1574,14 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::While *wl) {
+                categoryCounterInc("PrismDesugar.cc node", "While");
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
                 ExpressionPtr res = MK::While(loc, move(cond), move(body));
                 result = move(res);
             },
             [&](parser::WhilePost *wl) {
+                categoryCounterInc("PrismDesugar.cc node", "WhilePost");
                 bool isKwbegin = parser::NodeWithExpr::isa_node<parser::Kwbegin>(wl->body.get());
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
@@ -1557,6 +1593,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Until *wl) {
+                categoryCounterInc("PrismDesugar.cc node", "Until");
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
                 ExpressionPtr res =
@@ -1565,6 +1602,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             // This is the same as WhilePost, but the cond negation is in the other branch.
             [&](parser::UntilPost *wl) {
+                categoryCounterInc("PrismDesugar.cc node", "UntilPost");
                 bool isKwbegin = parser::NodeWithExpr::isa_node<parser::Kwbegin>(wl->body.get());
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
@@ -1573,31 +1611,33 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                               : MK::While(loc, MK::Send0(loc, move(cond), core::Names::bang(), locZeroLen), move(body));
                 result = move(res);
             },
-            [&](parser::Nil *wl) {
-                ExpressionPtr res = MK::Nil(loc);
-                result = move(res);
-            },
+            [&](parser::Nil *nil) { desugaredByPrismTranslator(nil); },
             [&](parser::IVar *var) { desugaredByPrismTranslator(var); },
             [&](parser::GVar *var) { desugaredByPrismTranslator(var); },
             [&](parser::CVar *var) { desugaredByPrismTranslator(var); },
             [&](parser::LVarLhs *var) {
+                categoryCounterInc("PrismDesugar.cc node", "LVarLhs");
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = move(res);
             },
             [&](parser::GVarLhs *var) {
+                categoryCounterInc("PrismDesugar.cc node", "GVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global, var->name);
                 result = move(res);
             },
             [&](parser::CVarLhs *var) {
+                categoryCounterInc("PrismDesugar.cc node", "CVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Class, var->name);
                 result = move(res);
             },
             [&](parser::IVarLhs *var) {
+                categoryCounterInc("PrismDesugar.cc node", "IVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Instance, var->name);
                 result = move(res);
             },
             [&](parser::NthRef *var) { desugaredByPrismTranslator(var); },
             [&](parser::Super *super) {
+                categoryCounterInc("PrismDesugar.cc node", "Super");
                 // Desugar super into a call to a normal method named `super`;
                 // Do this by synthesizing a `Send` parse node and letting our
                 // Send desugar handle it.
@@ -1609,6 +1649,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::ZSuper *zuper) { desugaredByPrismTranslator(zuper); },
             [&](parser::For *for_) {
+                categoryCounterInc("PrismDesugar.cc node", "For");
                 MethodDef::PARAMS_store params;
                 bool canProvideNiceDesugar = true;
                 auto mlhsNode = move(for_->vars);
@@ -1657,6 +1698,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::Integer *integer) { desugaredByPrismTranslator(integer); },
             [&](parser::DString *dstring) {
+                categoryCounterInc("PrismDesugar.cc node", "DString");
                 ExpressionPtr res = desugarDString(dctx, loc, move(dstring->nodes));
                 result = move(res);
             },
@@ -1664,6 +1706,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::Complex *complex) { desugaredByPrismTranslator(complex); },
             [&](parser::Rational *rational) { desugaredByPrismTranslator(rational); },
             [&](parser::Array *array) {
+                categoryCounterInc("PrismDesugar.cc node", "Array");
                 Array::ENTRY_store elems;
                 elems.reserve(array->elts.size());
                 ExpressionPtr lastMerge;
@@ -1720,6 +1763,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::IRange *ret) {
+                categoryCounterInc("PrismDesugar.cc node", "IRange");
                 auto recv = MK::Magic(loc);
                 auto from = node2TreeImpl(dctx, ret->from);
                 auto to = node2TreeImpl(dctx, ret->to);
@@ -1729,6 +1773,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(send);
             },
             [&](parser::ERange *ret) {
+                categoryCounterInc("PrismDesugar.cc node", "ERange");
                 auto recv = MK::Magic(loc);
                 auto from = node2TreeImpl(dctx, ret->from);
                 auto to = node2TreeImpl(dctx, ret->to);
@@ -1740,6 +1785,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::Regexp *regexpNode) { desugaredByPrismTranslator(regexpNode); },
             [&](parser::Regopt *regopt) { desugaredByPrismTranslator(regopt); },
             [&](parser::Return *ret) {
+                categoryCounterInc("PrismDesugar.cc node", "Return");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -1773,6 +1819,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Break *ret) {
+                categoryCounterInc("PrismDesugar.cc node", "Break");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -1806,6 +1853,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Next *ret) {
+                categoryCounterInc("PrismDesugar.cc node", "Next");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -1840,6 +1888,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             [&](parser::Retry *ret) { desugaredByPrismTranslator(ret); },
             [&](parser::Yield *ret) {
+                categoryCounterInc("PrismDesugar.cc node", "Yield");
                 Send::ARGS_store args;
                 args.reserve(ret->exprs.size());
                 for (auto &stat : ret->exprs) {
@@ -1867,6 +1916,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Rescue *rescue) {
+                categoryCounterInc("PrismDesugar.cc node", "Rescue");
                 Rescue::RESCUE_CASE_store cases;
                 cases.reserve(rescue->rescue.size());
                 for (auto &node : rescue->rescue) {
@@ -1878,6 +1928,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Resbody *resbody) {
+                categoryCounterInc("PrismDesugar.cc node", "Resbody");
                 RescueCase::EXCEPTION_store exceptions;
                 auto exceptionsExpr = node2TreeImpl(dctx, resbody->exception);
                 if (isa_tree<EmptyTree>(exceptionsExpr)) {
@@ -1928,6 +1979,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Ensure *ensure) {
+                categoryCounterInc("PrismDesugar.cc node", "Ensure");
                 auto bodyExpr = node2TreeImpl(dctx, ensure->body);
                 auto ensureExpr = node2TreeImpl(dctx, ensure->ensure);
                 auto rescue = cast_tree<Rescue>(bodyExpr);
@@ -1942,6 +1994,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::If *if_) {
+                categoryCounterInc("PrismDesugar.cc node", "If");
                 auto cond = node2TreeImpl(dctx, if_->condition);
                 auto thenp = node2TreeImpl(dctx, if_->then_);
                 auto elsep = node2TreeImpl(dctx, if_->else_);
@@ -1949,6 +2002,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(iff);
             },
             [&](parser::Masgn *masgn) {
+                categoryCounterInc("PrismDesugar.cc node", "Masgn");
                 auto *lhs = parser::NodeWithExpr::cast_node<parser::Mlhs>(masgn->lhs.get());
                 ENFORCE(lhs != nullptr, "Failed to get lhs of Masgn");
 
@@ -1959,6 +2013,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::True *t) { desugaredByPrismTranslator(t); },
             [&](parser::False *t) { desugaredByPrismTranslator(t); },
             [&](parser::Case *case_) {
+                categoryCounterInc("PrismDesugar.cc node", "Case");
                 if (dctx.preserveConcreteSyntax) {
                     // Desugar to:
                     //   Magic.caseWhen(condition, numPatterns, <pattern 1>, ..., <pattern N>, <body 1>, ..., <body M>)
@@ -2041,14 +2096,17 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Splat *splat) {
+                categoryCounterInc("PrismDesugar.cc node", "Splat");
                 auto res = MK::Splat(loc, node2TreeImpl(dctx, splat->var));
                 result = move(res);
             },
             [&](parser::ForwardedRestArg *fra) {
+                categoryCounterInc("PrismDesugar.cc node", "ForwardedRestArg");
                 auto var = ast::MK::Local(loc, core::Names::star());
                 result = MK::Splat(loc, move(var));
             },
             [&](parser::Alias *alias) {
+                categoryCounterInc("PrismDesugar.cc node", "Alias");
                 auto res = MK::Send2(loc, MK::Self(loc), core::Names::aliasMethod(), locZeroLen,
                                      node2TreeImpl(dctx, alias->from), node2TreeImpl(dctx, alias->to));
                 result = move(res);
@@ -2056,6 +2114,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::Defined *defined) { desugaredByPrismTranslator(defined); },
             [&](parser::LineLiteral *line) { desugaredByPrismTranslator(line); },
             [&](parser::XString *xstring) {
+                categoryCounterInc("PrismDesugar.cc node", "XString");
                 auto res = MK::Send1(loc, MK::Self(loc), core::Names::backtick(), locZeroLen,
                                      desugarDString(dctx, loc, move(xstring->nodes)));
                 result = move(res);
@@ -2064,6 +2123,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::Postexe *postexe) { desugaredByPrismTranslator(postexe); },
             [&](parser::Undef *undef) { desugaredByPrismTranslator(undef); },
             [&](parser::CaseMatch *caseMatch) {
+                categoryCounterInc("PrismDesugar.cc node", "CaseMatch");
                 // Create a local var to store the expression used in each match clause
                 auto exprLoc = caseMatch->expr->loc;
                 auto exprName = dctx.freshNameUnique(core::Names::assignTemp());
@@ -2103,19 +2163,27 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             [&](parser::Redo *redo) { desugaredByPrismTranslator(redo); },
             [&](parser::EncodingLiteral *encodingLiteral) { desugaredByPrismTranslator(encodingLiteral); },
             [&](parser::MatchPattern *pattern) {
+                categoryCounterInc("PrismDesugar.cc node", "MatchPattern");
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs.get());
                 result = move(res);
             },
             [&](parser::MatchPatternP *pattern) {
+                categoryCounterInc("PrismDesugar.cc node", "MatchPatternP");
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs.get());
                 result = move(res);
             },
-            [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
+            [&](parser::EmptyElse *else_) {
+                categoryCounterInc("PrismDesugar.cc node", "EmptyElse");
+                result = MK::EmptyTree();
+            },
             [&](parser::ResolvedConst *resolvedConst) {
+                categoryCounterInc("PrismDesugar.cc node", "ResolvedConst");
                 result = make_expression<ConstantLit>(resolvedConst->loc, move(resolvedConst->symbol));
             },
 
             [&](parser::NodeWithExpr *nodeWithExpr) {
+                categoryCounterInc("PrismDesugar.cc node", "NodeWithExpr");
+
                 if (parser::NodeWithExpr::isa_node<parser::Splat>(nodeWithExpr->wrappedNode.get())) {
                     // Special case for Splats in method calls where we want zero-length locations
                     // The `parser::Send` case makes a fake parser::Array with locZeroLen to hide callWithSplat
