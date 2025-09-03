@@ -615,15 +615,26 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     }
                 }
             }
+
             unique_ptr<parser::Node> blockBody;       // e.g. `123` in `foo { |x| 123 }`
-            unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
+            unique_ptr<parser::Args> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
+            ast::MethodDef::ARGS_store argsStore;
+            ast::InsSeq::STATS_store statsStore;
             bool supportedBlock;
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
+
                     blockBody = translate(blockNode->body);
-                    blockParameters = translate(blockNode->parameters);
-                    supportedBlock = blockNode->parameters == nullptr && hasExpr(blockBody, blockParameters);
+                    blockParameters = desugarBlockParametersNode(blockNode);
+
+                    bool didDesugarParams;
+                    std::tie(argsStore, statsStore, didDesugarParams) = desugarParametersNode(
+                        blockParameters.get(), hasExpr(blockBody) && constantNameString != "block_given?" &&
+                                                   !hasKwargsHash && !hasFwdArgs && !hasFwdRestArg && !hasSplat &&
+                                                   hasExpr(receiver) && hasExpr(args));
+
+                    supportedBlock = didDesugarParams;
                 }
             } else {
                 // If there's no block, we support the call
@@ -2454,6 +2465,34 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
     }
 
     return make_tuple(move(argsStore), move(statsStore), true);
+}
+
+unique_ptr<parser::Args> Translator::desugarBlockParametersNode(pm_block_node *blockNode) {
+    if (!PM_NODE_TYPE_P(blockNode->parameters, PM_BLOCK_PARAMETERS_NODE)) {
+        unreachable(" Fallback for numbered params and `it`.");
+    }
+
+    // The parameters declared at the top of a PM_BLOCK_NODE
+    // Like the `|x|` in `foo { |x| ... } `
+    auto paramsNode = down_cast<pm_block_parameters_node>(blockNode->parameters);
+
+    if (paramsNode->parameters == nullptr) {
+        auto location = translateLoc(paramsNode->base.location);
+
+        // TODO: future follow up, ensure we add the block local variables ("shadowargs"), if any.
+        return make_unique<parser::Args>(location, NodeVec{});
+    }
+
+    unique_ptr<parser::Args> params;
+    std::tie(params, std::ignore) = translateParametersNode(paramsNode->parameters);
+
+    // Sorbet's legacy parser inserts locals ("Shadowargs") at the end of the block's Args node,
+    // after all other parameters.
+    auto sorbetShadowParams = translateMulti(paramsNode->locals);
+    params->args.insert(params->args.end(), make_move_iterator(sorbetShadowParams.begin()),
+                        make_move_iterator(sorbetShadowParams.end()));
+
+    return params;
 }
 
 // The legacy Sorbet parser doesn't have a counterpart to PM_ARGUMENTS_NODE to wrap the array
