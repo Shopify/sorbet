@@ -2722,22 +2722,10 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
 
     auto sendExpr = sendNode->takeDesugaredExpr();
 
-    if (!directlyDesugar || !didDesugarParams || sendExpr == nullptr) {
-        if (parser::NodeWithExpr::cast_node<parser::NumParams>(parametersNode.get())) {
-            return make_unique<parser::NumBlock>(blockLoc, move(sendNode), move(parametersNode), move(body));
-        } else {
-            return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
-        }
-    }
-
-    ast::cast_tree_nonnull<ast::Send>(sendExpr).setBlock(MK::Block(blockLoc, MK::EmptyTree(), move(argsStore)));
-
     if (parser::NodeWithExpr::cast_node<parser::NumParams>(parametersNode.get())) {
-        return make_node_with_expr<parser::NumBlock>(move(sendExpr), blockLoc, move(sendNode), move(parametersNode),
-                                                     move(body));
+        return make_unique<parser::NumBlock>(blockLoc, move(sendNode), move(parametersNode), move(body));
     } else {
-        return make_node_with_expr<parser::Block>(move(sendExpr), blockLoc, move(sendNode), move(parametersNode),
-                                                  move(body));
+        return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
     }
 }
 
