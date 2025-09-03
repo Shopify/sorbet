@@ -2685,6 +2685,10 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
     std::tie(argsStore, statsStore, didDesugarParams) = desugarParametersNode(
         parser::NodeWithExpr::cast_node<parser::Args>(parametersNode.get()), attemptToDesugarParams);
 
+    // There was a TODO in the original Desugarer: "the send->block's loc is too big and includes the whole send."
+    // We'll keep this behaviour for parity for now.
+    // TODO: Switch to using the fixed sendNode loc below after direct desugaring is complete
+    // https://github.com/Shopify/sorbet/issues/671
     auto blockLoc = sendNode->loc;
 
     // Modify send node's endLoc to be position before first space
@@ -2726,7 +2730,6 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
         }
     }
 
-    // TODO the send->block's loc is too big and includes the whole send
     ast::cast_tree_nonnull<ast::Send>(sendExpr).setBlock(MK::Block(blockLoc, MK::EmptyTree(), move(argsStore)));
 
     if (parser::NodeWithExpr::cast_node<parser::NumParams>(parametersNode.get())) {
