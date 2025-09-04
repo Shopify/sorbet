@@ -722,9 +722,9 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     if (parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
                         // Pull out the ForwardedArgs (the `...` argument in a method call, like `foo(...)`)
 
-                            ENFORCE(blockPassArg == nullptr, "The parser should have rejected `foo(&, ...)`");
-                            // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
-                            blockPassArg = MK::Local(loc, core::Names::fwdBlock());
+                        ENFORCE(blockPassArg == nullptr, "The parser should have rejected `foo(&, ...)`");
+                        // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
+                        blockPassArg = MK::Local(loc, core::Names::fwdBlock());
 
                         hasFwdArgs = true;
                         eraseFromArgs = true;
@@ -2197,7 +2197,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                         result = MK::Splat(loc, splat->var->takeDesugaredExpr());
                     } else {
                         cout << "Fallback path" << endl;
-                        result = node2TreeImpl(dctx, nodeWithExpr->wrappedNode);
+                        result = node2TreeImpl(dctx, splat->var);
                     }
                 } else {
                     result = nodeWithExpr->takeDesugaredExpr();
