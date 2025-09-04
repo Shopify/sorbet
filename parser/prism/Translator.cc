@@ -358,7 +358,17 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto sorbetElements = translateMulti(arrayNode->elements);
 
+            fmt::print("sorbetElements size: {}\n", sorbetElements.size());
+            for (size_t i = 0; i < sorbetElements.size(); i++) {
+                if (sorbetElements[i]) {
+                    fmt::print("  [{}] type: {}\n", i, sorbetElements[i]->nodeName());
+                } else {
+                    fmt::print("  [{}] nullptr\n", i);
+                }
+            }
+
             if (!directlyDesugar || !hasExpr(sorbetElements)) {
+                fmt::print("returning make_unique<parser::Array>(location, move(sorbetElements))\n");
                 return make_unique<parser::Array>(location, move(sorbetElements));
             }
 
@@ -1821,7 +1831,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 return make_node_with_expr<parser::ForwardedRestArg>(move(splatExpr), location);
             } else { // Splatting an expression like `f(*a)`
                 if (hasExpr(expr)) {
+                    // auto childExpr = expr->peekDesugaredExpr().deepCopy();
                     auto childExpr = expr->takeDesugaredExpr();
+
                     auto splatExpr = MK::Splat(location, move(childExpr));
                     return make_node_with_expr<parser::Splat>(move(splatExpr), location, move(expr));
                 } else {
