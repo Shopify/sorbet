@@ -2311,7 +2311,16 @@ ExpressionPtr node2Tree(core::MutableContext ctx, unique_ptr<parser::Node> what,
         DesugarContext dctx(ctx, uniqueCounter, core::NameRef::noName(), core::LocOffsets::none(),
                             core::NameRef::noName(), false, false, preserveConcreteSyntax);
         auto loc = what->loc;
-        auto result = node2TreeImpl(dctx, what);
+
+        ast::ExpressionPtr result;
+        if (what->hasDesugaredExpr()) {
+            categoryCounterInc("PrismDesugar.cc Program node", "desugared");
+            result = what->takeDesugaredExpr();
+        } else {
+            categoryCounterInc("PrismDesugar.cc Program node", "fallback");
+            result = node2TreeImpl(dctx, what);
+        }
+
         result = liftTopLevel(dctx, loc, move(result));
         auto verifiedResult = Verifier::run(ctx, move(result));
         return verifiedResult;
