@@ -2281,7 +2281,16 @@ ExpressionPtr node2Tree(core::MutableContext ctx, unique_ptr<parser::Node> what,
         DesugarContext dctx(ctx, uniqueCounter, core::NameRef::noName(), core::LocOffsets::none(),
                             core::NameRef::noName(), false, false, preserveConcreteSyntax);
         auto loc = what->loc;
-        auto result = node2TreeImpl(dctx, what);
+
+        ast::ExpressionPtr result;
+        if (what->hasDesugaredExpr()) {
+            categoryCounterInc("Program node", "entirely directly desugared");
+            result = what->takeDesugaredExpr();
+        } else {
+            categoryCounterInc("Program node", "had some fallbacks");
+            result = node2TreeImpl(dctx, what);
+        }
+
         result = liftTopLevel(dctx, loc, move(result));
         auto verifiedResult = Verifier::run(ctx, move(result));
         return verifiedResult;
