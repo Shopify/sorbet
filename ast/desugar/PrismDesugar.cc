@@ -2253,7 +2253,16 @@ ExpressionPtr node2Tree(core::MutableContext ctx, unique_ptr<parser::Node> what,
         DesugarContext dctx(ctx, uniqueCounter, core::NameRef::noName(), core::LocOffsets::none(),
                             core::NameRef::noName(), false, false, preserveConcreteSyntax);
         auto liftedClassDefLoc = what->loc;
-        auto result = node2TreeImpl(dctx, what);
+
+        ast::ExpressionPtr result;
+        if (what->hasDesugaredExpr()) {
+            categoryCounterInc("Program node", "entirely directly desugared");
+            result = what->takeDesugaredExpr();
+        } else {
+            categoryCounterInc("Program node", "had some fallbacks");
+            result = node2TreeImpl(dctx, what);
+        }
+
         if (result.loc().exists()) {
             // If the desugared expression has a different loc, we want to use that. This can happen
             // because (:block (:send)) desugars to (:send (:block)), but the (:block) node just has
