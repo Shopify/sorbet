@@ -1774,11 +1774,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (blockArgumentNode != nullptr && PM_NODE_TYPE_P(blockArgumentNode, PM_BLOCK_NODE)) {
                 returnValues = translateArguments(superNode->arguments);
-                auto superNode = make_unique<parser::Super>(location, move(returnValues));
-                return translateCallWithBlock(blockArgumentNode, move(superNode));
+                auto superParserNode = make_unique<parser::Super>(location, move(returnValues));
+                return translateCallWithBlock(blockArgumentNode, move(superParserNode));
             }
 
             returnValues = translateArguments(superNode->arguments, blockArgumentNode);
+
             return make_unique<parser::Super>(location, move(returnValues));
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
