@@ -1839,9 +1839,15 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 return make_node_with_expr<parser::ForwardedRestArg>(move(splatExpr), location);
             } else { // Splatting an expression like `f(*a)`
                 if (hasExpr(expr)) {
-                    // Unfortunately we need deepCopy here. The issue is that make_node_with_expr needs to
-                    // store the child parser node (third arg), but after takeDesugaredExpr() that node is invalid.
-                    // We can't pass nullptr or a dummy node because downstream code may access the var field.
+                    // Directly desugaring a splat node is a destructive operation, which can leave the "expr" in an
+                    // invalid state (because it would have a null desugared expr), which is incompatible with the
+                    // "fallback" path (desugaring it as a Whitequark tree in `PrismDesugar.cc").
+                    //
+                    // It's only safe to do if we can be sure all adjacent elements (in an the same Array literal,
+                    // or arguments to the same method call) can also directly desugared.
+                    //
+                    // It's really hard to know that ahead of time, so for now, just deepCopy the tree, instead of
+                    // taking it out of the splatted expressions's `NodeWithExpr`.
                     auto childExpr = expr->peekDesugaredExpr().deepCopy();
                     auto splatExpr = MK::Splat(location, move(childExpr));
                     return make_node_with_expr<parser::Splat>(move(splatExpr), location, move(expr));
