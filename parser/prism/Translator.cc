@@ -301,8 +301,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto left = translate(andNode->left);
             auto right = translate(andNode->right);
 
-            // TODO: remove `peekDesugaredExpr` once those cases can all be handled
-            if (!directlyDesugar || !hasExpr(left, right) || !isa_reference(left->peekDesugaredExpr())) {
+            if (!directlyDesugar || !hasExpr(left, right)) {
                 return make_unique<parser::And>(location, move(left), move(right));
             }
 
@@ -321,8 +320,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 auto if_ = MK::If(location, move(cond), move(rhsExpr), move(lhsExpr));
                 return make_node_with_expr<parser::And>(move(if_), location, move(left), move(right));
             }
-
-            ENFORCE(false, "all nextUniqueDesugarName must be handled at the same time");
 
             // For non-reference expressions, create a temporary variable so we don't evaluate the LHS twice.
             // E.g. `x = 1 && 2` becomes `x = (temp = 1; temp ? temp : 2)`
@@ -1501,8 +1498,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto left = translate(orNode->left);
             auto right = translate(orNode->right);
 
-            // TODO: remove `peekDesugaredExpr` once those cases can all be handled
-            if (!directlyDesugar || !hasExpr(left, right) || !isa_reference(left->peekDesugaredExpr())) {
+            if (!directlyDesugar || !hasExpr(left, right)) {
                 return make_unique<parser::Or>(location, move(left), move(right));
             }
 
@@ -1521,8 +1517,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 auto if_ = MK::If(location, move(cond), move(lhsExpr), move(rhsExpr));
                 return make_node_with_expr<parser::Or>(move(if_), location, move(left), move(right));
             }
-
-            ENFORCE(false, "all nextUniqueDesugarName must be handled at the same time");
 
             // For non-reference expressions, create a temporary variable so we don't evaluate the LHS twice.
             // E.g. `x = 1 || 2` becomes `x = (temp = 1; temp ? temp : 2)`
