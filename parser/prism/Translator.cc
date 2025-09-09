@@ -991,7 +991,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 didDesugarParams = attemptToDesugarParams;
             }
 
-            if (!didDesugarParams) {
+            if (!didDesugarParams || !hasExpr(body)) {
                 if (isSingletonMethod) {
                     return make_unique<parser::DefS>(location, declLoc, move(receiver), name, move(params), move(body));
                 } else {
