@@ -625,29 +625,33 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
 
-                    blockBody = translate(blockNode->body);
+                    blockBody = this->enterBlockContext().translate(blockNode->body);
 
                     auto attemptToDesugarParams = hasExpr(blockBody) && constantNameString != "block_given?" &&
                                                   !hasKwargsHash && !hasFwdArgs && !hasFwdRestArg && !hasSplat &&
                                                   hasExpr(receiver) && hasExpr(args);
-                    bool didDesugarParams;
+                    bool didDesugarParams = false;
 
                     if (blockNode->parameters != nullptr) {
                         switch (PM_NODE_TYPE(blockNode->parameters)) {
                             case PM_BLOCK_PARAMETERS_NODE: {
                                 blockParameters = desugarBlockParametersNode(blockNode);
+                                auto &paramDecls =
+                                    parser::NodeWithExpr::cast_node<parser::Args>(blockParameters.get())->args;
 
                                 std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
-                                    desugarParametersNode(blockParameters.args, attemptToDesugarParams);
+                                    desugarParametersNode(paramDecls, attemptToDesugarParams);
 
                                 break;
                             }
 
                             case PM_NUMBERED_PARAMETERS_NODE: {
                                 blockParameters = desugarBlockParametersNode(blockNode);
+                                auto &paramDecls =
+                                    parser::NodeWithExpr::cast_node<parser::NumParams>(blockParameters.get())->decls;
 
                                 std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
-                                    desugarParametersNode(blockParameters.get(), attemptToDesugarParams);
+                                    desugarParametersNode(paramDecls, attemptToDesugarParams);
 
                                 break;
                             }
@@ -2771,14 +2775,6 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
         body = this->enterBlockContext().translate(prismLambdaNode->body);
     }
 
-    auto attemptToDesugarParams = hasExpr(body, sendNode);
-
-    ast::MethodDef::ARGS_store argsStore;
-    ast::InsSeq::STATS_store statsStore;
-    bool didDesugarParams = false;
-    std::tie(argsStore, statsStore, didDesugarParams) = desugarParametersNode(
-        parser::NodeWithExpr::cast_node<parser::Args>(parametersNode.get())->args, attemptToDesugarParams);
-
     // There was a TODO in the original Desugarer: "the send->block's loc is too big and includes the whole send."
     // We'll keep this behaviour for parity for now.
     // TODO: Switch to using the fixed sendNode loc below after direct desugaring is complete
@@ -2813,8 +2809,6 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
             sendNode->loc = core::LocOffsets{beginPos, static_cast<uint32_t>(blockPos)};
         }
     }
-
-    auto sendExpr = sendNode->takeDesugaredExpr();
 
     if (parser::NodeWithExpr::cast_node<parser::NumParams>(parametersNode.get())) {
         return make_unique<parser::NumBlock>(blockLoc, move(sendNode), move(parametersNode), move(body));
