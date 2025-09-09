@@ -95,7 +95,7 @@ private:
     std::tuple<ast::MethodDef::ARGS_store, ast::InsSeq::STATS_store, bool>
     desugarParametersNode(NodeVec &params, bool attemptToDesugarParams);
 
-    std::unique_ptr<parser::Node> desugarBlockParametersNode(pm_block_node *blockNode);
+    std::tuple<std::unique_ptr<parser::Node>, NodeVec &> desugarBlockParametersNode(pm_block_node *blockNode);
 
     NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);

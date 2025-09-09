@@ -626,13 +626,42 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
 
                     blockBody = translate(blockNode->body);
-                    blockParameters = desugarBlockParametersNode(blockNode);
 
+                    auto attemptToDesugarParams = hasExpr(blockBody) && constantNameString != "block_given?" &&
+                                                  !hasKwargsHash && !hasFwdArgs && !hasFwdRestArg && !hasSplat &&
+                                                  hasExpr(receiver) && hasExpr(args);
                     bool didDesugarParams;
-                    std::tie(blockArgsStore, blockStatsStore, didDesugarParams) = desugarParametersNode(
-                        blockParameters.get(), hasExpr(blockBody) && constantNameString != "block_given?" &&
-                                                   !hasKwargsHash && !hasFwdArgs && !hasFwdRestArg && !hasSplat &&
-                                                   hasExpr(receiver) && hasExpr(args));
+
+                    if (blockNode->parameters != nullptr) {
+                        switch (PM_NODE_TYPE(blockNode->parameters)) {
+                            case PM_BLOCK_PARAMETERS_NODE: {
+                                blockParameters = desugarBlockParametersNode(blockNode);
+
+                                std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
+                                    desugarParametersNode(blockParameters.args, attemptToDesugarParams);
+
+                                break;
+                            }
+
+                            case PM_NUMBERED_PARAMETERS_NODE: {
+                                blockParameters = desugarBlockParametersNode(blockNode);
+
+                                std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
+                                    desugarParametersNode(blockParameters.get(), attemptToDesugarParams);
+
+                                break;
+                            }
+
+                            case PM_IT_PARAMETERS_NODE: {
+                                unreachable("PM_IT_PARAMETERS_NODE is not implemented yet");
+                            }
+
+                            default: {
+                                unreachable("Found a {} block parameter type, which is not implemented yet ",
+                                            pm_node_type_to_str(PM_NODE_TYPE(blockNode->parameters)));
+                            }
+                        }
+                    }
 
                     supportedBlock = didDesugarParams;
                 }
