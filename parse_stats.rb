@@ -139,8 +139,10 @@ if __FILE__ == $0
   puts "%-15s %10s %10s %10s %10s %s" % ["Node type", "Count", "Fallbacks", "Direct", "Fallback", "Status"]
   puts "-" * 80
 
-  # Sort by handling percentage (highest handling first), then by before_count for ties
-  sorted_comparisons = comparisons.sort_by { |c| [-c[:handled_pct], -c[:before_count]] }
+  # Sort by highest handled percentage first
+  # Then break ties by showing highest node counts first
+  # Then break ties by sorting by name
+  sorted_comparisons = comparisons.sort_by { |c| [-c[:handled_pct], -c[:before_count], c[:label]] }
 
   sorted_comparisons.each do |comp|
     status_symbol = case comp[:status]
