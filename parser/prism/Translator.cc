@@ -665,9 +665,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                             pm_node_type_to_str(PM_NODE_TYPE(blockNode->parameters)));
                             }
                         }
-                    }
+                        supportedBlock = hasExpr(blockBody) && didDesugarParams;
 
-                    supportedBlock = didDesugarParams;
+                    } else {
+                        // If the block has no parameters, we support direct desugaring if we can directly desugar its
+                        // body.
+                        supportedBlock = hasExpr(blockBody);
+                    }
                 }
             } else {
                 // If there's no block, we support the call
