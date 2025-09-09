@@ -617,9 +617,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             }
 
             unique_ptr<parser::Node> blockBody;       // e.g. `123` in `foo { |x| 123 }`
-            unique_ptr<parser::Args> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
-            ast::MethodDef::ARGS_store argsStore;
-            ast::InsSeq::STATS_store statsStore;
+            unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
+            ast::MethodDef::ARGS_store blockArgsStore;
+            ast::InsSeq::STATS_store blockStatsStore;
             bool supportedBlock;
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
@@ -629,7 +629,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     blockParameters = desugarBlockParametersNode(blockNode);
 
                     bool didDesugarParams;
-                    std::tie(argsStore, statsStore, didDesugarParams) = desugarParametersNode(
+                    std::tie(blockArgsStore, blockStatsStore, didDesugarParams) = desugarParametersNode(
                         blockParameters.get(), hasExpr(blockBody) && constantNameString != "block_given?" &&
                                                    !hasKwargsHash && !hasFwdArgs && !hasFwdRestArg && !hasSplat &&
                                                    hasExpr(receiver) && hasExpr(args));
@@ -693,7 +693,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
                     auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
-                    sendArgs.emplace_back(MK::Block(location, move(blockBodyExpr), ast::MethodDef::ARGS_store{}));
+                    auto blockExpr = MK::Block(location, move(blockBodyExpr), move(blockArgsStore));
+                    sendArgs.emplace_back(move(blockExpr));
+
                     flags.hasBlock = true;
                 } else {
                     unreachable("Found a {} block type, which is not implemented yet ",
@@ -711,7 +713,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child, but the
                     // The legacy parser inverts this , with a parent "Block" with a child
                     // "Send".
-                    ENFORCE(blockParameters == nullptr, "Blocks with parameters are not implemented yet.");
 
                     auto blockNode =
                         make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), sendNode->loc, move(sendNode),
@@ -2467,9 +2468,32 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
     return make_tuple(move(argsStore), move(statsStore), true);
 }
 
-unique_ptr<parser::Args> Translator::desugarBlockParametersNode(pm_block_node *blockNode) {
+unique_ptr<parser::Node> Translator::desugarBlockParametersNode(pm_block_node *blockNode) {
+    if (blockNode->parameters == nullptr) {
+        return make_unique<parser::Args>(translateLoc(blockNode->base.location), NodeVec{});
+    }
+
     if (!PM_NODE_TYPE_P(blockNode->parameters, PM_BLOCK_PARAMETERS_NODE)) {
-        unreachable(" Fallback for numbered params and `it`.");
+        // TODO: Implement support for numbered parameters (`PM_NUMBERED_PARAMETERS_NODE`)
+        // TODO: implement support for `it` parameter (`PM_IT_PARAMETERS_NODE`)
+        auto numberedParamsNode = down_cast<pm_numbered_parameters_node>(blockNode->parameters);
+        auto location = translateLoc(numberedParamsNode->base.location);
+
+        auto paramCount = numberedParamsNode->maximum;
+
+        NodeVec params;
+        params.reserve(paramCount);
+
+        for (auto i = 1; i <= paramCount; i++) {
+            auto name = ctx.state.enterNameUTF8("_" + to_string(i));
+
+            // The location is arbitrary and not really used, since these aren't explicitly written in the source.
+            auto expr = MK::Local(location, name);
+            auto paramNode = make_node_with_expr<parser::LVar>(move(expr), location, name);
+            params.emplace_back(move(paramNode));
+        }
+
+        return make_unique<parser::NumParams>(location, move(params));
     }
 
     // The parameters declared at the top of a PM_BLOCK_NODE
