@@ -2468,6 +2468,8 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
     return make_tuple(move(argsStore), move(statsStore), true);
 }
 
+// unique_ptr<parser::Node> Translator::desugarBlockNumberedParametersNode(pm_block_node *blockNode) {}
+
 unique_ptr<parser::Node> Translator::desugarBlockParametersNode(pm_block_node *blockNode) {
     if (blockNode->parameters == nullptr) {
         return make_unique<parser::Args>(translateLoc(blockNode->base.location), NodeVec{});
@@ -2746,7 +2748,7 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
     ast::InsSeq::STATS_store statsStore;
     bool didDesugarParams = false;
     std::tie(argsStore, statsStore, didDesugarParams) = desugarParametersNode(
-        parser::NodeWithExpr::cast_node<parser::Args>(parametersNode.get()), attemptToDesugarParams);
+        parser::NodeWithExpr::cast_node<parser::Args>(parametersNode.get())->args, attemptToDesugarParams);
 
     // There was a TODO in the original Desugarer: "the send->block's loc is too big and includes the whole send."
     // We'll keep this behaviour for parity for now.
