@@ -634,22 +634,66 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                     if (blockNode->parameters != nullptr) {
                         switch (PM_NODE_TYPE(blockNode->parameters)) {
-                            case PM_BLOCK_PARAMETERS_NODE: {
-                                blockParameters = desugarBlockParametersNode(blockNode);
+                            case PM_BLOCK_PARAMETERS_NODE: { // The params declared at the top of a PM_BLOCK_NODE
+                                // Like the `|x|` in `foo { |x| ... }`
+                                auto paramsNode = down_cast<pm_block_parameters_node>(blockNode->parameters);
+
+                                if (paramsNode->parameters == nullptr) {
+                                    auto location = translateLoc(paramsNode->base.location);
+
+                                    // TODO: future follow up, ensure we add the block local variables ("shadowargs"),
+                                    // if any.
+                                    blockParameters = make_unique<parser::Args>(location, NodeVec{});
+                                } else {
+                                    unique_ptr<parser::Args> params;
+                                    std::tie(params, std::ignore) = translateParametersNode(paramsNode->parameters);
+
+                                    // Sorbet's legacy parser inserts locals ("Shadowargs") at the end of the block's
+                                    // Args node, after all other parameters.
+                                    auto sorbetShadowParams = translateMulti(paramsNode->locals);
+                                    params->args.insert(params->args.end(),
+                                                        make_move_iterator(sorbetShadowParams.begin()),
+                                                        make_move_iterator(sorbetShadowParams.end()));
+
+                                    blockParameters = move(params);
+                                }
+
                                 auto &paramDecls =
                                     parser::NodeWithExpr::cast_node<parser::Args>(blockParameters.get())->args;
 
+                                // FIXME: Can this be moved before the cast, removing the need for the cast?
                                 std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
                                     desugarParametersNode(paramDecls, attemptToDesugarParams);
 
                                 break;
                             }
 
-                            case PM_NUMBERED_PARAMETERS_NODE: {
-                                blockParameters = desugarBlockParametersNode(blockNode);
+                            case PM_NUMBERED_PARAMETERS_NODE: { // The params in a PM_BLOCK_NODE with numbered params
+                                // Like the implicit `|_1, _2, _3|` in `foo { _3 }`
+                                auto numberedParamsNode = down_cast<pm_numbered_parameters_node>(blockNode->parameters);
+                                auto location = translateLoc(numberedParamsNode->base.location);
+
+                                auto paramCount = numberedParamsNode->maximum;
+
+                                NodeVec params;
+                                params.reserve(paramCount);
+
+                                for (auto i = 1; i <= paramCount; i++) {
+                                    auto name = ctx.state.enterNameUTF8("_" + to_string(i));
+
+                                    // The location is arbitrary and not really used, since these aren't explicitly
+                                    // written in the source.
+                                    auto expr = MK::Local(location, name);
+                                    auto paramNode = make_node_with_expr<parser::LVar>(move(expr), location, name);
+                                    params.emplace_back(move(paramNode));
+                                }
+
+                                blockParameters = make_unique<parser::NumParams>(location, move(params));
+
                                 auto &paramDecls =
                                     parser::NodeWithExpr::cast_node<parser::NumParams>(blockParameters.get())->decls;
 
+                                // FIXME: Can this be moved before the cast, removing the need for the cast?
                                 std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
                                     desugarParametersNode(paramDecls, attemptToDesugarParams);
 
@@ -665,6 +709,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                             pm_node_type_to_str(PM_NODE_TYPE(blockNode->parameters)));
                             }
                         }
+
                         supportedBlock = hasExpr(blockBody) && didDesugarParams;
 
                     } else {
@@ -2503,61 +2548,6 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
     }
 
     return make_tuple(move(argsStore), move(statsStore), true);
-}
-
-// unique_ptr<parser::Node> Translator::desugarBlockNumberedParametersNode(pm_block_node *blockNode) {}
-
-unique_ptr<parser::Node> Translator::desugarBlockParametersNode(pm_block_node *blockNode) {
-    // Inline this into the case statement in `PM_CALL_NODE:`
-
-    if (blockNode->parameters == nullptr) {
-        return make_unique<parser::Args>(translateLoc(blockNode->base.location), NodeVec{});
-    }
-
-    if (!PM_NODE_TYPE_P(blockNode->parameters, PM_BLOCK_PARAMETERS_NODE)) {
-        // TODO: Implement support for numbered parameters (`PM_NUMBERED_PARAMETERS_NODE`)
-        // TODO: implement support for `it` parameter (`PM_IT_PARAMETERS_NODE`)
-        auto numberedParamsNode = down_cast<pm_numbered_parameters_node>(blockNode->parameters);
-        auto location = translateLoc(numberedParamsNode->base.location);
-
-        auto paramCount = numberedParamsNode->maximum;
-
-        NodeVec params;
-        params.reserve(paramCount);
-
-        for (auto i = 1; i <= paramCount; i++) {
-            auto name = ctx.state.enterNameUTF8("_" + to_string(i));
-
-            // The location is arbitrary and not really used, since these aren't explicitly written in the source.
-            auto expr = MK::Local(location, name);
-            auto paramNode = make_node_with_expr<parser::LVar>(move(expr), location, name);
-            params.emplace_back(move(paramNode));
-        }
-
-        return make_unique<parser::NumParams>(location, move(params));
-    }
-
-    // The parameters declared at the top of a PM_BLOCK_NODE
-    // Like the `|x|` in `foo { |x| ... } `
-    auto paramsNode = down_cast<pm_block_parameters_node>(blockNode->parameters);
-
-    if (paramsNode->parameters == nullptr) {
-        auto location = translateLoc(paramsNode->base.location);
-
-        // TODO: future follow up, ensure we add the block local variables ("shadowargs"), if any.
-        return make_unique<parser::Args>(location, NodeVec{});
-    }
-
-    unique_ptr<parser::Args> params;
-    std::tie(params, std::ignore) = translateParametersNode(paramsNode->parameters);
-
-    // Sorbet's legacy parser inserts locals ("Shadowargs") at the end of the block's Args node,
-    // after all other parameters.
-    auto sorbetShadowParams = translateMulti(paramsNode->locals);
-    params->args.insert(params->args.end(), make_move_iterator(sorbetShadowParams.begin()),
-                        make_move_iterator(sorbetShadowParams.end()));
-
-    return params;
 }
 
 // The legacy Sorbet parser doesn't have a counterpart to PM_ARGUMENTS_NODE to wrap the array
