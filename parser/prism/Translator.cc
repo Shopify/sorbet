@@ -657,7 +657,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                                         make_move_iterator(sorbetShadowParams.end()));
 
                                     std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
-                                        desugarParametersNode(params, attemptToDesugarParams);
+                                        desugarParametersNode(params->args, attemptToDesugarParams);
 
                                     blockParameters = move(params);
                                 }
