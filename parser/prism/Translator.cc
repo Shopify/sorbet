@@ -2508,6 +2508,8 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
 // unique_ptr<parser::Node> Translator::desugarBlockNumberedParametersNode(pm_block_node *blockNode) {}
 
 unique_ptr<parser::Node> Translator::desugarBlockParametersNode(pm_block_node *blockNode) {
+    // Inline this into the case statement in `PM_CALL_NODE:`
+
     if (blockNode->parameters == nullptr) {
         return make_unique<parser::Args>(translateLoc(blockNode->base.location), NodeVec{});
     }
