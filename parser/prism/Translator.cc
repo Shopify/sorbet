@@ -644,6 +644,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                     // TODO: future follow up, ensure we add the block local variables ("shadowargs"),
                                     // if any.
                                     blockParameters = make_unique<parser::Args>(location, NodeVec{});
+                                    didDesugarParams = true;
                                 } else {
                                     unique_ptr<parser::Args> params;
                                     std::tie(params, std::ignore) = translateParametersNode(paramsNode->parameters);
@@ -655,15 +656,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                                         make_move_iterator(sorbetShadowParams.begin()),
                                                         make_move_iterator(sorbetShadowParams.end()));
 
+                                    std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
+                                        desugarParametersNode(params, attemptToDesugarParams);
+
                                     blockParameters = move(params);
                                 }
-
-                                auto &paramDecls =
-                                    parser::NodeWithExpr::cast_node<parser::Args>(blockParameters.get())->args;
-
-                                // FIXME: Can this be moved before the cast, removing the need for the cast?
-                                std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
-                                    desugarParametersNode(paramDecls, attemptToDesugarParams);
 
                                 break;
                             }
@@ -688,14 +685,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                     params.emplace_back(move(paramNode));
                                 }
 
-                                blockParameters = make_unique<parser::NumParams>(location, move(params));
-
-                                auto &paramDecls =
-                                    parser::NodeWithExpr::cast_node<parser::NumParams>(blockParameters.get())->decls;
-
-                                // FIXME: Can this be moved before the cast, removing the need for the cast?
                                 std::tie(blockArgsStore, blockStatsStore, didDesugarParams) =
-                                    desugarParametersNode(paramDecls, attemptToDesugarParams);
+                                    desugarParametersNode(params, attemptToDesugarParams);
+
+                                blockParameters = make_unique<parser::NumParams>(location, move(params));
 
                                 break;
                             }
