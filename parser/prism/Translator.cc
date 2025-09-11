@@ -783,16 +783,25 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                    auto blockNode = down_cast<pm_block_node>(prismBlock);
+
                     // PM_BLOCK_NODE models an explicit block arg with `{ ... }` or
                     // `do ... end`, but not a forwarded block like the `&b` in `a.map(&b)`.
                     // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child, but the
                     // The legacy parser inverts this , with a parent "Block" with a child
                     // "Send".
 
-                    auto blockNode =
-                        make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), sendNode->loc, move(sendNode),
-                                                           move(blockParameters), move(blockBody));
-                    return blockNode;
+                    if (blockNode->parameters == nullptr ||
+                        PM_NODE_TYPE_P(blockNode->parameters, PM_BLOCK_PARAMETERS_NODE)) {
+                        return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), sendNode->loc,
+                                                                  move(sendNode), move(blockParameters),
+                                                                  move(blockBody));
+                    } else {
+                        ENFORCE(PM_NODE_TYPE_P(blockNode->parameters, PM_NUMBERED_PARAMETERS_NODE));
+                        return make_node_with_expr<parser::NumBlock>(sendNode->takeDesugaredExpr(), sendNode->loc,
+                                                                     move(sendNode), move(blockParameters),
+                                                                     move(blockBody));
+                    }
                 } else {
                     unreachable("Found a {} block type, which is not implemented yet ",
                                 pm_node_type_to_str(PM_NODE_TYPE(prismBlock)));
