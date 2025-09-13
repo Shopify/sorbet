@@ -342,9 +342,77 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_ARRAY_NODE: { // An array literal, e.g. `[1, 2, 3]`
             auto arrayNode = down_cast<pm_array_node>(node);
 
+            if (!directlyDesugar) {
+                for (auto element : absl::MakeSpan(arrayNode->elements.nodes, arrayNode->elements.size)) {
+                    if (PM_NODE_TYPE_P(element, PM_SPLAT_NODE)) {
+                        // The parser::Send case makes a fake parser::Array with locZeroLen to hide callWithSplat
+                        // methods from hover. Using the array's loc means that we will get a zero-length loc for
+                        // the Splat in that case, and non-zero if there was a real Array literal.
+                        element->location = node->location;
+                    }
+                }
+            }
+
             auto sorbetElements = translateMulti(arrayNode->elements);
 
-            return make_unique<parser::Array>(location, move(sorbetElements));
+            if (!directlyDesugar || !hasExpr(sorbetElements)) {
+                return make_unique<parser::Array>(location, move(sorbetElements));
+            }
+
+            auto locZeroLen = location.copyWithZeroLength();
+
+            ast::Array::ENTRY_store elems;
+            elems.reserve(sorbetElements.size());
+            ExpressionPtr lastMerge;
+            for (auto &stat : sorbetElements) {
+                if (parser::NodeWithExpr::isa_node<parser::Splat>(stat.get()) ||
+                    parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(stat.get())) {
+                    // Desguar
+                    //   [a, *x, remaining]
+                    // into
+                    //   a.concat(<splat>(x)).concat(remaining)
+                    auto var = stat->takeDesugaredExpr();
+                    if (elems.empty()) {
+                        if (lastMerge != nullptr) {
+                            lastMerge =
+                                ast::MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen, move(var));
+                        } else {
+                            lastMerge = move(var);
+                        }
+                    } else {
+                        ExpressionPtr current = MK::Array(location, move(elems));
+                        /* reassign instead of clear to work around https://bugs.llvm.org/show_bug.cgi?id=37553 */
+                        elems = ast::Array::ENTRY_store();
+                        if (lastMerge != nullptr) {
+                            lastMerge = ast::MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen,
+                                                       move(current));
+                        } else {
+                            lastMerge = move(current);
+                        }
+                        lastMerge =
+                            ast::MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen, move(var));
+                    }
+                } else {
+                    elems.emplace_back(stat->takeDesugaredExpr());
+                }
+            };
+
+            ExpressionPtr res;
+            if (elems.empty()) {
+                if (lastMerge != nullptr) {
+                    res = move(lastMerge);
+                } else {
+                    // Empty array
+                    res = ast::MK::Array(location, move(elems));
+                }
+            } else {
+                res = ast::MK::Array(location, move(elems));
+                if (lastMerge != nullptr) {
+                    res = ast::MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen, move(res));
+                }
+            }
+
+            return make_node_with_expr<parser::Array>(move(res), location, move(sorbetElements));
         }
         case PM_ASSOC_NODE: { // A key-value pair in a Hash literal, e.g. the `a: 1` in `{ a: 1 }
             auto assocNode = down_cast<pm_assoc_node>(node);
