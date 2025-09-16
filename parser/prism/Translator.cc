@@ -567,6 +567,37 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 args = translateArguments(callNode->arguments);
             }
 
+            // Detect special arguments that will require the call to be desugared to magic call.
+
+            // TODO list:
+            // * Optimize via `PM_ARGUMENTS_NODE_FLAGS_CONTAINS_SPLAT`
+            //   We can skip the `hasFwdRestArg`/`hasSplat` logic below if it's false.
+            //   However, we still need the loop if it's true, to be able to tell the two cases apart.
+
+            // true if the call contains a forwarded argument like `foo(...)`
+            auto hasFwdArgs = callNode->arguments != nullptr &&
+                              PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
+            auto hasFwdRestArg = false; // true if the call contains an anonymous forwarded rest arg like `foo(*rest)`
+            auto hasSplat = false;      // true if the call contains a splatted expression like `foo(*a)`
+            if (auto *prismArgsNode = callNode->arguments) {
+                for (auto &arg : absl::MakeSpan(prismArgsNode->arguments.nodes, prismArgsNode->arguments.size)) {
+                    switch (PM_NODE_TYPE(arg)) {
+                        case PM_SPLAT_NODE: {
+                            auto splatNode = down_cast<pm_splat_node>(arg);
+                            if (splatNode->expression == nullptr) { // An anonymous splat like `f(*)`
+                                hasFwdRestArg = true;
+                            } else { // Splatting an expression like `f(*a)`
+                                hasSplat = true;
+                            }
+                            break;
+                        }
+
+                        default:
+                            break;
+                    }
+                }
+            }
+
             unique_ptr<parser::Node> sendNode;
 
             auto name = ctx.state.enterNameUTF8(constantNameString);
@@ -589,32 +620,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             }
 
             // Regular send, e.g. `a.b`
-
-            // Detect special arguments that will require the call to be desugared to magic call.
-
-            // true if the call contains a forwarded argument like `foo(...)`
-            auto hasFwdArgs = callNode->arguments != nullptr &&
-                              PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
-            auto hasFwdRestArg = false; // true if the call contains an anonymous forwarded rest arg like `foo(*rest)`
-            auto hasSplat = false;      // true if the call contains a splatted expression like `foo(*a)`
-            if (auto prismArgsNode = callNode->arguments; prismArgsNode != nullptr) {
-                for (auto &arg : absl::MakeSpan(prismArgsNode->arguments.nodes, prismArgsNode->arguments.size)) {
-                    switch (PM_NODE_TYPE(arg)) {
-                        case PM_SPLAT_NODE: {
-                            auto splatNode = down_cast<pm_splat_node>(arg);
-                            if (splatNode->expression == nullptr) { // An anonymous splat like `f(*)`
-                                hasFwdRestArg = true;
-                            } else { // Splatting an expression like `f(*a)`
-                                hasSplat = true;
-                            }
-                            break;
-                        }
-
-                        default:
-                            break;
-                    }
-                }
-            }
 
             auto hasKwargsHash = callNode->arguments != nullptr &&
                                  PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_KEYWORDS);
@@ -2525,10 +2530,10 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
                // These other block types don't have their own dedicated desugared
                // representation, so they won't be directly translated.
                // Instead, they have special desugar logic below.
-               parser::NodeWithExpr::isa_node<parser::Kwnilarg>(param.get()) ||         // `f(**nil)`
-               parser::NodeWithExpr::isa_node<parser::ForwardArg>(param.get()) ||       // `f(...)`
-               parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(param.get()) || // a splat like `f(*)`
-               parser::NodeWithExpr::isa_node<parser::Splat>(param.get());              // a splat like `f(*a)`
+               parser::NodeWithExpr::isa_node<parser::Kwnilarg>(param.get()) ||         // `def f(**nil)`
+               parser::NodeWithExpr::isa_node<parser::ForwardArg>(param.get()) ||       // `def f(...)`
+               parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(param.get()) || // a splat like `def foo(*)`
+               parser::NodeWithExpr::isa_node<parser::Splat>(param.get());              // a splat like `def foo(*a)`
     });
 
     if (!supportedParams) {
