@@ -788,6 +788,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             int numPosArgs = args.size() - (hasKwargsHash ? 1 : 0);
 
             if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE) && !blockPassArgIsSymbol) {
+                // Special handling for non-Symbol block pass args, like `a.map(&block)`
+                // Symbol procs like `a.map(:to_s)` are rewritten into literal block arguments,
+                // and handled separately below.
                 ENFORCE(false, "TODO: Implement non-Symbol block pass args here (via core::Names::callWithBlockPass())")
             }
 
@@ -799,12 +802,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                    // An explicit block arg with `{ ... }` or `do ... end`
+
                     auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
                     auto blockExpr = MK::Block(location, move(blockBodyExpr), move(blockParamsStore));
                     sendArgs.emplace_back(move(blockExpr));
 
                     flags.hasBlock = true;
                 } else if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
+                    // A forwarded block like the `&b` in `a.map(&b)`
+
                     auto bp = down_cast<pm_block_argument_node>(prismBlock);
                     ENFORCE(PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE));
                     ENFORCE(blockPassArgIsSymbol);
@@ -820,11 +827,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                    // PM_BLOCK_NODE models an explicit block arg with `{ ... }` or
-                    // `do ... end`, but not a forwarded block like the `&b` in `a.map(&b)`.
-                    // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child, but the
-                    // The legacy parser inverts this , with a parent "Block" with a child
-                    // "Send".
+                    // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child,
+                    // but the legacy parser inverts this, with a parent "Block" with a child "Send".
+                    //
+                    // Note: The legacy parser doesn't treat block pass arguments this way.
+                    //       It just puts them at the end of the arguments list,
+                    //       which is why we checked for `PM_BLOCK_NODE` specifically here.
 
                     return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), sendNode->loc,
                                                               move(sendNode), move(blockParameters), move(blockBody));
