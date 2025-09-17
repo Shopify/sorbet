@@ -641,6 +641,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
             ast::MethodDef::PARAMS_store blockParamsStore;
             ast::InsSeq::STATS_store blockStatsStore;
+            bool blockPassArgIsSymbol;
             bool supportedBlock;
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
@@ -733,8 +734,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         supportedBlock = true;
                     }
                 } else {
-                    // `PM_BLOCK_ARGUMENT_NODE` is not supported yet.
-                    supportedBlock = false;
+                    auto *bp = down_cast<pm_block_argument_node>(prismBlock);
+
+                    blockPassArgIsSymbol = bp->expression && PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
+                    supportedBlock = false; // `PM_BLOCK_ARGUMENT_NODE` is not supported yet.
                 }
             } else {
                 // If there's no block, we support the call
@@ -784,8 +787,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             int numPosArgs = args.size() - (hasKwargsHash ? 1 : 0);
 
+            if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE) && !blockPassArgIsSymbol) {
+                ENFORCE(false, "TODO: Implement non-Symbol block pass args here (via core::Names::callWithBlockPass())")
+            }
+
             ast::Send::ARGS_store sendArgs{};
-            sendArgs.reserve(args.size());
+            sendArgs.reserve(args.size()); // TODO: reserve size for block, if needed.
             for (auto &arg : args) {
                 sendArgs.emplace_back(arg->takeDesugaredExpr());
             }
@@ -797,9 +804,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     sendArgs.emplace_back(move(blockExpr));
 
                     flags.hasBlock = true;
+                } else if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
+                    auto bp = down_cast<pm_block_argument_node>(prismBlock);
+                    ENFORCE(PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE));
+                    ENFORCE(blockPassArgIsSymbol);
+                    ENFORCE(false, "TODO: Implement symbol block pass args here");
+                    // See `symbol2Proc()` in Desugar.cc
                 } else {
-                    unreachable("Found a {} block type, which is not implemented yet ",
-                                pm_node_type_to_str(PM_NODE_TYPE(prismBlock)));
+                    unreachable("Found an unexpected block of type {}", pm_node_type_to_str(PM_NODE_TYPE(prismBlock)));
                 }
             }
 
