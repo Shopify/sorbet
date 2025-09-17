@@ -597,8 +597,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             pm_node_t *prismBlock = callNode->block;
             unique_ptr<parser::Node> blockPassNode;
             if (prismBlock && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
-                // PM_BLOCK_ARGUMENT_NODE models the `&b` in `a.map(&b)`,
-                // but not a literal block with `{ ... }` or `do ... end`
                 blockPassNode = translate(prismBlock);
             }
 
@@ -646,7 +644,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             bool blockPassArgIsSymbol;
             bool supportedBlock;
             if (prismBlock != nullptr) {
+                cout << "prismBlock: " << pm_node_type_to_str(PM_NODE_TYPE(prismBlock)) << endl;
+
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                    // PM_BLOCK_NODE a literal block with `{ ... }` or `do ... end`
+
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
 
                     blockBody = this->enterBlockContext().translate(blockNode->body);
@@ -736,10 +738,17 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         supportedBlock = true;
                     }
                 } else {
+                    // PM_BLOCK_ARGUMENT_NODE models the `&b` in `a.map(&b)`
+
                     auto *bp = down_cast<pm_block_argument_node>(prismBlock);
+
+                    cout << "it's a `pm_block_argument_node`" << endl;
 
                     if (bp->expression) {
                         blockPassArgIsSymbol = PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
+
+                        cout << "bp->expression: " << pm_node_type_to_str(PM_NODE_TYPE(bp->expression)) << endl;
+                        cout << "blockPassArgIsSymbol: " << blockPassArgIsSymbol << endl;
 
                         if (blockPassArgIsSymbol) {
                             supportedBlock = false; // TODO: Implement symbol procs
@@ -759,6 +768,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     } else {
                         // Replace an anonymous block pass like `f(&)` with a local variable reference, like
                         // `f(&&)`.
+                        auto blockPassArgNode = translate(prismBlock);
                         blockPassArg = MK::Local(location, core::Names::ampersand());
                         supportedBlock = true;
                     }
@@ -770,7 +780,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             supportedCallType &= supportedBlock;
 
-            if (!supportedCallType) {
+            if (!directlyDesugar || !supportedCallType) {
                 if (blockPassNode) {
                     args.emplace_back(move(blockPassNode));
                 }
@@ -824,7 +834,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 magicSendArgs.emplace_back(move(receiverExpr));
                 magicSendArgs.emplace_back(move(methodName));
                 magicSendArgs.emplace_back(move(blockPassArg));
-                magicSendArgs.emplace_back(MK::True(location));
+                // magicSendArgs.emplace_back(MK::True(location));
 
                 numPosArgs += 3;
 
@@ -834,6 +844,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 auto sendExpr = MK::Send(loc, MK::Magic(loc), core::Names::callWithBlockPass(), messageLoc, numPosArgs,
                                          move(magicSendArgs), flags);
+
+                return make_node_with_expr<parser::Send>(move(sendExpr), loc, move(receiver), name, messageLoc,
+                                                         move(args));
             }
 
             ast::Send::ARGS_store sendArgs{};
@@ -843,21 +856,29 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             }
 
             if (prismBlock != nullptr) {
-                if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
+                if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE) || blockPassArgIsSymbol) {
                     // An explicit block arg with `{ ... }` or `do ... end`
 
-                    auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
-                    auto blockExpr = MK::Block(location, move(blockBodyExpr), move(blockParamsStore));
+                    ast::ExpressionPtr blockExpr;
+                    if (blockPassArgIsSymbol) {
+                        auto *bp = down_cast<pm_block_argument_node>(prismBlock);
+                        ENFORCE(PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE));
+                        ENFORCE(false, "TODO: Implement symbol block pass args here");
+                    } else {
+                        auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
+                        blockExpr = MK::Block(location, move(blockBodyExpr), move(blockParamsStore));
+                    }
+
                     sendArgs.emplace_back(move(blockExpr));
 
                     flags.hasBlock = true;
                 } else if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
                     // A forwarded block like the `&b` in `a.map(&b)`
 
-                    auto bp = down_cast<pm_block_argument_node>(prismBlock);
-                    ENFORCE(PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE));
-                    ENFORCE(blockPassArgIsSymbol);
-                    ENFORCE(false, "TODO: Implement symbol block pass args here");
+                    auto *bp = down_cast<pm_block_argument_node>(prismBlock);
+                    ENFORCE(bp->expression == nullptr || !PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE));
+
+                    // TODO:
                     // See `symbol2Proc()` in Desugar.cc
                 } else {
                     unreachable("Found an unexpected block of type {}", pm_node_type_to_str(PM_NODE_TYPE(prismBlock)));
