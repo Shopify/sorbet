@@ -738,34 +738,29 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 } else {
                     auto *bp = down_cast<pm_block_argument_node>(prismBlock);
 
-                    blockPassArgIsSymbol = bp->expression && PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
-
-                    if (blockPassArgIsSymbol) {
-                        supportedBlock = false; // TODO: Implement symbol procs
-                    } else {
-                        auto *bp = down_cast<pm_block_argument_node>(prismBlock);
-
-                        blockPassArgIsSymbol = bp->expression && PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
+                    if (bp->expression) {
+                        blockPassArgIsSymbol = PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
 
                         if (blockPassArgIsSymbol) {
                             supportedBlock = false; // TODO: Implement symbol procs
                         } else {
-                            if (bp->expression) {
-                                auto blockPassArgNode = translate(bp->expression);
+                            auto blockPassArgNode = translate(bp->expression);
 
-                                if (supportedCallType && hasExpr(blockPassArgNode)) {
-                                    blockPassArg = blockPassArgNode->takeDesugaredExpr();
-                                    supportedBlock = true;
-                                } else {
-                                    supportedBlock = false;
-                                }
-                            } else {
-                                // Replace an anonymous block pass like `f(&)` with a local variable reference, like
-                                // `f(&&)`.
-                                blockPassArg = MK::Local(location, core::Names::ampersand());
+                            ENFORCE("HIT 2");
+
+                            if (supportedCallType && hasExpr(blockPassArgNode)) {
+                                ENFORCE("HIT 1");
+                                blockPassArg = blockPassArgNode->takeDesugaredExpr();
                                 supportedBlock = true;
+                            } else {
+                                supportedBlock = false;
                             }
                         }
+                    } else {
+                        // Replace an anonymous block pass like `f(&)` with a local variable reference, like
+                        // `f(&&)`.
+                        blockPassArg = MK::Local(location, core::Names::ampersand());
+                        supportedBlock = true;
                     }
                 }
             } else {
@@ -829,6 +824,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 magicSendArgs.emplace_back(move(receiverExpr));
                 magicSendArgs.emplace_back(move(methodName));
                 magicSendArgs.emplace_back(move(blockPassArg));
+                magicSendArgs.emplace_back(MK::True(location));
 
                 numPosArgs += 3;
 
