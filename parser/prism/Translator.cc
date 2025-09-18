@@ -5317,7 +5317,51 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node) {
     ast::ExpressionPtr parentExpr = nullptr;
 
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
-        if (auto *prismParentNode = node->parent) {
+        {
+            absl::InlinedVector<core::NameRef, 4> fullPath;
+            bool isRootAnchored = false;
+            pm_node_t *current = up_cast(const_cast<PrismLhsNode *>(node));
+            while (current != nullptr) {
+                switch (PM_NODE_TYPE(current)) {
+                    case PM_CONSTANT_PATH_NODE: {
+                        auto *p = down_cast<pm_constant_path_node>(current);
+                        fullPath.push_back(translateConstantName(p->name));
+                        if (p->parent != nullptr) {
+                            current = p->parent;
+                        } else {
+                            isRootAnchored = true;
+                            current = nullptr;
+                        }
+                        break;
+                    }
+                    case PM_CONSTANT_READ_NODE: {
+                        auto *r = down_cast<pm_constant_read_node>(current);
+                        fullPath.push_back(translateConstantName(r->name));
+                        current = nullptr;
+                        break;
+                    }
+                    default:
+                        current = nullptr;
+                        break;
+                }
+            }
+            if (!fullPath.empty()) {
+                absl::c_reverse(fullPath);
+                if (isRootAnchored) {
+                    if (fullPath.size() == 3 && fullPath[0] == ctx.state.enterNameUTF8("Sorbet") &&
+                        fullPath[1] == ctx.state.enterNameUTF8("Private") &&
+                        fullPath[2] == ctx.state.enterNameUTF8("Static")) {
+                        return make_unique<parser::ResolvedConst>(location, core::Symbols::Sorbet_Private_Static());
+                    }
+                    if (fullPath.size() == 3 && fullPath[0] == ctx.state.enterNameUTF8("T") &&
+                        fullPath[1] == ctx.state.enterNameUTF8("Sig") &&
+                        fullPath[2] == ctx.state.enterNameUTF8("WithoutRuntime")) {
+                        return make_unique<parser::ResolvedConst>(location, core::Symbols::T_Sig_WithoutRuntime());
+                    }
+                }
+            }
+        }
+        if (auto prismParentNode = node->parent) {
             // This constant reference is chained onto another constant reference.
             // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the `name`.
             //   A::B::C
