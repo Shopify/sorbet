@@ -1803,11 +1803,40 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto rescueModifierNode = down_cast<pm_rescue_modifier_node>(node);
             auto body = translate(rescueModifierNode->expression);
             auto rescue = translate(rescueModifierNode->rescue_expression);
+
+            if (!directlyDesugar || !hasExpr(body, rescue)) {
+                NodeVec cases;
+                // In rescue modifiers, users can't specify exceptions and the variable name so they're null
+                cases.emplace_back(make_unique<parser::Resbody>(location, nullptr, nullptr, move(rescue)));
+                return make_unique<parser::Rescue>(location, move(body), move(cases), nullptr);
+            }
+
+            auto bodyExpr = body->takeDesugaredExpr();
+            auto rescueExpr = rescue->takeDesugaredExpr();
+
+            // Create a RescueCase with empty exceptions and a rescue temp var
+            ast::RescueCase::EXCEPTION_store exceptions;
+            auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
+
+            // In `rescue; ...; end`, we don't want the magic <rescueTemp> variable to look
+            // as if its loc is the entire `rescue; ...; end` span. Better to just point at
+            // the `rescue` keyword.
+            auto varLoc = (location.endPos() - location.beginPos()) > 6
+                              ? core::LocOffsets{location.beginPos(), location.beginPos() + 6}
+                              : location.copyWithZeroLength();
+
+            auto rescueCase = ast::make_expression<ast::RescueCase>(
+                location, move(exceptions), ast::MK::Local(varLoc, rescueTemp), move(rescueExpr));
+
+            ast::Rescue::RESCUE_CASE_store rescueCases;
+            rescueCases.emplace_back(move(rescueCase));
+            auto expr = ast::make_expression<ast::Rescue>(location, move(bodyExpr), move(rescueCases),
+                                                          ast::MK::EmptyTree(), ast::MK::EmptyTree());
+
             NodeVec cases;
-            // In rescue modifiers, users can't specify exceptions and the variable name so they're null
             cases.emplace_back(make_unique<parser::Resbody>(location, nullptr, nullptr, move(rescue)));
 
-            return make_unique<parser::Rescue>(location, move(body), move(cases), nullptr);
+            return make_node_with_expr<parser::Rescue>(move(expr), location, move(body), move(cases), nullptr);
         }
         case PM_RESCUE_NODE: {
             unreachable("PM_RESCUE_NODE is handled separately in translateRescue, see its docs for details.");
