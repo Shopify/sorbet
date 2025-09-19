@@ -1090,40 +1090,66 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 return make_unique<parser::Defined>(location.join(arg->loc), move(arg));
             }
 
+            auto valueNode = definedNode->value;
+
             // Desugar to `::Magic.defined_instance_var(ivar)` or `::Magic.defined_class_var(cvar)`
-            if (auto *ivar = parser::NodeWithExpr::cast_node<parser::IVar>(arg.get())) {
-                auto sym = MK::Symbol(arg->loc, ivar->name);
-                auto expr = MK::Send1(arg->loc, MK::Magic(arg->loc), core::Names::definedInstanceVar(),
+            if (PM_NODE_TYPE_P(valueNode, PM_INSTANCE_VARIABLE_READ_NODE)) {
+                auto ivarNode = down_cast<pm_instance_variable_read_node>(valueNode);
+                auto loc = translateLoc(valueNode->location);
+                auto name = translateConstantName(ivarNode->name);
+                auto sym = MK::Symbol(loc, name);
+
+                auto expr = MK::Send1(loc, MK::Magic(loc), core::Names::definedInstanceVar(),
                                       location.copyWithZeroLength(), move(sym));
-                return make_node_with_expr<parser::Defined>(move(expr), location.join(arg->loc), move(arg));
+
+                return make_node_with_expr<parser::Defined>(move(expr), location.join(loc), move(arg));
             }
 
-            if (auto *cvar = parser::NodeWithExpr::cast_node<parser::CVar>(arg.get())) {
-                auto sym = MK::Symbol(arg->loc, cvar->name);
-                auto expr = MK::Send1(arg->loc, MK::Magic(arg->loc), core::Names::definedClassVar(),
+            if (PM_NODE_TYPE_P(valueNode, PM_CLASS_VARIABLE_READ_NODE)) {
+                auto cvarNode = down_cast<pm_class_variable_read_node>(valueNode);
+                auto loc = translateLoc(valueNode->location);
+                auto name = translateConstantName(cvarNode->name);
+                auto sym = MK::Symbol(loc, name);
+
+                auto expr = MK::Send1(loc, MK::Magic(loc), core::Names::definedClassVar(),
                                       location.copyWithZeroLength(), move(sym));
-                return make_node_with_expr<parser::Defined>(move(expr), location.join(arg->loc), move(arg));
+
+                return make_node_with_expr<parser::Defined>(move(expr), location.join(loc), move(arg));
             }
 
-            // Desugar to `::Magic.defined_p(a, b, c)` or `::Magic.defined_p()`
+            // Desugar to `::Magic.defined_p(A, B, C)` or `::Magic.defined_p()`
             ast::Send::ARGS_store args;
-            if (auto *constNode = parser::NodeWithExpr::cast_node<parser::Const>(arg.get())) {
-                auto currentConst = constNode;
 
-                while (currentConst != nullptr) {
-                    auto nameStr = currentConst->name.show(ctx.state);
-                    auto nameRef = ctx.state.enterNameUTF8(nameStr);
-                    args.emplace_back(MK::String(currentConst->loc, nameRef));
+            if (PM_NODE_TYPE_P(valueNode, PM_CONSTANT_READ_NODE) || PM_NODE_TYPE_P(valueNode, PM_CONSTANT_PATH_NODE)) {
+                pm_node_t *currentNode = valueNode;
 
-                    if (currentConst->scope != nullptr) {
-                        // Check if this is a fully qualified path
-                        if (parser::NodeWithExpr::isa_node<parser::Cbase>(currentConst->scope.get())) {
+                while (currentNode != nullptr) {
+                    if (PM_NODE_TYPE_P(currentNode,
+                                       PM_CONSTANT_READ_NODE)) { // this will be the last node in the chain, or maybe
+                                                                 // the only node in the chain
+                        // Simple constant or end of a path chain
+                        auto constNode = down_cast<pm_constant_read_node>(currentNode);
+                        args.emplace_back(
+                            MK::String(translateLoc(currentNode->location), translateConstantName(constNode->name)));
+
+                        currentNode = nullptr; // No parent for PM_CONSTANT_READ_NODE
+                    } else if (PM_NODE_TYPE_P(
+                                   currentNode,
+                                   PM_CONSTANT_PATH_NODE)) { // all other nodes in the chain except the last one
+                        auto pathNode = down_cast<pm_constant_path_node>(currentNode);
+
+                        // Check if this is the root of a fully qualified path (has no parent)
+                        if (pathNode->parent == nullptr) {
                             args.clear();
                             break;
                         }
-                        currentConst = parser::NodeWithExpr::cast_node<parser::Const>(currentConst->scope.get());
+
+                        args.emplace_back(
+                            MK::String(translateLoc(currentNode->location), translateConstantName(pathNode->name)));
+
+                        currentNode = pathNode->parent;
                     } else {
-                        currentConst = nullptr;
+                        break;
                     }
                 }
 
