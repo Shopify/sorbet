@@ -1266,7 +1266,21 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                         tp.origins.emplace_back(symbol.loc(ctx));
                     } else {
                         tp.origins.emplace_back(core::Loc::none());
-                        tp.type = core::Types::untyped(symbol);
+                        // Attribute untyped of undeclared-field aliases to a per-ivar blame symbol
+                        if (a.what == core::Symbols::Magic_undeclaredFieldStub() && a.name.exists()) {
+                            if constexpr (sorbet::track_untyped_blame_mode) {
+                                core::ClassOrModuleRef owner = ctx.owner.isMethod()
+                                                                   ? ctx.owner.asMethodRef().data(ctx)->owner
+                                                                   : ctx.owner.asClassOrModuleRef();
+                                auto &state = const_cast<core::GlobalState &>(ctx.state);
+                                auto blame = state.getOrCreateUndeclaredFieldBlameField(owner, a.name);
+                                tp.type = core::Types::untyped(blame);
+                            } else {
+                                tp.type = core::Types::untyped(symbol);
+                            }
+                        } else {
+                            tp.type = core::Types::untyped(symbol);
+                        }
                     }
                 } else if (symbol.isTypeAlias(ctx)) {
                     auto sym = symbol.asFieldRef();

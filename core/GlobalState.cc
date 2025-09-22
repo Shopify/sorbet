@@ -545,6 +545,10 @@ void GlobalState::initEmpty() {
     klass.data(*this)->setIsModule(false);
     ENFORCE_NO_TIMER(klass == Symbols::T_Struct());
 
+    // Lazily initialized container for undeclared field blame fields.
+    // Created on demand by getOrCreateUndeclaredFieldBlameField.
+    undeclaredFieldBlameContainer = ClassOrModuleRef();
+
     klass = synthesizeClass(core::Names::Constants::Singleton(), 0, true);
     ENFORCE_NO_TIMER(klass == Symbols::Singleton());
 
@@ -1952,6 +1956,42 @@ unsigned int GlobalState::symbolsUsedTotal() const {
 
 string GlobalState::toStringWithOptions(bool showFull, bool showRaw) const {
     return Symbols::root().toStringWithOptions(*this, 0, showFull, showRaw);
+}
+
+core::FieldRef GlobalState::getOrCreateUndeclaredFieldBlameField(core::ClassOrModuleRef owner,
+                                                                 core::NameRef ivarName) {
+    uint64_t key = (static_cast<uint64_t>(owner.id()) << 32) | static_cast<uint64_t>(ivarName.rawId());
+    auto it = ownerNameToBlameField.find(key);
+    if (it != ownerNameToBlameField.end()) {
+        return it->second;
+    }
+
+    if (!undeclaredFieldBlameContainer.exists()) {
+        auto containerName = enterNameConstant("<UndeclaredFieldBlame>");
+        undeclaredFieldBlameContainer = enterClassSymbol(Loc::none(), Symbols::Magic(), containerName);
+        undeclaredFieldBlameContainer.data(*this)->setIsModule(true);
+    }
+
+    auto uniqueName = freshNameUnique(UniqueNameKind::MangleRename, ivarName, owner.id());
+    auto blameField = enterFieldSymbol(Loc::none(), undeclaredFieldBlameContainer, uniqueName);
+
+    ownerNameToBlameField.emplace(key, blameField);
+    blameFieldToOwnerName.emplace(blameField.id(), std::make_pair(owner, ivarName));
+    return blameField;
+}
+
+bool GlobalState::getUndeclaredFieldBlameInfo(core::SymbolRef sym, core::ClassOrModuleRef &realOwner,
+                                              core::NameRef &realName) const {
+    if (!sym.isFieldOrStaticField()) {
+        return false;
+    }
+    auto it = blameFieldToOwnerName.find(sym.asFieldRef().id());
+    if (it == blameFieldToOwnerName.end()) {
+        return false;
+    }
+    realOwner = it->second.first;
+    realName = it->second.second;
+    return true;
 }
 
 void GlobalState::sanityCheckTableSizes() const {

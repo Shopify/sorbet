@@ -1724,11 +1724,25 @@ void printUntypedBlames(const core::GlobalState &gs, const UnorderedMap<long, lo
 
     for (auto &[symId, count] : untypedBlames) {
         auto sym = core::SymbolRef::fromRaw(symId);
+        core::ClassOrModuleRef blameOwner;
+        core::NameRef blameName;
+        bool isUndeclaredFieldBlame = gs.getUndeclaredFieldBlameInfo(sym, blameOwner, blameName);
 
         writer.StartObject();
 
         writer.String("path");
-        if (sym.exists() && sym.loc(gs).exists()) {
+        if (isUndeclaredFieldBlame) {
+            if (blameOwner.exists()) {
+                auto blameOwnerLoc = blameOwner.data(gs)->loc();
+                if (blameOwnerLoc.exists()) {
+                    writer.String(string(blameOwnerLoc.file().data(gs).path()));
+                } else {
+                    writer.String("<none>");
+                }
+            } else {
+                writer.String("<none>");
+            }
+        } else if (sym.exists() && sym.loc(gs).exists()) {
             writer.String(string(sym.loc(gs).file().data(gs).path()));
 
         } else {
@@ -1736,7 +1750,14 @@ void printUntypedBlames(const core::GlobalState &gs, const UnorderedMap<long, lo
         }
 
         writer.String("package");
-        if (sym.exists()) {
+        if (isUndeclaredFieldBlame) {
+            auto pkg = blameOwner.exists() ? blameOwner.data(gs)->package : core::SymbolRef().asClassOrModuleRef().data(gs)->package;
+            if (!pkg.exists()) {
+                writer.String("<none>");
+            } else {
+                writer.String(gs.packageDB().getPackageInfo(pkg).show(gs));
+            }
+        } else if (sym.exists()) {
             auto pkg = sym.enclosingClass(gs).data(gs)->package;
             if (!pkg.exists()) {
                 writer.String("<none>");
@@ -1749,11 +1770,19 @@ void printUntypedBlames(const core::GlobalState &gs, const UnorderedMap<long, lo
         }
 
         writer.String("owner");
-        auto owner = sym.owner(gs).show(gs);
-        writer.String(owner);
+        if (isUndeclaredFieldBlame) {
+            writer.String(blameOwner.show(gs));
+        } else {
+            auto owner = sym.owner(gs).show(gs);
+            writer.String(owner);
+        }
 
         writer.String("name");
-        writer.String(sym.name(gs).show(gs));
+        if (isUndeclaredFieldBlame) {
+            writer.String(blameName.show(gs));
+        } else {
+            writer.String(sym.name(gs).show(gs));
+        }
 
         writer.String("count");
         writer.Int64(count);

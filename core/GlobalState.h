@@ -380,6 +380,17 @@ public:
 
     bool shouldReportErrorOn(FileRef file, ErrorClass what) const;
 
+public:
+    // Returns a synthetic FieldRef used only for untyped-blame attribution for undeclared ivars/cvars.
+    // The returned FieldRef is stable within this GlobalState and unique per (owner, ivarName).
+    // Safe to call even when untyped blame is not enabled.
+    FieldRef getOrCreateUndeclaredFieldBlameField(ClassOrModuleRef owner, NameRef ivarName);
+
+    // If the given symbol is one of the synthetic blame fields created by
+    // getOrCreateUndeclaredFieldBlameField, returns true and fills the realOwner / realName
+    // that this blame field represents.
+    bool getUndeclaredFieldBlameInfo(SymbolRef sym, ClassOrModuleRef &realOwner, NameRef &realName) const;
+
 private:
     struct DeepCloneHistoryEntry {
         int globalStateId;
@@ -437,6 +448,15 @@ private:
                                    SymbolRef defaultReturnValue, bool ignoreKind = false) const;
 
     std::string toStringWithOptions(bool showFull, bool showRaw) const;
+
+    // Lazily created container under ::<Magic> to host synthetic blame FieldRefs.
+    // This container is not exposed via Symbols:: helpers and is only used internally for
+    // untyped blame attribution.
+    ClassOrModuleRef undeclaredFieldBlameContainer;
+    // Map (owner.rawId, name.rawId) -> synthetic blame FieldRef
+    UnorderedMap<uint64_t, FieldRef> ownerNameToBlameField;
+    // Reverse map: blame FieldRef.rawId -> (real owner, real name)
+    UnorderedMap<uint32_t, std::pair<ClassOrModuleRef, NameRef>> blameFieldToOwnerName;
 };
 // CheckSize(GlobalState, 152, 8);
 // Historically commented out because size of unordered_map was different between different versions of stdlib
