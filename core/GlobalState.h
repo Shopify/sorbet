@@ -449,14 +449,14 @@ private:
 
     std::string toStringWithOptions(bool showFull, bool showRaw) const;
 
-    // Lazily created container under ::<Magic> to host synthetic blame FieldRefs.
-    // This container is not exposed via Symbols:: helpers and is only used internally for
-    // untyped blame attribution.
-    ClassOrModuleRef undeclaredFieldBlameContainer;
-    // Map (owner.rawId, name.rawId) -> synthetic blame FieldRef
-    UnorderedMap<uint64_t, FieldRef> ownerNameToBlameField;
-    // Reverse map: blame FieldRef.rawId -> (real owner, real name)
-    UnorderedMap<uint32_t, std::pair<ClassOrModuleRef, NameRef>> blameFieldToOwnerName;
+    // Virtual blame field IDs (no symbol table entries):
+    // We allocate IDs beyond the real fields table size and never dereference them.
+    uint32_t undeclaredFieldBlameBaseId = 0;
+    uint32_t undeclaredFieldBlameNextOffset = 0;
+    // Map (owner.id, name.rawId) -> virtual field id
+    UnorderedMap<uint64_t, uint32_t> ownerNameToVirtualFieldId;
+    // Reverse map: virtual field id -> (real owner, real name)
+    UnorderedMap<uint32_t, std::pair<ClassOrModuleRef, NameRef>> virtualFieldIdToOwnerName;
 };
 // CheckSize(GlobalState, 152, 8);
 // Historically commented out because size of unordered_map was different between different versions of stdlib

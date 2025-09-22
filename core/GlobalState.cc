@@ -545,9 +545,9 @@ void GlobalState::initEmpty() {
     klass.data(*this)->setIsModule(false);
     ENFORCE_NO_TIMER(klass == Symbols::T_Struct());
 
-    // Lazily initialized container for undeclared field blame fields.
-    // Created on demand by getOrCreateUndeclaredFieldBlameField.
-    undeclaredFieldBlameContainer = ClassOrModuleRef();
+    // Initialize virtual blame ID space lazily later.
+    undeclaredFieldBlameBaseId = 0;
+    undeclaredFieldBlameNextOffset = 0;
 
     klass = synthesizeClass(core::Names::Constants::Singleton(), 0, true);
     ENFORCE_NO_TIMER(klass == Symbols::Singleton());
@@ -1960,24 +1960,22 @@ string GlobalState::toStringWithOptions(bool showFull, bool showRaw) const {
 
 core::FieldRef GlobalState::getOrCreateUndeclaredFieldBlameField(core::ClassOrModuleRef owner,
                                                                  core::NameRef ivarName) {
+    // Allocate a virtual field ID beyond the real range, stable per (owner, name).
     uint64_t key = (static_cast<uint64_t>(owner.id()) << 32) | static_cast<uint64_t>(ivarName.rawId());
-    auto it = ownerNameToBlameField.find(key);
-    if (it != ownerNameToBlameField.end()) {
-        return it->second;
+    auto it = ownerNameToVirtualFieldId.find(key);
+    if (it != ownerNameToVirtualFieldId.end()) {
+        return core::FieldRef::fromRaw(it->second);
     }
 
-    if (!undeclaredFieldBlameContainer.exists()) {
-        auto containerName = enterNameConstant("<UndeclaredFieldBlame>");
-        undeclaredFieldBlameContainer = enterClassSymbol(Loc::none(), Symbols::Magic(), containerName);
-        undeclaredFieldBlameContainer.data(*this)->setIsModule(true);
+    if (undeclaredFieldBlameBaseId == 0) {
+        // Reserve a base id larger than any possible real field id, but safely below SymbolRef::MAX_ID.
+        // Choose a large fixed base to keep IDs compact and avoid contention.
+        undeclaredFieldBlameBaseId = 400000000u; // < (1<<29)
     }
-
-    auto uniqueName = freshNameUnique(UniqueNameKind::MangleRename, ivarName, owner.id());
-    auto blameField = enterFieldSymbol(Loc::none(), undeclaredFieldBlameContainer, uniqueName);
-
-    ownerNameToBlameField.emplace(key, blameField);
-    blameFieldToOwnerName.emplace(blameField.id(), std::make_pair(owner, ivarName));
-    return blameField;
+    uint32_t vid = undeclaredFieldBlameBaseId + undeclaredFieldBlameNextOffset++;
+    ownerNameToVirtualFieldId.emplace(key, vid);
+    virtualFieldIdToOwnerName.emplace(vid, std::make_pair(owner, ivarName));
+    return core::FieldRef::fromRaw(vid);
 }
 
 bool GlobalState::getUndeclaredFieldBlameInfo(core::SymbolRef sym, core::ClassOrModuleRef &realOwner,
@@ -1985,8 +1983,8 @@ bool GlobalState::getUndeclaredFieldBlameInfo(core::SymbolRef sym, core::ClassOr
     if (!sym.isFieldOrStaticField()) {
         return false;
     }
-    auto it = blameFieldToOwnerName.find(sym.asFieldRef().id());
-    if (it == blameFieldToOwnerName.end()) {
+    auto it = virtualFieldIdToOwnerName.find(sym.asFieldRef().id());
+    if (it == virtualFieldIdToOwnerName.end()) {
         return false;
     }
     realOwner = it->second.first;
