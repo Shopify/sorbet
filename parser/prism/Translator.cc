@@ -1160,19 +1160,31 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             ENFORCE(arg != nullptr);
             ENFORCE(arg->hasDesugaredExpr());
 
+            auto valueNode = definedNode->value;
+
             // Desugar to `::Magic.defined_instance_var(ivar)` or `::Magic.defined_class_var(cvar)`
-            if (auto *ivar = parser::NodeWithExpr::cast_node<parser::IVar>(arg.get())) {
-                auto sym = MK::Symbol(arg->loc, ivar->name);
-                auto expr = MK::Send1(arg->loc, MK::Magic(arg->loc), core::Names::definedInstanceVar(),
+            if (PM_NODE_TYPE_P(valueNode, PM_INSTANCE_VARIABLE_READ_NODE)) {
+                auto ivarNode = down_cast<pm_instance_variable_read_node>(valueNode);
+                auto loc = translateLoc(valueNode->location);
+                auto name = translateConstantName(ivarNode->name);
+                auto sym = MK::Symbol(loc, name);
+
+                auto expr = MK::Send1(loc, MK::Magic(loc), core::Names::definedInstanceVar(),
                                       location.copyWithZeroLength(), move(sym));
-                return make_node_with_expr<parser::Defined>(move(expr), location.join(arg->loc), move(arg));
+
+                return make_node_with_expr<parser::Defined>(move(expr), location.join(loc), move(arg));
             }
 
-            if (auto *cvar = parser::NodeWithExpr::cast_node<parser::CVar>(arg.get())) {
-                auto sym = MK::Symbol(arg->loc, cvar->name);
-                auto expr = MK::Send1(arg->loc, MK::Magic(arg->loc), core::Names::definedClassVar(),
+            if (PM_NODE_TYPE_P(valueNode, PM_CLASS_VARIABLE_READ_NODE)) {
+                auto cvarNode = down_cast<pm_class_variable_read_node>(valueNode);
+                auto loc = translateLoc(valueNode->location);
+                auto name = translateConstantName(cvarNode->name);
+                auto sym = MK::Symbol(loc, name);
+
+                auto expr = MK::Send1(loc, MK::Magic(loc), core::Names::definedClassVar(),
                                       location.copyWithZeroLength(), move(sym));
-                return make_node_with_expr<parser::Defined>(move(expr), location.join(arg->loc), move(arg));
+
+                return make_node_with_expr<parser::Defined>(move(expr), location.join(loc), move(arg));
             }
 
             // Desugar to `defined?(A::B::C)` to `::Magic.defined_p("A", "B", "C")`,
@@ -1186,9 +1198,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     args.clear();
                     break;
                 }
-                args.emplace_back(MK::String(lit->loc, lit->cnst));
+                args.emplace_back(MK::StringFromConstant(lit));
                 constPathNode = move(lit->scope);
             }
+
             absl::c_reverse(args);
 
             auto expr = MK::Send(arg->loc, MK::Magic(arg->loc), core::Names::defined_p(), location.copyWithZeroLength(),
