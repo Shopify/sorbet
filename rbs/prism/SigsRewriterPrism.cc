@@ -533,6 +533,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
             return node;
         }
         case PM_DEF_NODE: {
+            fmt::print("Rewriting def node\n");
             auto *def = down_cast<pm_def_node_t>(node);
             def->body = rewriteBody(def->body);
             return node;
