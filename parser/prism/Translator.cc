@@ -420,7 +420,39 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_ARRAY_NODE: { // An array literal, e.g. `[1, 2, 3]`
             auto arrayNode = down_cast<pm_array_node>(node);
 
-            auto sorbetElements = translateMulti(arrayNode->elements);
+            // Translate elements, handling splats specially to use array's location
+            NodeVec sorbetElements;
+            sorbetElements.reserve(arrayNode->elements.size);
+            for (size_t i = 0; i < arrayNode->elements.size; i++) {
+                auto element = arrayNode->elements.nodes[i];
+                if (PM_NODE_TYPE_P(element, PM_SPLAT_NODE)) {
+                    auto splatNode = down_cast<pm_splat_node>(element);
+                    if (splatNode->expression != nullptr) {
+                        auto expression = translate(splatNode->expression);
+                        if (directlyDesugar && expression->hasDesugaredExpr()) {
+                            auto splatExpr = MK::Splat(location, expression->takeDesugaredExpr());
+                            sorbetElements.emplace_back(
+                                make_node_with_expr<parser::Splat>(move(splatExpr), location, move(expression)));
+                        } else {
+                            sorbetElements.emplace_back(make_unique<parser::Splat>(location, move(expression)));
+                        }
+                    } else {
+                        // Forwarded rest arg (*) - desugars to splat of local named `*`
+                        if (directlyDesugar) {
+                            auto star = MK::Local(location.copyWithZeroLength(), core::Names::star());
+                            auto splatExpr = MK::Splat(location, move(star));
+                            auto fwdNode = make_unique<parser::ForwardedRestArg>(location.copyWithZeroLength());
+                            sorbetElements.emplace_back(
+                                make_node_with_expr<parser::Splat>(move(splatExpr), location, move(fwdNode)));
+                        } else {
+                            sorbetElements.emplace_back(
+                                make_unique<parser::Splat>(location, make_unique<parser::ForwardedRestArg>(location.copyWithZeroLength())));
+                        }
+                    }
+                } else {
+                    sorbetElements.emplace_back(translate(element));
+                }
+            }
 
             if (!directlyDesugar || !hasExpr(sorbetElements)) {
                 return make_unique<parser::Array>(location, move(sorbetElements));
@@ -432,24 +464,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             elems.reserve(sorbetElements.size());
             ExpressionPtr lastMerge;
             for (auto &stat : sorbetElements) {
-                if (parser::NodeWithExpr::isa_node<parser::Splat>(stat.get()) ||
-                    parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(stat.get())) {
+                if (parser::NodeWithExpr::isa_node<parser::Splat>(stat.get())) {
                     // Desugar [a, *x, remaining] into a.concat(<splat>(x)).concat(remaining)
-
-                    // The Splat was already desugared to Send{Magic.splat(arg)} with the splat's own location.
-                    // But for array literals, we want the splat to have the array's location to match
-                    // the legacy parser's behavior (important for error messages and hover).
-                    auto splatExpr = stat->takeDesugaredExpr();
-
-                    // The parser::Send case makes a fake parser::Array with locZeroLen to hide callWithSplat
-                    // methods from hover. Using the array's loc means that we will get a zero-length loc for
-                    // the Splat in that case, and non-zero if there was a real Array literal.
-                    if (auto send = ast::cast_tree<ast::Send>(splatExpr)) {
-                        ENFORCE(send->numPosArgs() == 1, "Splat Send should have exactly 1 argument");
-                        // Extract the argument from the old Send and create a new one with array's location
-                        splatExpr = MK::Splat(location, move(send->getPosArg(0)));
-                    }
-                    auto var = move(splatExpr);
+                    
+                    // The splat was already created with the array's location in the translation above
+                    auto var = stat->takeDesugaredExpr();
                     if (elems.empty()) {
                         if (lastMerge != nullptr) {
                             lastMerge =
