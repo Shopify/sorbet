@@ -254,6 +254,8 @@ public:
     static pm_node_t *Send0(core::LocOffsets loc, pm_node_t *receiver, const char *method);
     static pm_node_t *Send1(core::LocOffsets loc, pm_node_t *receiver, const char *method,
                            pm_node_t *arg1);
+    static pm_node_t *Send2(core::LocOffsets loc, pm_node_t *receiver, const char *method,
+                           pm_node_t *arg1, pm_node_t *arg2);
 
     // Utility functions
     static pm_constant_id_t addConstantToPool(const char *name);
@@ -276,6 +278,12 @@ public:
     static pm_node_t *TTypeParameter(core::LocOffsets loc, pm_node_t *name);
     static pm_node_t *TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType);
     static pm_node_t *TProcVoid(core::LocOffsets loc, pm_node_t *args);
+    static pm_node_t *TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
+    static pm_node_t *TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
+    static pm_node_t *TMust(core::LocOffsets loc, pm_node_t *value);
+    static pm_node_t *TUnsafe(core::LocOffsets loc, pm_node_t *value);
+    static pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value);
+    static pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type);
     static pm_node_t *T_Array(core::LocOffsets loc);
     static pm_node_t *T_Class(core::LocOffsets loc);
     static pm_node_t *T_Enumerable(core::LocOffsets loc);
@@ -283,6 +291,9 @@ public:
     static pm_node_t *T_Hash(core::LocOffsets loc);
     static pm_node_t *T_Set(core::LocOffsets loc);
     static pm_node_t *T_Range(core::LocOffsets loc);
+
+    // Array node creator
+    static pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements);
 
     // Utility functions for type checking
     static bool isTUntyped(pm_node_t *node);

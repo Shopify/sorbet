@@ -541,6 +541,138 @@ pm_node_t *PMK::TProcVoid(core::LocOffsets loc, pm_node_t *args) {
     return Send0(loc, builder, "void");
 }
 
+pm_node_t *PMK::Send2(core::LocOffsets loc, pm_node_t *receiver, const char *method, pm_node_t *arg1,
+                      pm_node_t *arg2) {
+    if (!receiver || !method || !arg1 || !arg2) {
+        return nullptr;
+    }
+
+    pm_constant_id_t method_id = addConstantToPool(method);
+    if (method_id == PM_CONSTANT_ID_UNSET) {
+        return nullptr;
+    }
+
+    // Create arguments node with two arguments
+    pm_arguments_node_t *arguments = allocateNode<pm_arguments_node_t>();
+    if (!arguments) {
+        return nullptr;
+    }
+
+    pm_node_t **arg_nodes = (pm_node_t **)calloc(2, sizeof(pm_node_t *));
+    if (!arg_nodes) {
+        free(arguments);
+        return nullptr;
+    }
+
+    arg_nodes[0] = arg1;
+    arg_nodes[1] = arg2;
+
+    *arguments = (pm_arguments_node_t){.base = initializeBaseNode(PM_ARGUMENTS_NODE),
+                                       .arguments = {.size = 2, .capacity = 2, .nodes = arg_nodes}};
+    arguments->base.location = convertLocOffsets(loc);
+
+    pm_location_t full_loc = convertLocOffsets(loc);
+    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
+
+    return up_cast(createSendNode(receiver, method_id, up_cast(arguments), tiny_loc, full_loc, tiny_loc));
+}
+
+pm_node_t *PMK::TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) {
+    // Create T.let(value, type) call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !value || !type) {
+        return nullptr;
+    }
+
+    return Send2(loc, t_const, "let", value, type);
+}
+
+pm_node_t *PMK::TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) {
+    // Create T.cast(value, type) call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !value || !type) {
+        return nullptr;
+    }
+
+    return Send2(loc, t_const, "cast", value, type);
+}
+
+pm_node_t *PMK::TMust(core::LocOffsets loc, pm_node_t *value) {
+    // Create T.must(value) call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !value) {
+        return nullptr;
+    }
+
+    return Send1(loc, t_const, "must", value);
+}
+
+pm_node_t *PMK::TUnsafe(core::LocOffsets loc, pm_node_t *value) {
+    // Create T.unsafe(value) call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !value) {
+        return nullptr;
+    }
+
+    return Send1(loc, t_const, "unsafe", value);
+}
+
+pm_node_t *PMK::TAbsurd(core::LocOffsets loc, pm_node_t *value) {
+    // Create T.absurd(value) call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !value) {
+        return nullptr;
+    }
+
+    return Send1(loc, t_const, "absurd", value);
+}
+
+pm_node_t *PMK::TBindSelf(core::LocOffsets loc, pm_node_t *type) {
+    // Create T.bind(self, type) call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !type) {
+        return nullptr;
+    }
+
+    pm_node_t *self_node = Self(loc);
+    if (!self_node) {
+        return nullptr;
+    }
+
+    return Send2(loc, t_const, "bind", self_node, type);
+}
+
+pm_node_t *PMK::Array(core::LocOffsets loc, const vector<pm_node_t *> &elements) {
+    // Create an array node
+    pm_array_node_t *array = allocateNode<pm_array_node_t>();
+    if (!array) {
+        return nullptr;
+    }
+
+    pm_node_t **elem_nodes = nullptr;
+    if (!elements.empty()) {
+        elem_nodes = (pm_node_t **)calloc(elements.size(), sizeof(pm_node_t *));
+        if (!elem_nodes) {
+            free(array);
+            return nullptr;
+        }
+
+        for (size_t i = 0; i < elements.size(); i++) {
+            elem_nodes[i] = elements[i];
+        }
+    }
+
+    *array = (pm_array_node_t){
+        .base = initializeBaseNode(PM_ARRAY_NODE),
+        .opening_loc = convertLocOffsets(loc.copyWithZeroLength()),
+        .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength()),
+        .elements = {.size = elements.size(), .capacity = elements.size(), .nodes = elem_nodes}};
+
+    array->base.location = convertLocOffsets(loc);
+
+    return up_cast(array);
+}
+
 pm_node_t *PMK::T_Array(core::LocOffsets loc) {
     // Create T::Array constant path
     return ConstantPathNode(loc, T(loc), "Array");
