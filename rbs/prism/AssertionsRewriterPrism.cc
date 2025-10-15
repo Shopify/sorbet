@@ -2,14 +2,15 @@
 
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
-#include "common/typecase.h"
 #include "core/errors/rewriter.h"
 #include "parser/helper.h"
-#include "parser/parser.h"
-#include "rbs/SignatureTranslator.h"
+#include "parser/prism/Helpers.h"
+#include "rbs/prism/SignatureTranslatorPrism.h"
+#include "rbs/prism/TypeToParserNodePrism.h"
 #include <regex>
 
 using namespace std;
+using namespace sorbet::parser::Prism;
 
 namespace sorbet::rbs {
 
@@ -20,37 +21,45 @@ const regex untyped_pattern_prism("^\\s*untyped\\s*(#.*)?$");
 const regex absurd_pattern_prism("^\\s*absurd\\s*(#.*)?$");
 
 /*
- * Parse the comment and return the type as a `parser::Node` and the kind of assertion we need to apply (let, cast,
+ * Parse the comment and return the type as a `pm_node_t*` and the kind of assertion we need to apply (let, cast,
  * must, unsafe).
  *
  * The `typeParams` param is used to resolve the type parameters from the method signature.
  *
  * Returns `nullopt` if the comment is not a valid RBS expression (an error is produced).
  */
-optional<pair<unique_ptr<parser::Node>, InlineCommentPrism::Kind>>
-parseCommentPrism(core::MutableContext ctx, InlineCommentPrism comment,
+optional<pair<pm_node_t *, InlineCommentPrism::Kind>>
+parseComment(core::MutableContext ctx, const parser::Prism::Parser *parser, InlineCommentPrism comment,
              vector<pair<core::LocOffsets, core::NameRef>> typeParams) {
+    // Set the parser for PMK helpers to use
+    PMK::setParser(parser);
+
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
-        return pair<unique_ptr<parser::Node>, InlineCommentPrism::Kind>{
-            // The type should never be used but we need to hold the location...
-            make_unique<parser::Nil>(comment.comment.typeLoc),
+        // The type should never be used but we need to hold the location...
+        pm_nil_node_t *nil = PMK::allocateNode<pm_nil_node_t>();
+        *nil = (pm_nil_node_t){
+            .base = PMK::initializeBaseNode(PM_NIL_NODE),
+        };
+        nil->base.location = PMK::convertLocOffsets(comment.comment.typeLoc);
+        return pair<pm_node_t *, InlineCommentPrism::Kind>{
+            up_cast(nil),
             comment.kind,
         };
     }
 
-    auto signatureTranslator = rbs::SignatureTranslator(ctx);
+    auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, *parser);
     vector<Comment> comments;
     comments.push_back(comment.comment);
     auto declaration = RBSDeclaration(comments);
-    auto type = signatureTranslator.translateAssertionType(typeParams, declaration);
+    auto type = signatureTranslatorPrism.translateAssertionType(typeParams, declaration);
 
     if (type == nullptr) {
         // We couldn't parse the type, we produced an error, we don't return anything
         return nullopt;
     }
 
-    return pair{move(type), comment.kind};
+    return pair{type, comment.kind};
 }
 
 /**
@@ -65,81 +74,82 @@ parseCommentPrism(core::MutableContext ctx, InlineCommentPrism comment,
  *
  * We need to be aware of the type parameter `X` so we can use it to resolve the type of `y`.
  */
-vector<pair<core::LocOffsets, core::NameRef>> extractTypeParamsPrism(parser::Node *sig) {
-    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
+// vector<pair<core::LocOffsets, core::NameRef>> extractTypeParamsPrism(parser::Node *sig) {
+//     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
 
-    // Do we have a previous signature?
-    if (!sig) {
-        return typeParams;
-    }
+//     // Do we have a previous signature?
+//     if (!sig) {
+//         return typeParams;
+//     }
 
-    auto block = parser::cast_node<parser::Block>(sig);
-    ENFORCE(block != nullptr);
+//     auto block = parser::cast_node<parser::Block>(sig);
+//     ENFORCE(block != nullptr);
 
-    // Does the sig contain a `type_parameters()` invocation?
-    auto send = parser::cast_node<parser::Send>(block->body.get());
-    while (send && send->method != core::Names::typeParameters()) {
-        send = parser::cast_node<parser::Send>(send->receiver.get());
-    }
+//     // Does the sig contain a `type_parameters()` invocation?
+//     auto send = parser::cast_node<parser::Send>(block->body.get());
+//     while (send && send->method != core::Names::typeParameters()) {
+//         send = parser::cast_node<parser::Send>(send->receiver.get());
+//     }
 
-    if (send == nullptr) {
-        return typeParams;
-    }
+//     if (send == nullptr) {
+//         return typeParams;
+//     }
 
-    // Collect the type parameters
-    for (auto &arg : send->args) {
-        auto sym = parser::cast_node<parser::Symbol>(arg.get());
-        if (sym == nullptr) {
-            continue;
-        }
+//     // Collect the type parameters
+//     for (auto &arg : send->args) {
+//         auto sym = parser::cast_node<parser::Symbol>(arg.get());
+//         if (sym == nullptr) {
+//             continue;
+//         }
 
-        typeParams.emplace_back(arg->loc, sym->val);
-    }
+//         typeParams.emplace_back(arg->loc, sym->val);
+//     }
 
-    return typeParams;
-}
+//     return typeParams;
+// }
 
-bool sameConstantPrism(core::MutableContext ctx, unique_ptr<parser::Node> &a, unique_ptr<parser::Node> &b) {
-    auto aConst = parser::cast_node<parser::Const>(a.get());
-    auto bConst = parser::cast_node<parser::Const>(b.get());
+// bool sameConstantPrism(core::MutableContext ctx, unique_ptr<parser::Node> &a, unique_ptr<parser::Node> &b) {
+//     auto aConst = parser::cast_node<parser::Const>(a.get());
+//     auto bConst = parser::cast_node<parser::Const>(b.get());
 
-    if (aConst == nullptr || bConst == nullptr) {
-        return false;
-    }
+//     if (aConst == nullptr || bConst == nullptr) {
+//         return false;
+//     }
 
-    if (aConst->name != bConst->name) {
-        return false;
-    }
+//     if (aConst->name != bConst->name) {
+//         return false;
+//     }
 
-    if ((aConst->scope == nullptr && bConst->scope != nullptr) ||
-        (aConst->scope != nullptr && bConst->scope == nullptr)) {
-        return false;
-    }
+//     if ((aConst->scope == nullptr && bConst->scope != nullptr) ||
+//         (aConst->scope != nullptr && bConst->scope == nullptr)) {
+//         return false;
+//     }
 
-    return (aConst->scope == nullptr && bConst->scope == nullptr) || sameConstantPrism(ctx, aConst->scope, bConst->scope);
-}
+//     return (aConst->scope == nullptr && bConst->scope == nullptr) ||
+//            sameConstantPrism(ctx, aConst->scope, bConst->scope);
+// }
 
-void maybeSupplyGenericTypeArgumentsPrism(core::MutableContext ctx, unique_ptr<parser::Node> *node,
-                                     unique_ptr<parser::Node> *type) {
-    // We only rewrite `.new` calls
-    auto newSend = parser::cast_node<parser::Send>(node->get());
-    if (newSend == nullptr || newSend->method != core::Names::new_()) {
-        return;
-    }
+// void maybeSupplyGenericTypeArgumentsPrism(core::MutableContext ctx, unique_ptr<parser::Node> *node,
+//                                           unique_ptr<parser::Node> *type) {
+//     // We only rewrite `.new` calls
+//     auto newSend = parser::cast_node<parser::Send>(node->get());
+//     if (newSend == nullptr || newSend->method != core::Names::new_()) {
+//         return;
+//     }
 
-    // We only rewrite when casted to a generic type
-    auto bracketSend = parser::cast_node<parser::Send>(type->get());
-    if (bracketSend == nullptr || bracketSend->method != core::Names::syntheticSquareBrackets()) {
-        return;
-    }
+//     // We only rewrite when casted to a generic type
+//     auto bracketSend = parser::cast_node<parser::Send>(type->get());
+//     if (bracketSend == nullptr || bracketSend->method != core::Names::syntheticSquareBrackets()) {
+//         return;
+//     }
 
-    // We only rewrite when the generic type is the same as the instantiated one
-    if (!sameConstantPrism(ctx, newSend->receiver, bracketSend->receiver)) {
-        return;
-    }
+//     // We only rewrite when the generic type is the same as the instantiated one
+//     if (!sameConstantPrism(ctx, newSend->receiver, bracketSend->receiver)) {
+//         return;
+//     }
 
-    newSend->receiver = type->get()->deepCopy();
-}
+//     newSend->receiver = type->get()->deepCopy();
+// }
 
 } // namespace
 
@@ -162,13 +172,113 @@ bool AssertionsRewriterPrism::hasConsumedComment(core::LocOffsets loc) {
  *
  * Returns `nullopt` if no comment is found or if the comment was already consumed.
  */
-optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(const unique_ptr<parser::Node> &node) {
-    // TODO: Update to work with prism comment maps
-    if (legacyCommentsByNode == nullptr) {
+// optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(const unique_ptr<parser::Node> &node) {
+//     // TODO: Update to work with prism comment maps
+//     if (legacyCommentsByNode == nullptr) {
+//         return nullopt;
+//     }
+//     auto it = legacyCommentsByNode->find(node.get());
+//     if (it == legacyCommentsByNode->end()) {
+//         return nullopt;
+//     }
+
+//     for (const auto &commentNode : it->second) {
+//         if (!absl::StartsWith(commentNode.string, CommentsAssociatorPrism::RBS_PREFIX)) {
+//             continue;
+//         }
+
+//         auto contentStart = commentNode.loc.beginPos() + 2; // +2 for the #: prefix
+//         auto content = commentNode.string.substr(2);        // skip the #: prefix
+
+//         // Skip whitespace after the #:
+//         while (contentStart < commentNode.loc.endPos() && isspace(content[0])) {
+//             contentStart++;
+//             content = content.substr(1);
+//         }
+
+//         auto kind = InlineCommentPrism::Kind::LET;
+//         if (absl::StartsWith(content, "as ")) {
+//             kind = InlineCommentPrism::Kind::CAST;
+//             contentStart += 3;
+//             content = content.substr(3);
+
+//             if (regex_match(content.begin(), content.end(), not_nil_pattern_prism)) {
+//                 kind = InlineCommentPrism::Kind::MUST;
+//             } else if (regex_match(content.begin(), content.end(), untyped_pattern_prism)) {
+//                 kind = InlineCommentPrism::Kind::UNSAFE;
+//             }
+//         } else if (regex_match(content.begin(), content.end(), absurd_pattern_prism)) {
+//             kind = InlineCommentPrism::Kind::ABSURD;
+//         } else if (absl::StartsWith(content, "self as ")) {
+//             kind = InlineCommentPrism::Kind::BIND;
+//             contentStart += 8;
+//             content = content.substr(8);
+//         }
+
+//         if (hasConsumedComment(commentNode.loc)) {
+//             continue;
+//         }
+//         consumeComment(commentNode.loc);
+
+//         return InlineCommentPrism{
+//             rbs::Comment{
+//                 commentNode.loc,
+//                 core::LocOffsets{contentStart, commentNode.loc.endPos()},
+//                 content,
+//             },
+//             kind,
+//         };
+//     }
+
+//     return nullopt;
+// }
+
+/**
+ * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
+ *
+ * Returns `true` if the block is a `sig` send, `false` otherwise.
+//  */
+// bool AssertionsRewriterPrism::saveTypeParams(parser::Block *block) {
+//     if (block->body == nullptr) {
+//         return false;
+//     }
+
+//     auto send = parser::cast_node<parser::Send>(block->send.get());
+//     if (send == nullptr) {
+//         return false;
+//     }
+
+//     if (send->method != core::Names::sig()) {
+//         return false;
+//     }
+
+//     typeParams = extractTypeParamsPrism(block);
+
+//     return true;
+// }
+
+/**
+ * Helper to convert Prism location to core::LocOffsets.
+ */
+core::LocOffsets AssertionsRewriterPrism::translateLocation(pm_location_t location) {
+    const uint8_t *sourceStart = (const uint8_t *)ctx.file.data(ctx).source().data();
+    uint32_t start = static_cast<uint32_t>(location.start - sourceStart);
+    uint32_t end = static_cast<uint32_t>(location.end - sourceStart);
+    return core::LocOffsets{start, end};
+}
+
+/**
+ * Get the RBS comment for the given Prism node.
+ *
+ * Returns `nullopt` if no comment is found or if the comment was already consumed.
+ */
+optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(pm_node_t *node) {
+    if (prismCommentsByNode == nullptr || node == nullptr) {
         return nullopt;
     }
-    auto it = legacyCommentsByNode->find(node.get());
-    if (it == legacyCommentsByNode->end()) {
+
+    auto it = prismCommentsByNode->find(node);
+    if (it == prismCommentsByNode->end()) {
         return nullopt;
     }
 
@@ -222,31 +332,6 @@ optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(const 
 
     return nullopt;
 }
-
-/**
- * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
- *
- * Returns `true` if the block is a `sig` send, `false` otherwise.
- */
-bool AssertionsRewriterPrism::saveTypeParams(parser::Block *block) {
-    if (block->body == nullptr) {
-        return false;
-    }
-
-    auto send = parser::cast_node<parser::Send>(block->send.get());
-    if (send == nullptr) {
-        return false;
-    }
-
-    if (send->method != core::Names::sig()) {
-        return false;
-    }
-
-    typeParams = extractTypeParamsPrism(block);
-
-    return true;
-}
-
 /**
  * Replace the given node with a cast node.
  *
@@ -257,30 +342,32 @@ bool AssertionsRewriterPrism::saveTypeParams(parser::Block *block) {
  * - `x #: as !nil`: `T.must(x)`
  * - `x #: as untyped`: `T.unsafe(x)`
  */
-unique_ptr<parser::Node>
-AssertionsRewriterPrism::insertCast(unique_ptr<parser::Node> node,
-                               optional<pair<unique_ptr<parser::Node>, InlineCommentPrism::Kind>> pair) {
+pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
+                                               optional<pair<pm_node_t *, InlineCommentPrism::Kind>> pair) {
     if (!pair) {
         return node;
     }
 
-    auto type = move(pair->first);
+    auto type = pair->first;
     auto kind = pair->second;
 
-    maybeSupplyGenericTypeArgumentsPrism(ctx, &node, &type);
+    // TODO: maybeSupplyGenericTypeArgumentsPrism needs to be updated for Prism
+    // maybeSupplyGenericTypeArgumentsPrism(ctx, &node, &type);
+
+    auto loc = translateLocation(type->location);
 
     if (kind == InlineCommentPrism::Kind::LET) {
-        return parser::MK::TLet(type->loc, move(node), move(type));
+        return PMK::TLet(loc, node, type);
     } else if (kind == InlineCommentPrism::Kind::CAST) {
-        return parser::MK::TCast(type->loc, move(node), move(type));
+        return PMK::TCast(loc, node, type);
     } else if (kind == InlineCommentPrism::Kind::MUST) {
-        return parser::MK::TMust(type->loc, move(node));
+        return PMK::TMust(loc, node);
     } else if (kind == InlineCommentPrism::Kind::UNSAFE) {
-        return parser::MK::TUnsafe(type->loc, move(node));
+        return PMK::TUnsafe(loc, node);
     } else if (kind == InlineCommentPrism::Kind::ABSURD) {
-        return parser::MK::TAbsurd(type->loc, move(node));
+        return PMK::TAbsurd(loc, node);
     } else if (kind == InlineCommentPrism::Kind::BIND) {
-        if (auto e = ctx.beginIndexerError(type->loc, core::errors::Rewriter::RBSUnsupported)) {
+        if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSUnsupported)) {
             e.setHeader("`{}` binding can't be used as a trailing comment", "self");
         }
         return node;
@@ -290,399 +377,609 @@ AssertionsRewriterPrism::insertCast(unique_ptr<parser::Node> node,
 }
 
 /**
- * Insert a cast into the given node if there is an not yet consumed RBS assertion comment after the node.
- * Optionally accepts another node to associate its comments instead.
+ * Insert a cast into the given Prism node if there is an not yet consumed RBS assertion comment.
  */
-unique_ptr<parser::Node> AssertionsRewriterPrism::maybeInsertCast(unique_ptr<parser::Node> node) {
+pm_node_t *AssertionsRewriterPrism::maybeInsertCast(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
 
     if (auto inlineComment = commentForNode(node)) {
-        if (auto type = parseCommentPrism(ctx, inlineComment.value(), typeParams)) {
-            return insertCast(move(node), move(type));
+        if (auto type = parseComment(ctx, parser, inlineComment.value(), typeParams)) {
+            return insertCast(node, type);
         }
     }
 
     return node;
 }
 
+// OLD WHITEQUARK PARSER VERSION - Not yet migrated
+// /**
+//  * Replace the synthetic node with a `T.bind` call.
+//  */
+// unique_ptr<parser::Node> AssertionsRewriterPrism::replaceSyntheticBind(unique_ptr<parser::Node> node) {
+//     auto inlineComment = commentForNode(node);
+//
+//     if (!inlineComment) {
+//         // This should never happen
+//         Exception::raise("No inline comment found for synthetic bind");
+//     }
+//
+//     auto pair = parseCommentPrism(ctx, inlineComment.value(), typeParams);
+//
+//     if (!pair) {
+//         // We already raised an error while parsing the comment, so we just bind to `T.untyped`
+//         return parser::MK::TBindSelf(node->loc, parser::MK::TUntyped(node->loc));
+//     }
+//
+//     auto kind = pair->second;
+//
+//     if (kind != InlineCommentPrism::Kind::BIND) {
+//         // This should never happen
+//         Exception::raise("Invalid inline comment for synthetic bind");
+//     }
+//
+//     auto type = move(pair->first);
+//
+//     return parser::MK::TBindSelf(type->loc, move(type));
+// }
+
+// OLD WHITEQUARK PARSER VERSIONS - Not yet migrated, currently not used
+// /**
+//  * Rewrite a collection of nodes, wrap them in an array and cast the array.
+//  */
+// parser::NodeVec AssertionsRewriterPrism::rewriteNodesAsArray(const unique_ptr<parser::Node> &node,
+//                                                              parser::NodeVec nodes) {
+//     if (auto inlineComment = commentForNode(node)) {
+//         if (nodes.size() > 1) {
+//             auto loc = nodes.front()->loc.join(nodes.back()->loc);
+//             auto arr = parser::MK::Array(loc, move(nodes));
+//             arr = rewriteNode(move(arr));
+//
+//             auto vector = parser::NodeVec();
+//             vector.emplace_back(move(arr));
+//             nodes = move(vector);
+//         }
+//         if (auto type = parseCommentPrism(ctx, inlineComment.value(), typeParams)) {
+//             nodes.front() = insertCast(move(nodes.front()), move(type));
+//         }
+//     }
+//
+//     rewriteNodes(&nodes);
+//     return nodes;
+// }
+
 /**
- * Replace the synthetic node with a `T.bind` call.
+ * Rewrite a collection of Prism nodes in place.
  */
-unique_ptr<parser::Node> AssertionsRewriterPrism::replaceSyntheticBind(unique_ptr<parser::Node> node) {
-    auto inlineComment = commentForNode(node);
-
-    if (!inlineComment) {
-        // This should never happen
-        Exception::raise("No inline comment found for synthetic bind");
+void AssertionsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
+    for (size_t i = 0; i < nodes.size; i++) {
+        nodes.nodes[i] = rewriteNode(nodes.nodes[i]);
     }
-
-    auto pair = parseCommentPrism(ctx, inlineComment.value(), typeParams);
-
-    if (!pair) {
-        // We already raised an error while parsing the comment, so we just bind to `T.untyped`
-        return parser::MK::TBindSelf(node->loc, parser::MK::TUntyped(node->loc));
-    }
-
-    auto kind = pair->second;
-
-    if (kind != InlineCommentPrism::Kind::BIND) {
-        // This should never happen
-        Exception::raise("Invalid inline comment for synthetic bind");
-    }
-
-    auto type = move(pair->first);
-
-    return parser::MK::TBindSelf(type->loc, move(type));
 }
 
 /**
- * Rewrite a collection of nodes, wrap them in an array and cast the array.
+ * Rewrite the body of a node (class, module, method, etc).
+ *
+ * This function handles ANY node type that can be a body:
+ * 1. StatementsNode - iterates and rewrites each statement in its body array
+ * 2. BeginNode, or any other node type - delegates to rewriteNode which handles all node types
+ * 3. nullptr - returns nullptr
+ *
+ * The key insight: StatementsNode is the only node type with a flat array of statements
+ * that we can iterate directly. All other compound nodes (BeginNode, IfNode, etc.) have
+ * their own specific structure handled by rewriteNode.
+ *
+ * The returned node should be assigned back to the body field of the parent node.
+ * For example: def->body = rewriteBody(def->body)
  */
-parser::NodeVec AssertionsRewriterPrism::rewriteNodesAsArray(const unique_ptr<parser::Node> &node, parser::NodeVec nodes) {
-    if (auto inlineComment = commentForNode(node)) {
-        if (nodes.size() > 1) {
-            auto loc = nodes.front()->loc.join(nodes.back()->loc);
-            auto arr = parser::MK::Array(loc, move(nodes));
-            arr = rewriteNode(move(arr));
-
-            auto vector = parser::NodeVec();
-            vector.emplace_back(move(arr));
-            nodes = move(vector);
-        }
-        if (auto type = parseCommentPrism(ctx, inlineComment.value(), typeParams)) {
-            nodes.front() = insertCast(move(nodes.front()), move(type));
-        }
-    }
-
-    rewriteNodes(&nodes);
-    return nodes;
-}
-
-/**
- * Rewrite a collection of nodes in place.
- */
-void AssertionsRewriterPrism::rewriteNodes(parser::NodeVec *nodes) {
-    for (auto &node : *nodes) {
-        node = rewriteNode(move(node));
-    }
-}
-
-/**
- * Rewrite the body of a node.
- */
-unique_ptr<parser::Node> AssertionsRewriterPrism::rewriteBody(unique_ptr<parser::Node> node) {
+pm_node_t *AssertionsRewriterPrism::rewriteBody(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
 
-    if (auto begin = parser::cast_node<parser::Begin>(node.get())) {
-        rewriteNodes(&begin->stmts);
+    // StatementsNode is special: it's a flat array of statements that we iterate directly
+    // This is the most common case for method/class/module bodies
+    if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
+        auto *statements = down_cast<pm_statements_node_t>(node);
+
+        // Iterate over each statement and rewrite it in place
+        for (size_t i = 0; i < statements->body.size; i++) {
+            statements->body.nodes[i] = rewriteNode(statements->body.nodes[i]);
+        }
+
         return node;
     }
 
-    return rewriteNode(move(node));
+    // For any other node type (BeginNode, single expressions, etc), delegate to rewriteNode
+    // rewriteNode has a comprehensive switch statement that handles all node types properly
+    return rewriteNode(node);
 }
 
 /**
  * Rewrite a node.
  */
-unique_ptr<parser::Node> AssertionsRewriterPrism::rewriteNode(unique_ptr<parser::Node> node) {
+pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
 
-    unique_ptr<parser::Node> result;
-
-    typecase(
-        node.get(),
-
+    switch (PM_NODE_TYPE(node)) {
         // Scopes
-
-        [&](parser::Module *module) {
-            module->body = rewriteBody(move(module->body));
-            result = move(node);
-
+        case PM_MODULE_NODE: {
+            auto *module = down_cast<pm_module_node_t>(node);
+            module->body = rewriteBody(module->body);
             typeParams.clear();
-        },
-        [&](parser::Class *klass) {
-            klass->body = rewriteBody(move(klass->body));
-            result = move(node);
-
+            return node;
+        }
+        case PM_CLASS_NODE: {
+            auto *klass = down_cast<pm_class_node_t>(node);
+            klass->body = rewriteBody(klass->body);
             typeParams.clear();
-        },
-        [&](parser::SClass *sclass) {
-            sclass->body = rewriteBody(move(sclass->body));
-            result = move(node);
-
+            return node;
+        }
+        case PM_SINGLETON_CLASS_NODE: {
+            auto *sclass = down_cast<pm_singleton_class_node_t>(node);
+            sclass->body = rewriteBody(sclass->body);
             typeParams.clear();
-        },
-        [&](parser::DefMethod *method) {
-            method->body = rewriteBody(move(method->body));
-            result = move(node);
-
+            return node;
+        }
+        case PM_DEF_NODE: {
+            auto *def = down_cast<pm_def_node_t>(node);
+            def->body = rewriteBody(def->body);
             typeParams.clear();
-        },
-        [&](parser::DefS *method) {
-            method->body = rewriteBody(move(method->body));
-            result = move(node);
+            return node;
+        }
 
-            typeParams.clear();
-        },
-
-        // Stmts
-
-        [&](parser::Begin *begin) {
-            node = maybeInsertCast(move(node));
-            rewriteNodes(&begin->stmts);
-            result = move(node);
-        },
-        [&](parser::Kwbegin *kwbegin) {
-            node = maybeInsertCast(move(node));
-            rewriteNodes(&kwbegin->stmts);
-            result = move(node);
-        },
-
-        // Assigns
-
-        [&](parser::Assign *asgn) {
-            asgn->lhs = rewriteNode(move(asgn->lhs));
-            asgn->rhs = rewriteNode(move(asgn->rhs));
-            result = move(node);
-        },
-        [&](parser::AndAsgn *andAsgn) {
-            andAsgn->left = rewriteNode(move(andAsgn->left));
-            andAsgn->right = maybeInsertCast(move(andAsgn->right));
-            andAsgn->right = rewriteNode(move(andAsgn->right));
-            result = move(node);
-        },
-        [&](parser::OpAsgn *opAsgn) {
-            opAsgn->left = rewriteNode(move(opAsgn->left));
-            opAsgn->right = maybeInsertCast(move(opAsgn->right));
-            opAsgn->right = rewriteNode(move(opAsgn->right));
-            result = move(node);
-        },
-        [&](parser::OrAsgn *orAsgn) {
-            orAsgn->left = rewriteNode(move(orAsgn->left));
-            orAsgn->right = maybeInsertCast(move(orAsgn->right));
-            orAsgn->right = rewriteNode(move(orAsgn->right));
-            result = move(node);
-        },
-        [&](parser::Masgn *masgn) {
-            masgn->lhs = rewriteNode(move(masgn->lhs));
-            masgn->rhs = maybeInsertCast(move(masgn->rhs));
-            masgn->rhs = rewriteNode(move(masgn->rhs));
-            result = move(node);
-        },
-
-        // Sends
-
-        [&](parser::Send *send) {
-            send->receiver = rewriteNode(move(send->receiver));
-            node = maybeInsertCast(move(node));
-            rewriteNodes(&send->args);
-            result = move(node);
-        },
-        [&](parser::CSend *csend) {
-            csend->receiver = maybeInsertCast(move(csend->receiver));
-            csend->receiver = rewriteNode(move(csend->receiver));
-
-            node = maybeInsertCast(move(node));
-            rewriteNodes(&csend->args);
-            result = move(node);
-        },
-        [&](parser::Block *block) {
-            if (saveTypeParams(block)) {
-                // If this is a `sig` block, we need to save the type parameters so we can use them to resolve the type
-                // parameters from the method signature.
-                result = move(node);
-                return;
+        // Begin statements
+        case PM_BEGIN_NODE: {
+            auto *begin = down_cast<pm_begin_node_t>(node);
+            node = maybeInsertCast(node);
+            if (begin->statements) {
+                begin->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(begin->statements)));
             }
+            if (begin->rescue_clause) {
+                begin->rescue_clause = down_cast<pm_rescue_node_t>(rewriteNode(up_cast(begin->rescue_clause)));
+            }
+            if (begin->else_clause) {
+                begin->else_clause = down_cast<pm_else_node_t>(rewriteNode(up_cast(begin->else_clause)));
+            }
+            if (begin->ensure_clause) {
+                begin->ensure_clause = down_cast<pm_ensure_node_t>(rewriteNode(up_cast(begin->ensure_clause)));
+            }
+            return node;
+        }
 
-            node = maybeInsertCast(move(node));
-            block->send = rewriteNode(move(block->send));
-            block->body = rewriteBody(move(block->body));
-            result = move(node);
-        },
+        // Simple write assignments
+        case PM_LOCAL_VARIABLE_WRITE_NODE: {
+            auto *write = down_cast<pm_local_variable_write_node_t>(node);
+            write->value = rewriteNode(write->value);
+            return node;
+        }
+        case PM_INSTANCE_VARIABLE_WRITE_NODE: {
+            auto *write = down_cast<pm_instance_variable_write_node_t>(node);
+            write->value = rewriteNode(write->value);
+            return node;
+        }
+        case PM_CLASS_VARIABLE_WRITE_NODE: {
+            auto *write = down_cast<pm_class_variable_write_node_t>(node);
+            write->value = rewriteNode(write->value);
+            return node;
+        }
+        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
+            auto *write = down_cast<pm_global_variable_write_node_t>(node);
+            write->value = rewriteNode(write->value);
+            return node;
+        }
+        case PM_CONSTANT_WRITE_NODE: {
+            auto *write = down_cast<pm_constant_write_node_t>(node);
+            write->value = rewriteNode(write->value);
+            return node;
+        }
+        case PM_CONSTANT_PATH_WRITE_NODE: {
+            auto *write = down_cast<pm_constant_path_write_node_t>(node);
+            write->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(write->target)));
+            write->value = rewriteNode(write->value);
+            return node;
+        }
+
+        // And assignments
+        case PM_LOCAL_VARIABLE_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_local_variable_and_write_node_t>(node);
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+        case PM_INSTANCE_VARIABLE_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_instance_variable_and_write_node_t>(node);
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+        case PM_CLASS_VARIABLE_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_class_variable_and_write_node_t>(node);
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+        case PM_GLOBAL_VARIABLE_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_global_variable_and_write_node_t>(node);
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+        case PM_CONSTANT_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_constant_and_write_node_t>(node);
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+        case PM_CONSTANT_PATH_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_constant_path_and_write_node_t>(node);
+            andWrite->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(andWrite->target)));
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+        case PM_CALL_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_call_and_write_node_t>(node);
+            andWrite->receiver = rewriteNode(andWrite->receiver);
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
+
+        // Operator assignments
+        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_local_variable_operator_write_node_t>(node);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_instance_variable_operator_write_node_t>(node);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_class_variable_operator_write_node_t>(node);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_global_variable_operator_write_node_t>(node);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_CONSTANT_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_constant_operator_write_node_t>(node);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_CONSTANT_PATH_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_constant_path_operator_write_node_t>(node);
+            opWrite->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(opWrite->target)));
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_CALL_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_call_operator_write_node_t>(node);
+            opWrite->receiver = rewriteNode(opWrite->receiver);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+
+        // Or assignments
+        case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_local_variable_or_write_node_t>(node);
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+        case PM_INSTANCE_VARIABLE_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_instance_variable_or_write_node_t>(node);
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+        case PM_CLASS_VARIABLE_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_class_variable_or_write_node_t>(node);
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+        case PM_GLOBAL_VARIABLE_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_global_variable_or_write_node_t>(node);
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+        case PM_CONSTANT_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_constant_or_write_node_t>(node);
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+        case PM_CONSTANT_PATH_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_constant_path_or_write_node_t>(node);
+            orWrite->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(orWrite->target)));
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+        case PM_CALL_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_call_or_write_node_t>(node);
+            orWrite->receiver = rewriteNode(orWrite->receiver);
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
+
+        // Multi-assignment
+        case PM_MULTI_WRITE_NODE: {
+            auto *masgn = down_cast<pm_multi_write_node_t>(node);
+            // TODO: Handle target nodes (lefts/rest/rights)
+            masgn->value = maybeInsertCast(masgn->value);
+            masgn->value = rewriteNode(masgn->value);
+            return node;
+        }
+
+        // Calls
+        case PM_CALL_NODE: {
+            auto *call = down_cast<pm_call_node_t>(node);
+            call->receiver = rewriteNode(call->receiver);
+            node = maybeInsertCast(node);
+            if (call->arguments) {
+                rewriteNodes(call->arguments->arguments);
+            }
+            if (call->block) {
+                call->block = rewriteNode(call->block);
+            }
+            return node;
+        }
+
+        // Blocks
+        case PM_BLOCK_NODE: {
+            auto *block = down_cast<pm_block_node_t>(node);
+            // TODO: saveTypeParams needs to be updated to work with pm_block_node_t
+            // if (saveTypeParams(block)) {
+            //     return node;
+            // }
+            node = maybeInsertCast(node);
+            block->body = rewriteBody(block->body);
+            return node;
+        }
 
         // Loops
-
-        [&](parser::While *wl) {
-            node = maybeInsertCast(move(node));
-            wl->cond = rewriteNode(move(wl->cond));
-            wl->body = rewriteBody(move(wl->body));
-            result = move(node);
-        },
-        [&](parser::WhilePost *wl) {
-            wl->cond = rewriteNode(move(wl->cond));
-            wl->body = rewriteBody(move(wl->body));
-            result = move(node);
-        },
-        [&](parser::Until *until) {
-            node = maybeInsertCast(move(node));
-            until->cond = rewriteNode(move(until->cond));
-            until->body = rewriteBody(move(until->body));
-            result = move(node);
-        },
-        [&](parser::UntilPost *until) {
-            until->cond = rewriteNode(move(until->cond));
-            until->body = rewriteBody(move(until->body));
-            result = move(node);
-        },
-        [&](parser::For *for_) {
-            node = maybeInsertCast(move(node));
-            for_->vars = rewriteNode(move(for_->vars));
-            for_->expr = rewriteNode(move(for_->expr));
-            for_->body = rewriteBody(move(for_->body));
-            result = move(node);
-        },
-
-        [&](parser::Break *break_) {
-            if (break_->exprs.empty()) {
-                result = move(node);
-                return;
+        case PM_WHILE_NODE: {
+            auto *wl = down_cast<pm_while_node_t>(node);
+            // Check if this is a post-while (BEGIN_MODIFIER flag)
+            bool isPost = (wl->base.flags & PM_LOOP_FLAGS_BEGIN_MODIFIER) != 0;
+            if (!isPost) {
+                node = maybeInsertCast(node);
             }
-
-            rewriteNodes(&break_->exprs);
-            break_->exprs = rewriteNodesAsArray(node, move(break_->exprs));
-            result = move(node);
-        },
-        [&](parser::Next *next) {
-            if (next->exprs.empty()) {
-                result = move(node);
-                return;
+            wl->predicate = rewriteNode(wl->predicate);
+            if (wl->statements) {
+                wl->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(wl->statements)));
             }
-
-            rewriteNodes(&next->exprs);
-            next->exprs = rewriteNodesAsArray(node, move(next->exprs));
-            result = move(node);
-        },
-        [&](parser::Return *ret) {
-            if (ret->exprs.empty()) {
-                result = move(node);
-                return;
+            return node;
+        }
+        case PM_UNTIL_NODE: {
+            auto *until = down_cast<pm_until_node_t>(node);
+            // Check if this is a post-until (BEGIN_MODIFIER flag)
+            bool isPost = (until->base.flags & PM_LOOP_FLAGS_BEGIN_MODIFIER) != 0;
+            if (!isPost) {
+                node = maybeInsertCast(node);
             }
-
-            rewriteNodes(&ret->exprs);
-            ret->exprs = rewriteNodesAsArray(node, move(ret->exprs));
-            result = move(node);
-        },
-
-        // Conditions
-
-        [&](parser::If *if_) {
-            node = maybeInsertCast(move(node));
-            if_->condition = rewriteNode(move(if_->condition));
-            if_->then_ = rewriteBody(move(if_->then_));
-            if_->else_ = rewriteBody(move(if_->else_));
-            result = move(node);
-        },
-        [&](parser::Case *case_) {
-            node = maybeInsertCast(move(node));
-            case_->condition = rewriteNode(move(case_->condition));
-            rewriteNodes(&case_->whens);
-            case_->else_ = rewriteBody(move(case_->else_));
-            result = move(node);
-        },
-        [&](parser::When *when) {
-            when->body = rewriteBody(move(when->body));
-            result = move(node);
-        },
-        [&](parser::CaseMatch *caseMatch) {
-            node = maybeInsertCast(move(node));
-            caseMatch->expr = rewriteNode(move(caseMatch->expr));
-            rewriteNodes(&caseMatch->inBodies);
-            caseMatch->elseBody = rewriteBody(move(caseMatch->elseBody));
-            result = move(node);
-        },
-        [&](parser::InPattern *inPattern) {
-            inPattern->pattern = rewriteNode(move(inPattern->pattern));
-            inPattern->guard = rewriteNode(move(inPattern->guard));
-            inPattern->body = rewriteBody(move(inPattern->body));
-            result = move(node);
-        },
-
-        // Rescues
-
-        [&](parser::Rescue *rescue) {
-            rescue->body = rewriteBody(move(rescue->body));
-            rewriteNodes(&rescue->rescue);
-            rescue->else_ = rewriteBody(move(rescue->else_));
-            result = move(node);
-        },
-        [&](parser::Resbody *resbody) {
-            resbody->body = rewriteBody(move(resbody->body));
-            result = move(node);
-        },
-        [&](parser::Ensure *ensure) {
-            ensure->ensure = rewriteBody(move(ensure->ensure));
-            ensure->body = rewriteBody(move(ensure->body));
-            result = move(node);
-        },
-
-        // Others
-
-        [&](parser::And *and_) {
-            node = maybeInsertCast(move(node));
-            and_->left = rewriteNode(move(and_->left));
-            and_->right = rewriteNode(move(and_->right));
-            result = move(node);
-        },
-        [&](parser::Or *or_) {
-            node = maybeInsertCast(move(node));
-            or_->left = rewriteNode(move(or_->left));
-            or_->right = rewriteNode(move(or_->right));
-            result = move(node);
-        },
-
-        [&](parser::Hash *hash) {
-            node = maybeInsertCast(move(node));
-            rewriteNodes(&hash->pairs);
-            result = move(node);
-        },
-        [&](parser::Pair *pair) {
-            pair->key = rewriteNode(move(pair->key));
-            pair->value = rewriteNode(move(pair->value));
-            result = move(node);
-        },
-
-        [&](parser::Array *arr) {
-            node = maybeInsertCast(move(node));
-            rewriteNodes(&arr->elts);
-            result = move(node);
-        },
-
-        [&](parser::Splat *splat) {
-            splat->var = rewriteNode(move(splat->var));
-            result = move(node);
-        },
-        [&](parser::Super *super_) {
-            rewriteNodes(&super_->args);
-            result = maybeInsertCast(move(node));
-        },
-        [&](parser::Kwsplat *splat) {
-            splat->expr = rewriteNode(move(splat->expr));
-            result = move(node);
-        },
-
-        [&](parser::RBSPlaceholder *placeholder) {
-            if (placeholder->kind == core::Names::Constants::RBSBind()) {
-                result = replaceSyntheticBind(move(node));
-            } else {
-                Exception::raise("Unknown RBS placeholder kind");
+            until->predicate = rewriteNode(until->predicate);
+            if (until->statements) {
+                until->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(until->statements)));
             }
-        },
+            return node;
+        }
+        case PM_FOR_NODE: {
+            auto *for_ = down_cast<pm_for_node_t>(node);
+            node = maybeInsertCast(node);
+            for_->index = rewriteNode(for_->index);
+            for_->collection = rewriteNode(for_->collection);
+            if (for_->statements) {
+                for_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(for_->statements)));
+            }
+            return node;
+        }
 
-        [&](parser::Node *other) { result = maybeInsertCast(move(node)); });
+        // Control flow
+        case PM_BREAK_NODE: {
+            auto *break_ = down_cast<pm_break_node_t>(node);
+            if (!break_->arguments || break_->arguments->arguments.size == 0) {
+                return node;
+            }
+            // TODO: rewriteNodes and rewriteNodesAsArray need updating for Prism
+            rewriteNodes(break_->arguments->arguments);
+            // break_->arguments->arguments = rewriteNodesAsArray(node, move(break_->arguments->arguments));
+            return node;
+        }
+        case PM_NEXT_NODE: {
+            auto *next = down_cast<pm_next_node_t>(node);
+            if (!next->arguments || next->arguments->arguments.size == 0) {
+                return node;
+            }
+            // TODO: rewriteNodes and rewriteNodesAsArray need updating for Prism
+            rewriteNodes(next->arguments->arguments);
+            // next->arguments->arguments = rewriteNodesAsArray(node, move(next->arguments->arguments));
+            return node;
+        }
+        case PM_RETURN_NODE: {
+            auto *ret = down_cast<pm_return_node_t>(node);
+            if (!ret->arguments || ret->arguments->arguments.size == 0) {
+                return node;
+            }
+            // TODO: rewriteNodes and rewriteNodesAsArray need updating for Prism
+            rewriteNodes(ret->arguments->arguments);
+            // ret->arguments->arguments = rewriteNodesAsArray(node, move(ret->arguments->arguments));
+            return node;
+        }
 
-    return result;
+        // Conditionals
+        case PM_IF_NODE: {
+            auto *if_ = down_cast<pm_if_node_t>(node);
+            node = maybeInsertCast(node);
+            if_->predicate = rewriteNode(if_->predicate);
+            if (if_->statements) {
+                if_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(if_->statements)));
+            }
+            if (if_->subsequent) {
+                if_->subsequent = rewriteBody(if_->subsequent);
+            }
+            return node;
+        }
+        case PM_CASE_NODE: {
+            auto *case_ = down_cast<pm_case_node_t>(node);
+            node = maybeInsertCast(node);
+            case_->predicate = rewriteNode(case_->predicate);
+            rewriteNodes(case_->conditions);
+            if (case_->else_clause) {
+                case_->else_clause = down_cast<pm_else_node_t>(rewriteBody(up_cast(case_->else_clause)));
+            }
+            return node;
+        }
+        case PM_WHEN_NODE: {
+            auto *when = down_cast<pm_when_node_t>(node);
+            if (when->statements) {
+                when->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(when->statements)));
+            }
+            return node;
+        }
+        case PM_CASE_MATCH_NODE: {
+            auto *caseMatch = down_cast<pm_case_match_node_t>(node);
+            node = maybeInsertCast(node);
+            caseMatch->predicate = rewriteNode(caseMatch->predicate);
+            rewriteNodes(caseMatch->conditions);
+            if (caseMatch->else_clause) {
+                caseMatch->else_clause = down_cast<pm_else_node_t>(rewriteBody(up_cast(caseMatch->else_clause)));
+            }
+            return node;
+        }
+        case PM_IN_NODE: {
+            auto *inPattern = down_cast<pm_in_node_t>(node);
+            inPattern->pattern = rewriteNode(inPattern->pattern);
+            if (inPattern->statements) {
+                inPattern->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(inPattern->statements)));
+            }
+            return node;
+        }
+
+        // Rescue/Ensure
+        case PM_RESCUE_NODE: {
+            auto *rescue = down_cast<pm_rescue_node_t>(node);
+            if (rescue->statements) {
+                rescue->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(rescue->statements)));
+            }
+            if (rescue->subsequent) {
+                rescue->subsequent = down_cast<pm_rescue_node_t>(rewriteNode(up_cast(rescue->subsequent)));
+            }
+            return node;
+        }
+        case PM_ELSE_NODE: {
+            auto *else_ = down_cast<pm_else_node_t>(node);
+            if (else_->statements) {
+                else_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(else_->statements)));
+            }
+            return node;
+        }
+        case PM_ENSURE_NODE: {
+            auto *ensure = down_cast<pm_ensure_node_t>(node);
+            if (ensure->statements) {
+                ensure->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(ensure->statements)));
+            }
+            return node;
+        }
+
+        // Boolean operators
+        case PM_AND_NODE: {
+            auto *and_ = down_cast<pm_and_node_t>(node);
+            node = maybeInsertCast(node);
+            and_->left = rewriteNode(and_->left);
+            and_->right = rewriteNode(and_->right);
+            return node;
+        }
+        case PM_OR_NODE: {
+            auto *or_ = down_cast<pm_or_node_t>(node);
+            node = maybeInsertCast(node);
+            or_->left = rewriteNode(or_->left);
+            or_->right = rewriteNode(or_->right);
+            return node;
+        }
+
+        // Collections
+        case PM_HASH_NODE: {
+            auto *hash = down_cast<pm_hash_node_t>(node);
+            node = maybeInsertCast(node);
+            rewriteNodes(hash->elements);
+            return node;
+        }
+        case PM_ASSOC_NODE: {
+            auto *pair = down_cast<pm_assoc_node_t>(node);
+            pair->key = rewriteNode(pair->key);
+            pair->value = rewriteNode(pair->value);
+            return node;
+        }
+        case PM_ARRAY_NODE: {
+            auto *arr = down_cast<pm_array_node_t>(node);
+            node = maybeInsertCast(node);
+            rewriteNodes(arr->elements);
+            return node;
+        }
+
+        // Splat
+        case PM_SPLAT_NODE: {
+            auto *splat = down_cast<pm_splat_node_t>(node);
+            splat->expression = rewriteNode(splat->expression);
+            return node;
+        }
+        case PM_ASSOC_SPLAT_NODE: {
+            auto *splat = down_cast<pm_assoc_splat_node_t>(node);
+            splat->value = rewriteNode(splat->value);
+            return node;
+        }
+
+        // Super
+        case PM_SUPER_NODE: {
+            auto *super_ = down_cast<pm_super_node_t>(node);
+            if (super_->arguments) {
+                rewriteNodes(super_->arguments->arguments);
+            }
+            node = maybeInsertCast(node);
+            return node;
+        }
+
+        // Program (top-level AST root)
+        case PM_PROGRAM_NODE: {
+            auto *program = down_cast<pm_program_node_t>(node);
+            // Rewrite the top-level statements
+            rewriteBody(up_cast(program->statements));
+            return node;
+        }
+
+        // TODO: Handle RBSPlaceholder equivalent in Prism
+        // For now, just apply maybeInsertCast to all other nodes
+        default:
+            return maybeInsertCast(node);
+    }
 }
 
-pm_node_t * AssertionsRewriterPrism::run(pm_node_t *node) {
-    // TODO: Implement actual Prism node rewriting
-    // For now, just return the node unchanged
-    return node;
+pm_node_t *AssertionsRewriterPrism::run(pm_node_t *node) {
+    if (node == nullptr) {
+        return node;
+    }
+
+    return rewriteBody(node);
 }
 
 } // namespace sorbet::rbs

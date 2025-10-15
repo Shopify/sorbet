@@ -29,14 +29,17 @@ struct InlineCommentPrism {
 
 class AssertionsRewriterPrism {
 public:
-    AssertionsRewriterPrism(core::MutableContext ctx, std::map<parser::Node *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), legacyCommentsByNode(&commentsByNode), prismCommentsByNode(nullptr){};
-    AssertionsRewriterPrism(core::MutableContext ctx, std::map<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), legacyCommentsByNode(nullptr), prismCommentsByNode(&commentsByNode){};
-    pm_node_t * run(pm_node_t *node);
+    AssertionsRewriterPrism(core::MutableContext ctx,
+                            std::map<parser::Node *, std::vector<CommentNodePrism>> &commentsByNode)
+        : ctx(ctx), parser(nullptr), legacyCommentsByNode(&commentsByNode), prismCommentsByNode(nullptr){};
+    AssertionsRewriterPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+                            std::map<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
+        : ctx(ctx), parser(&parser), legacyCommentsByNode(nullptr), prismCommentsByNode(&commentsByNode){};
+    pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
+    const parser::Prism::Parser *parser;
     std::map<parser::Node *, std::vector<CommentNodePrism>> *legacyCommentsByNode;
     [[maybe_unused]] std::map<pm_node_t *, std::vector<CommentNodePrism>> *prismCommentsByNode;
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};
@@ -46,18 +49,16 @@ private:
     bool hasConsumedComment(core::LocOffsets loc);
     std::optional<InlineCommentPrism> commentForPos(uint32_t fromPos, std::vector<char> allowedTokens);
     std::optional<InlineCommentPrism> commentForNode(const std::unique_ptr<parser::Node> &node);
+    std::optional<InlineCommentPrism> commentForNode(pm_node_t *node);
 
-    std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
-    std::unique_ptr<parser::Node> rewriteNode(std::unique_ptr<parser::Node> tree);
-    parser::NodeVec rewriteNodesAsArray(const std::unique_ptr<parser::Node> &node, parser::NodeVec nodes);
-    void rewriteNodes(parser::NodeVec *nodes);
+    core::LocOffsets translateLocation(pm_location_t location);
 
-    bool saveTypeParams(parser::Block *block);
-    std::unique_ptr<parser::Node> maybeInsertCast(std::unique_ptr<parser::Node> node);
-    std::unique_ptr<parser::Node> replaceSyntheticBind(std::unique_ptr<parser::Node> node);
-    std::unique_ptr<parser::Node>
-    insertCast(std::unique_ptr<parser::Node> node,
-               std::optional<std::pair<std::unique_ptr<parser::Node>, InlineCommentPrism::Kind>> pair);
+    pm_node_t *rewriteBody(pm_node_t *tree);
+    pm_node_t *rewriteNode(pm_node_t *tree);
+    void rewriteNodes(pm_node_list_t &nodes);
+
+    pm_node_t *maybeInsertCast(pm_node_t *node);
+    pm_node_t *insertCast(pm_node_t *node, std::optional<std::pair<pm_node_t *, InlineCommentPrism::Kind>> pair);
 
     void checkDanglingCommentWithDecl(uint32_t nodeEnd, uint32_t declEnd, std::string kind);
     void checkDanglingComment(uint32_t nodeEnd, std::string kind);

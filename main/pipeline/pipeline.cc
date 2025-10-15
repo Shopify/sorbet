@@ -60,7 +60,7 @@ namespace sorbet::realmain::pipeline {
 pm_node_t *runRBSRewritePrism(sorbet::core::GlobalState &gs, sorbet::core::FileRef file, pm_node_t *node,
                               const std::vector<sorbet::core::LocOffsets> &commentLocations,
                               const sorbet::realmain::options::Printers &print, sorbet::core::MutableContext &ctx,
-                              const parser::Prism::Parser& parser) {
+                              const parser::Prism::Parser &parser) {
     if (gs.cacheSensitiveOptions.rbsEnabled) {
         Timer timeit(gs.tracer(), "runRBSRewritePrism", {{"file", string(file.data(gs).path())}});
 
@@ -73,8 +73,8 @@ pm_node_t *runRBSRewritePrism(sorbet::core::GlobalState &gs, sorbet::core::FileR
         auto sigsRewriter = rbs::SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode);
         node = sigsRewriter.run(node);
 
-        // auto assertionsRewriter = rbs::AssertionsRewriterPrism(ctx, commentMap.assertionsForNode);
-        // node = assertionsRewriter.run(node);
+        auto assertionsRewriter = rbs::AssertionsRewriterPrism(ctx, parser, commentMap.assertionsForNode);
+        node = assertionsRewriter.run(node);
 
         if (print.RBSRewriteTree.enabled) {
             // TODO: Implement prism node to string conversion for debug output

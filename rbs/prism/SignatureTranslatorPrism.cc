@@ -5,6 +5,7 @@
 #include "rbs/TypeParamsToParserNodes.h"
 #include "rbs/TypeToParserNode.h"
 #include "rbs/prism/MethodTypeToParserNodePrism.h"
+#include "rbs/prism/TypeToParserNodePrism.h"
 #include "rbs/rbs_common.h"
 
 using namespace std;
@@ -20,26 +21,25 @@ rbs_string_t makeRBSString(const string &str) {
 
 } // namespace
 
-// unique_ptr<parser::Node> SignatureTranslatorPrism::translateAssertionType(vector<pair<core::LocOffsets,
-// core::NameRef>> typeParams,
-//                                                  const rbs::RBSDeclaration &assertion) {
-//     rbs_string_t rbsString = makeRBSString(assertion.string);
-//     const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::LocOffsets, core::NameRef>> typeParams,
+                                                             const rbs::RBSDeclaration &assertion) {
+    rbs_string_t rbsString = makeRBSString(assertion.string);
+    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
 
-//     Parser parser(rbsString, encoding);
-//     rbs_node_t *rbsType = parser.parseType();
+    Parser parser(rbsString, encoding);
+    rbs_node_t *rbsType = parser.parseType();
 
-//     if (parser.hasError()) {
-//         core::LocOffsets loc = assertion.typeLocFromRange(parser.getError()->token.range);
-//         if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSSyntaxError)) {
-//             e.setHeader("Failed to parse RBS type ({})", parser.getError()->message);
-//         }
-//         return nullptr;
-//     }
+    if (parser.hasError()) {
+        core::LocOffsets loc = assertion.typeLocFromRange(parser.getError()->token.range);
+        if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("Failed to parse RBS type ({})", parser.getError()->message);
+        }
+        return nullptr;
+    }
 
-//     auto typeToParserNode = TypeToParserNode(ctx, typeParams, move(parser));
-//     return typeToParserNode.toParserNode(rbsType, assertion);
-// }
+    auto typeToParserNodePrism = TypeToParserNodePrism(ctx, typeParams, move(parser), this->parser);
+    return typeToParserNodePrism.toPrismNode(rbsType, assertion);
+}
 
 // unique_ptr<parser::Node> SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
 //                                                                           const RBSDeclaration &declaration,

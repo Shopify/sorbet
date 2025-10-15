@@ -369,11 +369,13 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
-    fmt::print("rewriting body: {}\n", PM_NODE_TYPE(node));
+    // fmt::print("rewriting body: {}\n", PM_NODE_TYPE(node));
 
     // Handle statements nodes (class/module bodies with multiple statements)
     if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
         auto *statements = down_cast<pm_statements_node_t>(node);
+
+        // TODO: Do we need to create a new body, can't we append to the existing body?
 
         // Save old statements
         pm_node_list_t oldStmts = statements->body;
@@ -465,7 +467,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         return node;
     }
 
-    fmt::print("rewriting node: {}\n", PM_NODE_TYPE(node));
+    // fmt::print("rewriting node: {}\n", PM_NODE_TYPE(node));
 
     switch (PM_NODE_TYPE(node)) {
         case PM_BLOCK_NODE: {
