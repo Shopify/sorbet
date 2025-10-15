@@ -306,7 +306,14 @@ pm_node_t *TypeToParserNodePrism::blockType(const rbs_types_block_t *node, core:
 
 pm_node_t *TypeToParserNodePrism::tupleType(const rbs_types_tuple_t *node, core::LocOffsets loc,
                                             const RBSDeclaration &declaration) {
-    return this->createConstantReadNode("Array");
+    std::vector<pm_node_t *> typesStore;
+
+    for (rbs_node_list_node *list_node = node->types->head; list_node != nullptr; list_node = list_node->next) {
+        auto innerType = toPrismNode(list_node->node, declaration);
+        typesStore.push_back(innerType);
+    }
+
+    return PMK::Array(loc, typesStore);
 }
 
 pm_node_t *TypeToParserNodePrism::recordType(const rbs_types_record_t *node, core::LocOffsets loc,

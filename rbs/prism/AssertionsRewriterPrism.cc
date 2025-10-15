@@ -31,9 +31,6 @@ const regex absurd_pattern_prism("^\\s*absurd\\s*(#.*)?$");
 optional<pair<pm_node_t *, InlineCommentPrism::Kind>>
 parseComment(core::MutableContext ctx, const parser::Prism::Parser *parser, InlineCommentPrism comment,
              vector<pair<core::LocOffsets, core::NameRef>> typeParams) {
-    // Set the parser for PMK helpers to use
-    PMK::setParser(parser);
-
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
@@ -424,31 +421,6 @@ pm_node_t *AssertionsRewriterPrism::maybeInsertCast(pm_node_t *node) {
 //     return parser::MK::TBindSelf(type->loc, move(type));
 // }
 
-// OLD WHITEQUARK PARSER VERSIONS - Not yet migrated, currently not used
-// /**
-//  * Rewrite a collection of nodes, wrap them in an array and cast the array.
-//  */
-// parser::NodeVec AssertionsRewriterPrism::rewriteNodesAsArray(const unique_ptr<parser::Node> &node,
-//                                                              parser::NodeVec nodes) {
-//     if (auto inlineComment = commentForNode(node)) {
-//         if (nodes.size() > 1) {
-//             auto loc = nodes.front()->loc.join(nodes.back()->loc);
-//             auto arr = parser::MK::Array(loc, move(nodes));
-//             arr = rewriteNode(move(arr));
-//
-//             auto vector = parser::NodeVec();
-//             vector.emplace_back(move(arr));
-//             nodes = move(vector);
-//         }
-//         if (auto type = parseCommentPrism(ctx, inlineComment.value(), typeParams)) {
-//             nodes.front() = insertCast(move(nodes.front()), move(type));
-//         }
-//     }
-//
-//     rewriteNodes(&nodes);
-//     return nodes;
-// }
-
 /**
  * Rewrite a collection of Prism nodes in place.
  */
@@ -456,6 +428,42 @@ void AssertionsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
     for (size_t i = 0; i < nodes.size; i++) {
         nodes.nodes[i] = rewriteNode(nodes.nodes[i]);
     }
+}
+
+/**
+ * Rewrite a collection of nodes, wrap them in an array and cast the array.
+ */
+void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_t &nodes) {
+    if (auto inlineComment = commentForNode(node)) {
+        if (nodes.size > 1) {
+            // Get location spanning from first to last node
+            auto loc = translateLocation(nodes.nodes[0]->location)
+                           .join(translateLocation(nodes.nodes[nodes.size - 1]->location));
+
+            // Create a vector of the nodes for the array
+            std::vector<pm_node_t *> nodeVec;
+            for (size_t i = 0; i < nodes.size; i++) {
+                nodeVec.push_back(nodes.nodes[i]);
+            }
+
+            // Create array node
+            auto arr = PMK::Array(loc, nodeVec);
+            arr = rewriteNode(arr);
+
+            // Replace nodes list with single array element
+            free(nodes.nodes);
+            nodes.nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
+            nodes.nodes[0] = arr;
+            nodes.size = 1;
+            nodes.capacity = 1;
+        }
+
+        if (auto type = parseComment(ctx, parser, inlineComment.value(), typeParams)) {
+            nodes.nodes[0] = insertCast(nodes.nodes[0], type);
+        }
+    }
+
+    rewriteNodes(nodes);
 }
 
 /**
@@ -800,9 +808,8 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             if (!break_->arguments || break_->arguments->arguments.size == 0) {
                 return node;
             }
-            // TODO: rewriteNodes and rewriteNodesAsArray need updating for Prism
             rewriteNodes(break_->arguments->arguments);
-            // break_->arguments->arguments = rewriteNodesAsArray(node, move(break_->arguments->arguments));
+            rewriteNodesAsArray(node, break_->arguments->arguments);
             return node;
         }
         case PM_NEXT_NODE: {
@@ -810,9 +817,8 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             if (!next->arguments || next->arguments->arguments.size == 0) {
                 return node;
             }
-            // TODO: rewriteNodes and rewriteNodesAsArray need updating for Prism
             rewriteNodes(next->arguments->arguments);
-            // next->arguments->arguments = rewriteNodesAsArray(node, move(next->arguments->arguments));
+            rewriteNodesAsArray(node, next->arguments->arguments);
             return node;
         }
         case PM_RETURN_NODE: {
@@ -820,9 +826,8 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             if (!ret->arguments || ret->arguments->arguments.size == 0) {
                 return node;
             }
-            // TODO: rewriteNodes and rewriteNodesAsArray need updating for Prism
             rewriteNodes(ret->arguments->arguments);
-            // ret->arguments->arguments = rewriteNodesAsArray(node, move(ret->arguments->arguments));
+            rewriteNodesAsArray(node, ret->arguments->arguments);
             return node;
         }
 
@@ -978,6 +983,9 @@ pm_node_t *AssertionsRewriterPrism::run(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
+
+    // Set parser once for all PMK helpers
+    PMK::setParser(parser);
 
     return rewriteBody(node);
 }

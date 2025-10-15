@@ -56,6 +56,7 @@ private:
     pm_node_t *rewriteBody(pm_node_t *tree);
     pm_node_t *rewriteNode(pm_node_t *tree);
     void rewriteNodes(pm_node_list_t &nodes);
+    void rewriteNodesAsArray(pm_node_t *node, pm_node_list_t &nodes);
 
     pm_node_t *maybeInsertCast(pm_node_t *node);
     pm_node_t *insertCast(pm_node_t *node, std::optional<std::pair<pm_node_t *, InlineCommentPrism::Kind>> pair);
