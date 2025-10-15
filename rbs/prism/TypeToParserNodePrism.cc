@@ -21,7 +21,7 @@ bool hasTypeParam(absl::Span<const pair<core::LocOffsets, core::NameRef>> typePa
 
 // Helper methods for Prism node creation (copied from MethodTypeToParserNodePrism)
 pm_node_t *TypeToParserNodePrism::createConstantReadNode(const string &name) {
-    fmt::print("TypeToParserNodePrism::createConstantReadNode\n");
+    // fmt::print("TypeToParserNodePrism::createConstantReadNode\n");
     pm_constant_id_t constant_id = addConstantToPool(name.c_str());
     if (constant_id == PM_CONSTANT_ID_UNSET)
         return nullptr;
@@ -41,7 +41,7 @@ pm_constant_id_t TypeToParserNodePrism::addConstantToPool(const char *name) {
 
     pm_parser_t *p = prismParser->getInternalParser();
     size_t name_len = strlen(name);
-    fmt::print("DEBUG addConstant name='{}' strlen={}\n", name, name_len);
+    // fmt::print("DEBUG addConstant name='{}' strlen={}\n", name, name_len);
     // Copy bytes into a stable buffer to avoid dangling pointers in the pool
     uint8_t *stable = (uint8_t *)calloc(name_len, sizeof(uint8_t));
     if (!stable) {
@@ -163,7 +163,7 @@ pm_node_t *TypeToParserNodePrism::aliasType(const rbs_types_alias_t *node, core:
 
 pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instance_t *node, core::LocOffsets loc,
                                                     const RBSDeclaration &declaration) {
-    fmt::print("TypeToParserNodePrism::classInstanceType\n");
+    // fmt::print("TypeToParserNodePrism::classInstanceType\n");
     auto argsValue = node->args;
     auto isGeneric = argsValue != nullptr && argsValue->length > 0;
     auto typeConstant = typeNameType(node->name, isGeneric, declaration);
@@ -319,13 +319,14 @@ pm_node_t *TypeToParserNodePrism::variableType(const rbs_types_variable_t *node,
     auto nameStr = parser.resolveConstant(symbol);
     string nameString(nameStr);
     pm_node_t *symbolNode = PMK::Symbol(loc, nameString.c_str());
+    // fmt::print("DEBUG: Creating type parameter reference: {}\n", nameString);
     return PMK::TTypeParameter(loc, symbolNode);
 }
 
 pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSDeclaration &declaration) {
     auto nodeLoc = declaration.typeLocFromRange(((rbs_node_t *)node)->location->rg);
 
-    fmt::print("DEBUG type={}\n", rbs_node_type_name((rbs_node_t *)node));
+    // fmt::print("DEBUG type={}\n", rbs_node_type_name((rbs_node_t *)node));
     switch (node->type) {
         case RBS_TYPES_ALIAS:
             return aliasType((rbs_types_alias_t *)node, nodeLoc, declaration);

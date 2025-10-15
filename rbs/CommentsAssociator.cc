@@ -349,7 +349,6 @@ void CommentsAssociator::walkNode(parser::Node *node) {
     if (node == nullptr) {
         return;
     }
-    // fmt::print("WALKING NODE: {} {}\n", node->nodeName(), node->loc.showRaw());
 
     typecase(
         node,

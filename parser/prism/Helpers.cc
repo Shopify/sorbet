@@ -8,19 +8,22 @@ using namespace sorbet::parser::Prism;
 
 namespace sorbet::parser::Prism {
 
-// Global parser instance for node creation
-static thread_local const Parser *g_prismParser = nullptr;
+namespace {
+// Parser instance for node creation
+thread_local const Parser *prismParser = nullptr;
 
-void PMK::setParser(const Parser *parser) {
-    g_prismParser = parser;
+const Parser *parser() {
+    ENFORCE(prismParser != nullptr, "PMK::setParser must be called before using PMK helpers");
+    return prismParser;
+}
+} // namespace
+
+void PMK::setParser(const Parser *p) {
+    prismParser = p;
 }
 
 pm_node_t PMK::initializeBaseNode(pm_node_type_t type) {
-    if (!g_prismParser) {
-        return (pm_node_t){.type = type, .flags = 0, .node_id = 0, .location = {.start = nullptr, .end = nullptr}};
-    }
-
-    pm_parser_t *p = g_prismParser->getInternalParser();
+    pm_parser_t *p = parser()->getInternalParser();
     pm_location_t loc = getZeroWidthLocation();
 
     return (pm_node_t){.type = type, .flags = 0, .node_id = ++p->node_id, .location = loc};
@@ -94,10 +97,7 @@ pm_node_t *PMK::Self(core::LocOffsets loc) {
 }
 
 pm_constant_id_t PMK::addConstantToPool(const char *name) {
-    if (!g_prismParser)
-        return PM_CONSTANT_ID_UNSET;
-
-    pm_parser_t *p = g_prismParser->getInternalParser();
+    pm_parser_t *p = parser()->getInternalParser();
     size_t name_len = strlen(name);
     uint8_t *stable = (uint8_t *)calloc(name_len, sizeof(uint8_t));
     if (!stable) {
@@ -109,21 +109,13 @@ pm_constant_id_t PMK::addConstantToPool(const char *name) {
 }
 
 pm_location_t PMK::getZeroWidthLocation() {
-    if (!g_prismParser) {
-        return {.start = nullptr, .end = nullptr};
-    }
-
-    pm_parser_t *p = g_prismParser->getInternalParser();
+    pm_parser_t *p = parser()->getInternalParser();
     const uint8_t *source_start = p->start;
     return {.start = source_start, .end = source_start};
 }
 
 pm_location_t PMK::convertLocOffsets(core::LocOffsets loc) {
-    if (!g_prismParser) {
-        return {.start = nullptr, .end = nullptr};
-    }
-
-    pm_parser_t *p = g_prismParser->getInternalParser();
+    pm_parser_t *p = parser()->getInternalParser();
     const uint8_t *source_start = p->start;
 
     const uint8_t *start_ptr = source_start + loc.beginPos();
@@ -155,11 +147,11 @@ pm_call_node_t *PMK::createSendNode(pm_node_t *receiver, pm_constant_id_t method
 }
 
 pm_node_t *PMK::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId) {
-    if (!g_prismParser || nameId == PM_CONSTANT_ID_UNSET) {
+    if (nameId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
     }
 
-    auto nameView = g_prismParser->resolveConstant(nameId);
+    auto nameView = parser()->resolveConstant(nameId);
     string nameString(nameView);
 
     uint8_t *stable = (uint8_t *)calloc(nameString.size(), sizeof(uint8_t));
@@ -664,9 +656,9 @@ pm_node_t *PMK::Array(core::LocOffsets loc, const vector<pm_node_t *> &elements)
 
     *array = (pm_array_node_t){
         .base = initializeBaseNode(PM_ARRAY_NODE),
+        .elements = {.size = elements.size(), .capacity = elements.size(), .nodes = elem_nodes},
         .opening_loc = convertLocOffsets(loc.copyWithZeroLength()),
-        .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength()),
-        .elements = {.size = elements.size(), .capacity = elements.size(), .nodes = elem_nodes}};
+        .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength())};
 
     array->base.location = convertLocOffsets(loc);
 
