@@ -714,7 +714,7 @@ Loc expandToLeadingComma(const GlobalState &gs, Loc loc) {
     }
 }
 
-void handleBlockType(const GlobalState &gs, DispatchComponent &component, TypePtr blockType) {
+void handleBlockType(const GlobalState &gs, DispatchComponent &component, TypePtr blockType, const TypePtr &receiver) {
     if (!blockType) {
         blockType = Types::untyped(component.method);
     }
@@ -724,8 +724,6 @@ void handleBlockType(const GlobalState &gs, DispatchComponent &component, TypePt
                                              : Types::approximateTypeVars(gs, blockType, *component.constr);
 
     // Replace SelfType with the actual receiver type to support T.self_type in proc params
-    auto owner = component.method.enclosingClass(gs);
-    auto receiver = owner.data(gs)->selfType(gs);
     blockType = Types::replaceSelfType(gs, blockType, receiver);
 
     component.blockPreType = blockType;
@@ -1627,7 +1625,7 @@ DispatchResult dispatchCallSymbol(const GlobalState &gs, const DispatchArgs &arg
         }
 
         TypePtr blockType = Types::resultTypeAsSeenFrom(gs, blockParam.type, methodData->owner, symbol, targs);
-        handleBlockType(gs, component, blockType);
+        handleBlockType(gs, component, blockType, args.thisType);
         component.rebind = blockParam.rebind;
         component.rebindLoc = blockParam.loc;
     }
@@ -4350,7 +4348,7 @@ public:
                             : make_type<TypeVar>(Symbols::Kernel_proc_returnType());
         auto procClass = core::Symbols::Proc(*numberOfPositionalBlockParams);
         res.returnType = make_type<core::AppliedType>(procClass, move(targs));
-        handleBlockType(gs, res.main, res.returnType);
+        handleBlockType(gs, res.main, res.returnType, args.thisType);
     }
 } Kernel_proc;
 
@@ -4375,7 +4373,7 @@ public:
             return;
         }
 
-        handleBlockType(gs, res.main, procType);
+        handleBlockType(gs, res.main, procType, args.thisType);
     }
 } Kernel_lambdaTLet;
 
