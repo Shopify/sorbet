@@ -39,6 +39,7 @@
 #include "packager/packager.h"
 #include "parser/parser.h"
 #include "parser/prism/Parser.h"
+#include "parser/prism/Translator.h"
 #include "payload/binary/binary.h"
 #include "payload/payload.h"
 #include "rbs/AssertionsRewriter.h"
@@ -249,13 +250,14 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                         parser::Prism::Parser prismParser{source};
                         bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
                         auto prismParseResult = prismParser.parse(collectComments);
-                        pm_node_t *rewrittenNode =
-                            realmain::pipeline::runRBSRewritePrism(gs, file, prismParseResult.getRawNodePointer(),
-                                                                   prismParseResult.getCommentLocations(), print, ctx, prismParser);
-                        parseResult = parser::Prism::Parser::translateOnly(
-                            ctx, prismParser, rewrittenNode, prismParseResult.getParseErrors(),
-                            prismParseResult.getCommentLocations(),
-                            false); // TODO: preserveConcreteSyntax set to false
+                        pm_node_t *rewrittenNode = realmain::pipeline::runRBSRewritePrism(
+                            gs, file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
+                            print, ctx, prismParser);
+
+                        auto translatedTree =
+                            parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false, false)
+                                .translate(rewrittenNode);
+                        parseResult = parser::ParseResult{move(translatedTree), prismParseResult.getCommentLocations()};
                         directlyDesugaredTree = nullptr;
                     } else {
                         parseResult = parser::Prism::Parser::run(ctx, false);
@@ -751,12 +753,14 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                     parser::Prism::Parser prismParser{source};
                     bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
                     auto prismParseResult = prismParser.parse(collectComments);
-                    pm_node_t *rewrittenNode =
-                        realmain::pipeline::runRBSRewritePrism(*gs, f.file, prismParseResult.getRawNodePointer(),
-                                                               prismParseResult.getCommentLocations(), print, ctx, prismParser);
-                    parseResult = parser::Prism::Parser::translateOnly(
-                        ctx, prismParser, rewrittenNode, prismParseResult.getParseErrors(),
-                        prismParseResult.getCommentLocations(), false); // TODO: preserveConcreteSyntax set to false
+                    pm_node_t *rewrittenNode = realmain::pipeline::runRBSRewritePrism(
+                        *gs, f.file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
+                        print, ctx, prismParser);
+
+                    auto translatedTree =
+                        parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false, false)
+                            .translate(rewrittenNode);
+                    parseResult = parser::ParseResult{move(translatedTree), prismParseResult.getCommentLocations()};
                 } else {
                     parseResult = parser::Prism::Parser::run(ctx, false);
                 }
