@@ -126,7 +126,7 @@ void printUntypedBlames(const core::GlobalState &gs, const UnorderedMap<long, lo
 std::unique_ptr<core::GlobalState> copyForSlowPath(const core::GlobalState &from, const options::Options &opts);
 
 // RBS Prism rewriter function
-pm_node_t *runRBSRewritePrism(sorbet::core::GlobalState &gs, sorbet::core::FileRef file, pm_node_t *node,
+pm_node_t *runPrismRBSRewrite(sorbet::core::GlobalState &gs, sorbet::core::FileRef file, pm_node_t *node,
                               const std::vector<sorbet::core::LocOffsets> &commentLocations,
                               const sorbet::realmain::options::Printers &print, sorbet::core::MutableContext &ctx,
                               const parser::Prism::Parser& parser);
