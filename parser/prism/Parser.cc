@@ -12,7 +12,7 @@ parser::ParseResult Parser::run(core::MutableContext ctx, bool directlyDesugar, 
     auto source = file.data(ctx).source();
     Prism::Parser parser{source};
     bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
-    Prism::ParseResult parseResult = parser.parse(collectComments);
+    Prism::ParseResult parseResult = parser.parseWithoutTranslation(collectComments);
 
     auto translatedTree =
         Prism::Translator(parser, ctx, parseResult.parseErrors, directlyDesugar, preserveConcreteSyntax)
@@ -20,30 +20,13 @@ parser::ParseResult Parser::run(core::MutableContext ctx, bool directlyDesugar, 
     return parser::ParseResult{move(translatedTree), move(parseResult.commentLocations)};
 }
 
-ParseResult Parser::parseOnly(core::MutableContext &ctx) {
-    auto file = ctx.file;
-    auto source = file.data(ctx).source();
-    Prism::Parser parser{source};
-    bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
-    return parser.parse(collectComments);
-}
-
-parser::ParseResult Parser::translateOnly(core::MutableContext &ctx, const Parser &parser, pm_node_t *node,
-                                          const std::vector<ParseError> &parseErrors,
-                                          const std::vector<core::LocOffsets> &commentLocations,
-                                          bool preserveConcreteSyntax) {
-    absl::Span<const ParseError> errorSpan(parseErrors);
-    auto translatedTree = Prism::Translator(parser, ctx, errorSpan, false, false).translate(node); // TODO: false, false
-
-    vector<core::LocOffsets> commentLocationsCopy = commentLocations;
-    return parser::ParseResult{std::move(translatedTree), std::move(commentLocationsCopy)};
-}
-
 pm_parser_t *Parser::getRawParserPointer() {
     return &parser;
 }
 
-ParseResult Parser::parse(bool collectComments) {
+// Parses without translating and returns raw Prism nodes for intermediate processing (e.g., RBS rewriting)
+// Caller must keep Parser alive for later translation, unlike run() which parses + translates in one step
+ParseResult Parser::parseWithoutTranslation(bool collectComments) {
     pm_node_t *root = pm_parse(&parser);
     auto comments = collectComments ? collectCommentLocations() : vector<core::LocOffsets>{};
     return ParseResult{*this, root, collectErrors(), move(comments)};
