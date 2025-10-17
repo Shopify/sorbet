@@ -250,7 +250,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                         parser::Prism::Parser prismParser{source};
                         bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
                         auto prismParseResult = prismParser.parseOnly(collectComments);
-                        pm_node_t *rewrittenNode = realmain::pipeline::runRBSRewritePrism(
+                        pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
                             gs, file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
                             print, ctx, prismParser);
 
@@ -753,7 +753,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                     parser::Prism::Parser prismParser{source};
                     bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
                     auto prismParseResult = prismParser.parseOnly(collectComments);
-                    pm_node_t *rewrittenNode = realmain::pipeline::runRBSRewritePrism(
+                    pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
                         *gs, f.file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
                         print, ctx, prismParser);
 
