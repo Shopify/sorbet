@@ -1156,6 +1156,10 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                     tp.type = core::Types::void_();
                 } else {
                     tp.type = dispatched.returnType;
+                    // Replace SelfType with the actual receiver type to support T.self_type in method bodies
+                    auto klass = ctx.owner.enclosingClass(ctx);
+                    auto receiver = klass.data(ctx)->selfType(ctx);
+                    tp.type = core::Types::replaceSelfType(ctx, tp.type, receiver);
                 }
                 if (send.link || lspQueryMatch) {
                     retainedResult = make_shared<core::DispatchResult>(std::move(dispatched));
@@ -1360,6 +1364,10 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                     tp.type = core::Types::untyped(i.method);
                 } else {
                     tp.type = argInfo.parameterTypeAsSeenByImplementation(ctx, constr);
+                    // Replace SelfType with the actual receiver type to support T.self_type in params
+                    auto klass = ctx.owner.enclosingClass(ctx);
+                    auto receiver = klass.data(ctx)->selfType(ctx);
+                    tp.type = core::Types::replaceSelfType(ctx, tp.type, receiver);
                 }
                 tp.origins.emplace_back(ctx.locAt(bind.loc));
 
@@ -1649,6 +1657,10 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                     // valid in a method body if the method's signature is generic).
                     castType = core::Types::instantiateTypeVars(ctx, castType, constr);
                 }
+
+                // Replace SelfType with the actual receiver type to support T.self_type in method bodies
+                auto receiver = klass.data(ctx)->selfType(ctx);
+                castType = core::Types::replaceSelfType(ctx, castType, receiver);
 
                 tp.type = castType;
                 tp.origins.emplace_back(ctx.locAt(bind.loc));

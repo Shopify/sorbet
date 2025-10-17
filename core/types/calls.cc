@@ -2020,7 +2020,7 @@ public:
 class T_self_type : public IntrinsicMethod {
 public:
     void apply(const GlobalState &gs, const DispatchArgs &args, DispatchResult &res) const override {
-        res.returnType = make_type<MetaType>(Types::untypedUntracked());
+        res.returnType = make_type<MetaType>(make_type<SelfType>());
     }
 } T_self_type;
 

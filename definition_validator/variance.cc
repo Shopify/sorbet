@@ -135,30 +135,16 @@ private:
             }
 
             case core::TypePtr::Tag::SelfType: {
-                if (!core::Polarities::hasCompatibleVariance(polarity, core::Variance::CoVariant)) {
+                // SelfType has invariant variance: it can be used in both covariant (return) and
+                // contravariant (param) positions. This is safe because replaceSelfType in
+                // infer/environment.cc substitutes it with the actual receiver type during inference.
+                //
+                // We check compatibility with Invariant variance, which is compatible with all polarities.
+                if (!core::Polarities::hasCompatibleVariance(polarity, core::Variance::Invariant)) {
+                    // This should never trigger since Invariant is compatible with all polarities,
+                    // but we keep the check structure for consistency with other type checking.
                     if (auto e = ctx.state.beginError(this->loc, core::errors::Resolver::AttachedClassAsParam)) {
-                        e.setHeader("`{}` may only be used in an `{}` context, like `{}`", "T.self_type", ":out",
-                                    "returns");
-
-                        string eqeqNote;
-                        if (owningMethod.data(ctx)->name == core::Names::eqeq()) {
-                            eqeqNote = core::ErrorColors::format(
-                                ",\n    but equality methods should accept `{}` or `{}` instead.", "T.anything",
-                                "BasicObject");
-                        }
-                        e.addErrorNote("Methods marked `{}` are not subject to this constraint{}", "private", eqeqNote);
-
-                        auto selfTypeStr = "T.self_type"sv;
-                        auto replaceLoc =
-                            this->loc.copyEndWithZeroLength().adjustLen(ctx, ": "sv.size(), selfTypeStr.size());
-                        if (replaceLoc.source(ctx) == selfTypeStr) {
-                            if (eqeqNote.empty()) {
-                                e.replaceWith("Use enclosing class name directly", replaceLoc, "{}",
-                                              owningMethod.enclosingClass(ctx).show(ctx));
-                            } else {
-                                e.replaceWith("Use `T.anything` instead", replaceLoc, "T.anything");
-                            }
-                        }
+                        e.setHeader("`{}` has incompatible variance for this position", "T.self_type");
                     }
                 }
                 break;

@@ -167,6 +167,36 @@ optional<vector<TypePtr>> approximateElems(const vector<TypePtr> &elems, const G
     return newElems;
 }
 
+optional<vector<TypePtr>> replaceSelfTypeInElems(const vector<TypePtr> &elems, const GlobalState &gs,
+                                                  const TypePtr &receiver) {
+    optional<vector<TypePtr>> newElems;
+    int i = -1;
+    for (auto &e : elems) {
+        ++i;
+        auto t = e._replaceSelfType(gs, receiver);
+        if (!newElems.has_value() && !t) {
+            continue;
+        }
+
+        if (!newElems.has_value()) {
+            // Oops, need to fixup all the elements that should be there.
+            newElems.emplace();
+            newElems->reserve(elems.size());
+            for (int j = 0; j < i; ++j) {
+                newElems->emplace_back(elems[j]);
+            }
+        }
+
+        if (!t) {
+            t = e;
+        }
+
+        ENFORCE(newElems->size() == i);
+        newElems->emplace_back(move(t));
+    }
+    return newElems;
+}
+
 } // anonymous namespace
 
 TypePtr TupleType::_instantiateLambdaParams(const GlobalState &gs, absl::Span<const TypeMemberRef> params,
@@ -406,6 +436,14 @@ TypePtr AndType::_replaceSelfType(const GlobalState &gs, const TypePtr &receiver
         return Types::all(gs, left, right);
     }
     return nullptr;
+}
+
+TypePtr AppliedType::_replaceSelfType(const GlobalState &gs, const TypePtr &receiver) const {
+    optional<vector<TypePtr>> newTargs = replaceSelfTypeInElems(this->targs, gs, receiver);
+    if (!newTargs) {
+        return nullptr;
+    }
+    return make_type<AppliedType>(this->klass, move(*newTargs));
 }
 
 } // namespace sorbet::core
