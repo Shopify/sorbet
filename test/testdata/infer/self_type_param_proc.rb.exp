@@ -1,0 +1,18 @@
+test/testdata/infer/self_type_param_proc.rb:21: Revealed type: `A` https://srb.help/7014
+    21 |  T.reveal_type(x) # error: Revealed type: `A`
+          ^^^^^^^^^^^^^^^^
+  Got `A` originating from:
+    test/testdata/infer/self_type_param_proc.rb:20:
+    20 |res = a.proc_with_self_type_param do |x|
+                                              ^
+
+test/testdata/infer/self_type_param_proc.rb:24: Revealed type: `Integer` https://srb.help/7014
+    24 |T.reveal_type(res) # error: Revealed type: `Integer`
+        ^^^^^^^^^^^^^^^^^^
+  Got `Integer` originating from:
+    test/testdata/infer/self_type_param_proc.rb:20:
+    20 |res = a.proc_with_self_type_param do |x|
+    21 |  T.reveal_type(x) # error: Revealed type: `A`
+    22 |  1
+    23 |end
+Errors: 2

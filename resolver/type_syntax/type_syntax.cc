@@ -1295,7 +1295,7 @@ optional<TypeSyntax::ResultType> getResultTypeAndBindWithSelfTypeParamsImpl(core
     } else if (ast::isa_tree<ast::Send>(expr)) {
         const auto &s = ast::cast_tree_nonnull<ast::Send>(expr);
         if (isTProc(ctx, &s)) {
-            auto maybeSig = parseSigWithSelfTypeParams(ctx, s, &sigBeingParsed, args.withoutSelfType());
+            auto maybeSig = parseSigWithSelfTypeParams(ctx, s, &sigBeingParsed, args);
             if (!maybeSig.has_value()) {
                 return nullopt;
             }

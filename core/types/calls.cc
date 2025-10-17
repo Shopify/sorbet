@@ -722,6 +722,12 @@ void handleBlockType(const GlobalState &gs, DispatchComponent &component, TypePt
     component.blockReturnType = Types::getProcReturnType(gs, Types::dropNil(gs, blockType));
     blockType = component.constr->isSolved() ? Types::instantiateTypeVars(gs, blockType, *component.constr)
                                              : Types::approximateTypeVars(gs, blockType, *component.constr);
+
+    // Replace SelfType with the actual receiver type to support T.self_type in proc params
+    auto owner = component.method.enclosingClass(gs);
+    auto receiver = owner.data(gs)->selfType(gs);
+    blockType = Types::replaceSelfType(gs, blockType, receiver);
+
     component.blockPreType = blockType;
 }
 
