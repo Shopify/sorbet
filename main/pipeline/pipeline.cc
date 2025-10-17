@@ -318,7 +318,7 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
         auto source = file.data(ctx).source();
         parser::Prism::Parser parser{source};
         bool collectComments = gs.cacheSensitiveOptions.rbsEnabled;
-        parser::Prism::ParseResult prismResult = parser.parse(collectComments);
+        parser::Prism::ParseResult prismResult = parser.parseOnly(collectComments);
 
         auto node = prismResult.getRawNodePointer();
         if (gs.cacheSensitiveOptions.rbsEnabled) {
