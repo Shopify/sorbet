@@ -46,7 +46,9 @@ private:
     void walkNode(pm_node_t *node);
     void walkNodes(pm_node_list_t &nodes);
     void walkStatements(pm_node_list_t &nodes);
-    pm_node_t* walkBody(pm_node_t *node, pm_node_t* body);
+    pm_node_t *walkBody(pm_node_t *node, pm_node_t *body);
+    void walkConditionalNode(pm_node_t *node, pm_node_t *predicate, pm_statements_node *&statements,
+                             pm_node_t *&elsePart, std::string kind);
     void associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc);
     void associateSignatureCommentsToNode(pm_node_t *node);
     void consumeCommentsInsideNode(pm_node_t *node, std::string kind);

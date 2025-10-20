@@ -296,6 +296,39 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
     // return inserted;
 }
 
+void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *predicate,
+                                                  pm_statements_node *&statements, pm_node_t *&elsePart,
+                                                  std::string kind) {
+    auto nodeLoc = translateLocation(node->location);
+    auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
+    auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.endPos()).line;
+
+    if (beginLine == endLine) {
+        associateAssertionCommentsToNode(node);
+    }
+
+    walkNode(predicate);
+
+    lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
+
+    // Walk then body (statements) using walkBody
+    statements = down_cast<pm_statements_node>(walkBody(node, up_cast(statements)));
+
+    if (statements) {
+        auto stmtLoc = translateLocation(statements->base.location);
+        lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmtLoc.endPos()).line;
+    }
+
+    // Walk else clause using walkBody
+    elsePart = walkBody(node, elsePart);
+
+    if (beginLine != endLine) {
+        associateAssertionCommentsToNode(node);
+    }
+
+    consumeCommentsInsideNode(node, kind);
+}
+
 pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
     if (body == nullptr) {
         return nullptr;
@@ -593,34 +626,14 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_IF_NODE: {
             auto *if_ = down_cast<pm_if_node_t>(node);
-            auto ifLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), ifLoc.beginPos()).line;
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), ifLoc.endPos()).line;
-
-            if (beginLine == endLine) {
-                associateAssertionCommentsToNode(node);
-            }
-
-            walkNode(if_->predicate);
-
-            lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), ifLoc.beginPos()).line;
-
-            // Walk then body (statements) using walkBody
-            if_->statements = down_cast<pm_statements_node>(walkBody(node, up_cast(if_->statements)));
-
-            if (if_->statements) {
-                auto stmtLoc = translateLocation(if_->statements->base.location);
-                lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmtLoc.endPos()).line;
-            }
-
-            // Walk else/elsif part (subsequent) using walkBody
-            if_->subsequent = walkBody(node, if_->subsequent);
-
-            if (beginLine != endLine) {
-                associateAssertionCommentsToNode(node);
-            }
-
-            consumeCommentsInsideNode(node, "if");
+            walkConditionalNode(node, if_->predicate, if_->statements, if_->subsequent, "if");
+            break;
+        }
+        case PM_UNLESS_NODE: {
+            auto *unless_ = down_cast<pm_unless_node_t>(node);
+            pm_node_t *elseClause = up_cast(unless_->else_clause);
+            walkConditionalNode(node, unless_->predicate, unless_->statements, elseClause, "unless");
+            unless_->else_clause = down_cast<pm_else_node>(elseClause);
             break;
         }
         case PM_IN_NODE: {
