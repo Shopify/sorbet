@@ -3066,7 +3066,12 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
             statements.emplace_back(move(expr));
             auto beginNode = make_node_with_expr<parser::Begin>(MK::Nil(location), location, move(statements));
 
-            return make_unique<Pin>(location, move(beginNode));
+            if (!directlyDesugar || !hasExpr(beginNode)) {
+                return make_unique<Pin>(location, move(beginNode));
+            }
+
+            auto pinExpr = beginNode->takeDesugaredExpr();
+            return make_node_with_expr<parser::Pin>(move(pinExpr), location, move(beginNode));
         }
         case PM_PINNED_VARIABLE_NODE: { // A "pinned" variable, like `^x` in `in ^x`
             auto pinnedVarNode = down_cast<pm_pinned_variable_node>(node);
