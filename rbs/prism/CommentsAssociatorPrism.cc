@@ -457,8 +457,14 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsInsideNode(node, "array");
             break;
         }
-        case PM_LOCAL_VARIABLE_WRITE_NODE: {
-            auto *assign = down_cast<pm_local_variable_write_node_t>(node);
+        case PM_LOCAL_VARIABLE_WRITE_NODE:
+        case PM_CONSTANT_WRITE_NODE:
+        case PM_INSTANCE_VARIABLE_WRITE_NODE:
+        case PM_CLASS_VARIABLE_WRITE_NODE:
+        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
+            // All write nodes have value field at same offset after base
+            // Use reinterpret_cast since they have compatible layout
+            auto *assign = reinterpret_cast<pm_local_variable_write_node_t *>(node);
             associateAssertionCommentsToNode(assign->value, true);
             walkNode(assign->value);
             consumeCommentsInsideNode(node, "assign");
