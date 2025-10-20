@@ -844,6 +844,18 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             }
             return node;
         }
+        case PM_UNLESS_NODE: {
+            auto *unless_ = down_cast<pm_unless_node_t>(node);
+            node = maybeInsertCast(node);
+            unless_->predicate = rewriteNode(unless_->predicate);
+            if (unless_->statements) {
+                unless_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(unless_->statements)));
+            }
+            if (unless_->else_clause) {
+                unless_->else_clause = down_cast<pm_else_node_t>(rewriteBody(up_cast(unless_->else_clause)));
+            }
+            return node;
+        }
         case PM_CASE_NODE: {
             auto *case_ = down_cast<pm_case_node_t>(node);
             node = maybeInsertCast(node);
