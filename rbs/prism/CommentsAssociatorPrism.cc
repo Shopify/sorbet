@@ -461,7 +461,9 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 }
             }
 
-            walkStatements(begin->statements->body);
+            if (begin->statements) {
+                walkStatements(begin->statements->body);
+            }
             auto nodeLoc = translateLocation(node->location);
             lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.endPos()).line;
             consumeCommentsInsideNode(node, "begin");
@@ -535,11 +537,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_CALL_NODE: {
             // TODO: More handling from CommentsAssociator's send case
+            associateAssertionCommentsToNode(node);
 
             auto *call = down_cast<pm_call_node_t>(node);
-
-            walkNode(call->block);
             walkNode(call->receiver);
+            walkNode(call->block);
             if (call->arguments != nullptr) {
                 walkNodes(call->arguments->arguments);
             }
@@ -832,7 +834,9 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_PROGRAM_NODE: {
             auto *program = down_cast<pm_program_node_t>(node);
-            walkStatements(program->statements->body);
+            if (program->statements) {
+                walkStatements(program->statements->body);
+            }
             break;
         }
         case PM_STATEMENTS_NODE: {
