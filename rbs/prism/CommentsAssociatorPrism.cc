@@ -443,31 +443,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsInsideNode(node, "and");
             break;
         }
-        case PM_LOCAL_VARIABLE_AND_WRITE_NODE: {
-            auto *andAsgn = down_cast<pm_local_variable_and_write_node_t>(node);
-            associateAssertionCommentsToNode(andAsgn->value, true);
-            walkNode(andAsgn->value);
-            consumeCommentsInsideNode(node, "and_asgn");
-            break;
-        }
         case PM_ARRAY_NODE: {
             auto *array = down_cast<pm_array_node_t>(node);
             associateAssertionCommentsToNode(node);
             walkNodes(array->elements);
             consumeCommentsInsideNode(node, "array");
-            break;
-        }
-        case PM_LOCAL_VARIABLE_WRITE_NODE:
-        case PM_CONSTANT_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_WRITE_NODE:
-        case PM_CLASS_VARIABLE_WRITE_NODE:
-        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
-            // All write nodes have value field at same offset after base
-            // Use reinterpret_cast since they have compatible layout
-            auto *assign = reinterpret_cast<pm_local_variable_write_node_t *>(node);
-            associateAssertionCommentsToNode(assign->value, true);
-            walkNode(assign->value);
-            consumeCommentsInsideNode(node, "assign");
             break;
         }
         case PM_BEGIN_NODE: {
@@ -697,26 +677,12 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsInsideNode(node, "next");
             break;
         }
-        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
-            auto *opAsgn = down_cast<pm_local_variable_operator_write_node_t>(node);
-            associateAssertionCommentsToNode(opAsgn->value, true);
-            walkNode(opAsgn->value);
-            consumeCommentsInsideNode(node, "op_asgn");
-            break;
-        }
         case PM_OR_NODE: {
             auto *or_ = down_cast<pm_or_node_t>(node);
             associateAssertionCommentsToNode(node);
             walkNode(or_->right);
             walkNode(or_->left);
             consumeCommentsInsideNode(node, "or");
-            break;
-        }
-        case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
-            auto *orAsgn = down_cast<pm_local_variable_or_write_node_t>(node);
-            associateAssertionCommentsToNode(orAsgn->value, true);
-            walkNode(orAsgn->value);
-            consumeCommentsInsideNode(node, "or_asgn");
             break;
         }
         case PM_ASSOC_NODE: {
@@ -861,6 +827,52 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_STATEMENTS_NODE: {
             auto *statements = down_cast<pm_statements_node_t>(node);
             walkStatements(statements->body);
+            break;
+        }
+        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE:
+        case PM_LOCAL_VARIABLE_AND_WRITE_NODE:
+        case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
+            // Local variable compound writes (+=, &&=, ||=) all have same layout: name_loc, operator_loc, value
+            auto *assign = reinterpret_cast<pm_local_variable_operator_write_node_t *>(node);
+            fmt::print("LOCAL COMPOUND ASSIGN VALUE: {}\n", PM_NODE_TYPE(assign->value));
+            associateAssertionCommentsToNode(assign->value, true);
+            walkNode(assign->value);
+            consumeCommentsInsideNode(node, "assign");
+            break;
+        }
+        case PM_CONSTANT_OPERATOR_WRITE_NODE:
+        case PM_CONSTANT_AND_WRITE_NODE:
+        case PM_CONSTANT_OR_WRITE_NODE:
+        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE:
+        case PM_INSTANCE_VARIABLE_AND_WRITE_NODE:
+        case PM_INSTANCE_VARIABLE_OR_WRITE_NODE:
+        case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE:
+        case PM_CLASS_VARIABLE_AND_WRITE_NODE:
+        case PM_CLASS_VARIABLE_OR_WRITE_NODE:
+        case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE:
+        case PM_GLOBAL_VARIABLE_AND_WRITE_NODE:
+        case PM_GLOBAL_VARIABLE_OR_WRITE_NODE: {
+            // Compound assignment nodes (+=, &&=, ||=) for constant/instance/class/global variables
+            // These have compatible layout: name, name_loc, operator_loc, value
+            auto *assign = reinterpret_cast<pm_constant_operator_write_node_t *>(node);
+            fmt::print("COMPOUND ASSIGN VALUE: {}\n", PM_NODE_TYPE(assign->value));
+            associateAssertionCommentsToNode(assign->value, true);
+            walkNode(assign->value);
+            consumeCommentsInsideNode(node, "assign");
+            break;
+        }
+        case PM_LOCAL_VARIABLE_WRITE_NODE:
+        case PM_CONSTANT_WRITE_NODE:
+        case PM_INSTANCE_VARIABLE_WRITE_NODE:
+        case PM_CLASS_VARIABLE_WRITE_NODE:
+        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
+            // All write nodes have value field at same offset after base
+            // Use reinterpret_cast since they have compatible layout
+            auto *assign = reinterpret_cast<pm_local_variable_write_node_t *>(node);
+            fmt::print("ASSIGN VALUE: {}\n", PM_NODE_TYPE(assign->value));
+            associateAssertionCommentsToNode(assign->value, true);
+            walkNode(assign->value);
+            consumeCommentsInsideNode(node, "assign");
             break;
         }
         default: {
