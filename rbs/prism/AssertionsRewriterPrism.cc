@@ -842,7 +842,6 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             if (!break_->arguments || break_->arguments->arguments.size == 0) {
                 return node;
             }
-            rewriteNodes(break_->arguments->arguments);
             rewriteNodesAsArray(node, break_->arguments->arguments);
             return node;
         }
@@ -851,7 +850,6 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             if (!next->arguments || next->arguments->arguments.size == 0) {
                 return node;
             }
-            rewriteNodes(next->arguments->arguments);
             rewriteNodesAsArray(node, next->arguments->arguments);
             return node;
         }
@@ -860,7 +858,6 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             if (!ret->arguments || ret->arguments->arguments.size == 0) {
                 return node;
             }
-            rewriteNodes(ret->arguments->arguments);
             rewriteNodesAsArray(node, ret->arguments->arguments);
             return node;
         }
@@ -1015,6 +1012,18 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             auto *program = down_cast<pm_program_node_t>(node);
             // Rewrite the top-level statements
             rewriteBody(up_cast(program->statements));
+            return node;
+        }
+
+        case PM_PARENTHESES_NODE: {
+            auto *paren = down_cast<pm_parentheses_node_t>(node);
+            paren->body = rewriteNode(paren->body);
+            return node;
+        }
+
+        case PM_STATEMENTS_NODE: {
+            auto *statements = down_cast<pm_statements_node_t>(node);
+            rewriteNodes(statements->body);
             return node;
         }
 
