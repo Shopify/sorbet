@@ -58,6 +58,7 @@ private:
     void rewriteNodes(pm_node_list_t &nodes);
     void rewriteNodesAsArray(pm_node_t *node, pm_node_list_t &nodes);
 
+    bool saveTypeParams(pm_node_t *call);
     pm_node_t *maybeInsertCast(pm_node_t *node);
     pm_node_t *insertCast(pm_node_t *node, std::optional<std::pair<pm_node_t *, InlineCommentPrism::Kind>> pair);
 

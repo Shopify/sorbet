@@ -834,7 +834,6 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
             // Local variable compound writes (+=, &&=, ||=) all have same layout: name_loc, operator_loc, value
             auto *assign = reinterpret_cast<pm_local_variable_operator_write_node_t *>(node);
-            fmt::print("LOCAL COMPOUND ASSIGN VALUE: {}\n", PM_NODE_TYPE(assign->value));
             associateAssertionCommentsToNode(assign->value, true);
             walkNode(assign->value);
             consumeCommentsInsideNode(node, "assign");
@@ -855,7 +854,6 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             // Compound assignment nodes (+=, &&=, ||=) for constant/instance/class/global variables
             // These have compatible layout: name, name_loc, operator_loc, value
             auto *assign = reinterpret_cast<pm_constant_operator_write_node_t *>(node);
-            fmt::print("COMPOUND ASSIGN VALUE: {}\n", PM_NODE_TYPE(assign->value));
             associateAssertionCommentsToNode(assign->value, true);
             walkNode(assign->value);
             consumeCommentsInsideNode(node, "assign");
@@ -869,7 +867,6 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             // All write nodes have value field at same offset after base
             // Use reinterpret_cast since they have compatible layout
             auto *assign = reinterpret_cast<pm_local_variable_write_node_t *>(node);
-            fmt::print("ASSIGN VALUE: {}\n", PM_NODE_TYPE(assign->value));
             associateAssertionCommentsToNode(assign->value, true);
             walkNode(assign->value);
             consumeCommentsInsideNode(node, "assign");
