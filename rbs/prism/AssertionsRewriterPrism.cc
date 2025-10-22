@@ -71,39 +71,68 @@ parseComment(core::MutableContext ctx, const parser::Prism::Parser *parser, Inli
  *
  * We need to be aware of the type parameter `X` so we can use it to resolve the type of `y`.
  */
-// vector<pair<core::LocOffsets, core::NameRef>> extractTypeParamsPrism(parser::Node *sig) {
-//     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
+vector<pair<core::LocOffsets, core::NameRef>>
+extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &parser, pm_node_t *block) {
+    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
 
-//     // Do we have a previous signature?
-//     if (!sig) {
-//         return typeParams;
-//     }
+    // Do we have a block?
+    if (!block || !PM_NODE_TYPE_P(block, PM_BLOCK_NODE)) {
+        return typeParams;
+    }
 
-//     auto block = parser::cast_node<parser::Block>(sig);
-//     ENFORCE(block != nullptr);
+    auto *blockNode = down_cast<pm_block_node_t>(block);
+    if (!blockNode->body) {
+        return typeParams;
+    }
 
-//     // Does the sig contain a `type_parameters()` invocation?
-//     auto send = parser::cast_node<parser::Send>(block->body.get());
-//     while (send && send->method != core::Names::typeParameters()) {
-//         send = parser::cast_node<parser::Send>(send->receiver.get());
-//     }
+    // The body can be either a StatementsNode or directly a CallNode (from SigsRewriter)
+    pm_node_t *node = blockNode->body;
 
-//     if (send == nullptr) {
-//         return typeParams;
-//     }
+    // If it's a statements node, get the first statement
+    if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
+        auto *statements = down_cast<pm_statements_node_t>(node);
+        ENFORCE(statements->body.size > 0);
+        node = statements->body.nodes[0];
+    }
 
-//     // Collect the type parameters
-//     for (auto &arg : send->args) {
-//         auto sym = parser::cast_node<parser::Symbol>(arg.get());
-//         if (sym == nullptr) {
-//             continue;
-//         }
+    pm_call_node_t *call = nullptr;
 
-//         typeParams.emplace_back(arg->loc, sym->val);
-//     }
+    // Walk through the call chain to find type_parameters()
+    while (node && PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
+        auto *callNode = down_cast<pm_call_node_t>(node);
+        auto methodName = parser.resolveConstant(callNode->name);
 
-//     return typeParams;
-// }
+        if (methodName == "type_parameters") {
+            call = callNode;
+            break;
+        }
+
+        node = callNode->receiver;
+    }
+
+    if (call == nullptr) {
+        return typeParams;
+    }
+
+    // Collect the type parameters from the arguments
+    if (call->arguments) {
+        auto *args = call->arguments;
+        for (size_t i = 0; i < args->arguments.size; i++) {
+            pm_node_t *arg = args->arguments.nodes[i];
+            if (!PM_NODE_TYPE_P(arg, PM_SYMBOL_NODE)) {
+                continue;
+            }
+
+            auto *sym = down_cast<pm_symbol_node_t>(arg);
+            auto symbolName = parser.extractString(&sym->unescaped);
+            auto nameRef = ctx.state.enterNameUTF8(symbolName);
+            auto loc = parser.translateLocation(arg->location);
+            typeParams.emplace_back(loc, nameRef);
+        }
+    }
+
+    return typeParams;
+}
 
 // bool sameConstantPrism(core::MutableContext ctx, unique_ptr<parser::Node> &a, unique_ptr<parser::Node> &b) {
 //     auto aConst = parser::cast_node<parser::Const>(a.get());
@@ -149,6 +178,34 @@ parseComment(core::MutableContext ctx, const parser::Prism::Parser *parser, Inli
 // }
 
 } // namespace
+
+/**
+ * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
+ *
+ * Returns `true` if the block is a `sig` send, `false` otherwise.
+ */
+bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
+    if (!call || !PM_NODE_TYPE_P(call, PM_CALL_NODE)) {
+        return false;
+    }
+
+    auto *callNode = down_cast<pm_call_node_t>(call);
+
+    // Check if this is a sig() call
+    auto methodName = parser->resolveConstant(callNode->name);
+    if (methodName != "sig") {
+        return false;
+    }
+
+    // Check if it has a block
+    if (!callNode->block) {
+        return false;
+    }
+
+    typeParams = extractTypeParamsPrism(ctx, *parser, callNode->block);
+
+    return true;
+}
 
 /**
  * Mark the given comment location as "consumed" so it won't be picked up by subsequent calls to `commentForPos`.
@@ -228,30 +285,6 @@ bool AssertionsRewriterPrism::hasConsumedComment(core::LocOffsets loc) {
 //     }
 
 //     return nullopt;
-// }
-
-/**
- * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
- *
- * Returns `true` if the block is a `sig` send, `false` otherwise.
-//  */
-// bool AssertionsRewriterPrism::saveTypeParams(parser::Block *block) {
-//     if (block->body == nullptr) {
-//         return false;
-//     }
-
-//     auto send = parser::cast_node<parser::Send>(block->send.get());
-//     if (send == nullptr) {
-//         return false;
-//     }
-
-//     if (send->method != core::Names::sig()) {
-//         return false;
-//     }
-
-//     typeParams = extractTypeParamsPrism(block);
-
-//     return true;
 // }
 
 /**
@@ -741,6 +774,11 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         // Calls
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
+            if (saveTypeParams(node)) {
+                // If this is a `sig` call, we need to save the type parameters so we can use them to resolve the type
+                // parameters from the method signature.
+                return node;
+            }
             call->receiver = rewriteNode(call->receiver);
             node = maybeInsertCast(node);
             if (call->arguments) {
@@ -755,10 +793,6 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         // Blocks
         case PM_BLOCK_NODE: {
             auto *block = down_cast<pm_block_node_t>(node);
-            // TODO: saveTypeParams needs to be updated to work with pm_block_node_t
-            // if (saveTypeParams(block)) {
-            //     return node;
-            // }
             node = maybeInsertCast(node);
             block->body = rewriteBody(block->body);
             return node;
