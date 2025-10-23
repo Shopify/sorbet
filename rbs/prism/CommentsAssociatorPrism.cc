@@ -560,10 +560,10 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
 
             auto *call = down_cast<pm_call_node_t>(node);
             walkNode(call->receiver);
-            walkNode(call->block);
             if (call->arguments != nullptr) {
                 walkNodes(call->arguments->arguments);
             }
+            walkNode(call->block);
             break;
         }
         case PM_DEF_NODE: {

@@ -564,7 +564,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     if (!t_sig_arg)
         return nullptr;
 
-    // Create sig parameter pairs for .params() call
+    // Create sig parameter pairs for .params() call (keyword arguments)
     vector<pm_node_t *> sigParams;
     sigParams.reserve(args.size());
 
@@ -615,33 +615,31 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
             symbolNode = createSymbolNode(arg.name, arg.nameLoc);
         } else {
             // Fallback to method parameter name when RBS omitted it
-            if (!methodArgs.empty() && paramIndex < methodArgs.size() &&
-                methodArgs[paramIndex].nameId != PM_CONSTANT_ID_UNSET) {
-                core::LocOffsets tinyLocOffsets = firstLineTypeLoc.copyWithZeroLength();
-                symbolNode = PMK::SymbolFromConstant(tinyLocOffsets, methodArgs[paramIndex].nameId);
+            core::LocOffsets tinyLocOffsets = firstLineTypeLoc.copyWithZeroLength();
+            if (!methodArgs.empty() && paramIndex < methodArgs.size()) {
+                auto methodArg = methodArgs[paramIndex];
+
+                // Special case: anonymous block parameter (&) should use symbol :&
+                if (arg.kind == RBSArg::Kind::Block && methodArg.nameId == PM_CONSTANT_ID_UNSET) {
+                    symbolNode = PMK::Symbol(tinyLocOffsets, "&");
+                } else if (methodArg.nameId != PM_CONSTANT_ID_UNSET) {
+                    symbolNode = PMK::SymbolFromConstant(tinyLocOffsets, methodArg.nameId);
+                }
             }
             if (!symbolNode) {
-                // As a last resort, synthesize a tiny constant name 'arg'
-                symbolNode = PMK::ConstantReadNode("arg");
-                if (symbolNode) {
-                    symbolNode->location = tiny_loc;
-                }
+                // As a last resort, synthesize a symbol ':arg'
+                symbolNode = PMK::Symbol(tinyLocOffsets, "arg");
             }
         }
         if (!symbolNode) {
             continue;
         }
 
-        // Create association node (key-value pair) with consistent zero-width location
+        // Create association node (key-value pair) for keyword argument
         core::LocOffsets tinyLocOffsets = firstLineTypeLoc.copyWithZeroLength();
-        // fmt::print("DEBUG: Creating assoc with tinyLoc: {}..{} (was arg.loc: {}..{})\n", tinyLocOffsets.beginPos(),
-        //            tinyLocOffsets.endPos(), arg.loc.beginPos(), arg.loc.endPos());
         pm_node_t *pairNode = PMK::AssocNode(tinyLocOffsets, symbolNode, typeNode);
         if (pairNode) {
             sigParams.push_back(pairNode);
-            // debugPrintLocation("param.symbol.base", symbolNode->location);
-            // debugPrintLocation("param.type.base", typeNode->location);
-            // debugPrintLocation("param.pair.base", pairNode->location);
         }
         paramIndex++;
     }
@@ -669,29 +667,21 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     }
 
     // Add .params() call if we have parameters
-    // fmt::print("DEBUG: sigParams.size() = {}\n", sigParams.size());
     if (sigParams.size() > 0) {
-        pm_constant_id_t params_id = PMK::addConstantToPool("params");
-        if (params_id == PM_CONSTANT_ID_UNSET) {
-            return nullptr;
-        }
-
+        // Wrap pairs in KeywordHashNode for keyword arguments
         core::LocOffsets hashLoc = fullTypeLoc;
-        // Use KeywordHash for params (bare keyword args)
         pm_node_t *paramsHash = PMK::KeywordHash(hashLoc, sigParams);
         if (!paramsHash) {
             return nullptr;
         }
 
-        // Create .params() method call
+        // Create .params() method call with keyword hash
         pm_node_t *paramsCall = PMK::Send1(fullTypeLoc, sigReceiver, "params", paramsHash);
         if (!paramsCall) {
             return nullptr;
         }
 
         sigReceiver = paramsCall;
-        // debugPrintLocation("params.call.base", paramsCall->base.location);
-        // debugPrintLocation("params.call.msg", paramsCall->message_loc);
     }
 
     // Add return type call (.void() or .returns(Type))
