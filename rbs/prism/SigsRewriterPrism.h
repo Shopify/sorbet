@@ -52,7 +52,7 @@ private:
     std::unique_ptr<std::vector<pm_node_t*>> signaturesForNode(pm_node_t *node);
     CommentsPrism commentsForNode(pm_node_t *node);
     void insertTypeParams(parser::Node *node, std::unique_ptr<parser::Node> *body);
-    std::unique_ptr<parser::Node> replaceSyntheticTypeAlias(std::unique_ptr<parser::Node> node);
+    pm_node_t *replaceSyntheticTypeAlias(pm_node_t *node);
     pm_node_t *createStatementsWithSignatures(pm_node_t *originalNode, std::unique_ptr<std::vector<pm_node_t*>> signatures);
 
     // Helper methods for statements management

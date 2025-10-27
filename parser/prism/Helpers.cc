@@ -634,6 +634,47 @@ pm_node_t *PMK::TBindSelf(core::LocOffsets loc, pm_node_t *type) {
     return Send2(loc, t_const, "bind", self_node, type);
 }
 
+pm_node_t *PMK::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
+    // Create T.type_alias { type } call
+    pm_node_t *t_const = T(loc);
+    if (!t_const || !type) {
+        return nullptr;
+    }
+
+    // Create the send node for T.type_alias
+    pm_node_t *send = Send0(loc, t_const, "type_alias");
+    if (!send) {
+        return nullptr;
+    }
+
+    // Create statements node containing the type
+    pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
+    *stmts = (pm_statements_node_t){
+        .base = initializeBaseNode(PM_STATEMENTS_NODE),
+        .body = {.size = 0, .capacity = 0, .nodes = nullptr}
+    };
+    stmts->base.location = convertLocOffsets(loc);
+    pm_node_list_append(&stmts->body, type);
+
+    // Create block node with the send and statements
+    pm_block_node_t *block = allocateNode<pm_block_node_t>();
+    *block = (pm_block_node_t){
+        .base = initializeBaseNode(PM_BLOCK_NODE),
+        .locals = {.size = 0, .capacity = 0, .ids = nullptr},
+        .parameters = nullptr,
+        .body = up_cast(stmts),
+        .opening_loc = getZeroWidthLocation(),
+        .closing_loc = getZeroWidthLocation()
+    };
+    block->base.location = convertLocOffsets(loc);
+
+    // Set the block on the call node
+    auto *call = down_cast<pm_call_node_t>(send);
+    call->block = up_cast(block);
+
+    return send;
+}
+
 pm_node_t *PMK::Array(core::LocOffsets loc, const vector<pm_node_t *> &elements) {
     // Create an array node
     pm_array_node_t *array = allocateNode<pm_array_node_t>();

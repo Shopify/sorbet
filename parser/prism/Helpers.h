@@ -284,6 +284,7 @@ public:
     static pm_node_t *TUnsafe(core::LocOffsets loc, pm_node_t *value);
     static pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value);
     static pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type);
+    static pm_node_t *TTypeAlias(core::LocOffsets loc, pm_node_t *type);
     static pm_node_t *T_Array(core::LocOffsets loc);
     static pm_node_t *T_Class(core::LocOffsets loc);
     static pm_node_t *T_Enumerable(core::LocOffsets loc);
