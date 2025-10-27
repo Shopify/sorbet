@@ -1064,8 +1064,8 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_CONSTANT_READ_NODE: {
             auto *constantRead = down_cast<pm_constant_read_node_t>(node);
 
-            // Check if this is a synthetic bind node (PM_CONSTANT_ID_UNSET marker)
-            if (constantRead->name == PM_CONSTANT_ID_UNSET) {
+            // Check if this is a synthetic bind node
+            if (constantRead->name == RBS_SYNTHETIC_BIND_MARKER) {
                 return replaceSyntheticBind(node);
             }
 

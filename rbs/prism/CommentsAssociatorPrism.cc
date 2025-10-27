@@ -22,6 +22,50 @@ const regex TYPE_ALIAS_PATTERN_PRISM("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*(
 // Static regex pattern to avoid recompilation
 static const regex HEREDOC_PATTERN_PRISM("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
 
+namespace {
+/**
+ * Insert a node into a pm_node_list_t at a specific index.
+ * The node is first appended to the end, then shifted into position.
+ */
+void insertNodeAtIndex(pm_node_list_t &nodes, pm_node_t *node, size_t index) {
+    pm_node_list_append(&nodes, node);
+    for (size_t i = nodes.size - 1; i > index; i--) {
+        nodes.nodes[i] = nodes.nodes[i - 1];
+    }
+    nodes.nodes[index] = node;
+}
+
+/**
+ * Insert a string constant into the Prism constant pool.
+ * Allocates stable memory for the constant (owned by the pool).
+ */
+pm_constant_id_t insertConstantToPool(pm_parser_t *parser, const string &name) {
+    size_t name_len = name.length();
+    uint8_t *stable_name = (uint8_t *)calloc(name_len, sizeof(uint8_t));
+    memcpy(stable_name, name.c_str(), name_len);
+    return pm_constant_pool_insert_constant(&parser->constant_pool, stable_name, name_len);
+}
+
+/**
+ * Create a synthetic placeholder node (PM_CONSTANT_READ_NODE) with a marker constant ID.
+ * Used to mark locations for bind comments and type aliases.
+ */
+pm_node_t *createSyntheticPlaceholder(pm_parser_t *parser, const CommentNodePrism &comment,
+                                      pm_constant_id_t marker) {
+    pm_constant_read_node_t *constantRead =
+        (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
+    constantRead->base.type = PM_CONSTANT_READ_NODE;
+    constantRead->base.flags = 0;
+
+    const uint8_t *source = parser->start;
+    constantRead->base.location.start = source + comment.loc.beginPos();
+    constantRead->base.location.end = source + comment.loc.endPos();
+    constantRead->name = marker;
+
+    return (pm_node_t *)constantRead;
+}
+} // namespace
+
 /**
  * Check if the given range is the start of a heredoc assignment `= <<~FOO` and return the position of the end of the
  * heredoc marker.
@@ -233,40 +277,88 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             continue;
         }
 
+        // Handle bind comments: `#: self as Type`
+        // Creates a synthetic placeholder node that will be replaced with T.bind(self, Type)
         if (absl::StartsWith(it->second.string, BIND_PREFIX)) {
             continuationFor = nullptr;
 
-            // Create a synthetic bind node (ConstantReadNode with PM_CONSTANT_ID_UNSET as marker)
-            pm_constant_read_node_t *constantRead = (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
-            constantRead->base.type = PM_CONSTANT_READ_NODE;
-            constantRead->base.flags = 0;
+            // Create placeholder node with special marker constant ID
             auto *internalParser = parser.getInternalParser();
-            const uint8_t *source = internalParser->start;
-            constantRead->base.location.start = source + it->second.loc.beginPos();
-            constantRead->base.location.end = source + it->second.loc.endPos();
-            constantRead->name = PM_CONSTANT_ID_UNSET; // Special marker for synthetic bind node
-            pm_node_t *placeholder = (pm_node_t *)constantRead;
+            pm_node_t *placeholder = createSyntheticPlaceholder(internalParser, it->second, RBS_SYNTHETIC_BIND_MARKER);
 
+            // Register comment for later processing by AssertionsRewriter
             vector<CommentNodePrism> comments;
             comments.emplace_back(it->second);
             it = commentByLine.erase(it);
             assertionsForNode[placeholder] = move(comments);
 
-            // Append the synthetic bind node to the end, then we'll shift it to the right position
-            pm_node_list_append(&nodes, placeholder);
-            // Now shift elements to make room at index
-            for (size_t i = nodes.size - 1; i > index; i--) {
-                nodes.nodes[i] = nodes.nodes[i - 1];
-            }
-            nodes.nodes[index] = placeholder;
-
+            // Insert placeholder into statement list
+            insertNodeAtIndex(nodes, placeholder, index);
             inserted++;
 
             continue;
         }
 
-        // TODO: Handle TYPE_ALIAS_PATTERN similar to whitequark version
-        // Type aliases require signature rewriter support, not just comment association
+        // Handle type alias comments: `#: type foo = String`
+        // Creates a constant assignment: `type foo = T.type_alias { String }`
+        // This allows using `foo` as a type alias later (e.g., `#: self as foo`)
+        std::smatch matches;
+        auto str = string(it->second.string);
+        if (std::regex_match(str, matches, TYPE_ALIAS_PATTERN_PRISM)) {
+            // 1. Validate type aliases are only allowed in class/module bodies
+            if (!contextAllowingTypeAlias.empty()) {
+                if (auto [allow, loc] = contextAllowingTypeAlias.back(); !allow) {
+                    if (auto e = ctx.beginError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
+                        e.setHeader("Unexpected RBS type alias comment");
+                        e.addErrorLine(ctx.locAt(loc),
+                                       "RBS type aliases are only allowed in class and module bodies. Found in:");
+                    }
+
+                    it = commentByLine.erase(it);
+                    continue;
+                }
+            }
+
+            // 2. Register the constant name (e.g., "type foo") in the symbol table
+            auto nameStr = "type " + matches[1].str();
+            ctx.state.enterNameConstant(nameStr);
+
+            // 3. Create placeholder for the type expression
+            // This will be replaced with T.type_alias { Type } by SigsRewriter
+            auto *internalParser = parser.getInternalParser();
+            const uint8_t *source = internalParser->start;
+            pm_node_t *placeholder = createSyntheticPlaceholder(internalParser, it->second, RBS_SYNTHETIC_TYPE_ALIAS_MARKER);
+
+            // Register comment for later processing by SigsRewriter
+            vector<CommentNodePrism> comments;
+            comments.emplace_back(it->second);
+            signaturesForNode[placeholder] = move(comments);
+
+            continuationFor = placeholder;
+
+            // 4. Create constant assignment node: `type foo = placeholder`
+            // Insert constant name into the Prism constant pool
+            pm_constant_id_t name_id = insertConstantToPool(internalParser, nameStr);
+
+            // Build PM_CONSTANT_WRITE_NODE with all required location fields
+            pm_constant_write_node_t *constantWrite = (pm_constant_write_node_t *)malloc(sizeof(pm_constant_write_node_t));
+            constantWrite->base.type = PM_CONSTANT_WRITE_NODE;
+            constantWrite->base.flags = 0;
+            constantWrite->base.location.start = source + it->second.loc.beginPos();
+            constantWrite->base.location.end = source + it->second.loc.endPos();
+            constantWrite->name = name_id;
+            constantWrite->value = placeholder;
+            constantWrite->name_loc.start = source + it->second.loc.beginPos();
+            constantWrite->name_loc.end = source + it->second.loc.endPos();
+            constantWrite->operator_loc.start = source + it->second.loc.beginPos();
+            constantWrite->operator_loc.end = source + it->second.loc.beginPos();
+
+            // 5. Insert the assignment into the statement list
+            insertNodeAtIndex(nodes, up_cast(constantWrite), index);
+            inserted++;
+            it = commentByLine.erase(it);
+            continue;
+        }
 
         continuationFor = nullptr;
 

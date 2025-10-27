@@ -12,6 +12,11 @@ extern "C" {
 #include "prism.h"
 }
 
+// Synthetic node markers for RBS comments
+// We repurpose PM_CONSTANT_READ_NODE with special constant IDs to mark synthetic nodes
+#define RBS_SYNTHETIC_BIND_MARKER PM_CONSTANT_ID_UNSET
+#define RBS_SYNTHETIC_TYPE_ALIAS_MARKER (PM_CONSTANT_ID_UNSET + 1)
+
 namespace sorbet::rbs {
 
 struct CommentNodePrism {

@@ -325,39 +325,50 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
 }
 
 /**
- * Replace the synthetic node with a `T.type_alias` call.
+ * Replace the synthetic type alias node with a `T.type_alias` call.
  */
-// unique_ptr<parser::Node> SigsRewriterPrism::replaceSyntheticTypeAlias(unique_ptr<parser::Node> node) {
-//     auto comments = commentsForNode(node.get());
+pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
+    auto comments = commentsForNode(node);
 
-//     if (comments.signatures.empty()) {
-//         // This should never happen
-//         Exception::raise("No inline comment found for synthetic type alias");
-//     }
+    if (comments.signatures.empty()) {
+        // This should never happen
+        Exception::raise("No inline comment found for synthetic type alias");
+    }
 
-//     if (comments.signatures.size() > 1) {
-//         // This should never happen
-//         Exception::raise("Multiple signatures found for synthetic type alias");
-//     }
+    if (comments.signatures.size() > 1) {
+        // This should never happen
+        Exception::raise("Multiple signatures found for synthetic type alias");
+    }
 
-//     auto aliasDeclaration = comments.signatures[0];
-//     auto typeBeginLoc = (uint32_t)aliasDeclaration.string.find("=");
+    auto aliasDeclaration = comments.signatures[0];
+    auto fullString = aliasDeclaration.string;
+    auto typeBeginLoc = fullString.find("=");
 
-//     auto typeDeclaration = RBSDeclaration{vector<Comment>{Comment{
-//         .commentLoc = aliasDeclaration.commentLoc(),
-//         .typeLoc = core::LocOffsets{aliasDeclaration.fullTypeLoc().beginPos() + typeBeginLoc + 1,
-//                                     aliasDeclaration.fullTypeLoc().endPos()},
-//         .string = aliasDeclaration.string.substr(typeBeginLoc + 1),
-//     }}};
+    if (typeBeginLoc == std::string::npos) {
+        // No '=' found, invalid type alias
+        auto loc = parser.translateLocation(node->location);
+        return PMK::TTypeAlias(loc, PMK::TUntyped(loc));
+    }
 
-//     auto type = SignatureTranslator(ctx).translateType(typeDeclaration);
+    auto typeDeclaration = RBSDeclaration{vector<Comment>{Comment{
+        .commentLoc = aliasDeclaration.commentLoc(),
+        .typeLoc = core::LocOffsets{aliasDeclaration.fullTypeLoc().beginPos() + (uint32_t)typeBeginLoc + 1,
+                                    aliasDeclaration.fullTypeLoc().endPos()},
+        .string = fullString.substr(typeBeginLoc + 1),
+    }}};
 
-//     if (type == nullptr) {
-//         type = parser::MK::TUntyped(node->loc);
-//     }
+    auto signatureTranslator = rbs::SignatureTranslatorPrism(ctx, parser);
+    vector<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
+    auto type = signatureTranslator.translateAssertionType(typeParams, typeDeclaration);
 
-//     return parser::MK::TTypeAlias(type->loc, move(type));
-// }
+    if (type == nullptr) {
+        auto loc = parser.translateLocation(node->location);
+        type = PMK::TUntyped(loc);
+    }
+
+    auto loc = parser.translateLocation(type->location);
+    return PMK::TTypeAlias(loc, type);
+}
 
 void SigsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
     for (size_t i = 0; i < nodes.size; i++) {
@@ -653,6 +664,21 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
             s->expression = rewriteNode(s->expression);
             return node;
         }
+        case PM_CONSTANT_WRITE_NODE: {
+            auto *write = down_cast<pm_constant_write_node_t>(node);
+            // Check if this is a type alias assignment
+            if (PM_NODE_TYPE_P(write->value, PM_CONSTANT_READ_NODE)) {
+                auto *constantRead = down_cast<pm_constant_read_node_t>(write->value);
+                // Check for synthetic type alias marker
+                if (constantRead->name == RBS_SYNTHETIC_TYPE_ALIAS_MARKER) {
+                    // Replace the value with the T.type_alias call
+                    write->value = replaceSyntheticTypeAlias(write->value);
+                    return node;
+                }
+            }
+            write->value = rewriteNode(write->value);
+            return node;
+        }
         case PM_PROGRAM_NODE: {
             auto *program = down_cast<pm_program_node_t>(node);
             rewriteBody(up_cast(program->statements));
@@ -669,6 +695,9 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 }
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
+    // Set parser once for all PMK helpers
+    PMK::setParser(&parser);
+
     return rewriteBody(node);
 }
 
