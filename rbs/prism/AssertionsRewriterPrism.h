@@ -61,6 +61,7 @@ private:
     bool saveTypeParams(pm_node_t *call);
     pm_node_t *maybeInsertCast(pm_node_t *node);
     pm_node_t *insertCast(pm_node_t *node, std::optional<std::pair<pm_node_t *, InlineCommentPrism::Kind>> pair);
+    pm_node_t *replaceSyntheticBind(pm_node_t *node);
 
     void checkDanglingCommentWithDecl(uint32_t nodeEnd, uint32_t declEnd, std::string kind);
     void checkDanglingComment(uint32_t nodeEnd, std::string kind);
