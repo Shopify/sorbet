@@ -209,91 +209,71 @@ void CommentsAssociatorPrism::associateSignatureCommentsToNode(pm_node_t *node) 
 
 int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &nodes, int index, int lastLine,
                                                                int currentLine) {
-    // if (lastLine == currentLine) {
-    return 0;
-    // }
+    if (lastLine == currentLine) {
+        return 0;
+    }
 
-    // auto inserted = 0;
-    // parser::Node *continuationFor = nullptr;
+    auto inserted = 0;
+    pm_node_t *continuationFor = nullptr;
 
-    // // We look for all comments between lastLine and currentLine
-    // for (auto it = commentByLine.begin(); it != commentByLine.end();) {
-    //     if (it->first <= lastLine) {
-    //         it++;
-    //         continue;
-    //     }
+    for (auto it = commentByLine.begin(); it != commentByLine.end();) {
+        if (it->first <= lastLine) {
+            it++;
+            continue;
+        }
 
-    //     if (it->first >= currentLine) {
-    //         break;
-    //     }
+        if (it->first >= currentLine) {
+            break;
+        }
 
-    //     if (continuationFor && absl::StartsWith(it->second.string, MULTILINE_RBS_PREFIX)) {
-    //         signaturesForNode[continuationFor].emplace_back(move(it->second));
-    //         continuationFor->loc = continuationFor->loc.join(it->second.loc);
-    //         it = commentByLine.erase(it);
-    //         continue;
-    //     }
+        if (continuationFor && absl::StartsWith(it->second.string, MULTILINE_RBS_PREFIX)) {
+            signaturesForNode[continuationFor].emplace_back(move(it->second));
+            // Note: can't extend location on pm_node_t easily, skip for now
+            it = commentByLine.erase(it);
+            continue;
+        }
 
-    //     if (absl::StartsWith(it->second.string, BIND_PREFIX)) {
-    //         continuationFor = nullptr;
+        if (absl::StartsWith(it->second.string, BIND_PREFIX)) {
+            continuationFor = nullptr;
 
-    //         auto placeholder = make_unique<parser::RBSPlaceholder>(it->second.loc,
-    //         core::Names::Constants::RBSBind());
+            // Create a synthetic bind node (ConstantReadNode with PM_CONSTANT_ID_UNSET as marker)
+            pm_constant_read_node_t *constantRead = (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
+            constantRead->base.type = PM_CONSTANT_READ_NODE;
+            constantRead->base.flags = 0;
+            auto *internalParser = parser.getInternalParser();
+            const uint8_t *source = internalParser->start;
+            constantRead->base.location.start = source + it->second.loc.beginPos();
+            constantRead->base.location.end = source + it->second.loc.endPos();
+            constantRead->name = PM_CONSTANT_ID_UNSET; // Special marker for synthetic bind node
+            pm_node_t *placeholder = (pm_node_t *)constantRead;
 
-    //         vector<CommentNode> comments;
-    //         comments.emplace_back(it->second);
-    //         it = commentByLine.erase(it);
-    //         assertionsForNode[placeholder.get()] = move(comments);
-    //         nodes.insert(nodes.begin() + index, move(placeholder));
+            vector<CommentNodePrism> comments;
+            comments.emplace_back(it->second);
+            it = commentByLine.erase(it);
+            assertionsForNode[placeholder] = move(comments);
 
-    //         inserted++;
+            // Append the synthetic bind node to the end, then we'll shift it to the right position
+            pm_node_list_append(&nodes, placeholder);
+            // Now shift elements to make room at index
+            for (size_t i = nodes.size - 1; i > index; i--) {
+                nodes.nodes[i] = nodes.nodes[i - 1];
+            }
+            nodes.nodes[index] = placeholder;
 
-    //         continue;
-    //     }
+            inserted++;
 
-    //     std::smatch matches;
-    //     auto str = string(it->second.string);
-    //     if (std::regex_match(str, matches, TYPE_ALIAS_PATTERN)) {
-    //         if (!contextAllowingTypeAlias.empty()) {
-    //             if (auto [allow, loc] = contextAllowingTypeAlias.back(); !allow) {
-    //                 if (auto e = ctx.beginError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
-    //                     e.setHeader("Unexpected RBS type alias comment");
-    //                     e.addErrorLine(ctx.locAt(loc),
-    //                                    "RBS type aliases are only allowed in class and module bodies. Found in:");
-    //                 }
+            continue;
+        }
 
-    //                 it = commentByLine.erase(it);
-    //                 continue;
-    //             }
-    //         }
+        // TODO: Handle TYPE_ALIAS_PATTERN similar to whitequark version
+        // Type aliases require signature rewriter support, not just comment association
 
-    //         auto nameStr = "type " + matches[1].str();
-    //         auto nameConstant = ctx.state.enterNameConstant(nameStr);
-    //         auto placeholder =
-    //             make_unique<parser::RBSPlaceholder>(it->second.loc, core::Names::Constants::RBSTypeAlias());
+        continuationFor = nullptr;
 
-    //         vector<CommentNode> comments;
-    //         comments.emplace_back(it->second);
-    //         signaturesForNode[placeholder.get()] = move(comments);
+        it++;
+    }
 
-    //         continuationFor = placeholder.get();
-
-    //         auto constantNode = make_unique<parser::Const>(it->second.loc, nullptr, nameConstant);
-    //         auto assignNode = make_unique<parser::Assign>(it->second.loc, move(constantNode), move(placeholder));
-    //         nodes.insert(nodes.begin() + index, move(assignNode));
-
-    //         it = commentByLine.erase(it);
-
-    //         inserted++;
-    //         continue;
-    //     }
-
-    //     continuationFor = nullptr;
-
-    //     it++;
-    // }
-
-    // return inserted;
+    return inserted;
 }
 
 void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *predicate,
@@ -311,7 +291,6 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
 
     lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
 
-    // Walk then body (statements) using walkBody
     statements = down_cast<pm_statements_node>(walkBody(node, up_cast(statements)));
 
     if (statements) {
@@ -319,7 +298,6 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
         lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmtLoc.endPos()).line;
     }
 
-    // Walk else clause using walkBody
     elsePart = walkBody(node, elsePart);
 
     if (beginLine != endLine) {
@@ -344,6 +322,12 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
         int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
         maybeInsertStandalonePlaceholders(begin->statements->body, 0, lastLine, endLine);
         lastLine = endLine;
+
+        return body;
+    }
+
+    if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE)) {
+        walkNode(body);
 
         return body;
     }
@@ -483,6 +467,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             if (begin->statements) {
                 walkStatements(begin->statements->body);
             }
+
+            walkNode(up_cast(begin->rescue_clause));
+            walkNode(up_cast(begin->else_clause));
+            walkNode(up_cast(begin->ensure_clause));
+
             auto nodeLoc = translateLocation(node->location);
             lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.endPos()).line;
             consumeCommentsInsideNode(node, "begin");
@@ -912,8 +901,9 @@ CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
     return CommentMapPrismNode{signaturesForNode, assertionsForNode};
 }
 
-CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, vector<core::LocOffsets> commentLocations)
-    : ctx(ctx), commentLocations(commentLocations), commentByLine() {
+CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+                                                 vector<core::LocOffsets> commentLocations)
+    : ctx(ctx), parser(parser), commentLocations(commentLocations), commentByLine() {
     for (auto &loc : commentLocations) {
         auto comment_string = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.endPos() - loc.beginPos());
         auto start32 = static_cast<uint32_t>(loc.beginPos());

@@ -384,7 +384,7 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     // TODO: maybeSupplyGenericTypeArgumentsPrism needs to be updated for Prism
     // maybeSupplyGenericTypeArgumentsPrism(ctx, &node, &type);
 
-    auto loc = translateLocation(type->location);
+    auto loc = translateLocation(node->location);
 
     if (kind == InlineCommentPrism::Kind::LET) {
         return PMK::TLet(loc, node, type);
@@ -404,6 +404,38 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     } else {
         Exception::raise("Unknown assertion kind");
     }
+}
+
+/**
+ * Replace the synthetic RBS placeholder node with a `T.bind(self, Type)` call.
+ */
+pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
+    auto inlineComment = commentForNode(node);
+
+    if (!inlineComment) {
+        // This should never happen
+        Exception::raise("No inline comment found for synthetic bind");
+    }
+
+    auto pair = parseComment(ctx, parser, inlineComment.value(), typeParams);
+
+    if (!pair) {
+        // We already raised an error while parsing the comment, so we just bind to `T.untyped`
+        auto loc = translateLocation(node->location);
+        return PMK::TBindSelf(loc, PMK::TUntyped(loc));
+    }
+
+    auto kind = pair->second;
+
+    if (kind != InlineCommentPrism::Kind::BIND) {
+        // This should never happen
+        Exception::raise("Invalid inline comment for synthetic bind");
+    }
+
+    auto type = pair->first;
+    auto typeLoc = translateLocation(type->location);
+
+    return PMK::TBindSelf(typeLoc, type);
 }
 
 /**
@@ -1027,8 +1059,19 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             return node;
         }
 
-        // TODO: Handle RBSPlaceholder equivalent in Prism
-        // For now, just apply maybeInsertCast to all other nodes
+        // Synthetic bind node for bind comments
+        // We use PM_CONSTANT_READ_NODE with PM_CONSTANT_ID_UNSET to distinguish it from regular constant reads
+        case PM_CONSTANT_READ_NODE: {
+            auto *constantRead = down_cast<pm_constant_read_node_t>(node);
+
+            // Check if this is a synthetic bind node (PM_CONSTANT_ID_UNSET marker)
+            if (constantRead->name == PM_CONSTANT_ID_UNSET) {
+                return replaceSyntheticBind(node);
+            }
+
+            return maybeInsertCast(node);
+        }
+
         default:
             return maybeInsertCast(node);
     }
