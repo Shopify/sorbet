@@ -1163,7 +1163,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 blockLoc = translateLoc(callNode->block->location);
 
                 if (callNode->receiver) {
-                    sendLoc = translateLoc(callNode->receiver->location).join(sendLoc);
+                    if (PM_NODE_TYPE_P(callNode->receiver, PM_LAMBDA_NODE)) {
+                        // Weird edge case: if the receiver is a lambda literal, like `-> { 123 }.call`,
+                        // then the arrow isn't included in the overall send location.
+                        auto lambda = down_cast<pm_lambda_node>(callNode->receiver);
+                        sendLoc = translateLoc(lambda->opening_loc.start, lambda->closing_loc.end).join(sendLoc);
+                    } else {
+                        sendLoc = translateLoc(callNode->receiver->location).join(sendLoc);
+                    }
                 }
 
                 if (callNode->closing_loc.start &&
@@ -2854,6 +2861,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_LAMBDA_NODE: { // lambda literals, like `-> { 123 }`
             auto lambdaNode = down_cast<pm_lambda_node>(node);
+
+            auto location = translateLoc(lambdaNode->operator_loc);
 
             auto receiver = make_unique<parser::Const>(location, nullptr, core::Names::Constants::Kernel());
             auto sendNode = make_unique<parser::Send>(location, move(receiver), core::Names::lambda(),
@@ -4691,26 +4700,6 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
     //   end
     // Where we want the send node to only cover "Module.new", not the entire block.
     // This mirrors how WQ stores send location and is needed for RBS rewriting.
-    if (sendNode->loc.exists()) {
-        auto source = ctx.file.data(ctx).source();
-        auto beginPos = sendNode->loc.beginPos();
-        auto endPos = sendNode->loc.endPos();
-
-        // Find block keyword (do or {) within the send node bounds
-        auto doPos = source.find(" do", beginPos);
-        auto bracePos = source.find("{", beginPos);
-
-        auto blockPos = std::string_view::npos;
-        if (doPos != std::string_view::npos && doPos < endPos) {
-            blockPos = doPos;
-        } else if (bracePos != std::string_view::npos && bracePos < endPos) {
-            blockPos = bracePos;
-        }
-
-        if (blockPos != std::string_view::npos) {
-            sendNode->loc = core::LocOffsets{beginPos, static_cast<uint32_t>(blockPos)};
-        }
-    }
 
     return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
 }
