@@ -824,7 +824,9 @@ unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, co
     auto send = MK::Send(loc, move(receiverExpr), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
     auto lhs = make_node_with_expr<parser::Send>(move(send), loc, move(receiver), name, messageLoc, NodeVec{});
 
-    return translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, parser::Send>(callNode, loc, move(lhs));
+    // OpAsgn node location should include the entire LHS, `=`, *and* RHS.
+    return translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, parser::Send>(callNode, location,
+                                                                                             move(lhs));
 }
 
 unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveConcreteSyntax) {
