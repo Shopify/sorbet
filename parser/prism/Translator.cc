@@ -375,6 +375,11 @@ unique_ptr<parser::Node> Translator::translateIndexAssignment(pm_node_t *untyped
         auto receiverExpr = receiver->takeDesugaredExpr();
         auto args2 = nodeVecToStore<ast::Send::ARGS_store>(args);
 
+        // The location includes the receiver and the `[]`, but not the `=` or rhs.
+        // self.example[k] = v
+        // ^^^^^^^^^^^^^^^
+        auto location = translateLoc(node->receiver->location.start, node->closing_loc.end);
+
         // Desugar `x[i] = y, z` to `x.[]=(i, y, z)`
         auto send = MK::Send(location, move(receiverExpr), core::Names::squareBrackets(), lBracketLoc, args.size(),
                              move(args2));
@@ -1052,7 +1057,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 if (callNode->closing_loc.start && callNode->closing_loc.end) { // explicit `( )` around the params
                     sendLoc = sendLoc.join(translateLoc(callNode->closing_loc));
-                } else if (!prismArgs.empty()) { // No explicit parens, use the last argument's location, if any.
+                }
+
+                if (!prismArgs.empty()) { // No explicit parens, use the last argument's location, if any.
+                    // For index expressions, the closing_loc can come before the last argument's location:
+                    // `a[0] = 1`
+                    //     ^   ^
                     sendLoc = sendLoc.join(translateLoc(prismArgs.back()->location));
                 }
             }
