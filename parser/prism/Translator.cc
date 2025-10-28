@@ -1642,7 +1642,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 //       It just puts them at the end of the arguments list,
                 //       which is why we checked for `PM_BLOCK_NODE` specifically here.
 
-                return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), sendNode->loc, move(sendNode),
+                auto blockLoc = translateLoc(prismBlock->location);
+                return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), blockLoc, move(sendNode),
                                                           move(blockParameters), move(blockBody));
             }
 
