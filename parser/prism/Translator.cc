@@ -2858,15 +2858,17 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
             auto multiTargetNode = down_cast<pm_multi_target_node>(node);
 
-            return translateMultiTargetLhs(multiTargetNode);
+            core::LocOffsets location = translateLoc(mlhsLocation(multiTargetNode));
+
+            return translateMultiTargetLhs(multiTargetNode, location);
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
-            auto location =
-                translateLoc(mlhsLocation(multiWriteNode)).join(translateLoc(multiWriteNode->value->location));
+            auto mlhsLocation1 = translateLoc(mlhsLocation(multiWriteNode));
+            auto location = mlhsLocation1.join(translateLoc(multiWriteNode->value->location));
 
-            auto multiLhsNode = translateMultiTargetLhs(multiWriteNode);
+            auto multiLhsNode = translateMultiTargetLhs(multiWriteNode, mlhsLocation1);
             auto rhsValue = translate(multiWriteNode->value);
 
             if (!directlyDesugar || !hasExpr(rhsValue, multiLhsNode->exprs)) {
@@ -3800,7 +3802,26 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
     params.reserve(requireds.size() + optionals.size() + restSize + posts.size() + keywords.size() + kwrestSize +
                    blockSize);
 
-    translateMultiInto(params, requireds);
+    for (auto &n : requireds) {
+        if (PM_NODE_TYPE_P(n, PM_MULTI_TARGET_NODE)) {
+            auto multiTargetNode = down_cast<pm_multi_target_node>(n);
+
+            ENFORCE(multiTargetNode->lparen_loc.start);
+            ENFORCE(multiTargetNode->lparen_loc.end);
+            ENFORCE(multiTargetNode->rparen_loc.start);
+            ENFORCE(multiTargetNode->rparen_loc.end);
+
+            // `pm_multi_target_node` locations don't usually include the parens, *except* in a block's parameter list.
+            auto loc = translateLoc(multiTargetNode->lparen_loc.start, multiTargetNode->rparen_loc.end);
+
+            auto multiLhsNode = translateMultiTargetLhs(multiTargetNode, loc);
+
+            params.emplace_back(move(multiLhsNode));
+        } else {
+            params.emplace_back(translate(n));
+        }
+    }
+
     translateMultiInto(params, optionals);
 
     if (paramsNode->rest != nullptr) {
@@ -4595,7 +4616,8 @@ string_view Translator::sliceLocation(pm_location_t loc) const {
 }
 
 // Creates a `parser::Mlhs` for either a `PM_MULTI_WRITE_NODE` or `PM_MULTI_TARGET_NODE`.
-template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMultiTargetLhs(PrismNode *node) {
+template <typename PrismNode>
+unique_ptr<parser::Mlhs> Translator::translateMultiTargetLhs(PrismNode *node, core::LocOffsets location) {
     static_assert(
         is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
         "Translator::translateMultiTarget can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
@@ -4605,7 +4627,6 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
     auto prismRights = absl::MakeSpan(node->rights.nodes, node->rights.size);
     auto prismSplat = node->rest;
 
-    core::LocOffsets location = translateLoc(mlhsLocation(node));
     // {
     //     const uint8_t *left;
     //     const uint8_t *right;
