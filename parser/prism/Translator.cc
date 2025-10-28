@@ -131,6 +131,69 @@ ast::ExpressionPtr mergeStrings(core::MutableContext ctx, core::LocOffsets loc,
     }
 }
 
+// template <typename PrismNode> pair<const uint8_t *, const uint8_t *> mlhsLocation(PrismNode *node) {
+template <typename PrismNode> pm_location_t mlhsLocation(PrismNode *node) {
+    static_assert(
+        is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
+        "Translator::translateMultiTarget can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
+
+    auto lefts = absl::MakeSpan(node->lefts.nodes, node->lefts.size);
+    auto *middle = node->rest;
+    auto rights = absl::MakeSpan(node->rights.nodes, node->rights.size);
+
+    const uint8_t *left;
+    const uint8_t *right;
+
+    if (!lefts.empty()) {
+        left = lefts.front()->location.start;
+
+        if (!rights.empty()) {
+            auto &lastRight = rights.back();
+            if (PM_NODE_TYPE_P(lastRight, PM_MULTI_TARGET_NODE)) {
+                auto multiTargetNode = down_cast<pm_multi_target_node>(lastRight);
+                right = mlhsLocation(multiTargetNode).end;
+            } else {
+                right = lastRight->location.end;
+            }
+        } else if (middle && !PM_NODE_TYPE_P(middle, PM_IMPLICIT_REST_NODE)) {
+            // Special case: implicit rest nodes (`,`) should not be included in the location:
+            //     a, = 1, 2
+            //     ^
+
+            right = middle->location.end;
+        } else {
+            auto &lastLeft = lefts.back();
+            if (PM_NODE_TYPE_P(lastLeft, PM_MULTI_TARGET_NODE)) {
+                auto multiTargetNode = down_cast<pm_multi_target_node>(lastLeft);
+                right = mlhsLocation(multiTargetNode).end;
+            } else {
+                right = lastLeft->location.end;
+            }
+        }
+    } else if (middle) {
+        left = middle->location.start;
+
+        if (!rights.empty()) {
+            auto &lastRight = rights.back();
+            if (PM_NODE_TYPE_P(lastRight, PM_MULTI_TARGET_NODE)) {
+                auto multiTargetNode = down_cast<pm_multi_target_node>(lastRight);
+                right = mlhsLocation(multiTargetNode).end;
+            } else {
+                right = lastRight->location.end;
+            }
+        } else {
+            right = middle->location.end;
+        }
+    } else if (!rights.empty()) {
+        left = rights.front()->location.start;
+        right = rights.back()->location.end;
+    } else {
+        unreachable("This multi-write node has no lefts, middle, or rights?!");
+    }
+
+    return (pm_location_t){.start = left, .end = right};
+}
+
 // Extract the content and location of a Symbol node.
 // This is handy for `desugarSymbolProc`, where it saves us from needing to dig and
 // cast to extract this info out of an `ast::Literal`.
@@ -2800,6 +2863,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
+            auto location =
+                translateLoc(mlhsLocation(multiWriteNode)).join(translateLoc(multiWriteNode->value->location));
+
             auto multiLhsNode = translateMultiTargetLhs(multiWriteNode);
             auto rhsValue = translate(multiWriteNode->value);
 
@@ -4534,12 +4600,36 @@ template <typename PrismNode> unique_ptr<parser::Mlhs> Translator::translateMult
         is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
         "Translator::translateMultiTarget can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
 
-    auto location = translateLoc(node->base.location);
-
     // Left-hand side of the assignment
     auto prismLefts = absl::MakeSpan(node->lefts.nodes, node->lefts.size);
     auto prismRights = absl::MakeSpan(node->rights.nodes, node->rights.size);
     auto prismSplat = node->rest;
+
+    core::LocOffsets location = translateLoc(mlhsLocation(node));
+    // {
+    //     const uint8_t *left;
+    //     const uint8_t *right;
+
+    //     // // The node's location only includes the elements on the left side, and not the `=` or RHS value.
+    //     // //     l, *, r = 1, 2
+    //     // //     ^^^^^^^
+    //     // if (!prismLefts.empty() && PM_NODE_TYPE_P(prismLefts.front(), PM_MULTI_TARGET_NODE)) {
+    //     //     auto multiTargetNode = down_cast<pm_multi_target_node>(prismLefts.front());
+    //     //     std::tie(left, std::ignore) = mlhsLocation(multiTargetNode);
+    //     //     std::tie(std::ignore, right) = mlhsLocation(node);
+    //     // } else if (node->lparen_loc.start) {
+    //     //     ENFORCE(node->lparen_loc.end);
+    //     //     ENFORCE(node->rparen_loc.start);
+    //     //     ENFORCE(node->rparen_loc.end);
+
+    //     //     left = node->lparen_loc.start;
+
+    //     //     std::tie(std::ignore, right) = mlhsLocation(node);
+    //     // } else {
+    //     std::tie(left, right) = mlhsLocation(node);
+    //     // }
+
+    // }
 
     NodeVec sorbetLhs{};
     sorbetLhs.reserve(prismLefts.size() + prismRights.size() + (prismSplat != nullptr ? 1 : 0));
