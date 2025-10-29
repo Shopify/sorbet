@@ -36,24 +36,11 @@ void insertNodeAtIndex(pm_node_list_t &nodes, pm_node_t *node, size_t index) {
 }
 
 /**
- * Insert a string constant into the Prism constant pool.
- * Allocates stable memory for the constant (owned by the pool).
- */
-pm_constant_id_t insertConstantToPool(pm_parser_t *parser, const string &name) {
-    size_t name_len = name.length();
-    uint8_t *stable_name = (uint8_t *)calloc(name_len, sizeof(uint8_t));
-    memcpy(stable_name, name.c_str(), name_len);
-    return pm_constant_pool_insert_constant(&parser->constant_pool, stable_name, name_len);
-}
-
-/**
  * Create a synthetic placeholder node (PM_CONSTANT_READ_NODE) with a marker constant ID.
  * Used to mark locations for bind comments and type aliases.
  */
-pm_node_t *createSyntheticPlaceholder(pm_parser_t *parser, const CommentNodePrism &comment,
-                                      pm_constant_id_t marker) {
-    pm_constant_read_node_t *constantRead =
-        (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
+pm_node_t *createSyntheticPlaceholder(pm_parser_t *parser, const CommentNodePrism &comment, pm_constant_id_t marker) {
+    pm_constant_read_node_t *constantRead = (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
     constantRead->base.type = PM_CONSTANT_READ_NODE;
     constantRead->base.flags = 0;
 
@@ -305,7 +292,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
         std::smatch matches;
         auto str = string(it->second.string);
         if (std::regex_match(str, matches, TYPE_ALIAS_PATTERN_PRISM)) {
-            // 1. Validate type aliases are only allowed in class/module bodies
+            // Type aliases are only allowed in class/module bodies
             if (!contextAllowingTypeAlias.empty()) {
                 if (auto [allow, loc] = contextAllowingTypeAlias.back(); !allow) {
                     if (auto e = ctx.beginError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
@@ -319,15 +306,15 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
                 }
             }
 
-            // 2. Register the constant name (e.g., "type foo") in the symbol table
+            // Register the constant name (e.g., "type foo") in the symbol table
             auto nameStr = "type " + matches[1].str();
             ctx.state.enterNameConstant(nameStr);
 
-            // 3. Create placeholder for the type expression
+            // Create placeholder for the type expression
             // This will be replaced with T.type_alias { Type } by SigsRewriter
             auto *internalParser = parser.getInternalParser();
-            const uint8_t *source = internalParser->start;
-            pm_node_t *placeholder = createSyntheticPlaceholder(internalParser, it->second, RBS_SYNTHETIC_TYPE_ALIAS_MARKER);
+            pm_node_t *placeholder =
+                createSyntheticPlaceholder(internalParser, it->second, RBS_SYNTHETIC_TYPE_ALIAS_MARKER);
 
             // Register comment for later processing by SigsRewriter
             vector<CommentNodePrism> comments;
@@ -336,25 +323,12 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
 
             continuationFor = placeholder;
 
-            // 4. Create constant assignment node: `type foo = placeholder`
-            // Insert constant name into the Prism constant pool
-            pm_constant_id_t name_id = insertConstantToPool(internalParser, nameStr);
+            // Create constant assignment node: `type foo = placeholder`
+            pm_constant_id_t name_id = PMK::addConstantToPool(nameStr.c_str());
+            pm_node_t *constantWrite = PMK::ConstantWriteNode(it->second.loc, name_id, placeholder);
 
-            // Build PM_CONSTANT_WRITE_NODE with all required location fields
-            pm_constant_write_node_t *constantWrite = (pm_constant_write_node_t *)malloc(sizeof(pm_constant_write_node_t));
-            constantWrite->base.type = PM_CONSTANT_WRITE_NODE;
-            constantWrite->base.flags = 0;
-            constantWrite->base.location.start = source + it->second.loc.beginPos();
-            constantWrite->base.location.end = source + it->second.loc.endPos();
-            constantWrite->name = name_id;
-            constantWrite->value = placeholder;
-            constantWrite->name_loc.start = source + it->second.loc.beginPos();
-            constantWrite->name_loc.end = source + it->second.loc.endPos();
-            constantWrite->operator_loc.start = source + it->second.loc.beginPos();
-            constantWrite->operator_loc.end = source + it->second.loc.beginPos();
-
-            // 5. Insert the assignment into the statement list
-            insertNodeAtIndex(nodes, up_cast(constantWrite), index);
+            // Insert the assignment into the statement list
+            insertNodeAtIndex(nodes, constantWrite, index);
             inserted++;
             it = commentByLine.erase(it);
             continue;
@@ -967,6 +941,9 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
 }
 
 CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
+    // Set parser for PMK helpers
+    PMK::setParser(&parser);
+
     // Remove any comments that don't start with RBS prefixes
     for (auto it = commentByLine.begin(); it != commentByLine.end();) {
         if (!absl::StartsWith(it->second.string, RBS_PREFIX) &&

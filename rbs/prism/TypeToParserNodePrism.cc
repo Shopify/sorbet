@@ -19,55 +19,6 @@ bool hasTypeParam(absl::Span<const pair<core::LocOffsets, core::NameRef>> typePa
 
 } // namespace
 
-// Helper methods for Prism node creation (copied from MethodTypeToParserNodePrism)
-pm_node_t *TypeToParserNodePrism::createConstantReadNode(const string &name) {
-    // fmt::print("TypeToParserNodePrism::createConstantReadNode\n");
-    pm_constant_id_t constant_id = addConstantToPool(name.c_str());
-    if (constant_id == PM_CONSTANT_ID_UNSET)
-        return nullptr;
-
-    pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
-    if (!node)
-        return nullptr;
-
-    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE), .name = constant_id};
-
-    return up_cast(node);
-}
-
-pm_constant_id_t TypeToParserNodePrism::addConstantToPool(const char *name) {
-    if (!prismParser)
-        return PM_CONSTANT_ID_UNSET;
-
-    pm_parser_t *p = prismParser->getInternalParser();
-    size_t name_len = strlen(name);
-    // fmt::print("DEBUG addConstant name='{}' strlen={}\n", name, name_len);
-    // Copy bytes into a stable buffer to avoid dangling pointers in the pool
-    uint8_t *stable = (uint8_t *)calloc(name_len, sizeof(uint8_t));
-    if (!stable) {
-        return PM_CONSTANT_ID_UNSET;
-    }
-    memcpy(stable, name, name_len);
-    pm_constant_id_t id = pm_constant_pool_insert_constant(&p->constant_pool, stable, name_len);
-    return id; // Returns PM_CONSTANT_ID_UNSET on failure
-}
-
-template <typename NodeType> NodeType *TypeToParserNodePrism::allocateNode() {
-    NodeType *node = (NodeType *)calloc(1, sizeof(NodeType));
-    return node; // Returns nullptr on allocation failure
-}
-
-pm_node_t TypeToParserNodePrism::initializeBaseNode(pm_node_type_t type) {
-    if (!prismParser) {
-        pm_location_t loc = {.start = nullptr, .end = nullptr};
-        return (pm_node_t){.type = type, .flags = 0, .node_id = 0, .location = loc};
-    }
-    pm_parser_t *p = prismParser->getInternalParser();
-    // Use a zero-width location anchored to the start of the file buffer
-    pm_location_t loc = {.start = p->start, .end = p->start};
-    return (pm_node_t){.type = type, .flags = 0, .node_id = ++p->node_id, .location = loc};
-}
-
 pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNamespace,
                                                  const RBSDeclaration &declaration) {
     // auto loc = declaration.typeLocFromRange(((rbs_node_t *)rbsNamespace)->location->rg);
@@ -77,7 +28,7 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
 
     if (rbsNamespace->absolute) {
         // Create root constant access (::)
-        parent = this->createConstantReadNode("");
+        parent = PMK::ConstantReadNode("");
     }
 
     if (typePath != nullptr) {
@@ -91,7 +42,7 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
             auto nameStr = parser.resolveConstant(symbol);
             string nameString(nameStr);
 
-            pm_node_t *constNode = this->createConstantReadNode(nameString);
+            pm_node_t *constNode = PMK::ConstantReadNode(nameString.c_str());
             if (parent) {
                 // Create constant path node for scoped access
                 // This is simplified - full implementation would use pm_constant_path_node_create
@@ -148,7 +99,7 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
     if (parent) {
         return PMK::ConstantPathNode(loc, parent, nameString.c_str());
     } else {
-        return this->createConstantReadNode(nameString);
+        return PMK::ConstantReadNode(nameString.c_str());
     }
 }
 
@@ -158,7 +109,7 @@ pm_node_t *TypeToParserNodePrism::aliasType(const rbs_types_alias_t *node, core:
     auto nameView = parser.resolveConstant(node->name->name);
     auto nameStr = "type " + string(nameView);
 
-    return this->createConstantReadNode(nameStr);
+    return PMK::ConstantReadNode(nameStr.c_str());
 }
 
 pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instance_t *node, core::LocOffsets loc,
@@ -186,7 +137,7 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
 pm_node_t *TypeToParserNodePrism::classSingletonType(const rbs_types_class_singleton_t *node, core::LocOffsets loc,
                                                      const RBSDeclaration &declaration) {
     // Simplified - should create T.class_of call
-    return this->createConstantReadNode("T.class_of");
+    return PMK::ConstantReadNode("T.class_of");
 }
 
 pm_node_t *TypeToParserNodePrism::unionType(const rbs_types_union_t *node, core::LocOffsets loc,
@@ -219,7 +170,7 @@ pm_node_t *TypeToParserNodePrism::optionalType(const rbs_types_optional_t *node,
 }
 
 pm_node_t *TypeToParserNodePrism::voidType(const rbs_types_bases_void_t *node, core::LocOffsets loc) {
-    return this->createConstantReadNode("T.void");
+    return PMK::ConstantReadNode("T.void");
 }
 
 pm_node_t *TypeToParserNodePrism::functionType(const rbs_types_function_t *node, core::LocOffsets loc,
@@ -318,7 +269,7 @@ pm_node_t *TypeToParserNodePrism::tupleType(const rbs_types_tuple_t *node, core:
 
 pm_node_t *TypeToParserNodePrism::recordType(const rbs_types_record_t *node, core::LocOffsets loc,
                                              const RBSDeclaration &declaration) {
-    return this->createConstantReadNode("Hash");
+    return PMK::ConstantReadNode("Hash");
 }
 
 pm_node_t *TypeToParserNodePrism::variableType(const rbs_types_variable_t *node, core::LocOffsets loc) {
@@ -340,9 +291,9 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
         case RBS_TYPES_BASES_ANY:
             return PMK::TUntyped(nodeLoc);
         case RBS_TYPES_BASES_BOOL:
-            return this->createConstantReadNode("T::Boolean");
+            return PMK::ConstantReadNode("T::Boolean");
         case RBS_TYPES_BASES_BOTTOM:
-            return this->createConstantReadNode("T.noreturn");
+            return PMK::ConstantReadNode("T.noreturn");
         case RBS_TYPES_BASES_CLASS: {
             if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS type `{}` is not supported", "class");
@@ -350,13 +301,13 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
             return PMK::TUntyped(nodeLoc);
         }
         case RBS_TYPES_BASES_INSTANCE:
-            return this->createConstantReadNode("T.attached_class");
+            return PMK::ConstantReadNode("T.attached_class");
         case RBS_TYPES_BASES_NIL:
-            return this->createConstantReadNode("NilClass");
+            return PMK::ConstantReadNode("NilClass");
         case RBS_TYPES_BASES_SELF:
-            return this->createConstantReadNode("T.self_type");
+            return PMK::ConstantReadNode("T.self_type");
         case RBS_TYPES_BASES_TOP:
-            return this->createConstantReadNode("T.anything");
+            return PMK::ConstantReadNode("T.anything");
         case RBS_TYPES_BASES_VOID:
             return voidType((rbs_types_bases_void_t *)node, nodeLoc);
         case RBS_TYPES_BLOCK:

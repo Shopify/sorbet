@@ -251,6 +251,7 @@ public:
 
     // Basic node creators
     static pm_node_t *ConstantReadNode(const char *name);
+    static pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t name_id, pm_node_t *value);
     static pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const char *name);
     static pm_node_t *SingleArgumentNode(pm_node_t *arg);
     static pm_node_t *Self(core::LocOffsets loc = core::LocOffsets::none());
