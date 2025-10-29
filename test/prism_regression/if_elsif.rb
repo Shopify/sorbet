@@ -1,9 +1,13 @@
 # typed: false
 
 if true
-  "one"
+  1
 elsif false
-  "two"
+  2
+elsif false
+  3
+elsif false
+  4
 else
-  "three"
+  5
 end
