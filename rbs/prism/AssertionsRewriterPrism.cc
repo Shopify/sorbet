@@ -956,6 +956,13 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         }
 
         // Rescue/Ensure
+        case PM_RESCUE_MODIFIER_NODE: {
+            auto *rescueMod = down_cast<pm_rescue_modifier_node_t>(node);
+            node = maybeInsertCast(node);
+            rescueMod->rescue_expression = rewriteNode(rescueMod->rescue_expression);
+            rescueMod->expression = rewriteNode(rescueMod->expression);
+            return node;
+        }
         case PM_RESCUE_NODE: {
             auto *rescue = down_cast<pm_rescue_node_t>(node);
             if (rescue->statements) {

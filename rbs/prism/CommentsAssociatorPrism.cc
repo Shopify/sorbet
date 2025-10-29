@@ -778,6 +778,13 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsBetweenLines(beginLine, endLine, "rescue");
             break;
         }
+        case PM_RESCUE_MODIFIER_NODE: {
+            auto *rescueMod = down_cast<pm_rescue_modifier_node_t>(node);
+            walkNode(rescueMod->rescue_expression);
+            walkNode(rescueMod->expression);
+            consumeCommentsInsideNode(node, "rescue");
+            break;
+        }
         case PM_RETURN_NODE: {
             auto *ret = down_cast<pm_return_node_t>(node);
             // Only associate comments if the last expression is on the same line as the return
