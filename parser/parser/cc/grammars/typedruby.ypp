@@ -2164,6 +2164,7 @@ array_premature_end: eof
                       $$ = driver.build.condition(self, $1, err, nullptr, nullptr, nullptr, nullptr, nullptr);
                       driver.replace_last_diagnostic(dlevel::ERROR, dclass::UnexpectedToken, $1, driver.token_name($1->type()));
                     }
+// regular if statements handled here
                 | kIF strings kDO compstmt if_tail kEND
                     {
                       driver.diagnostics.emplace_back(dlevel::ERROR, dclass::IfInsteadOfItForTest, diagnostic::range(@1.beginPos(), @1.endPos()));
@@ -2456,6 +2457,7 @@ array_premature_end: eof
               do: term
                 | kDO_COND
 
+// elsif handled here
          if_tail: opt_else
                 | kELSIF expr_value then compstmt if_tail
                     {
