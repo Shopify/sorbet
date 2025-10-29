@@ -131,6 +131,41 @@ ast::ExpressionPtr mergeStrings(core::MutableContext ctx, core::LocOffsets loc,
     }
 }
 
+optional<pair<pm_node_t *, pm_node_t *>> getFirstAndLast(pm_node_list leftList, pm_node_t *middle,
+                                                         pm_node_list rightList) {
+    pm_node_t *first, *last;
+
+    auto lefts = absl::MakeSpan(leftList.nodes, leftList.size);
+    auto rights = absl::MakeSpan(rightList.nodes, rightList.size);
+
+    if (!lefts.empty()) {
+        first = lefts.front();
+
+        if (!rights.empty()) {
+            last = rights.back();
+        } else if (middle && !PM_NODE_TYPE_P(middle, PM_IMPLICIT_REST_NODE)) {
+            last = middle;
+        } else {
+            last = lefts.back();
+        }
+    } else if (middle) {
+        first = middle;
+
+        if (!rights.empty()) {
+            last = rights.back();
+        } else {
+            last = middle;
+        }
+    } else if (!rights.empty()) {
+        first = rights.front();
+        last = rights.back();
+    } else {
+        return nullopt;
+    }
+
+    return make_pair(first, last);
+}
+
 // template <typename PrismNode> pair<const uint8_t *, const uint8_t *> mlhsLocation(PrismNode *node) {
 template <typename PrismNode> pm_location_t mlhsLocation(PrismNode *node) {
     static_assert(
