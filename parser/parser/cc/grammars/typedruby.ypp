@@ -2150,13 +2150,14 @@ array_premature_end: eof
                       DIAGCHECK();
                     }
                 | lambda
-                | kIF expr_value then compstmt if_tail kend_or_eof
+                | kIF expr_value then compstmt if_tail
                     {
                       auto &else_ = $5;
+                      auto end_t = else_ ? else_->tok : nullptr;
                       $$ = driver.build.condition(self, $1, $2, $3, $4->body,
-                        else_ ? else_->tok : nullptr,
-                        else_ ? else_->nod : nullptr, $6);
-                      driver.rewind_if_dedented($1, $6);
+                        nullptr,
+                        else_ ? else_->nod : nullptr, end_t);
+                      driver.rewind_if_dedented($1, end_t);
                     }
                 | kIF error
                     {
@@ -2165,13 +2166,14 @@ array_premature_end: eof
                       driver.replace_last_diagnostic(dlevel::ERROR, dclass::UnexpectedToken, $1, driver.token_name($1->type()));
                     }
 // regular if statements handled here
-                | kIF strings kDO compstmt if_tail kEND
+                | kIF strings kDO compstmt if_tail
                     {
                       driver.diagnostics.emplace_back(dlevel::ERROR, dclass::IfInsteadOfItForTest, diagnostic::range(@1.beginPos(), @1.endPos()));
                       auto &else_ = $5;
+                      auto end_t = else_ ? else_->tok : nullptr;
                       $$ = driver.build.condition(self, $1, $2, $3, $4->body,
-                        else_ ? else_->tok : nullptr,
-                        else_ ? else_->nod : nullptr, $6);
+                        nullptr,
+                        else_ ? else_->nod : nullptr, end_t);
                     }
                 | kUNLESS expr_value then compstmt opt_else kend_or_eof
                     {
@@ -2458,16 +2460,20 @@ array_premature_end: eof
                 | kDO_COND
 
 // elsif handled here
-         if_tail: opt_else
+         if_tail: opt_else kend_or_eof
+                    {
+                      $$ = driver.alloc.node_with_token($2, $1 ? $1->nod : nullptr);
+                    }
                 | kELSIF expr_value then compstmt if_tail
                     {
                       auto elsif_t = $1;
                       auto &else_ = $5;
-                      $$ = driver.alloc.node_with_token(elsif_t,
+                      auto end_t = else_ ? else_->tok : nullptr;
+                      $$ = driver.alloc.node_with_token(end_t,
                         driver.build.condition(self,
                           elsif_t, $2, $3, $4->body,
-                          else_ ? else_->tok : nullptr,
-                          else_ ? else_->nod : nullptr, nullptr)
+                          nullptr,
+                          else_ ? else_->nod : nullptr, end_t)
                       );
                     }
 
