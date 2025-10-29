@@ -825,6 +825,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsInsideNode(node, "splat");
             break;
         }
+        case PM_ASSOC_SPLAT_NODE: {
+            auto *splatAssoc = down_cast<pm_assoc_splat_node_t>(node);
+            walkNode(splatAssoc->value);
+            break;
+        }
         case PM_SUPER_NODE: {
             auto *super_ = down_cast<pm_super_node_t>(node);
             associateAssertionCommentsToNode(node);
