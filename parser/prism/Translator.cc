@@ -3430,6 +3430,23 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto blockArgumentNode = superNode->block;
             NodeVec returnValues;
 
+            if (blockArgumentNode) { // Adjust the location to exclude the literal block argument.
+                const uint8_t *start = superNode->base.location.start;
+                const uint8_t *end;
+
+                if (superNode->rparen_loc.end) {
+                    end = superNode->rparen_loc.end;
+                } else if (auto *argP = superNode->arguments) {
+                    auto args = absl::MakeSpan(argP->arguments.nodes, argP->arguments.size);
+                    end = args.back()->location.end;
+                } else {
+                    constexpr uint32_t length = "super"sv.size();
+                    end = start + length;
+                }
+
+                location = translateLoc(start, end);
+            }
+
             if (blockArgumentNode != nullptr && PM_NODE_TYPE_P(blockArgumentNode, PM_BLOCK_NODE)) {
                 returnValues = translateArguments(superNode->arguments);
                 auto superNode = make_unique<parser::Super>(location, move(returnValues));
