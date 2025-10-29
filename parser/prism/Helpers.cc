@@ -43,6 +43,29 @@ pm_node_t *PMK::ConstantReadNode(const char *name) {
     return up_cast(node);
 }
 
+pm_node_t *PMK::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t name_id, pm_node_t *value) {
+    if (!value)
+        return nullptr;
+
+    pm_constant_write_node_t *node = allocateNode<pm_constant_write_node_t>();
+    if (!node)
+        return nullptr;
+
+    pm_location_t pm_loc = convertLocOffsets(loc);
+    pm_location_t zero_loc = getZeroWidthLocation();
+
+    *node = (pm_constant_write_node_t){
+        .base = initializeBaseNode(PM_CONSTANT_WRITE_NODE),
+        .name = name_id,
+        .name_loc = pm_loc,
+        .value = value,
+        .operator_loc = zero_loc
+    };
+    node->base.location = pm_loc;
+
+    return up_cast(node);
+}
+
 pm_node_t *PMK::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const char *name) {
     pm_constant_id_t name_id = addConstantToPool(name);
     if (name_id == PM_CONSTANT_ID_UNSET)
@@ -341,8 +364,8 @@ pm_node_t *PMK::Send1(core::LocOffsets loc, pm_node_t *receiver, const char *met
     return up_cast(createSendNode(receiver, method_id, arguments, tiny_loc, full_loc, tiny_loc));
 }
 
-pm_node_t *PMK::Send(core::LocOffsets loc, pm_node_t *receiver, const char *method,
-                     const vector<pm_node_t *> &args, pm_node_t *block) {
+pm_node_t *PMK::Send(core::LocOffsets loc, pm_node_t *receiver, const char *method, const vector<pm_node_t *> &args,
+                     pm_node_t *block) {
     if (!receiver || !method || args.empty()) {
         return nullptr;
     }
@@ -533,8 +556,7 @@ pm_node_t *PMK::TProcVoid(core::LocOffsets loc, pm_node_t *args) {
     return Send0(loc, builder, "void");
 }
 
-pm_node_t *PMK::Send2(core::LocOffsets loc, pm_node_t *receiver, const char *method, pm_node_t *arg1,
-                      pm_node_t *arg2) {
+pm_node_t *PMK::Send2(core::LocOffsets loc, pm_node_t *receiver, const char *method, pm_node_t *arg1, pm_node_t *arg2) {
     if (!receiver || !method || !arg1 || !arg2) {
         return nullptr;
     }
@@ -635,13 +657,11 @@ pm_node_t *PMK::TBindSelf(core::LocOffsets loc, pm_node_t *type) {
 }
 
 pm_node_t *PMK::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
-    // Create T.type_alias { type } call
     pm_node_t *t_const = T(loc);
     if (!t_const || !type) {
         return nullptr;
     }
 
-    // Create the send node for T.type_alias
     pm_node_t *send = Send0(loc, t_const, "type_alias");
     if (!send) {
         return nullptr;
@@ -649,23 +669,19 @@ pm_node_t *PMK::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
 
     // Create statements node containing the type
     pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
-    *stmts = (pm_statements_node_t){
-        .base = initializeBaseNode(PM_STATEMENTS_NODE),
-        .body = {.size = 0, .capacity = 0, .nodes = nullptr}
-    };
+    *stmts = (pm_statements_node_t){.base = initializeBaseNode(PM_STATEMENTS_NODE),
+                                    .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
     stmts->base.location = convertLocOffsets(loc);
     pm_node_list_append(&stmts->body, type);
 
     // Create block node with the send and statements
     pm_block_node_t *block = allocateNode<pm_block_node_t>();
-    *block = (pm_block_node_t){
-        .base = initializeBaseNode(PM_BLOCK_NODE),
-        .locals = {.size = 0, .capacity = 0, .ids = nullptr},
-        .parameters = nullptr,
-        .body = up_cast(stmts),
-        .opening_loc = getZeroWidthLocation(),
-        .closing_loc = getZeroWidthLocation()
-    };
+    *block = (pm_block_node_t){.base = initializeBaseNode(PM_BLOCK_NODE),
+                               .locals = {.size = 0, .capacity = 0, .ids = nullptr},
+                               .parameters = nullptr,
+                               .body = up_cast(stmts),
+                               .opening_loc = getZeroWidthLocation(),
+                               .closing_loc = getZeroWidthLocation()};
     block->base.location = convertLocOffsets(loc);
 
     // Set the block on the call node
@@ -695,11 +711,10 @@ pm_node_t *PMK::Array(core::LocOffsets loc, const vector<pm_node_t *> &elements)
         }
     }
 
-    *array = (pm_array_node_t){
-        .base = initializeBaseNode(PM_ARRAY_NODE),
-        .elements = {.size = elements.size(), .capacity = elements.size(), .nodes = elem_nodes},
-        .opening_loc = convertLocOffsets(loc.copyWithZeroLength()),
-        .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength())};
+    *array = (pm_array_node_t){.base = initializeBaseNode(PM_ARRAY_NODE),
+                               .elements = {.size = elements.size(), .capacity = elements.size(), .nodes = elem_nodes},
+                               .opening_loc = convertLocOffsets(loc.copyWithZeroLength()),
+                               .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength())};
 
     array->base.location = convertLocOffsets(loc);
 
