@@ -697,6 +697,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
         auto loc = what->loc;
         auto locZeroLen = what->loc.copyWithZeroLength();
         ENFORCE(loc.exists(), "parse-tree node has no location: {}", what->toString(dctx.ctx));
+
         ExpressionPtr result;
         typecase(
             what,
@@ -705,11 +706,14 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             // add entries here, without consulting the "node.*" counters from a
             // run over a representative code base.
             [&](parser::Const *const_) {
+                categoryCounterInc("legacy Desugar.cc node", "Const");
                 auto scope = node2TreeImpl(dctx, const_->scope);
                 ExpressionPtr res = MK::UnresolvedConstant(loc, move(scope), const_->name);
                 result = move(res);
             },
             [&](parser::Send *send) {
+                categoryCounterInc("legacy Desugar.cc node", "Send");
+
                 Send::Flags flags;
                 auto rec = node2TreeImpl(dctx, send->receiver);
                 if (isa_tree<EmptyTree>(rec)) {
@@ -947,18 +951,22 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::String *string) {
+                categoryCounterInc("legacy Desugar.cc node", "String");
                 ExpressionPtr res = MK::String(loc, string->val);
                 result = move(res);
             },
             [&](parser::Symbol *symbol) {
+                categoryCounterInc("legacy Desugar.cc node", "Symbol");
                 ExpressionPtr res = MK::Symbol(loc, symbol->val);
                 result = move(res);
             },
             [&](parser::LVar *var) {
+                categoryCounterInc("legacy Desugar.cc node", "LVar");
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = move(res);
             },
             [&](parser::Hash *hash) {
+                categoryCounterInc("legacy Desugar.cc node", "Hash");
                 InsSeq::STATS_store updateStmts;
                 updateStmts.reserve(hash->pairs.size());
 
@@ -1082,9 +1090,16 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     result = MK::InsSeq(loc, move(updateStmts), MK::Local(loc, acc));
                 }
             },
-            [&](parser::Block *block) { result = desugarBlock(dctx, block); },
-            [&](parser::Begin *begin) { result = desugarBegin(dctx, loc, begin->stmts); },
+            [&](parser::Block *block) {
+                categoryCounterInc("legacy Desugar.cc node", "Block");
+                result = desugarBlock(dctx, block);
+            },
+            [&](parser::Begin *begin) {
+                categoryCounterInc("legacy Desugar.cc node", "Begin");
+                result = desugarBegin(dctx, loc, begin->stmts);
+            },
             [&](parser::Assign *asgn) {
+                categoryCounterInc("legacy Desugar.cc node", "Assign");
                 auto lhs = node2TreeImpl(dctx, asgn->lhs);
                 auto rhs = node2TreeImpl(dctx, asgn->rhs);
                 // Ensure that X = <ErrorNode> always looks like a proper static field, rather
@@ -1104,6 +1119,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             // END hand-ordered clauses
             [&](parser::And *and_) {
+                categoryCounterInc("legacy Desugar.cc node", "And");
                 auto lhs = node2TreeImpl(dctx, and_->left);
                 auto rhs = node2TreeImpl(dctx, and_->right);
                 if (dctx.preserveConcreteSyntax) {
@@ -1154,6 +1170,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Or *or_) {
+                categoryCounterInc("legacy Desugar.cc node", "Or");
                 auto lhs = node2TreeImpl(dctx, or_->left);
                 auto rhs = node2TreeImpl(dctx, or_->right);
                 if (dctx.preserveConcreteSyntax) {
@@ -1178,6 +1195,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::AndAsgn *andAsgn) {
+                categoryCounterInc("legacy Desugar.cc node", "AndAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::andAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, andAsgn->left), node2TreeImpl(dctx, andAsgn->right));
@@ -1248,6 +1266,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::OrAsgn *orAsgn) {
+                categoryCounterInc("legacy Desugar.cc node", "OrAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::orAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, orAsgn->left), node2TreeImpl(dctx, orAsgn->right));
@@ -1342,6 +1361,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::OpAsgn *opAsgn) {
+                categoryCounterInc("legacy Desugar.cc node", "OpAsgn");
                 if (dctx.preserveConcreteSyntax) {
                     result = MK::Send2(loc, MK::Magic(locZeroLen), core::Names::opAsgn(), locZeroLen,
                                        node2TreeImpl(dctx, opAsgn->left), node2TreeImpl(dctx, opAsgn->right));
@@ -1412,6 +1432,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::CSend *csend) {
+                categoryCounterInc("legacy Desugar.cc node", "CSend");
                 if (dctx.preserveConcreteSyntax) {
                     // Desugaring to a InsSeq + If causes a problem for Extract to Variable; the fake If will be where
                     // the new variable is inserted, which is incorrect. Instead, desugar to a regular send, so that the
@@ -1463,10 +1484,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Self *self) {
+                categoryCounterInc("legacy Desugar.cc node", "Self");
                 ExpressionPtr res = MK::Self(loc);
                 result = move(res);
             },
             [&](parser::DSymbol *dsymbol) {
+                categoryCounterInc("legacy Desugar.cc node", "DSymbol");
                 if (dsymbol->nodes.empty()) {
                     ExpressionPtr res = MK::Symbol(loc, core::Names::empty());
                     result = move(res);
@@ -1479,20 +1502,27 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::FileLiteral *fileLiteral) {
+                categoryCounterInc("legacy Desugar.cc node", "FileLiteral");
                 ExpressionPtr res = MK::String(loc, core::Names::currentFile());
                 result = move(res);
             },
             [&](parser::ConstLhs *constLhs) {
+                categoryCounterInc("legacy Desugar.cc node", "ConstLhs");
                 auto scope = node2TreeImpl(dctx, constLhs->scope);
                 ExpressionPtr res = MK::UnresolvedConstant(loc, move(scope), constLhs->name);
                 result = move(res);
             },
             [&](parser::Cbase *cbase) {
+                categoryCounterInc("legacy Desugar.cc node", "Cbase");
                 ExpressionPtr res = MK::Constant(loc, core::Symbols::root());
                 result = move(res);
             },
-            [&](parser::Kwbegin *kwbegin) { result = desugarBegin(dctx, loc, kwbegin->stmts); },
+            [&](parser::Kwbegin *kwbegin) {
+                categoryCounterInc("legacy Desugar.cc node", "Kwbegin");
+                result = desugarBegin(dctx, loc, kwbegin->stmts);
+            },
             [&](parser::Module *module) {
+                categoryCounterInc("legacy Desugar.cc node", "Module");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockParamName,
                                      dctx.enclosingMethodLoc, dctx.enclosingMethodName, dctx.inAnyBlock, true,
                                      dctx.preserveConcreteSyntax);
@@ -1502,6 +1532,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Class *klass) {
+                categoryCounterInc("legacy Desugar.cc node", "Class");
                 DesugarContext dctx1(dctx.ctx, dctx.uniqueCounter, dctx.enclosingBlockParamName,
                                      dctx.enclosingMethodLoc, dctx.enclosingMethodName, dctx.inAnyBlock, false,
                                      dctx.preserveConcreteSyntax);
@@ -1517,46 +1548,56 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Param *param) {
+                categoryCounterInc("legacy Desugar.cc node", "Param");
                 ExpressionPtr res = MK::Local(loc, param->name);
                 result = move(res);
             },
             [&](parser::RestParam *param) {
+                categoryCounterInc("legacy Desugar.cc node", "RestParam");
                 ExpressionPtr res = MK::RestParam(loc, MK::Local(param->nameLoc, param->name));
                 result = move(res);
             },
             [&](parser::Kwrestarg *arg) {
+                categoryCounterInc("legacy Desugar.cc node", "Kwrestarg");
                 ExpressionPtr res = MK::RestParam(loc, MK::KeywordArg(loc, arg->name));
                 result = move(res);
             },
             [&](parser::Kwarg *arg) {
+                categoryCounterInc("legacy Desugar.cc node", "Kwarg");
                 ExpressionPtr res = MK::KeywordArg(loc, arg->name);
                 result = move(res);
             },
             [&](parser::BlockParam *param) {
+                categoryCounterInc("legacy Desugar.cc node", "BlockParam");
                 ExpressionPtr res = MK::BlockParam(loc, MK::Local(loc, param->name));
                 result = move(res);
             },
             [&](parser::Kwoptarg *arg) {
+                categoryCounterInc("legacy Desugar.cc node", "Kwoptarg");
                 ExpressionPtr res =
                     MK::OptionalParam(loc, MK::KeywordArg(arg->nameLoc, arg->name), node2TreeImpl(dctx, arg->default_));
                 result = move(res);
             },
             [&](parser::OptParam *param) {
+                categoryCounterInc("legacy Desugar.cc node", "OptParam");
                 ExpressionPtr res = MK::OptionalParam(loc, MK::Local(param->nameLoc, param->name),
                                                       node2TreeImpl(dctx, param->default_));
                 result = move(res);
             },
             [&](parser::Shadowarg *arg) {
+                categoryCounterInc("legacy Desugar.cc node", "Shadowarg");
                 ExpressionPtr res = MK::ShadowArg(loc, MK::Local(loc, arg->name));
                 result = move(res);
             },
             [&](parser::DefMethod *method) {
+                categoryCounterInc("legacy Desugar.cc node", "DefMethod");
                 bool isSelf = false;
                 ExpressionPtr res = buildMethod(dctx, method->loc, method->declLoc, method->name, method->params.get(),
                                                 method->body, isSelf);
                 result = move(res);
             },
             [&](parser::DefS *method) {
+                categoryCounterInc("legacy Desugar.cc node", "DefS");
                 auto *self = parser::cast_node<parser::Self>(method->singleton.get());
                 if (self == nullptr) {
                     if (auto e = dctx.ctx.beginIndexerError(method->singleton->loc,
@@ -1574,6 +1615,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::SClass *sclass) {
+                categoryCounterInc("legacy Desugar.cc node", "SClass");
                 // This will be a nested ClassDef which we leave in the tree
                 // which will get the symbol of `class.singleton_class`
                 auto *self = parser::cast_node<parser::Self>(sclass->expr.get());
@@ -1600,12 +1642,14 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::While *wl) {
+                categoryCounterInc("legacy Desugar.cc node", "While");
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
                 ExpressionPtr res = MK::While(loc, move(cond), move(body));
                 result = move(res);
             },
             [&](parser::WhilePost *wl) {
+                categoryCounterInc("legacy Desugar.cc node", "WhilePost");
                 bool isKwbegin = parser::isa_node<parser::Kwbegin>(wl->body.get());
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
@@ -1617,6 +1661,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Until *wl) {
+                categoryCounterInc("legacy Desugar.cc node", "Until");
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
                 ExpressionPtr res =
@@ -1625,6 +1670,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
             },
             // This is the same as WhilePost, but the cond negation is in the other branch.
             [&](parser::UntilPost *wl) {
+                categoryCounterInc("legacy Desugar.cc node", "UntilPost");
                 bool isKwbegin = parser::isa_node<parser::Kwbegin>(wl->body.get());
                 auto cond = node2TreeImpl(dctx, wl->cond);
                 auto body = node2TreeImpl(dctx, wl->body);
@@ -1634,43 +1680,53 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Nil *wl) {
+                categoryCounterInc("legacy Desugar.cc node", "Nil");
                 ExpressionPtr res = MK::Nil(loc);
                 result = move(res);
             },
             [&](parser::IVar *var) {
+                categoryCounterInc("legacy Desugar.cc node", "IVar");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Instance, var->name);
                 result = move(res);
             },
             [&](parser::GVar *var) {
+                categoryCounterInc("legacy Desugar.cc node", "GVar");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global, var->name);
                 result = move(res);
             },
             [&](parser::CVar *var) {
+                categoryCounterInc("legacy Desugar.cc node", "CVar");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Class, var->name);
                 result = move(res);
             },
             [&](parser::LVarLhs *var) {
+                categoryCounterInc("legacy Desugar.cc node", "LVarLhs");
                 ExpressionPtr res = MK::Local(loc, var->name);
                 result = move(res);
             },
             [&](parser::GVarLhs *var) {
+                categoryCounterInc("legacy Desugar.cc node", "GVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global, var->name);
                 result = move(res);
             },
             [&](parser::CVarLhs *var) {
+                categoryCounterInc("legacy Desugar.cc node", "CVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Class, var->name);
                 result = move(res);
             },
             [&](parser::IVarLhs *var) {
+                categoryCounterInc("legacy Desugar.cc node", "IVarLhs");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Instance, var->name);
                 result = move(res);
             },
             [&](parser::NthRef *var) {
+                categoryCounterInc("legacy Desugar.cc node", "NthRef");
                 ExpressionPtr res = make_expression<UnresolvedIdent>(loc, UnresolvedIdent::Kind::Global,
                                                                      dctx.ctx.state.enterNameUTF8(to_string(var->ref)));
                 result = move(res);
             },
             [&](parser::Super *super) {
+                categoryCounterInc("legacy Desugar.cc node", "Super");
                 // Desugar super into a call to a normal method named `super`;
                 // Do this by synthesizing a `Send` parse node and letting our
                 // Send desugar handle it.
@@ -1680,8 +1736,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 auto res = node2TreeImpl(dctx, send);
                 result = move(res);
             },
-            [&](parser::ZSuper *zuper) { result = MK::ZSuper(loc, maybeTypedSuper(dctx)); },
+            [&](parser::ZSuper *zuper) {
+                categoryCounterInc("legacy Desugar.cc node", "ZSuper");
+                result = MK::ZSuper(loc, maybeTypedSuper(dctx));
+            },
             [&](parser::For *for_) {
+                categoryCounterInc("legacy Desugar.cc node", "For");
                 MethodDef::PARAMS_store params;
                 bool canProvideNiceDesugar = true;
                 auto mlhsNode = move(for_->vars);
@@ -1729,6 +1789,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Integer *integer) {
+                categoryCounterInc("legacy Desugar.cc node", "Integer");
                 int64_t val;
 
                 // complemented literals
@@ -1760,10 +1821,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::DString *dstring) {
+                categoryCounterInc("legacy Desugar.cc node", "DString");
                 ExpressionPtr res = desugarDString(dctx, loc, move(dstring->nodes));
                 result = move(res);
             },
             [&](parser::Float *floatNode) {
+                categoryCounterInc("legacy Desugar.cc node", "Float");
                 double val;
                 auto underscorePos = floatNode->val.find("_");
 
@@ -1782,6 +1845,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Complex *complex) {
+                categoryCounterInc("legacy Desugar.cc node", "Complex");
                 auto kernel = MK::Constant(loc, core::Symbols::Kernel());
                 core::NameRef complex_name = core::Names::Constants::Complex().dataCnst(dctx.ctx)->original;
                 core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->value);
@@ -1790,6 +1854,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(send);
             },
             [&](parser::Rational *complex) {
+                categoryCounterInc("legacy Desugar.cc node", "Rational");
                 auto kernel = MK::Constant(loc, core::Symbols::Kernel());
                 core::NameRef complex_name = core::Names::Constants::Rational().dataCnst(dctx.ctx)->original;
                 core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->val);
@@ -1797,6 +1862,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(send);
             },
             [&](parser::Array *array) {
+                categoryCounterInc("legacy Desugar.cc node", "Array");
                 Array::ENTRY_store elems;
                 elems.reserve(array->elts.size());
                 ExpressionPtr lastMerge;
@@ -1853,6 +1919,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::IRange *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "IRange");
                 auto recv = MK::Magic(loc);
                 auto from = node2TreeImpl(dctx, ret->from);
                 auto to = node2TreeImpl(dctx, ret->to);
@@ -1862,6 +1929,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(send);
             },
             [&](parser::ERange *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "ERange");
                 auto recv = MK::Magic(loc);
                 auto from = node2TreeImpl(dctx, ret->from);
                 auto to = node2TreeImpl(dctx, ret->to);
@@ -1871,6 +1939,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(send);
             },
             [&](parser::Regexp *regexpNode) {
+                categoryCounterInc("legacy Desugar.cc node", "Regexp");
                 ExpressionPtr cnst = MK::Constant(loc, core::Symbols::Regexp());
                 auto pattern = desugarDString(dctx, loc, move(regexpNode->regex));
                 auto opts = node2TreeImpl(dctx, regexpNode->opts);
@@ -1878,6 +1947,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(send);
             },
             [&](parser::Regopt *regopt) {
+                categoryCounterInc("legacy Desugar.cc node", "Regopt");
                 int flags = 0;
                 for (auto &chr : regopt->opts) {
                     int flag = 0;
@@ -1906,6 +1976,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = MK::Int(loc, flags);
             },
             [&](parser::Return *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "Return");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -1939,6 +2010,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Break *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "Break");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -1972,6 +2044,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Next *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "Next");
                 if (ret->exprs.size() > 1) {
                     auto arrayLoc = ret->exprs.front()->loc.join(ret->exprs.back()->loc);
                     Array::ENTRY_store elems;
@@ -2005,10 +2078,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::Retry *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "Retry");
                 ExpressionPtr res = make_expression<Retry>(loc);
                 result = move(res);
             },
             [&](parser::Yield *ret) {
+                categoryCounterInc("legacy Desugar.cc node", "Yield");
                 Send::ARGS_store args;
                 args.reserve(ret->exprs.size());
                 for (auto &stat : ret->exprs) {
@@ -2036,6 +2111,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Rescue *rescue) {
+                categoryCounterInc("legacy Desugar.cc node", "Rescue");
                 Rescue::RESCUE_CASE_store cases;
                 cases.reserve(rescue->rescue.size());
                 for (auto &node : rescue->rescue) {
@@ -2047,6 +2123,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Resbody *resbody) {
+                categoryCounterInc("legacy Desugar.cc node", "Resbody");
                 RescueCase::EXCEPTION_store exceptions;
                 auto exceptionsExpr = node2TreeImpl(dctx, resbody->exception);
                 if (isa_tree<EmptyTree>(exceptionsExpr)) {
@@ -2097,6 +2174,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Ensure *ensure) {
+                categoryCounterInc("legacy Desugar.cc node", "Ensure");
                 auto bodyExpr = node2TreeImpl(dctx, ensure->body);
                 auto ensureExpr = node2TreeImpl(dctx, ensure->ensure);
                 auto rescue = cast_tree<Rescue>(bodyExpr);
@@ -2111,6 +2189,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 }
             },
             [&](parser::If *if_) {
+                categoryCounterInc("legacy Desugar.cc node", "If");
                 auto cond = node2TreeImpl(dctx, if_->condition);
                 auto thenp = node2TreeImpl(dctx, if_->then_);
                 auto elsep = node2TreeImpl(dctx, if_->else_);
@@ -2118,6 +2197,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(iff);
             },
             [&](parser::Masgn *masgn) {
+                categoryCounterInc("legacy Desugar.cc node", "Masgn");
                 auto *lhs = parser::cast_node<parser::Mlhs>(masgn->lhs.get());
                 ENFORCE(lhs != nullptr, "Failed to get lhs of Masgn");
 
@@ -2126,14 +2206,17 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::True *t) {
+                categoryCounterInc("legacy Desugar.cc node", "True");
                 auto res = MK::True(loc);
                 result = move(res);
             },
             [&](parser::False *t) {
+                categoryCounterInc("legacy Desugar.cc node", "False");
                 auto res = MK::False(loc);
                 result = move(res);
             },
             [&](parser::Case *case_) {
+                categoryCounterInc("legacy Desugar.cc node", "Case");
                 if (dctx.preserveConcreteSyntax) {
                     // Desugar to:
                     //   Magic.caseWhen(condition, numPatterns, <pattern 1>, ..., <pattern N>, <body 1>, ..., <body M>)
@@ -2216,19 +2299,23 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Splat *splat) {
+                categoryCounterInc("legacy Desugar.cc node", "Splat");
                 auto res = MK::Splat(loc, node2TreeImpl(dctx, splat->var));
                 result = move(res);
             },
             [&](parser::ForwardedRestArg *fra) {
+                categoryCounterInc("legacy Desugar.cc node", "ForwardedRestArg");
                 auto var = ast::MK::Local(loc, core::Names::star());
                 result = MK::Splat(loc, move(var));
             },
             [&](parser::Alias *alias) {
+                categoryCounterInc("legacy Desugar.cc node", "Alias");
                 auto res = MK::Send2(loc, MK::Self(loc), core::Names::aliasMethod(), locZeroLen,
                                      node2TreeImpl(dctx, alias->from), node2TreeImpl(dctx, alias->to));
                 result = move(res);
             },
             [&](parser::Defined *defined) {
+                categoryCounterInc("legacy Desugar.cc node", "Defined");
                 auto value = node2TreeImpl(dctx, defined->value);
                 auto loc = value.loc();
                 auto ident = cast_tree<UnresolvedIdent>(value);
@@ -2259,25 +2346,30 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::LineLiteral *line) {
+                categoryCounterInc("legacy Desugar.cc node", "LineLiteral");
                 auto details = dctx.ctx.locAt(loc).toDetails(dctx.ctx);
                 ENFORCE(details.first.line == details.second.line, "position corrupted");
                 auto res = MK::Int(loc, details.first.line);
                 result = move(res);
             },
             [&](parser::XString *xstring) {
+                categoryCounterInc("legacy Desugar.cc node", "XString");
                 auto res = MK::Send1(loc, MK::Self(loc), core::Names::backtick(), locZeroLen,
                                      desugarDString(dctx, loc, move(xstring->nodes)));
                 result = move(res);
             },
             [&](parser::Preexe *preexe) {
+                categoryCounterInc("legacy Desugar.cc node", "Preexe");
                 auto res = unsupportedNode(dctx, preexe);
                 result = move(res);
             },
             [&](parser::Postexe *postexe) {
+                categoryCounterInc("legacy Desugar.cc node", "Postexe");
                 auto res = unsupportedNode(dctx, postexe);
                 result = move(res);
             },
             [&](parser::Undef *undef) {
+                categoryCounterInc("legacy Desugar.cc node", "Undef");
                 if (auto e = dctx.ctx.beginIndexerError(what->loc, core::errors::Desugar::UndefUsage)) {
                     e.setHeader("Unsupported method: undef");
                 }
@@ -2294,6 +2386,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::CaseMatch *caseMatch) {
+                categoryCounterInc("legacy Desugar.cc node", "CaseMatch");
                 // Create a local var to store the expression used in each match clause
                 auto exprLoc = caseMatch->expr->loc;
                 auto exprName = dctx.freshNameUnique(core::Names::assignTemp());
@@ -2327,40 +2420,49 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Backref *backref) {
+                categoryCounterInc("legacy Desugar.cc node", "Backref");
                 auto recv = MK::Magic(loc);
                 auto arg = MK::Symbol(backref->loc, backref->name);
                 result = MK::Send1(loc, move(recv), core::Names::regexBackref(), locZeroLen, move(arg));
             },
             [&](parser::EFlipflop *eflipflop) {
+                categoryCounterInc("legacy Desugar.cc node", "EFlipflop");
                 auto res = unsupportedNode(dctx, eflipflop);
                 result = move(res);
             },
             [&](parser::IFlipflop *iflipflop) {
+                categoryCounterInc("legacy Desugar.cc node", "IFlipflop");
                 auto res = unsupportedNode(dctx, iflipflop);
                 result = move(res);
             },
             [&](parser::MatchCurLine *matchCurLine) {
+                categoryCounterInc("legacy Desugar.cc node", "MatchCurLine");
                 auto res = unsupportedNode(dctx, matchCurLine);
                 result = move(res);
             },
             [&](parser::Redo *redo) {
+                categoryCounterInc("legacy Desugar.cc node", "Redo");
                 auto res = unsupportedNode(dctx, redo);
                 result = move(res);
             },
             [&](parser::EncodingLiteral *encodingLiteral) {
+                categoryCounterInc("legacy Desugar.cc node", "EncodingLiteral");
                 auto recv = MK::Magic(loc);
                 result = MK::Send0(loc, move(recv), core::Names::getEncoding(), locZeroLen);
             },
             [&](parser::MatchPattern *pattern) {
+                categoryCounterInc("legacy Desugar.cc node", "MatchPattern");
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs.get());
                 result = move(res);
             },
             [&](parser::MatchPatternP *pattern) {
+                categoryCounterInc("legacy Desugar.cc node", "MatchPatternP");
                 auto res = desugarOnelinePattern(dctx, pattern->loc, pattern->rhs.get());
                 result = move(res);
             },
             [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
             [&](parser::ResolvedConst *resolvedConst) {
+                categoryCounterInc("legacy Desugar.cc node", "ResolvedConst");
                 result = make_expression<ConstantLit>(resolvedConst->loc, move(resolvedConst->symbol));
             },
 
