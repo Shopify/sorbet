@@ -775,4 +775,22 @@ bool PMK::isTUntyped(pm_node_t *node) {
     return false;
 }
 
+bool PMK::isSetterCall(pm_node_t *node, const Parser &parser) {
+    if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(node);
+    auto methodName = parser.resolveConstant(call->name);
+    return methodName.back() == '=';
+}
+
+bool PMK::isSafeNavigationCall(pm_node_t *node) {
+    if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
+        return false;
+    }
+
+    return PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
+}
+
 } // namespace sorbet::parser::Prism

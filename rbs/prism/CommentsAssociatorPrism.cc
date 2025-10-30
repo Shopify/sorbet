@@ -610,10 +610,17 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             break;
         }
         case PM_CALL_NODE: {
-            // TODO: More handling from CommentsAssociator's send case
-            associateAssertionCommentsToNode(node);
-
             auto *call = down_cast<pm_call_node_t>(node);
+
+            if (call->arguments != nullptr && call->arguments->arguments.size == 1 && PMK::isSafeNavigationCall(node) &&
+                PMK::isSetterCall(node, parser)) {
+                associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
+                walkNode(call->arguments->arguments.nodes[0]);
+                consumeCommentsInsideNode(node, "csend");
+                break;
+            }
+
+            associateAssertionCommentsToNode(node);
             walkNode(call->receiver);
             if (call->arguments != nullptr) {
                 walkNodes(call->arguments->arguments);

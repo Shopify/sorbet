@@ -811,14 +811,18 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
                 // parameters from the method signature.
                 return node;
             }
+            if (PMK::isSafeNavigationCall(node) && PMK::isSetterCall(node, *parser)) {
+                // For safe navigation setter calls (e.g., `obj&.foo = val`), the cast should be applied to the receiver
+                // and the argument, but not to the call node itself
+                call->receiver = maybeInsertCast(call->receiver);
+            } else {
+                node = maybeInsertCast(node);
+            }
             call->receiver = rewriteNode(call->receiver);
-            node = maybeInsertCast(node);
             if (call->arguments) {
                 rewriteNodes(call->arguments->arguments);
             }
-            if (call->block) {
-                call->block = rewriteNode(call->block);
-            }
+            call->block = rewriteNode(call->block);
             return node;
         }
 
