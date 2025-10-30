@@ -3625,6 +3625,7 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
             auto value = patternTranslate(assocNode->value);
 
             if (PM_NODE_TYPE_P(assocNode->value, PM_IMPLICIT_NODE)) {
+                // fix location here?
                 return value;
             }
 
