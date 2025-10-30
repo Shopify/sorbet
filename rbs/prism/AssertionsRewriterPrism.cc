@@ -221,72 +221,6 @@ bool AssertionsRewriterPrism::hasConsumedComment(core::LocOffsets loc) {
     return consumedComments.count(make_pair(loc.beginPos(), loc.endPos()));
 }
 
-/*
- * Get the RBS comment for the given node.
- *
- * Returns `nullopt` if no comment is found or if the comment was already consumed.
- */
-// optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(const unique_ptr<parser::Node> &node) {
-//     // TODO: Update to work with prism comment maps
-//     if (legacyCommentsByNode == nullptr) {
-//         return nullopt;
-//     }
-//     auto it = legacyCommentsByNode->find(node.get());
-//     if (it == legacyCommentsByNode->end()) {
-//         return nullopt;
-//     }
-
-//     for (const auto &commentNode : it->second) {
-//         if (!absl::StartsWith(commentNode.string, CommentsAssociatorPrism::RBS_PREFIX)) {
-//             continue;
-//         }
-
-//         auto contentStart = commentNode.loc.beginPos() + 2; // +2 for the #: prefix
-//         auto content = commentNode.string.substr(2);        // skip the #: prefix
-
-//         // Skip whitespace after the #:
-//         while (contentStart < commentNode.loc.endPos() && isspace(content[0])) {
-//             contentStart++;
-//             content = content.substr(1);
-//         }
-
-//         auto kind = InlineCommentPrism::Kind::LET;
-//         if (absl::StartsWith(content, "as ")) {
-//             kind = InlineCommentPrism::Kind::CAST;
-//             contentStart += 3;
-//             content = content.substr(3);
-
-//             if (regex_match(content.begin(), content.end(), not_nil_pattern_prism)) {
-//                 kind = InlineCommentPrism::Kind::MUST;
-//             } else if (regex_match(content.begin(), content.end(), untyped_pattern_prism)) {
-//                 kind = InlineCommentPrism::Kind::UNSAFE;
-//             }
-//         } else if (regex_match(content.begin(), content.end(), absurd_pattern_prism)) {
-//             kind = InlineCommentPrism::Kind::ABSURD;
-//         } else if (absl::StartsWith(content, "self as ")) {
-//             kind = InlineCommentPrism::Kind::BIND;
-//             contentStart += 8;
-//             content = content.substr(8);
-//         }
-
-//         if (hasConsumedComment(commentNode.loc)) {
-//             continue;
-//         }
-//         consumeComment(commentNode.loc);
-
-//         return InlineCommentPrism{
-//             rbs::Comment{
-//                 commentNode.loc,
-//                 core::LocOffsets{contentStart, commentNode.loc.endPos()},
-//                 content,
-//             },
-//             kind,
-//         };
-//     }
-
-//     return nullopt;
-// }
-
 /**
  * Helper to convert Prism location to core::LocOffsets.
  */
@@ -454,37 +388,6 @@ pm_node_t *AssertionsRewriterPrism::maybeInsertCast(pm_node_t *node) {
 
     return node;
 }
-
-// OLD WHITEQUARK PARSER VERSION - Not yet migrated
-// /**
-//  * Replace the synthetic node with a `T.bind` call.
-//  */
-// unique_ptr<parser::Node> AssertionsRewriterPrism::replaceSyntheticBind(unique_ptr<parser::Node> node) {
-//     auto inlineComment = commentForNode(node);
-//
-//     if (!inlineComment) {
-//         // This should never happen
-//         Exception::raise("No inline comment found for synthetic bind");
-//     }
-//
-//     auto pair = parseCommentPrism(ctx, inlineComment.value(), typeParams);
-//
-//     if (!pair) {
-//         // We already raised an error while parsing the comment, so we just bind to `T.untyped`
-//         return parser::MK::TBindSelf(node->loc, parser::MK::TUntyped(node->loc));
-//     }
-//
-//     auto kind = pair->second;
-//
-//     if (kind != InlineCommentPrism::Kind::BIND) {
-//         // This should never happen
-//         Exception::raise("Invalid inline comment for synthetic bind");
-//     }
-//
-//     auto type = move(pair->first);
-//
-//     return parser::MK::TBindSelf(type->loc, move(type));
-// }
 
 /**
  * Rewrite a collection of Prism nodes in place.
@@ -1015,6 +918,11 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             rewriteNodes(hash->elements);
             return node;
         }
+        case PM_KEYWORD_HASH_NODE: {
+            auto *kwh = down_cast<pm_keyword_hash_node_t>(node);
+            rewriteNodes(kwh->elements);
+            return node;
+        }
         case PM_ASSOC_NODE: {
             auto *pair = down_cast<pm_assoc_node_t>(node);
             pair->key = rewriteNode(pair->key);
@@ -1036,6 +944,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         }
         case PM_ASSOC_SPLAT_NODE: {
             auto *splat = down_cast<pm_assoc_splat_node_t>(node);
+            splat->value = maybeInsertCast(splat->value);
             splat->value = rewriteNode(splat->value);
             return node;
         }

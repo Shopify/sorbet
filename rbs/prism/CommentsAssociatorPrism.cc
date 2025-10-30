@@ -51,7 +51,6 @@ pm_node_t *createSyntheticPlaceholder(pm_parser_t *parser, const CommentNodePris
 
     return (pm_node_t *)constantRead;
 }
-} // namespace
 
 /**
  * Check if the given range is the start of a heredoc assignment `= <<~FOO` and return the position of the end of the
@@ -59,7 +58,7 @@ pm_node_t *createSyntheticPlaceholder(pm_parser_t *parser, const CommentNodePris
  *
  * Returns -1 if no heredoc marker is found.
  */
-optional<uint32_t> hasHeredocMarkerPrism(core::Context ctx, const uint32_t fromPos, const uint32_t toPos) {
+optional<uint32_t> hasHeredocMarker(core::Context ctx, const uint32_t fromPos, const uint32_t toPos) {
     string_view source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
 
     string source_str(source);
@@ -70,6 +69,7 @@ optional<uint32_t> hasHeredocMarkerPrism(core::Context ctx, const uint32_t fromP
 
     return nullopt;
 }
+} // namespace
 
 optional<uint32_t> CommentsAssociatorPrism::locateTargetLine(pm_node_t *node) {
     optional<uint32_t> result = nullopt;
@@ -81,14 +81,14 @@ optional<uint32_t> CommentsAssociatorPrism::locateTargetLine(pm_node_t *node) {
     switch (PM_NODE_TYPE(node)) {
         case PM_STRING_NODE: {
             auto loc = translateLocation(node->location);
-            if (hasHeredocMarkerPrism(ctx, loc.beginPos(), loc.endPos())) {
+            if (hasHeredocMarker(ctx, loc.beginPos(), loc.endPos())) {
                 result = core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
             }
             break;
         }
         case PM_INTERPOLATED_STRING_NODE: {
             auto loc = translateLocation(node->location);
-            if (hasHeredocMarkerPrism(ctx, loc.beginPos(), loc.endPos())) {
+            if (hasHeredocMarker(ctx, loc.beginPos(), loc.endPos())) {
                 result = core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
             }
             break;
@@ -693,8 +693,8 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             break;
         }
         case PM_KEYWORD_HASH_NODE: {
-            // auto *kwsplat = (pm_keyword_hash_node_t *)node;
-            // TODO: Fix kwsplat field access for Prism nodes
+            auto *kwh = down_cast<pm_keyword_hash_node_t>(node);
+            walkNodes(kwh->elements);
             consumeCommentsInsideNode(node, "kwsplat");
             break;
         }
@@ -834,6 +834,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_ASSOC_SPLAT_NODE: {
             auto *splatAssoc = down_cast<pm_assoc_splat_node_t>(node);
+            associateAssertionCommentsToNode(splatAssoc->value);
             walkNode(splatAssoc->value);
             break;
         }
