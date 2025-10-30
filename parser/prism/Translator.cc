@@ -2781,15 +2781,21 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             // This doesn't include `**nil`, which is a `PM_NO_KEYWORDS_PARAMETER_NODE`.
             auto keywordRestParamNode = down_cast<pm_keyword_rest_parameter_node>(node);
 
+            core::LocOffsets kwrestLoc;
             core::NameRef sorbetName;
             if (auto prismName = keywordRestParamNode->name; prismName != PM_CONSTANT_ID_UNSET) {
                 // A named keyword rest parameter, like `def foo(**kwargs)`
                 sorbetName = translateConstantName(prismName);
+
+                // The location doesn't include the `**`, only the splatted expression like `kwargs` in `**kwargs`
+                kwrestLoc = core::LocOffsets{location.beginPos() + 2, location.endPos()};
             } else { // An anonymous keyword rest parameter, like `def foo(**)`
                 sorbetName = nextUniqueParserName(core::Names::starStar());
+
+                // This location *does* include the whole `**`.
+                kwrestLoc = location;
             }
 
-            auto kwrestLoc = core::LocOffsets{location.beginPos() + 2, location.endPos()};
             return make_node_with_expr<parser::Kwrestarg>(
                 MK::RestParam(kwrestLoc, MK::KeywordArg(kwrestLoc, sorbetName)), kwrestLoc, sorbetName);
         }
