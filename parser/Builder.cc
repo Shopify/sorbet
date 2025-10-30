@@ -229,7 +229,7 @@ public:
                 auto intro = make_unique<LVar>(node->loc, id->name);
                 auto decls = driver_->alloc.node_list();
                 decls->emplace_back(toForeign(std::move(intro)));
-                driver_->numparam_stack.regis(name_str[1] - 48, std::move(decls));
+                driver_->numparam_stack.regis(name_str[1] - '0', std::move(decls));
             }
 
             auto last_char = name_str.back();
@@ -1910,7 +1910,7 @@ public:
     }
 
     bool isNumberedParameterName(std::string_view name) {
-        return name.length() == 2 && name[0] == '_' && name[1] >= '1' && name[1] <= '9';
+        return name.length() == 2 && name[0] == '_' && isdigit(name[1]);
     }
 };
 
