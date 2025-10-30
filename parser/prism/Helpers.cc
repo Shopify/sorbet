@@ -54,13 +54,11 @@ pm_node_t *PMK::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t name_id
     pm_location_t pm_loc = convertLocOffsets(loc);
     pm_location_t zero_loc = getZeroWidthLocation();
 
-    *node = (pm_constant_write_node_t){
-        .base = initializeBaseNode(PM_CONSTANT_WRITE_NODE),
-        .name = name_id,
-        .name_loc = pm_loc,
-        .value = value,
-        .operator_loc = zero_loc
-    };
+    *node = (pm_constant_write_node_t){.base = initializeBaseNode(PM_CONSTANT_WRITE_NODE),
+                                       .name = name_id,
+                                       .name_loc = pm_loc,
+                                       .value = value,
+                                       .operator_loc = zero_loc};
     node->base.location = pm_loc;
 
     return up_cast(node);
