@@ -906,6 +906,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_PARENTHESES_NODE: {
             auto *paren = down_cast<pm_parentheses_node_t>(node);
+            associateAssertionCommentsToNode(node);
             walkNode(paren->body);
             break;
         }

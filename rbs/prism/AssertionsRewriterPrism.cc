@@ -969,6 +969,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
 
         case PM_PARENTHESES_NODE: {
             auto *paren = down_cast<pm_parentheses_node_t>(node);
+            node = maybeInsertCast(node);
             paren->body = rewriteNode(paren->body);
             return node;
         }
