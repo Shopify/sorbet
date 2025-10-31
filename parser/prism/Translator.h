@@ -91,7 +91,7 @@ private:
     void translateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
     std::pair<std::unique_ptr<parser::Params>, core::NameRef /* enclosingBlockParamName */>
-    translateParametersNode(pm_parameters_node *paramsNode);
+    translateParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location);
 
     std::tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store, bool>
     desugarParametersNode(NodeVec &params, bool attemptToDesugarParams);
@@ -113,13 +113,14 @@ private:
                                                   std::unique_ptr<parser::Node> beginNode,
                                                   std::unique_ptr<parser::Node> elseNode);
     std::unique_ptr<parser::Node> translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle = true,
-                                                      std::optional<pm_location_t> overrideLocation = std::nullopt);
+                                                      core::LocOffsets overrideLocation = core::LocOffsets::none());
 
     std::unique_ptr<parser::Node> translateRegexpOptions(pm_location_t closingLoc);
-    std::unique_ptr<parser::Node> translateRegexp(pm_string_t unescaped, core::LocOffsets location,
-                                                  pm_location_t closingLoc);
+    std::unique_ptr<parser::Node> translateRegexp(core::LocOffsets location, core::LocOffsets contentLoc,
+                                                  pm_string_t content, pm_location_t closingLoc);
 
-    template <typename PrismNode> std::unique_ptr<parser::Mlhs> translateMultiTargetLhs(PrismNode *);
+    template <typename PrismNode>
+    std::unique_ptr<parser::Mlhs> translateMultiTargetLhs(PrismNode *node, core::LocOffsets location);
 
     template <typename PrismAssignmentNode, typename SorbetLHSNode>
     std::unique_ptr<parser::Node> translateAssignment(pm_node_t *node);
