@@ -40,6 +40,40 @@ template <typename StoreType> StoreType nodeVecToStore(const sorbet::parser::Nod
     return store;
 }
 
+// Collect pattern variable assignments from a pattern node (similar to desugarPatternMatchingVars in PrismDesugar.cc)
+static void collectPatternMatchingVars(ast::InsSeq::STATS_store &vars, parser::Node *node) {
+    if (auto var = parser::NodeWithExpr::cast_node<parser::MatchVar>(node)) {
+        auto loc = var->loc;
+        auto val = MK::RaiseUnimplemented(loc);
+        vars.emplace_back(MK::Assign(loc, var->name, move(val)));
+    } else if (auto rest = parser::NodeWithExpr::cast_node<parser::MatchRest>(node)) {
+        collectPatternMatchingVars(vars, rest->var.get());
+    } else if (auto pair = parser::NodeWithExpr::cast_node<parser::Pair>(node)) {
+        collectPatternMatchingVars(vars, pair->value.get());
+    } else if (auto as_pattern = parser::NodeWithExpr::cast_node<parser::MatchAs>(node)) {
+        auto loc = as_pattern->as->loc;
+        auto name = parser::NodeWithExpr::cast_node<parser::MatchVar>(as_pattern->as.get())->name;
+        auto val = MK::RaiseUnimplemented(loc);
+        vars.emplace_back(MK::Assign(loc, name, move(val)));
+        collectPatternMatchingVars(vars, as_pattern->value.get());
+    } else if (auto array_pattern = parser::NodeWithExpr::cast_node<parser::ArrayPattern>(node)) {
+        for (auto &elt : array_pattern->elts) {
+            collectPatternMatchingVars(vars, elt.get());
+        }
+    } else if (auto array_pattern = parser::NodeWithExpr::cast_node<parser::ArrayPatternWithTail>(node)) {
+        for (auto &elt : array_pattern->elts) {
+            collectPatternMatchingVars(vars, elt.get());
+        }
+    } else if (auto hash_pattern = parser::NodeWithExpr::cast_node<parser::HashPattern>(node)) {
+        for (auto &elt : hash_pattern->pairs) {
+            collectPatternMatchingVars(vars, elt.get());
+        }
+    } else if (auto alt_pattern = parser::NodeWithExpr::cast_node<parser::MatchAlt>(node)) {
+        collectPatternMatchingVars(vars, alt_pattern->left.get());
+        collectPatternMatchingVars(vars, alt_pattern->right.get());
+    }
+}
+
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
 unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const {
@@ -1674,10 +1708,59 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto caseMatchNode = down_cast<pm_case_match_node>(node);
 
             auto predicate = translate(caseMatchNode->predicate);
-            auto sorbetConditions = patternTranslateMulti(caseMatchNode->conditions);
+            auto inNodes = patternTranslateMulti(caseMatchNode->conditions);
             auto elseClause = translate(up_cast(caseMatchNode->else_clause));
 
-            return make_unique<parser::CaseMatch>(location, move(predicate), move(sorbetConditions), move(elseClause));
+            // We do not need to check if all the "in" patterns have desugared expressions because they are currently
+            // unused.
+            if (!directlyDesugar) {
+                return make_unique<parser::CaseMatch>(location, move(predicate), move(inNodes), move(elseClause));
+            }
+
+            // Build an if ladder similar to CASE_NODE
+            core::NameRef tempName;
+            core::LocOffsets predicateLoc;
+
+            if (predicate != nullptr) {
+                predicateLoc = predicate->loc;
+                tempName = nextUniqueDesugarName(core::Names::assignTemp());
+            } else {
+                tempName = core::NameRef::noName();
+            }
+
+            // Start with the else clause as the final else
+            ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
+
+            // Build the if ladder backwards from the last "in" to the first
+            for (auto it = inNodes.rbegin(); it != inNodes.rend(); ++it) {
+                auto inPattern = parser::NodeWithExpr::cast_node<parser::InPattern>(it->get());
+                ENFORCE(inPattern != nullptr, "case pattern without an in?");
+
+                // Use RaiseUnimplemented as the condition (like desugarOnelinePattern)
+                auto patternLoc = inPattern->pattern != nullptr ? inPattern->pattern->loc : inPattern->loc;
+                auto matchExpr = MK::RaiseUnimplemented(patternLoc);
+
+                // The body is the statements from the "in" clause
+                auto thenExpr = inPattern->body != nullptr ? inPattern->body->takeDesugaredExpr() : MK::EmptyTree();
+
+                // Collect pattern variable assignments from the pattern
+                ast::InsSeq::STATS_store vars;
+                collectPatternMatchingVars(vars, inPattern->pattern.get());
+                if (!vars.empty()) {
+                    thenExpr = MK::InsSeq(patternLoc, move(vars), move(thenExpr));
+                }
+
+                resultExpr = MK::If(inPattern->loc, move(matchExpr), move(thenExpr), move(resultExpr));
+            }
+
+            // Wrap in an InsSeq with the predicate assignment (if there is a predicate)
+            if (predicate != nullptr) {
+                auto assignExpr = MK::Assign(predicateLoc, tempName, predicate->takeDesugaredExpr());
+                resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
+            }
+
+            return make_node_with_expr<parser::CaseMatch>(move(resultExpr), location, move(predicate), move(inNodes),
+                                                          move(elseClause));
         }
         case PM_CASE_NODE: { // A classic `case` statement that only uses `when` (and not pattern matching with `in`)
             auto caseNode = down_cast<pm_case_node>(node);
@@ -3415,7 +3498,13 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
             auto left = patternTranslate(alternationPatternNode->left);
             auto right = patternTranslate(alternationPatternNode->right);
 
-            return make_unique<parser::MatchAlt>(location, move(left), move(right));
+            if (!directlyDesugar || !hasExpr(left, right)) {
+                return make_unique<parser::MatchAlt>(location, move(left), move(right));
+            }
+
+            // Like array/hash patterns, MatchAlt is a structural pattern that doesn't have
+            // a simple desugared expression - it's handled specially during pattern matching desugaring
+            return make_node_with_expr<parser::MatchAlt>(MK::Nil(location), location, move(left), move(right));
         }
         case PM_ASSOC_NODE: { // A key-value pair in a Hash pattern, e.g. the `k: v` in `h in { k: v }
             auto assocNode = down_cast<pm_assoc_node>(node);
@@ -3427,7 +3516,12 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 return value;
             }
 
-            return make_unique<parser::Pair>(location, move(key), move(value));
+            if (!directlyDesugar || !hasExpr(key, value)) {
+                return make_unique<parser::Pair>(location, move(key), move(value));
+            }
+
+            // Pair is a structural component of hash patterns with no simple desugared expression
+            return make_node_with_expr<parser::Pair>(MK::Nil(location), location, move(key), move(value));
         }
         case PM_ARRAY_PATTERN_NODE: { // An array pattern such as the `[head, *tail]` in the `a in [head, *tail]`
             auto arrayPatternNode = down_cast<pm_array_pattern_node>(node);
@@ -3453,9 +3547,21 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
 
             // When the pattern ends with an implicit rest node, we need to return an `ArrayPatternWithTail` instead
             if (prismRestNode != nullptr && PM_NODE_TYPE_P(prismRestNode, PM_IMPLICIT_REST_NODE)) {
-                arrayPattern = make_unique<parser::ArrayPatternWithTail>(location, move(sorbetElements));
+                if (!directlyDesugar || !hasExpr(sorbetElements)) {
+                    arrayPattern = make_unique<parser::ArrayPatternWithTail>(location, move(sorbetElements));
+                } else {
+                    // ArrayPatternWithTail is a structural pattern with no direct desugared expression
+                    arrayPattern = make_node_with_expr<parser::ArrayPatternWithTail>(MK::Nil(location), location,
+                                                                                     move(sorbetElements));
+                }
             } else {
-                arrayPattern = make_unique<parser::ArrayPattern>(location, move(sorbetElements));
+                if (!directlyDesugar || !hasExpr(sorbetElements)) {
+                    arrayPattern = make_unique<parser::ArrayPattern>(location, move(sorbetElements));
+                } else {
+                    // ArrayPattern is a structural pattern with no direct desugared expression
+                    arrayPattern =
+                        make_node_with_expr<parser::ArrayPattern>(MK::Nil(location), location, move(sorbetElements));
+                }
             }
 
             if (auto *prismConstant = arrayPatternNode->constant) {
@@ -3464,7 +3570,14 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 // E.g. the `Point` in `in Point[1, 2]`
                 auto sorbetConstant = translate(prismConstant);
 
-                return make_unique<parser::ConstPattern>(location, move(sorbetConstant), move(arrayPattern));
+                if (!directlyDesugar || !hasExpr(sorbetConstant, arrayPattern)) {
+                    return make_unique<parser::ConstPattern>(location, move(sorbetConstant), move(arrayPattern));
+                }
+
+                // For a const pattern, the desugared expression is the constant (what gets tested with ===)
+                auto expr = sorbetConstant->takeDesugaredExpr();
+                return make_node_with_expr<parser::ConstPattern>(move(expr), location, move(sorbetConstant),
+                                                                 move(arrayPattern));
             }
 
             return arrayPattern;
@@ -3491,7 +3604,13 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 auto prismSplatNode = prismLeadingSplat;
                 auto expr = patternTranslate(prismSplatNode->expression);
                 auto splatLoc = translateLoc(prismSplatNode->base.location);
-                sorbetElements.emplace_back(make_unique<MatchRest>(splatLoc, move(expr)));
+
+                if (!directlyDesugar || !hasExpr(expr)) {
+                    sorbetElements.emplace_back(make_unique<MatchRest>(splatLoc, move(expr)));
+                } else {
+                    sorbetElements.emplace_back(
+                        make_node_with_expr<parser::MatchRest>(MK::Nil(splatLoc), splatLoc, move(expr)));
+                }
             }
 
             patternTranslateMultiInto(sorbetElements, prismMiddleNodes);
@@ -3501,10 +3620,21 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 auto prismSplatNode = down_cast<pm_splat_node>(prismTrailingSplat);
                 auto expr = patternTranslate(prismSplatNode->expression);
                 auto splatLoc = translateLoc(prismSplatNode->base.location);
-                sorbetElements.emplace_back(make_unique<MatchRest>(splatLoc, move(expr)));
+
+                if (!directlyDesugar || !hasExpr(expr)) {
+                    sorbetElements.emplace_back(make_unique<MatchRest>(splatLoc, move(expr)));
+                } else {
+                    sorbetElements.emplace_back(
+                        make_node_with_expr<parser::MatchRest>(MK::Nil(splatLoc), splatLoc, move(expr)));
+                }
             }
 
-            return make_unique<parser::FindPattern>(location, move(sorbetElements));
+            if (!directlyDesugar || !hasExpr(sorbetElements)) {
+                return make_unique<parser::FindPattern>(location, move(sorbetElements));
+            }
+
+            // FindPattern is a structural pattern with no simple desugared expression
+            return make_node_with_expr<parser::FindPattern>(MK::Nil(location), location, move(sorbetElements));
         }
         case PM_HASH_PATTERN_NODE: { // An hash pattern such as the `{ k: Integer }` in the `h in { k: Integer }`
             auto hashPatternNode = down_cast<pm_hash_pattern_node>(node);
@@ -3522,12 +3652,23 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 switch (PM_NODE_TYPE(prismRestNode)) {
                     case PM_ASSOC_SPLAT_NODE: {
                         auto assocSplatNode = down_cast<pm_assoc_splat_node>(prismRestNode);
-                        sorbetElements.emplace_back(
-                            make_unique<parser::MatchRest>(loc, patternTranslate(assocSplatNode->value)));
+                        auto value = patternTranslate(assocSplatNode->value);
+
+                        if (!directlyDesugar || !hasExpr(value)) {
+                            sorbetElements.emplace_back(make_unique<parser::MatchRest>(loc, move(value)));
+                        } else {
+                            sorbetElements.emplace_back(
+                                make_node_with_expr<parser::MatchRest>(MK::Nil(loc), loc, move(value)));
+                        }
                         break;
                     }
                     case PM_NO_KEYWORDS_PARAMETER_NODE: {
-                        sorbetElements.emplace_back(make_unique<parser::MatchNilPattern>(loc));
+                        if (!directlyDesugar) {
+                            sorbetElements.emplace_back(make_unique<parser::MatchNilPattern>(loc));
+                        } else {
+                            sorbetElements.emplace_back(
+                                make_node_with_expr<parser::MatchNilPattern>(MK::Nil(loc), loc));
+                        }
                         break;
                     }
                     default:
@@ -3535,7 +3676,15 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 }
             }
 
-            auto hashPattern = make_unique<parser::HashPattern>(location, move(sorbetElements));
+            unique_ptr<parser::Node> hashPattern = nullptr;
+
+            if (!directlyDesugar || !hasExpr(sorbetElements)) {
+                hashPattern = make_unique<parser::HashPattern>(location, move(sorbetElements));
+            } else {
+                // HashPattern is a structural pattern with no direct desugared expression
+                hashPattern =
+                    make_node_with_expr<parser::HashPattern>(MK::Nil(location), location, move(sorbetElements));
+            }
 
             if (auto *prismConstant = hashPatternNode->constant) {
                 // A hash pattern can start with a constant that matches against a specific type,
@@ -3543,7 +3692,14 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 // E.g. the `Point` in `in Point[x: Integer => 1, y: Integer => 2]`
                 auto sorbetConstant = translate(prismConstant);
 
-                return make_unique<parser::ConstPattern>(location, move(sorbetConstant), move(hashPattern));
+                if (!directlyDesugar || !hasExpr(sorbetConstant, hashPattern)) {
+                    return make_unique<parser::ConstPattern>(location, move(sorbetConstant), move(hashPattern));
+                }
+
+                // For a const pattern, the desugared expression is the constant (what gets tested with ===)
+                auto expr = sorbetConstant->takeDesugaredExpr();
+                return make_node_with_expr<parser::ConstPattern>(move(expr), location, move(sorbetConstant),
+                                                                 move(hashPattern));
             }
 
             return hashPattern;
@@ -3583,13 +3739,31 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 sorbetPattern = patternTranslate(prismPattern);
             }
 
-            return make_unique<parser::InPattern>(location, move(sorbetPattern), move(sorbetGuard), move(statements));
+            if (!directlyDesugar || !hasExpr(sorbetPattern) || !hasExpr(statements)) {
+                return make_unique<parser::InPattern>(location, move(sorbetPattern), move(sorbetGuard),
+                                                      move(statements));
+            }
+
+            // A single `in` clause does not desugar into a standalone Ruby expression; it only
+            // becomes meaningful when the enclosing `case` stitches together all clauses. Wrapping it
+            // in a NodeWithExpr seeded with `EmptyTree` satisfies the API contract so that
+            // `hasExpr(inNodes)` can succeed. The enclosing `case` later consumes the real
+            // expressions from the pattern and body when it assembles the final AST.
+            return make_node_with_expr<parser::InPattern>(MK::EmptyTree(), location, move(sorbetPattern),
+                                                          move(sorbetGuard), move(statements));
         }
         case PM_LOCAL_VARIABLE_TARGET_NODE: { // A variable binding in a pattern, like the `head` in `[head, *tail]`
             auto localVarTargetNode = down_cast<pm_local_variable_target_node>(node);
             auto name = translateConstantName(localVarTargetNode->name);
 
-            return make_unique<MatchVar>(location, name);
+            if (!directlyDesugar) {
+                return make_unique<MatchVar>(location, name);
+            }
+
+            // For a match variable, the desugared expression is a local variable reference
+            // This represents what the variable will be bound to when the pattern matches
+            auto expr = MK::Local(location, name);
+            return make_node_with_expr<parser::MatchVar>(move(expr), location, name);
         }
         case PM_PINNED_EXPRESSION_NODE: { // A "pinned" expression, like `^(1 + 2)` in `in ^(1 + 2)`
             auto pinnedExprNode = down_cast<pm_pinned_expression_node>(node);
@@ -3601,19 +3775,37 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
             statements.emplace_back(move(expr));
             auto beginNode = make_node_with_expr<parser::Begin>(MK::Nil(location), location, move(statements));
 
-            return make_unique<Pin>(location, move(beginNode));
+            if (!directlyDesugar || !hasExpr(beginNode)) {
+                return make_unique<Pin>(location, move(beginNode));
+            }
+
+            // For pinned expressions, the desugared expression comes from the begin node
+            auto pinExpr = beginNode->takeDesugaredExpr();
+            return make_node_with_expr<parser::Pin>(move(pinExpr), location, move(beginNode));
         }
         case PM_PINNED_VARIABLE_NODE: { // A "pinned" variable, like `^x` in `in ^x`
             auto pinnedVarNode = down_cast<pm_pinned_variable_node>(node);
 
             auto variable = translate(pinnedVarNode->variable);
 
-            return make_unique<Pin>(location, move(variable));
+            if (!directlyDesugar || !hasExpr(variable)) {
+                return make_unique<Pin>(location, move(variable));
+            }
+
+            // For pinned variables, the desugared expression is just the variable's expression
+            auto expr = variable->takeDesugaredExpr();
+            return make_node_with_expr<parser::Pin>(move(expr), location, move(variable));
         }
         case PM_SPLAT_NODE: { // A splat, like `*a` in an array pattern
             auto prismSplatNode = down_cast<pm_splat_node>(node);
             auto expr = patternTranslate(prismSplatNode->expression);
-            return make_unique<MatchRest>(location, move(expr));
+
+            if (!directlyDesugar || !hasExpr(expr)) {
+                return make_unique<MatchRest>(location, move(expr));
+            }
+
+            // MatchRest is a structural pattern component with no simple desugared expression
+            return make_node_with_expr<parser::MatchRest>(MK::Nil(location), location, move(expr));
         }
         default: {
             return translate(node);
