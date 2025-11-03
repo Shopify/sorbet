@@ -1348,7 +1348,7 @@ public:
     // `tok` is the opening token:
     //     - for blocks, it's opening `do` or `{`
     //     - for lambdas, it's the `->`
-    // We use it to set the location of the numparams to a zero-length loc just after, as if you had written:
+    // We use it to set the location of the NumParams to a zero-length loc just after, as if you had written:
     //     - `do|_1, _2| ... end`
     //     - `{|_1, _2| ... }`
     //     - `->(_1, _2) { ... }`
