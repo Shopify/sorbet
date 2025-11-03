@@ -4,6 +4,8 @@
 -> (param) { param }
 -> (optional_param = 123) { optional_param }
 -> { 456 }.call
+
+# These aren't actually lambdas, but regular method calls to `Kernel#lambda`
 lambda { 789 }
 lambda { |param| param }
 
