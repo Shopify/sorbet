@@ -45,6 +45,7 @@ class Parser final {
 
     friend class ParseResult;
     friend struct NodeDeleter;
+    friend class PMK;
 
 public:
     Parser(std::string_view sourceCode) : parser{}, options{} {
@@ -77,7 +78,7 @@ public:
 private:
     std::vector<ParseError> collectErrors();
     std::vector<core::LocOffsets> collectCommentLocations();
-    pm_parser_t *getRawParserPointer();
+    pm_parser_t *getRawParserPointer() const;
 };
 
 class ParseResult final {
