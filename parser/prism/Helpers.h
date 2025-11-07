@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 extern "C" {
 #include "prism.h"
 }
@@ -23,10 +22,8 @@ namespace sorbet::parser::Prism {
 // Prism node types (C struct names) with their corresponding `pm_node_type_t` enum values.
 template <typename Type> struct PrismNodeTypeHelper {};
 
-#define DEF_TYPE_HELPER(pm_node_type, typeid)              \
-    template <> struct PrismNodeTypeHelper<pm_node_type> { \
-        static constexpr pm_node_type_t TypeID = typeid;   \
-    }
+#define DEF_TYPE_HELPER(pm_node_type, typeid) \
+    template <> struct PrismNodeTypeHelper<pm_node_type> { static constexpr pm_node_type_t TypeID = typeid; }
 
 // clang-format off
 DEF_TYPE_HELPER(pm_alias_global_variable_node_t,           PM_ALIAS_GLOBAL_VARIABLE_NODE);
@@ -264,8 +261,8 @@ public:
     static pm_node_t *KeywordHash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
 
     // Low-level method call creation
-    static pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
-                                          pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
+    static pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t methodId, pm_node_t *arguments,
+                                          pm_location_t messageLoc, pm_location_t fullLoc, pm_location_t tinyLoc,
                                           pm_node_t *block = nullptr);
 
     // High-level method call builders (similar to ast::MK)
@@ -280,9 +277,6 @@ public:
     static pm_constant_id_t addConstantToPool(const char *name);
     static pm_location_t getZeroWidthLocation();
     static pm_location_t convertLocOffsets(core::LocOffsets loc);
-
-    // Debug helpers
-    static void debugPrintLocation(const char *label, pm_location_t loc);
 
     // High-level node creators
     static pm_node_t *SorbetPrivateStatic(core::LocOffsets loc);

@@ -9,13 +9,52 @@ using namespace sorbet::parser::Prism;
 namespace sorbet::parser::Prism {
 
 namespace {
-// Parser instance for node creation
+// Parser instance for node creation. Must be set via PMK::setParser()
+// before using any PMK functions, and must remain alive during PMK usage.
 thread_local const Parser *prismParser = nullptr;
 
 const Parser *parser() {
     ENFORCE(prismParser != nullptr, "PMK::setParser must be called before using PMK helpers");
     return prismParser;
 }
+
+pm_arguments_node_t *createArgumentsNode(const vector<pm_node_t *> &args, core::LocOffsets loc) {
+    pm_arguments_node_t *arguments = PMK::allocateNode<pm_arguments_node_t>();
+    if (!arguments) {
+        return nullptr;
+    }
+
+    pm_node_t **argNodes = (pm_node_t **)calloc(args.size(), sizeof(pm_node_t *));
+    if (!argNodes) {
+        free(arguments);
+        return nullptr;
+    }
+
+    size_t argsSize = args.size();
+    for (size_t i = 0; i < argsSize; i++) {
+        argNodes[i] = args[i];
+    }
+
+    *arguments = (pm_arguments_node_t){.base = PMK::initializeBaseNode(PM_ARGUMENTS_NODE),
+                                       .arguments = {.size = argsSize, .capacity = argsSize, .nodes = argNodes}};
+    arguments->base.location = PMK::convertLocOffsets(loc);
+
+    return arguments;
+}
+
+pm_node_t **copyNodesToArray(const vector<pm_node_t *> &nodes) {
+    pm_node_t **nodeArray = (pm_node_t **)calloc(nodes.size(), sizeof(pm_node_t *));
+    if (!nodeArray) {
+        return nullptr;
+    }
+
+    for (size_t i = 0; i < nodes.size(); i++) {
+        nodeArray[i] = nodes[i];
+    }
+
+    return nodeArray;
+}
+
 } // namespace
 
 void PMK::setParser(const Parser *p) {
@@ -23,97 +62,98 @@ void PMK::setParser(const Parser *p) {
 }
 
 pm_node_t PMK::initializeBaseNode(pm_node_type_t type) {
-    pm_parser_t *p = parser()->getInternalParser();
+    pm_parser_t *prismParser = parser()->getRawParserPointer();
+    prismParser->node_id++;
+    uint32_t nodeId = prismParser->node_id;
     pm_location_t loc = getZeroWidthLocation();
 
-    return (pm_node_t){.type = type, .flags = 0, .node_id = ++p->node_id, .location = loc};
+    return (pm_node_t){.type = type, .flags = 0, .node_id = nodeId, .location = loc};
 }
 
 pm_node_t *PMK::ConstantReadNode(const char *name, core::LocOffsets loc) {
-    pm_constant_id_t constant_id = addConstantToPool(name);
-    if (constant_id == PM_CONSTANT_ID_UNSET)
+    pm_constant_id_t constantId = addConstantToPool(name);
+    if (constantId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
+    }
 
     pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
-    if (!node)
+    if (!node) {
         return nullptr;
+    }
 
-    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE), .name = constant_id};
+    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE), .name = constantId};
 
     node->base.location = convertLocOffsets(loc);
 
     return up_cast(node);
 }
 
-pm_node_t *PMK::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t name_id, pm_node_t *value) {
-    if (!value)
+pm_node_t *PMK::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value) {
+    if (!value) {
         return nullptr;
+    }
 
     pm_constant_write_node_t *node = allocateNode<pm_constant_write_node_t>();
-    if (!node)
+    if (!node) {
         return nullptr;
+    }
 
-    pm_location_t pm_loc = convertLocOffsets(loc);
-    pm_location_t zero_loc = getZeroWidthLocation();
+    pm_location_t pmLoc = convertLocOffsets(loc);
+    pm_location_t zeroLoc = getZeroWidthLocation();
 
     *node = (pm_constant_write_node_t){.base = initializeBaseNode(PM_CONSTANT_WRITE_NODE),
-                                       .name = name_id,
-                                       .name_loc = pm_loc,
+                                       .name = nameId,
+                                       .name_loc = pmLoc,
                                        .value = value,
-                                       .operator_loc = zero_loc};
-    node->base.location = pm_loc;
+                                       .operator_loc = zeroLoc};
+    node->base.location = pmLoc;
 
     return up_cast(node);
 }
 
 pm_node_t *PMK::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const char *name) {
-    pm_constant_id_t name_id = addConstantToPool(name);
-    if (name_id == PM_CONSTANT_ID_UNSET)
+    pm_constant_id_t nameId = addConstantToPool(name);
+    if (nameId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
+    }
 
     pm_constant_path_node_t *node = allocateNode<pm_constant_path_node_t>();
-    if (!node)
+    if (!node) {
         return nullptr;
+    }
 
-    pm_location_t pm_loc = convertLocOffsets(loc);
+    pm_location_t pmLoc = convertLocOffsets(loc);
 
     *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE),
                                       .parent = parent,
-                                      .name = name_id,
-                                      .delimiter_loc = pm_loc,
-                                      .name_loc = pm_loc};
+                                      .name = nameId,
+                                      .delimiter_loc = pmLoc,
+                                      .name_loc = pmLoc};
 
     // The translator uses node->location (i.e., node->base.location) to assign locations to
     // the translated Whitequark AST nodes. Without this, nodes get {0,0} locations, breaking
     // features like check-and-and creation.
-    node->base.location = pm_loc;
+    node->base.location = pmLoc;
 
     return up_cast(node);
 }
 
 pm_node_t *PMK::SingleArgumentNode(pm_node_t *arg) {
-    pm_arguments_node_t *arguments = allocateNode<pm_arguments_node_t>();
-    if (!arguments)
-        return nullptr;
-
-    pm_node_t **arg_nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
-    if (!arg_nodes) {
-        free(arguments);
+    vector<pm_node_t *> args = {arg};
+    pm_arguments_node_t *arguments = createArgumentsNode(args, core::LocOffsets::none());
+    if (!arguments) {
         return nullptr;
     }
-    arg_nodes[0] = arg;
 
-    *arguments = (pm_arguments_node_t){.base = initializeBaseNode(PM_ARGUMENTS_NODE),
-                                       .arguments = {.size = 1, .capacity = 1, .nodes = arg_nodes}};
     arguments->base.location = arg->location;
-
     return up_cast(arguments);
 }
 
 pm_node_t *PMK::Self(core::LocOffsets loc) {
     pm_self_node_t *selfNode = allocateNode<pm_self_node_t>();
-    if (!selfNode)
+    if (!selfNode) {
         return nullptr;
+    }
 
     *selfNode = (pm_self_node_t){.base = initializeBaseNode(PM_SELF_NODE)};
     if (loc != core::LocOffsets::none()) {
@@ -124,35 +164,35 @@ pm_node_t *PMK::Self(core::LocOffsets loc) {
 }
 
 pm_constant_id_t PMK::addConstantToPool(const char *name) {
-    pm_parser_t *p = parser()->getInternalParser();
-    size_t name_len = strlen(name);
-    uint8_t *stable = (uint8_t *)calloc(name_len, sizeof(uint8_t));
+    pm_parser_t *prismParser = parser()->getRawParserPointer();
+    size_t nameLen = strlen(name);
+    uint8_t *stable = (uint8_t *)calloc(nameLen, sizeof(uint8_t));
     if (!stable) {
         return PM_CONSTANT_ID_UNSET;
     }
-    memcpy(stable, name, name_len);
-    pm_constant_id_t id = pm_constant_pool_insert_constant(&p->constant_pool, stable, name_len);
+    memcpy(stable, name, nameLen);
+    pm_constant_id_t id = pm_constant_pool_insert_owned(&prismParser->constant_pool, stable, nameLen);
     return id;
 }
 
 pm_location_t PMK::getZeroWidthLocation() {
-    pm_parser_t *p = parser()->getInternalParser();
-    const uint8_t *source_start = p->start;
-    return {.start = source_start, .end = source_start};
+    pm_parser_t *prismParser = parser()->getRawParserPointer();
+    const uint8_t *sourceStart = prismParser->start;
+    return {.start = sourceStart, .end = sourceStart};
 }
 
 pm_location_t PMK::convertLocOffsets(core::LocOffsets loc) {
-    pm_parser_t *p = parser()->getInternalParser();
-    const uint8_t *source_start = p->start;
+    pm_parser_t *prismParser = parser()->getRawParserPointer();
+    const uint8_t *sourceStart = prismParser->start;
 
-    const uint8_t *start_ptr = source_start + loc.beginPos();
-    const uint8_t *end_ptr = source_start + loc.endPos();
+    const uint8_t *startPtr = sourceStart + loc.beginPos();
+    const uint8_t *endPtr = sourceStart + loc.endPos();
 
-    return {.start = start_ptr, .end = end_ptr};
+    return {.start = startPtr, .end = endPtr};
 }
 
-pm_call_node_t *PMK::createSendNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
-                                    pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
+pm_call_node_t *PMK::createSendNode(pm_node_t *receiver, pm_constant_id_t methodId, pm_node_t *arguments,
+                                    pm_location_t messageLoc, pm_location_t fullLoc, pm_location_t tinyLoc,
                                     pm_node_t *block) {
     pm_call_node_t *call = allocateNode<pm_call_node_t>();
     if (!call) {
@@ -161,14 +201,14 @@ pm_call_node_t *PMK::createSendNode(pm_node_t *receiver, pm_constant_id_t method
 
     *call = (pm_call_node_t){.base = initializeBaseNode(PM_CALL_NODE),
                              .receiver = receiver,
-                             .call_operator_loc = tiny_loc,
-                             .name = method_id,
-                             .message_loc = message_loc,
-                             .opening_loc = tiny_loc,
+                             .call_operator_loc = tinyLoc,
+                             .name = methodId,
+                             .message_loc = messageLoc,
+                             .opening_loc = tinyLoc,
                              .arguments = down_cast<pm_arguments_node_t>(arguments),
-                             .closing_loc = tiny_loc,
+                             .closing_loc = tinyLoc,
                              .block = block};
-    call->base.location = full_loc;
+    call->base.location = fullLoc;
 
     return call;
 }
@@ -179,30 +219,31 @@ pm_node_t *PMK::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t na
     }
 
     auto nameView = parser()->resolveConstant(nameId);
-    string nameString(nameView);
+    size_t nameSize = nameView.size();
 
-    uint8_t *stable = (uint8_t *)calloc(nameString.size(), sizeof(uint8_t));
+    uint8_t *stable = (uint8_t *)calloc(nameSize, sizeof(uint8_t));
     if (!stable) {
         return nullptr;
     }
-    memcpy(stable, nameString.data(), nameString.size());
+    memcpy(stable, nameView.data(), nameSize);
 
     pm_symbol_node_t *symbolNode = allocateNode<pm_symbol_node_t>();
     if (!symbolNode) {
+        free(stable);
         return nullptr;
     }
 
     pm_location_t location = convertLocOffsets(nameLoc.copyWithZeroLength());
 
-    pm_string_t unescaped_string;
-    unescaped_string.source = stable;
-    unescaped_string.length = nameString.length();
+    pm_string_t unescapedString;
+    unescapedString.source = stable;
+    unescapedString.length = nameSize;
 
     *symbolNode = (pm_symbol_node_t){.base = initializeBaseNode(PM_SYMBOL_NODE),
                                      .opening_loc = location,
                                      .value_loc = location,
                                      .closing_loc = location,
-                                     .unescaped = unescaped_string};
+                                     .unescaped = unescapedString};
     symbolNode->base.location = location;
 
     return up_cast(symbolNode);
@@ -237,26 +278,22 @@ pm_node_t *PMK::Hash(core::LocOffsets loc, const vector<pm_node_t *> &pairs) {
         return nullptr;
     }
 
-    pm_node_t **elements = nullptr;
-    if (!pairs.empty()) {
-        elements = (pm_node_t **)calloc(pairs.size(), sizeof(pm_node_t *));
-        if (!elements) {
-            return nullptr;
-        }
-        for (size_t i = 0; i < pairs.size(); i++) {
-            elements[i] = pairs[i];
-        }
+    pm_node_t **elements = copyNodesToArray(pairs);
+    if (!elements) {
+        free(hashNode);
+        return nullptr;
     }
 
-    pm_location_t base_loc = convertLocOffsets(loc);
-    pm_location_t opening_loc = {.start = nullptr, .end = nullptr};
-    pm_location_t closing_loc = {.start = nullptr, .end = nullptr};
+    pm_location_t baseLoc = convertLocOffsets(loc);
+    pm_location_t openingLoc = {.start = nullptr, .end = nullptr};
+    pm_location_t closingLoc = {.start = nullptr, .end = nullptr};
 
+    size_t pairsSize = pairs.size();
     *hashNode = (pm_hash_node_t){.base = initializeBaseNode(PM_HASH_NODE),
-                                 .opening_loc = opening_loc,
-                                 .elements = {.size = pairs.size(), .capacity = pairs.size(), .nodes = elements},
-                                 .closing_loc = closing_loc};
-    hashNode->base.location = base_loc;
+                                 .opening_loc = openingLoc,
+                                 .elements = {.size = pairsSize, .capacity = pairsSize, .nodes = elements},
+                                 .closing_loc = closingLoc};
+    hashNode->base.location = baseLoc;
 
     return up_cast(hashNode);
 }
@@ -271,55 +308,50 @@ pm_node_t *PMK::KeywordHash(core::LocOffsets loc, const vector<pm_node_t *> &pai
         return nullptr;
     }
 
-    pm_node_t **elements = nullptr;
-    elements = (pm_node_t **)calloc(pairs.size(), sizeof(pm_node_t *));
+    pm_node_t **elements = copyNodesToArray(pairs);
     if (!elements) {
+        free(hashNode);
         return nullptr;
     }
-    for (size_t i = 0; i < pairs.size(); i++) {
-        elements[i] = pairs[i];
-    }
 
-    pm_location_t base_loc = convertLocOffsets(loc);
+    pm_location_t baseLoc = convertLocOffsets(loc);
 
-    *hashNode =
-        (pm_keyword_hash_node_t){.base = initializeBaseNode(PM_KEYWORD_HASH_NODE),
-                                 .elements = {.size = pairs.size(), .capacity = pairs.size(), .nodes = elements}};
-    hashNode->base.location = base_loc;
+    size_t pairsSize = pairs.size();
+    *hashNode = (pm_keyword_hash_node_t){.base = initializeBaseNode(PM_KEYWORD_HASH_NODE),
+                                         .elements = {.size = pairsSize, .capacity = pairsSize, .nodes = elements}};
+    hashNode->base.location = baseLoc;
 
     return up_cast(hashNode);
-}
-
-void PMK::debugPrintLocation(const char *label, pm_location_t loc) {
-    (void)label;
-    (void)loc;
-    // Debug implementation commented out for performance
 }
 
 pm_node_t *PMK::SorbetPrivateStatic(core::LocOffsets loc) {
     // Build a root-anchored constant path ::Sorbet::Private::Static
     pm_node_t *sorbet = ConstantPathNode(loc, nullptr, "Sorbet");
-    if (!sorbet)
+    if (!sorbet) {
         return nullptr;
+    }
 
-    pm_node_t *sorbet_private = ConstantPathNode(loc, sorbet, "Private");
-    if (!sorbet_private)
+    pm_node_t *sorbetPrivate = ConstantPathNode(loc, sorbet, "Private");
+    if (!sorbetPrivate) {
         return nullptr;
+    }
 
-    return ConstantPathNode(loc, sorbet_private, "Static");
+    return ConstantPathNode(loc, sorbetPrivate, "Static");
 }
 
 pm_node_t *PMK::TSigWithoutRuntime(core::LocOffsets loc) {
     // Build a root-anchored constant path ::T::Sig::WithoutRuntime
-    pm_node_t *t_const = ConstantPathNode(loc, nullptr, "T");
-    if (!t_const)
+    pm_node_t *tConst = ConstantPathNode(loc, nullptr, "T");
+    if (!tConst) {
         return nullptr;
+    }
 
-    pm_node_t *t_sig = ConstantPathNode(loc, t_const, "Sig");
-    if (!t_sig)
+    pm_node_t *tSig = ConstantPathNode(loc, tConst, "Sig");
+    if (!tSig) {
         return nullptr;
+    }
 
-    return ConstantPathNode(loc, t_sig, "WithoutRuntime");
+    return ConstantPathNode(core::LocOffsets::none(), tSig, "WithoutRuntime");
 }
 
 pm_node_t *PMK::Symbol(core::LocOffsets nameLoc, const char *name) {
@@ -336,15 +368,15 @@ pm_node_t *PMK::Send0(core::LocOffsets loc, pm_node_t *receiver, const char *met
         return nullptr;
     }
 
-    pm_constant_id_t method_id = addConstantToPool(method);
-    if (method_id == PM_CONSTANT_ID_UNSET) {
+    pm_constant_id_t methodId = addConstantToPool(method);
+    if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
     }
 
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, method_id, nullptr, tiny_loc, full_loc, tiny_loc));
+    return up_cast(createSendNode(receiver, methodId, nullptr, tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *PMK::Send1(core::LocOffsets loc, pm_node_t *receiver, const char *method, pm_node_t *arg1) {
@@ -352,8 +384,8 @@ pm_node_t *PMK::Send1(core::LocOffsets loc, pm_node_t *receiver, const char *met
         return nullptr;
     }
 
-    pm_constant_id_t method_id = addConstantToPool(method);
-    if (method_id == PM_CONSTANT_ID_UNSET) {
+    pm_constant_id_t methodId = addConstantToPool(method);
+    if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
     }
 
@@ -362,47 +394,36 @@ pm_node_t *PMK::Send1(core::LocOffsets loc, pm_node_t *receiver, const char *met
         return nullptr;
     }
 
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, method_id, arguments, tiny_loc, full_loc, tiny_loc));
+    return up_cast(createSendNode(receiver, methodId, arguments, tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *PMK::Send(core::LocOffsets loc, pm_node_t *receiver, const char *method, const vector<pm_node_t *> &args,
                      pm_node_t *block) {
-    if (!receiver || !method || args.empty()) {
+    if (!receiver || !method) {
         return nullptr;
     }
 
-    pm_constant_id_t method_id = addConstantToPool(method);
-    if (method_id == PM_CONSTANT_ID_UNSET) {
+    pm_constant_id_t methodId = addConstantToPool(method);
+    if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
     }
 
-    // Create arguments node with multiple arguments
-    pm_arguments_node_t *arguments = allocateNode<pm_arguments_node_t>();
-    if (!arguments) {
-        return nullptr;
+    pm_arguments_node_t *arguments = nullptr;
+    if (!args.empty()) {
+        arguments = createArgumentsNode(args, loc);
+        if (!arguments) {
+            return nullptr;
+        }
     }
 
-    pm_node_t **arg_nodes = (pm_node_t **)calloc(args.size(), sizeof(pm_node_t *));
-    if (!arg_nodes) {
-        free(arguments);
-        return nullptr;
-    }
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    for (size_t i = 0; i < args.size(); i++) {
-        arg_nodes[i] = args[i];
-    }
-
-    *arguments = (pm_arguments_node_t){.base = initializeBaseNode(PM_ARGUMENTS_NODE),
-                                       .arguments = {.size = args.size(), .capacity = args.size(), .nodes = arg_nodes}};
-    arguments->base.location = convertLocOffsets(loc);
-
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
-
-    return up_cast(createSendNode(receiver, method_id, up_cast(arguments), tiny_loc, full_loc, tiny_loc, block));
+    return up_cast(
+        createSendNode(receiver, methodId, arguments ? up_cast(arguments) : nullptr, tinyLoc, fullLoc, tinyLoc, block));
 }
 
 pm_node_t *PMK::T(core::LocOffsets loc) {
@@ -412,108 +433,78 @@ pm_node_t *PMK::T(core::LocOffsets loc) {
 
 pm_node_t *PMK::TUntyped(core::LocOffsets loc) {
     // Create T.untyped call
-    pm_node_t *t_const = T(loc);
-    if (!t_const) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst) {
         return nullptr;
     }
 
-    return Send0(loc, t_const, "untyped");
+    return Send0(loc, tConst, "untyped");
 }
 
 pm_node_t *PMK::TNilable(core::LocOffsets loc, pm_node_t *type) {
     // Create T.nilable(type) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !type) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !type) {
         return nullptr;
     }
 
-    return Send1(loc, t_const, "nilable", type);
+    return Send1(loc, tConst, "nilable", type);
 }
 
 pm_node_t *PMK::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) {
     // Create T.any(args...) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || args.empty()) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || args.empty()) {
         return nullptr;
     }
 
-    // Create arguments node with multiple arguments
-    pm_arguments_node_t *arguments = allocateNode<pm_arguments_node_t>();
+    pm_constant_id_t methodId = addConstantToPool("any");
+    if (methodId == PM_CONSTANT_ID_UNSET) {
+        return nullptr;
+    }
+
+    pm_arguments_node_t *arguments = createArgumentsNode(args, loc);
     if (!arguments) {
         return nullptr;
     }
 
-    pm_node_t **arg_nodes = (pm_node_t **)calloc(args.size(), sizeof(pm_node_t *));
-    if (!arg_nodes) {
-        free(arguments);
-        return nullptr;
-    }
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    for (size_t i = 0; i < args.size(); i++) {
-        arg_nodes[i] = args[i];
-    }
-
-    *arguments = (pm_arguments_node_t){.base = initializeBaseNode(PM_ARGUMENTS_NODE),
-                                       .arguments = {.size = args.size(), .capacity = args.size(), .nodes = arg_nodes}};
-    arguments->base.location = convertLocOffsets(loc);
-
-    pm_constant_id_t method_id = addConstantToPool("any");
-    if (method_id == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
-
-    return up_cast(createSendNode(t_const, method_id, up_cast(arguments), tiny_loc, full_loc, tiny_loc));
+    return up_cast(createSendNode(tConst, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *PMK::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) {
     // Create T.all(args...) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || args.empty()) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || args.empty()) {
         return nullptr;
     }
 
-    // Create arguments node with multiple arguments
-    pm_arguments_node_t *arguments = allocateNode<pm_arguments_node_t>();
+    pm_constant_id_t methodId = addConstantToPool("all");
+    if (methodId == PM_CONSTANT_ID_UNSET) {
+        return nullptr;
+    }
+
+    pm_arguments_node_t *arguments = createArgumentsNode(args, loc);
     if (!arguments) {
         return nullptr;
     }
 
-    pm_node_t **arg_nodes = (pm_node_t **)calloc(args.size(), sizeof(pm_node_t *));
-    if (!arg_nodes) {
-        free(arguments);
-        return nullptr;
-    }
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    for (size_t i = 0; i < args.size(); i++) {
-        arg_nodes[i] = args[i];
-    }
-
-    *arguments = (pm_arguments_node_t){.base = initializeBaseNode(PM_ARGUMENTS_NODE),
-                                       .arguments = {.size = args.size(), .capacity = args.size(), .nodes = arg_nodes}};
-    arguments->base.location = convertLocOffsets(loc);
-
-    pm_constant_id_t method_id = addConstantToPool("all");
-    if (method_id == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
-
-    return up_cast(createSendNode(t_const, method_id, up_cast(arguments), tiny_loc, full_loc, tiny_loc));
+    return up_cast(createSendNode(tConst, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *PMK::TTypeParameter(core::LocOffsets loc, pm_node_t *name) {
     // Create T.type_parameter(name) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !name) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !name) {
         return nullptr;
     }
 
-    return Send1(loc, t_const, "type_parameter", name);
+    return Send1(loc, tConst, "type_parameter", name);
 }
 
 pm_node_t *PMK::TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType) {
@@ -565,114 +556,105 @@ pm_node_t *PMK::Send2(core::LocOffsets loc, pm_node_t *receiver, const char *met
         return nullptr;
     }
 
-    pm_constant_id_t method_id = addConstantToPool(method);
-    if (method_id == PM_CONSTANT_ID_UNSET) {
+    pm_constant_id_t methodId = addConstantToPool(method);
+    if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
     }
 
     // Create arguments node with two arguments
-    pm_arguments_node_t *arguments = allocateNode<pm_arguments_node_t>();
+    vector<pm_node_t *> args = {arg1, arg2};
+    pm_arguments_node_t *arguments = createArgumentsNode(args, loc);
     if (!arguments) {
         return nullptr;
     }
 
-    pm_node_t **arg_nodes = (pm_node_t **)calloc(2, sizeof(pm_node_t *));
-    if (!arg_nodes) {
-        free(arguments);
-        return nullptr;
-    }
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    arg_nodes[0] = arg1;
-    arg_nodes[1] = arg2;
-
-    *arguments = (pm_arguments_node_t){.base = initializeBaseNode(PM_ARGUMENTS_NODE),
-                                       .arguments = {.size = 2, .capacity = 2, .nodes = arg_nodes}};
-    arguments->base.location = convertLocOffsets(loc);
-
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
-
-    return up_cast(createSendNode(receiver, method_id, up_cast(arguments), tiny_loc, full_loc, tiny_loc));
+    return up_cast(createSendNode(receiver, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *PMK::TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) {
     // Create T.let(value, type) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !value || !type) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !value || !type) {
         return nullptr;
     }
 
-    return Send2(loc, t_const, "let", value, type);
+    return Send2(loc, tConst, "let", value, type);
 }
 
 pm_node_t *PMK::TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) {
     // Create T.cast(value, type) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !value || !type) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !value || !type) {
         return nullptr;
     }
 
-    return Send2(loc, t_const, "cast", value, type);
+    return Send2(loc, tConst, "cast", value, type);
 }
 
 pm_node_t *PMK::TMust(core::LocOffsets loc, pm_node_t *value) {
     // Create T.must(value) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !value) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !value) {
         return nullptr;
     }
 
-    return Send1(loc, t_const, "must", value);
+    return Send1(loc, tConst, "must", value);
 }
 
 pm_node_t *PMK::TUnsafe(core::LocOffsets loc, pm_node_t *value) {
     // Create T.unsafe(value) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !value) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !value) {
         return nullptr;
     }
 
-    return Send1(loc, t_const, "unsafe", value);
+    return Send1(loc, tConst, "unsafe", value);
 }
 
 pm_node_t *PMK::TAbsurd(core::LocOffsets loc, pm_node_t *value) {
     // Create T.absurd(value) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !value) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !value) {
         return nullptr;
     }
 
-    return Send1(loc, t_const, "absurd", value);
+    return Send1(loc, tConst, "absurd", value);
 }
 
 pm_node_t *PMK::TBindSelf(core::LocOffsets loc, pm_node_t *type) {
     // Create T.bind(self, type) call
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !type) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !type) {
         return nullptr;
     }
 
-    pm_node_t *self_node = Self(loc);
-    if (!self_node) {
+    pm_node_t *selfNode = Self(loc);
+    if (!selfNode) {
         return nullptr;
     }
 
-    return Send2(loc, t_const, "bind", self_node, type);
+    return Send2(loc, tConst, "bind", selfNode, type);
 }
 
 pm_node_t *PMK::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
-    pm_node_t *t_const = T(loc);
-    if (!t_const || !type) {
+    pm_node_t *tConst = T(loc);
+    if (!tConst || !type) {
         return nullptr;
     }
 
-    pm_node_t *send = Send0(loc, t_const, "type_alias");
+    pm_node_t *send = Send0(loc, tConst, "type_alias");
     if (!send) {
         return nullptr;
     }
 
     // Create statements node containing the type
     pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
+    if (!stmts) {
+        return nullptr;
+    }
     *stmts = (pm_statements_node_t){.base = initializeBaseNode(PM_STATEMENTS_NODE),
                                     .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
     stmts->base.location = convertLocOffsets(loc);
@@ -680,6 +662,10 @@ pm_node_t *PMK::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
 
     // Create block node with the send and statements
     pm_block_node_t *block = allocateNode<pm_block_node_t>();
+    if (!block) {
+        free(stmts);
+        return nullptr;
+    }
     *block = (pm_block_node_t){.base = initializeBaseNode(PM_BLOCK_NODE),
                                .locals = {.size = 0, .capacity = 0, .ids = nullptr},
                                .parameters = nullptr,
@@ -702,21 +688,18 @@ pm_node_t *PMK::Array(core::LocOffsets loc, const vector<pm_node_t *> &elements)
         return nullptr;
     }
 
-    pm_node_t **elem_nodes = nullptr;
+    pm_node_t **elemNodes = nullptr;
+    size_t elementsSize = elements.size();
     if (!elements.empty()) {
-        elem_nodes = (pm_node_t **)calloc(elements.size(), sizeof(pm_node_t *));
-        if (!elem_nodes) {
+        elemNodes = copyNodesToArray(elements);
+        if (!elemNodes) {
             free(array);
             return nullptr;
-        }
-
-        for (size_t i = 0; i < elements.size(); i++) {
-            elem_nodes[i] = elements[i];
         }
     }
 
     *array = (pm_array_node_t){.base = initializeBaseNode(PM_ARRAY_NODE),
-                               .elements = {.size = elements.size(), .capacity = elements.size(), .nodes = elem_nodes},
+                               .elements = {.size = elementsSize, .capacity = elementsSize, .nodes = elemNodes},
                                .opening_loc = convertLocOffsets(loc.copyWithZeroLength()),
                                .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength())};
 
@@ -761,12 +744,12 @@ pm_node_t *PMK::T_Range(core::LocOffsets loc) {
 }
 
 bool PMK::isTUntyped(pm_node_t *node) {
-    if (!node || node->type != PM_CALL_NODE) {
+    if (!node || PM_NODE_TYPE(node) != PM_CALL_NODE) {
         return false;
     }
 
     pm_call_node_t *call = down_cast<pm_call_node_t>(node);
-    if (!call->receiver || call->receiver->type != PM_CONSTANT_PATH_NODE) {
+    if (!call->receiver || PM_NODE_TYPE(call->receiver) != PM_CONSTANT_PATH_NODE) {
         return false;
     }
 
@@ -776,9 +759,13 @@ bool PMK::isTUntyped(pm_node_t *node) {
         return false; // Should be root-anchored ::T
     }
 
-    // Check method name is "untyped" (this is simplified - would need constant pool lookup)
-    // For now, return false as a safe fallback
-    return false;
+    auto methodName = parser()->resolveConstant(call->name);
+    if (methodName != "untyped") {
+        return false;
+    }
+
+    auto receiverName = parser()->resolveConstant(receiver->name);
+    return receiverName == "T";
 }
 
 bool PMK::isSetterCall(pm_node_t *node, const Parser &parser) {
@@ -788,7 +775,7 @@ bool PMK::isSetterCall(pm_node_t *node, const Parser &parser) {
 
     auto *call = down_cast<pm_call_node_t>(node);
     auto methodName = parser.resolveConstant(call->name);
-    return methodName.back() == '=';
+    return !methodName.empty() && methodName.back() == '=';
 }
 
 bool PMK::isSafeNavigationCall(pm_node_t *node) {
