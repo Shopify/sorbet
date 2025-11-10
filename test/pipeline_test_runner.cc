@@ -232,7 +232,6 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
         // Parser
         parser::ParseResult legacyParseResult;
         parser::ParseResult prismParseResult;
-        unique_ptr<parser::Node> directlyDesugaredTree;
         {
             core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
             core::MutableContext ctx(gs, core::Symbols::root(), file);
@@ -240,7 +239,6 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             // Always run the legacy parser.
             auto settings = parser::Parser::Settings{false, false, false, gs.cacheSensitiveOptions.rbsEnabled};
             legacyParseResult = parser::Parser::run(gs, file, settings);
-            directlyDesugaredTree = nullptr;
 
             switch (parser) {
                 case realmain::options::Parser::ORIGINAL: {
@@ -294,7 +292,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
             ast::ExpressionPtr legacyDesugarAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
 
-            if (directlyDesugaredTree != nullptr) {
+            if (prismParseResult.tree != nullptr) {
                 // This AST would have been desugared deirectly by Prism::Translator
                 auto prismDirectDesugarAST = ast::prismDesugar::node2Tree(ctx, move(prismParseResult.tree));
 
