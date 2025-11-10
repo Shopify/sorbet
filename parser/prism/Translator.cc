@@ -906,7 +906,9 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeMethodCallLoc(core::
         result = translateLoc(receiver->location).join(result);
     }
 
-    if (closingLoc.start && closingLoc.end) { // explicit `( )` or `[ ]` around the params
+    // Extend the location to include the closing `)`/`]` of the arguments, if any, but only for `pm_call_node`s.
+    // Not for `pm_lambda_node` though, because its `closing_loc` is the closing `}` or `end` of the block.
+    if (closingLoc.start && closingLoc.end) {
         result = result.join(translateLoc(closingLoc));
     }
 
@@ -2931,8 +2933,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             auto operatorLoc = translateLoc(lambdaNode->operator_loc);
 
-            auto [sendLoc, blockLoc] =
-                computeMethodCallLoc(operatorLoc, nullptr, prismArgs, lambdaNode->closing_loc, lambdaNode->body);
+            auto [sendLoc, blockLoc] = computeMethodCallLoc(operatorLoc, nullptr, prismArgs, {}, lambdaNode->body);
 
             auto receiver = make_unique<parser::Const>(operatorLoc, nullptr, core::Names::Constants::Kernel());
             auto sendNode =
