@@ -125,7 +125,7 @@ pm_constant_id_t PMK::addConstantToPool(const char *name) {
         return PM_CONSTANT_ID_UNSET;
     }
     memcpy(stable, name, name_len);
-    pm_constant_id_t id = pm_constant_pool_insert_constant(&p->constant_pool, stable, name_len);
+    pm_constant_id_t id = pm_constant_pool_insert_owned(&p->constant_pool, stable, name_len);
     return id;
 }
 
@@ -183,14 +183,14 @@ pm_node_t *PMK::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t na
 
     pm_symbol_node_t *symbolNode = allocateNode<pm_symbol_node_t>();
     if (!symbolNode) {
+        free(stable);
         return nullptr;
     }
 
     pm_location_t location = convertLocOffsets(nameLoc.copyWithZeroLength());
 
     pm_string_t unescaped_string;
-    unescaped_string.source = stable;
-    unescaped_string.length = nameString.length();
+    pm_string_owned_init(&unescaped_string, stable, nameString.length());
 
     *symbolNode = (pm_symbol_node_t){.base = initializeBaseNode(PM_SYMBOL_NODE),
                                      .opening_loc = location,
@@ -235,6 +235,7 @@ pm_node_t *PMK::Hash(core::LocOffsets loc, const vector<pm_node_t *> &pairs) {
     if (!pairs.empty()) {
         elements = (pm_node_t **)calloc(pairs.size(), sizeof(pm_node_t *));
         if (!elements) {
+            free(hashNode);
             return nullptr;
         }
         for (size_t i = 0; i < pairs.size(); i++) {
@@ -268,6 +269,7 @@ pm_node_t *PMK::KeywordHash(core::LocOffsets loc, const vector<pm_node_t *> &pai
     pm_node_t **elements = nullptr;
     elements = (pm_node_t **)calloc(pairs.size(), sizeof(pm_node_t *));
     if (!elements) {
+        free(hashNode);
         return nullptr;
     }
     for (size_t i = 0; i < pairs.size(); i++) {
