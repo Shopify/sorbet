@@ -19,3 +19,10 @@ Failing tests:
 //test:test_PrismPosTests/testdata/resolver/forward_args
 //test:test_PrismPosTests/testdata/rewriter/cast_block
 //test:test_PrismPosTests/testdata/rewriter/initializer_no_arg_with_local
+
+
+
+
+
+// When I actually fix the comparisons:
+// Executed 2082 out of 2082 tests: 1805 tests pass and 277 fail locally.
