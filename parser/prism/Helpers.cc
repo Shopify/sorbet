@@ -16,6 +16,11 @@ const Parser *parser() {
     ENFORCE(prismParser != nullptr, "PMK::setParser must be called before using PMK helpers");
     return prismParser;
 }
+
+// Custom deleter for unique_ptr that calls free()
+inline constexpr auto free_deleter = [](void *p) { free(p); };
+
+template <typename T> using UniqueCPtr = std::unique_ptr<T, decltype(free_deleter)>;
 } // namespace
 
 void PMK::setParser(const Parser *p) {
@@ -120,12 +125,13 @@ pm_node_t *PMK::Self(core::LocOffsets loc) {
 pm_constant_id_t PMK::addConstantToPool(const char *name) {
     pm_parser_t *p = parser()->getInternalParser();
     size_t name_len = strlen(name);
-    uint8_t *stable = (uint8_t *)calloc(name_len, sizeof(uint8_t));
+    UniqueCPtr<uint8_t> stable((uint8_t *)calloc(name_len, sizeof(uint8_t)), free_deleter);
     if (!stable) {
         return PM_CONSTANT_ID_UNSET;
     }
-    memcpy(stable, name, name_len);
-    pm_constant_id_t id = pm_constant_pool_insert_owned(&p->constant_pool, stable, name_len);
+    memcpy(stable.get(), name, name_len);
+    // Transfer ownership to constant pool
+    pm_constant_id_t id = pm_constant_pool_insert_owned(&p->constant_pool, stable.release(), name_len);
     return id;
 }
 
@@ -175,22 +181,22 @@ pm_node_t *PMK::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t na
     auto nameView = parser()->resolveConstant(nameId);
     string nameString(nameView);
 
-    uint8_t *stable = (uint8_t *)calloc(nameString.size(), sizeof(uint8_t));
+    UniqueCPtr<uint8_t> stable((uint8_t *)calloc(nameString.size(), sizeof(uint8_t)), free_deleter);
     if (!stable) {
         return nullptr;
     }
-    memcpy(stable, nameString.data(), nameString.size());
+    memcpy(stable.get(), nameString.data(), nameString.size());
 
     pm_symbol_node_t *symbolNode = allocateNode<pm_symbol_node_t>();
     if (!symbolNode) {
-        free(stable);
         return nullptr;
     }
 
     pm_location_t location = convertLocOffsets(nameLoc.copyWithZeroLength());
 
     pm_string_t unescaped_string;
-    pm_string_owned_init(&unescaped_string, stable, nameString.length());
+    // Mark string as owned so it'll be freed when the node is destroyed
+    pm_string_owned_init(&unescaped_string, stable.release(), nameString.length());
 
     *symbolNode = (pm_symbol_node_t){.base = initializeBaseNode(PM_SYMBOL_NODE),
                                      .opening_loc = location,
