@@ -26,3 +26,10 @@ Failing tests:
 
 // When I actually fix the comparisons:
 // Executed 2082 out of 2082 tests: 1805 tests pass and 277 fail locally.
+
+// After fixing rescues:
+// Executed 2083 out of 2083 tests: 1909 tests pass and 174 fail locally.
+
+// After fixing a bunch more shit:
+
+// Executed 2083 out of 2083 tests: 1976 tests pass and 107 fail locally.
