@@ -59,6 +59,6 @@ void sorbet::Exception::printBacktrace() noexcept {}
 #endif // ifndef EMSCRIPTEN
 void sorbet::Exception::failInFuzzer() noexcept {
     if constexpr (fuzz_mode) {
-        __builtin_trap();
+        std::abort();
     }
 }
