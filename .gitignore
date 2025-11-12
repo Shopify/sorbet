@@ -23,6 +23,7 @@
 # used for fuzzing
 /fuzz_corpus
 /fuzz_crashers
+/fuzz_parser_diffs
 
 # We are bulding gems here, so don't commit these things
 gems/sorbet/Gemfile.lock

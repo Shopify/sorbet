@@ -21,6 +21,28 @@ cc_library(
 )
 
 cc_binary(
+    name = "fuzz_parser_differential",
+    srcs = ["empty.cc"],
+    tags = ["manual"],
+    visibility = ["//tools:__pkg__"],
+    deps = [
+        "fuzz_parser_differential_impl",
+    ],
+)
+
+cc_library(
+    name = "fuzz_parser_differential_impl",
+    srcs = [
+        "fuzz_parser_differential.cc",
+    ],
+    visibility = ["//tools:__pkg__"],
+    deps = [
+        "//main/pipeline",
+        "//payload",
+    ],
+)
+
+cc_binary(
     name = "fuzz_hover",
     srcs = [
         "fuzz_hover.cc",
