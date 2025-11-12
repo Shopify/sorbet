@@ -82,6 +82,11 @@ pm_node_t *PMK::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const 
                                       .delimiter_loc = tiny_loc,
                                       .name_loc = pm_loc};
 
+    // The translator uses node->location (i.e., node->base.location) to assign locations to
+    // the translated Whitequark AST nodes. Without this, nodes get {0,0} locations, breaking
+    // features like check-and-and creation.
+    node->base.location = pm_loc;
+
     return up_cast(node);
 }
 
