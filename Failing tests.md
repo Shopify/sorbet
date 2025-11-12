@@ -31,5 +31,7 @@ Failing tests:
 // Executed 2083 out of 2083 tests: 1909 tests pass and 174 fail locally.
 
 // After fixing a bunch more shit:
-
 // Executed 2083 out of 2083 tests: 1976 tests pass and 107 fail locally.
+
+// After fixing Regexp desugared content loc:
+// Executed 2083 out of 2083 tests: 1996 tests pass and 87 fail locally
