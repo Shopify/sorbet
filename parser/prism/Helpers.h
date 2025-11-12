@@ -230,7 +230,7 @@ public:
     static pm_node_t initializeBaseNode(pm_node_type_t type);
 
     // Basic node creators
-    static pm_node_t *ConstantReadNode(const char *name);
+    static pm_node_t *ConstantReadNode(const char *name, core::LocOffsets loc);
     static pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t name_id, pm_node_t *value);
     static pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const char *name);
     static pm_node_t *SingleArgumentNode(pm_node_t *arg);
@@ -265,8 +265,8 @@ public:
     static void debugPrintLocation(const char *label, pm_location_t loc);
 
     // High-level node creators
-    static pm_node_t *SorbetPrivateStatic();
-    static pm_node_t *TSigWithoutRuntime();
+    static pm_node_t *SorbetPrivateStatic(core::LocOffsets loc);
+    static pm_node_t *TSigWithoutRuntime(core::LocOffsets loc);
 
     // T constant and method helpers
     static pm_node_t *T(core::LocOffsets loc);

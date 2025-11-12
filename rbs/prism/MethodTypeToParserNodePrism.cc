@@ -555,12 +555,12 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     pm_location_t end_zero_loc = PMK::convertLocOffsets(fullTypeLoc.copyEndWithZeroLength());
 
     // Create receiver: Sorbet::Private::Static
-    pm_node_t *receiver = PMK::SorbetPrivateStatic();
+    pm_node_t *receiver = PMK::SorbetPrivateStatic(fullTypeLoc);
     if (!receiver)
         return nullptr;
 
     // Create argument: T::Sig::WithoutRuntime
-    pm_node_t *t_sig_arg = PMK::TSigWithoutRuntime();
+    pm_node_t *t_sig_arg = PMK::TSigWithoutRuntime(fullTypeLoc);
     if (!t_sig_arg)
         return nullptr;
 
