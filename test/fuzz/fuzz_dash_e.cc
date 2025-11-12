@@ -12,15 +12,15 @@ using namespace sorbet;
 auto logger = spdlog::stdout_logger_mt("console");
 auto typeErrorsConsole = spdlog::stdout_logger_mt("typeErrorsConsole");
 
-realmain::options::Options createDefaultOptions(bool stressIncrementalResolver) {
+realmain::options::Options createDefaultOptions(bool stressIncrementalResolver, bool usePrismParser) {
     realmain::options::Options opts;
     opts.stressIncrementalResolver = stressIncrementalResolver;
-    // you can set up options here
+    opts.cacheSensitiveOptions.usePrismParser = usePrismParser;
     return opts;
 };
 
 unique_ptr<const realmain::options::Options> opts =
-    make_unique<const realmain::options::Options>(createDefaultOptions(false));
+    make_unique<const realmain::options::Options>(createDefaultOptions(false, false));
 
 unique_ptr<const OwnedKeyValueStore> kvstore;
 
@@ -33,6 +33,7 @@ unique_ptr<core::GlobalState> buildInitialGlobalState() {
     logger->trace("Doing on-start initialization");
 
     payload::createInitialGlobalState(*gs, *opts, kvstore);
+    realmain::pipeline::setGlobalStateOptions(*gs, *opts);
     return gs;
 }
 
@@ -41,14 +42,23 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
     fatalLogger = logger;
     // Huh, I wish we could use cxxopts, but libfuzzer & cxxopts choke on each other argument formats
     // thus we do it manually
+    bool stressIncrementalResolver = false;
+    bool usePrismParser = false;
     for (int i = 0; i < *argc; i++) {
         if (string((*argv)[i]) == "--stress-incremental-resolver") {
-            opts = make_unique<const realmain::options::Options>(createDefaultOptions(true));
+            stressIncrementalResolver = true;
+        }
+        if (string((*argv)[i]) == "--use-prism-parser") {
+            usePrismParser = true;
         }
     }
+    opts = make_unique<const realmain::options::Options>(createDefaultOptions(stressIncrementalResolver, usePrismParser));
 
     if (opts->stressIncrementalResolver) {
         logger->critical("Enabling incremental resolver");
+    }
+    if (opts->cacheSensitiveOptions.usePrismParser) {
+        logger->critical("Using Prism parser");
     }
     return 0;
 }
@@ -58,7 +68,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     static unique_ptr<WorkerPool> workers = WorkerPool::create(0, *logger);
     commonGs->trace("starting run");
     unique_ptr<core::GlobalState> gs;
-    { gs = commonGs->deepCopyGlobalState(true); }
+    {
+        gs = commonGs->deepCopyGlobalState(true);
+    }
     string inputData((const char *)data, size);
     vector<core::FileRef> inputFiles;
     {
