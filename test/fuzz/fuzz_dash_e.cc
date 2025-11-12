@@ -16,6 +16,7 @@ realmain::options::Options createDefaultOptions(bool stressIncrementalResolver) 
     realmain::options::Options opts;
     opts.stressIncrementalResolver = stressIncrementalResolver;
     // you can set up options here
+    opts.parser = realmain::options::Parser::PRISM;
     return opts;
 };
 
@@ -33,6 +34,7 @@ unique_ptr<core::GlobalState> buildInitialGlobalState() {
     logger->trace("Doing on-start initialization");
 
     payload::createInitialGlobalState(*gs, *opts, kvstore);
+    realmain::pipeline::setGlobalStateOptions(*gs, *opts);
     return gs;
 }
 
@@ -58,7 +60,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     static unique_ptr<WorkerPool> workers = WorkerPool::create(0, *logger);
     commonGs->trace("starting run");
     unique_ptr<core::GlobalState> gs;
-    { gs = commonGs->deepCopyGlobalState(true); }
+    {
+        gs = commonGs->deepCopyGlobalState(true);
+    }
     string inputData((const char *)data, size);
     vector<core::FileRef> inputFiles;
     {
