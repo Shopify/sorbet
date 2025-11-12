@@ -318,20 +318,24 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     // TODO: maybeSupplyGenericTypeArgumentsPrism needs to be updated for Prism
     // maybeSupplyGenericTypeArgumentsPrism(ctx, &node, &type);
 
-    auto loc = translateLocation(node->location);
+    // Use the type node's location for all assertion constructs.
+    // The type node's location points to where the type appears in the comment (e.g., "String"
+    // in "#: as String"). This means the resulting T.cast/T.let/etc call will have the location
+    // of the type, not the expression being wrapped.
+    auto typeLoc = translateLocation(type->location);
 
     if (kind == InlineCommentPrism::Kind::LET) {
-        return PMK::TLet(loc, node, type);
+        return PMK::TLet(typeLoc, node, type);
     } else if (kind == InlineCommentPrism::Kind::CAST) {
-        return PMK::TCast(loc, node, type);
+        return PMK::TCast(typeLoc, node, type);
     } else if (kind == InlineCommentPrism::Kind::MUST) {
-        return PMK::TMust(loc, node);
+        return PMK::TMust(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::UNSAFE) {
-        return PMK::TUnsafe(loc, node);
+        return PMK::TUnsafe(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::ABSURD) {
-        return PMK::TAbsurd(loc, node);
+        return PMK::TAbsurd(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::BIND) {
-        if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSUnsupported)) {
+        if (auto e = ctx.beginIndexerError(typeLoc, core::errors::Rewriter::RBSUnsupported)) {
             e.setHeader("`{}` binding can't be used as a trailing comment", "self");
         }
         return node;

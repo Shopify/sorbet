@@ -908,6 +908,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *paren = down_cast<pm_parentheses_node_t>(node);
             associateAssertionCommentsToNode(node);
             walkNode(paren->body);
+            consumeCommentsInsideNode(node, "begin");
             break;
         }
         case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE:
