@@ -29,7 +29,7 @@ pm_node_t PMK::initializeBaseNode(pm_node_type_t type) {
     return (pm_node_t){.type = type, .flags = 0, .node_id = ++p->node_id, .location = loc};
 }
 
-pm_node_t *PMK::ConstantReadNode(const char *name) {
+pm_node_t *PMK::ConstantReadNode(const char *name, core::LocOffsets loc) {
     pm_constant_id_t constant_id = addConstantToPool(name);
     if (constant_id == PM_CONSTANT_ID_UNSET)
         return nullptr;
@@ -39,6 +39,8 @@ pm_node_t *PMK::ConstantReadNode(const char *name) {
         return nullptr;
 
     *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE), .name = constant_id};
+
+    node->base.location = convertLocOffsets(loc);
 
     return up_cast(node);
 }
@@ -74,12 +76,11 @@ pm_node_t *PMK::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const 
         return nullptr;
 
     pm_location_t pm_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = getZeroWidthLocation();
 
     *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE),
                                       .parent = parent,
                                       .name = name_id,
-                                      .delimiter_loc = tiny_loc,
+                                      .delimiter_loc = pm_loc,
                                       .name_loc = pm_loc};
 
     // The translator uses node->location (i.e., node->base.location) to assign locations to
@@ -295,30 +296,30 @@ void PMK::debugPrintLocation(const char *label, pm_location_t loc) {
     // Debug implementation commented out for performance
 }
 
-pm_node_t *PMK::SorbetPrivateStatic() {
+pm_node_t *PMK::SorbetPrivateStatic(core::LocOffsets loc) {
     // Build a root-anchored constant path ::Sorbet::Private::Static
-    pm_node_t *sorbet = ConstantPathNode(core::LocOffsets::none(), nullptr, "Sorbet");
+    pm_node_t *sorbet = ConstantPathNode(loc, nullptr, "Sorbet");
     if (!sorbet)
         return nullptr;
 
-    pm_node_t *sorbet_private = ConstantPathNode(core::LocOffsets::none(), sorbet, "Private");
+    pm_node_t *sorbet_private = ConstantPathNode(loc, sorbet, "Private");
     if (!sorbet_private)
         return nullptr;
 
-    return ConstantPathNode(core::LocOffsets::none(), sorbet_private, "Static");
+    return ConstantPathNode(loc, sorbet_private, "Static");
 }
 
-pm_node_t *PMK::TSigWithoutRuntime() {
+pm_node_t *PMK::TSigWithoutRuntime(core::LocOffsets loc) {
     // Build a root-anchored constant path ::T::Sig::WithoutRuntime
-    pm_node_t *t_const = ConstantPathNode(core::LocOffsets::none(), nullptr, "T");
+    pm_node_t *t_const = ConstantPathNode(loc, nullptr, "T");
     if (!t_const)
         return nullptr;
 
-    pm_node_t *t_sig = ConstantPathNode(core::LocOffsets::none(), t_const, "Sig");
+    pm_node_t *t_sig = ConstantPathNode(loc, t_const, "Sig");
     if (!t_sig)
         return nullptr;
 
-    return ConstantPathNode(core::LocOffsets::none(), t_sig, "WithoutRuntime");
+    return ConstantPathNode(loc, t_sig, "WithoutRuntime");
 }
 
 pm_node_t *PMK::Symbol(core::LocOffsets nameLoc, const char *name) {

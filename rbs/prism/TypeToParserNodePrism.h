@@ -30,7 +30,8 @@ public:
     pm_node_t *toPrismNode(const rbs_node_t *node, const RBSDeclaration &declaration);
 
 private:
-    pm_node_t *namespaceConst(const rbs_namespace_t *rbsNamespace, const RBSDeclaration &declaration);
+    pm_node_t *namespaceConst(const rbs_namespace_t *rbsNamespace, const RBSDeclaration &declaration,
+                              core::LocOffsets loc);
     pm_node_t *typeNameType(const rbs_type_name_t *typeName, bool isGeneric, const RBSDeclaration &declaration);
     pm_node_t *aliasType(const rbs_types_alias_t *node, core::LocOffsets loc, const RBSDeclaration &declaration);
     pm_node_t *classInstanceType(const rbs_types_class_instance_t *node, core::LocOffsets loc,
