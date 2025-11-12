@@ -1,12 +1,13 @@
 #ifndef SORBET_PARSER_PRISM_HELPERS_H
 #define SORBET_PARSER_PRISM_HELPERS_H
 
+#include "ast/Trees.h"
 #include "common/common.h"
 #include "core/LocOffsets.h"
 #include "parser/Node.h"
-#include <cstdlib>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 extern "C" {
 #include "prism.h"
 }
@@ -23,8 +24,10 @@ namespace sorbet::parser::Prism {
 // Prism node types (C struct names) with their corresponding `pm_node_type_t` enum values.
 template <typename Type> struct PrismNodeTypeHelper {};
 
-#define DEF_TYPE_HELPER(pm_node_type, typeid) \
-    template <> struct PrismNodeTypeHelper<pm_node_type> { static constexpr pm_node_type_t TypeID = typeid; }
+#define DEF_TYPE_HELPER(pm_node_type, typeid)              \
+    template <> struct PrismNodeTypeHelper<pm_node_type> { \
+        static constexpr pm_node_type_t TypeID = typeid;   \
+    }
 
 // clang-format off
 DEF_TYPE_HELPER(pm_alias_global_variable_node_t,           PM_ALIAS_GLOBAL_VARIABLE_NODE);
@@ -237,87 +240,93 @@ template <typename SorbetLHSType> constexpr ast::UnresolvedIdent::Kind getIdentK
     return IdentKindHelper<SorbetLHSType>::Kind;
 }
 
-// Node creation helpers
-class PMK {
-public:
-    // Parser management
-    static void setParser(const Parser *parser);
+class Factory {
+private:
+    Parser &parser;
 
-    // Memory allocation and node initialization
-    template <typename T> static T *allocateNode() {
-        T *node = (T *)calloc(1, sizeof(T));
-        return node;
+public:
+    Factory(Parser &parser) : parser(parser) {}
+
+    template <typename T> T *allocateNode() {
+        try {
+            return new T();
+        } catch (...) {
+            throw std::runtime_error("Failed to allocate memory for node");
+        }
     }
-    static pm_node_t initializeBaseNode(pm_node_type_t type);
+
+    pm_node_t initializeBaseNode(pm_node_type_t type, const pm_location_t loc);
 
     // Basic node creators
-    static pm_node_t *ConstantReadNode(const char *name, core::LocOffsets loc);
-    static pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value);
-    static pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, const char *name);
-    static pm_node_t *SingleArgumentNode(pm_node_t *arg);
-    static pm_node_t *Self(core::LocOffsets loc = core::LocOffsets::none());
+    pm_node_t *ConstantReadNode(std::string_view name, core::LocOffsets loc);
+    pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value);
+    pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, std::string_view name);
+    pm_node_t *SingleArgumentNode(pm_node_t *arg);
+    pm_node_t *Self(core::LocOffsets loc = core::LocOffsets::none());
 
     // Symbol and hash node creators
-    static pm_node_t *Symbol(core::LocOffsets nameLoc, const char *name);
-    static pm_node_t *SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId);
-    static pm_node_t *AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *value);
-    static pm_node_t *Hash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
-    static pm_node_t *KeywordHash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
+    pm_node_t *Symbol(core::LocOffsets nameLoc, std::string_view name);
+    pm_node_t *SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId);
+    pm_node_t *AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *value);
+    pm_node_t *Hash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
+    pm_node_t *KeywordHash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
 
     // Low-level method call creation
-    static pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t methodId, pm_node_t *arguments,
-                                          pm_location_t messageLoc, pm_location_t fullLoc, pm_location_t tinyLoc,
-                                          pm_node_t *block = nullptr);
+    pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
+                                   pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
+                                   pm_node_t *block = nullptr);
 
     // High-level method call builders (similar to ast::MK)
-    static pm_node_t *Send(core::LocOffsets loc, pm_node_t *receiver, const char *method,
-                           const std::vector<pm_node_t *> &args, pm_node_t *block = nullptr);
-    static pm_node_t *Send0(core::LocOffsets loc, pm_node_t *receiver, const char *method);
-    static pm_node_t *Send1(core::LocOffsets loc, pm_node_t *receiver, const char *method, pm_node_t *arg1);
-    static pm_node_t *Send2(core::LocOffsets loc, pm_node_t *receiver, const char *method, pm_node_t *arg1,
-                            pm_node_t *arg2);
+    pm_node_t *Send(core::LocOffsets loc, pm_node_t *receiver, std::string_view method,
+                    const std::vector<pm_node_t *> &args, pm_node_t *block = nullptr);
+    pm_node_t *Send0(core::LocOffsets loc, pm_node_t *receiver, std::string_view method);
+    pm_node_t *Send1(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1);
+    pm_node_t *Send2(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1,
+                     pm_node_t *arg2);
 
     // Utility functions
-    static pm_constant_id_t addConstantToPool(const char *name);
-    static pm_location_t getZeroWidthLocation();
-    static pm_location_t convertLocOffsets(core::LocOffsets loc);
+    pm_constant_id_t addConstantToPool(std::string_view name);
+    pm_location_t getZeroWidthLocation();
+    pm_location_t convertLocOffsets(core::LocOffsets loc);
 
     // High-level node creators
-    static pm_node_t *SorbetPrivateStatic(core::LocOffsets loc);
-    static pm_node_t *TSigWithoutRuntime(core::LocOffsets loc);
+    pm_node_t *SorbetPrivateStatic(core::LocOffsets loc);
+    pm_node_t *TSigWithoutRuntime(core::LocOffsets loc);
 
     // T constant and method helpers
-    static pm_node_t *T(core::LocOffsets loc);
-    static pm_node_t *TUntyped(core::LocOffsets loc);
-    static pm_node_t *TNilable(core::LocOffsets loc, pm_node_t *type);
-    static pm_node_t *TAny(core::LocOffsets loc, const std::vector<pm_node_t *> &args);
-    static pm_node_t *TAll(core::LocOffsets loc, const std::vector<pm_node_t *> &args);
-    static pm_node_t *TTypeParameter(core::LocOffsets loc, pm_node_t *name);
-    static pm_node_t *TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType);
-    static pm_node_t *TProcVoid(core::LocOffsets loc, pm_node_t *args);
-    static pm_node_t *TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
-    static pm_node_t *TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
-    static pm_node_t *TMust(core::LocOffsets loc, pm_node_t *value);
-    static pm_node_t *TUnsafe(core::LocOffsets loc, pm_node_t *value);
-    static pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value);
-    static pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type);
-    static pm_node_t *TTypeAlias(core::LocOffsets loc, pm_node_t *type);
-    static pm_node_t *T_Array(core::LocOffsets loc);
-    static pm_node_t *T_Class(core::LocOffsets loc);
-    static pm_node_t *T_Enumerable(core::LocOffsets loc);
-    static pm_node_t *T_Enumerator(core::LocOffsets loc);
-    static pm_node_t *T_Hash(core::LocOffsets loc);
-    static pm_node_t *T_Set(core::LocOffsets loc);
-    static pm_node_t *T_Range(core::LocOffsets loc);
+    pm_node_t *T(core::LocOffsets loc);
+    pm_node_t *TUntyped(core::LocOffsets loc);
+    pm_node_t *TNilable(core::LocOffsets loc, pm_node_t *type);
+    pm_node_t *TAny(core::LocOffsets loc, const std::vector<pm_node_t *> &args);
+    pm_node_t *TAll(core::LocOffsets loc, const std::vector<pm_node_t *> &args);
+    pm_node_t *TTypeParameter(core::LocOffsets loc, pm_node_t *name);
+    pm_node_t *TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType);
+    pm_node_t *TProcVoid(core::LocOffsets loc, pm_node_t *args);
+    pm_node_t *TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
+    pm_node_t *TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
+    pm_node_t *TMust(core::LocOffsets loc, pm_node_t *value);
+    pm_node_t *TUnsafe(core::LocOffsets loc, pm_node_t *value);
+    pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value);
+    pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type);
+    pm_node_t *TTypeAlias(core::LocOffsets loc, pm_node_t *type);
+    pm_node_t *T_Array(core::LocOffsets loc);
+    pm_node_t *T_Class(core::LocOffsets loc);
+    pm_node_t *T_Enumerable(core::LocOffsets loc);
+    pm_node_t *T_Enumerator(core::LocOffsets loc);
+    pm_node_t *T_Hash(core::LocOffsets loc);
+    pm_node_t *T_Set(core::LocOffsets loc);
+    pm_node_t *T_Range(core::LocOffsets loc);
 
-    // Array node creator
-    static pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements);
+    pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements);
 
-    // Utility functions for type checking
-    static bool isTUntyped(pm_node_t *node);
-    static bool isSetterCall(pm_node_t *node, const Parser &parser);
-    static bool isSafeNavigationCall(pm_node_t *node);
-    static bool isVisibilityCall(pm_node_t *node, const Parser &parser);
+    bool isTUntyped(pm_node_t *node);
+    bool isSetterCall(pm_node_t *node, const Parser &parser);
+    bool isSafeNavigationCall(pm_node_t *node);
+    bool isVisibilityCall(pm_node_t *node, const Parser &parser);
+
+private:
+    pm_arguments_node_t *createArgumentsNode(std::vector<pm_node_t *> args, const pm_location_t loc);
+    pm_node_t **copyNodesToArray(const std::vector<pm_node_t *> &nodes);
 };
 
 } // namespace sorbet::parser::Prism

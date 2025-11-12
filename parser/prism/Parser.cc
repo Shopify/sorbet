@@ -20,8 +20,8 @@ parser::ParseResult Parser::run(core::MutableContext ctx, bool directlyDesugar, 
     return parser::ParseResult{move(translatedTree), move(parseResult.commentLocations)};
 }
 
-pm_parser_t *Parser::getRawParserPointer() const {
-    return const_cast<pm_parser_t *>(&parser);
+pm_parser_t *Parser::getRawParserPointer() { // maybe add back constness
+    return &parser;
 }
 
 // Parses without translating and returns raw Prism nodes for intermediate processing (e.g., RBS rewriting)
