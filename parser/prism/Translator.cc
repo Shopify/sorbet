@@ -4748,8 +4748,6 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
          currentRescueNode = currentRescueNode->subsequent) {
         // Translate the exception variable (e.g. the `=> e` in `rescue => e`)
         auto var = translate(currentRescueNode->reference);
-        ENFORCE(!directlyDesugar || hasExpr(var),
-                "exception variable should always have expressions in directlyDesugar mode");
 
         // Translate the body of the rescue clause
         auto rescueBody = translateStatements(currentRescueNode->statements);
@@ -4762,9 +4760,38 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
         auto exceptionsNodes = absl::MakeSpan(currentRescueNode->exceptions.nodes, currentRescueNode->exceptions.size);
         unique_ptr<parser::Node> exceptionsArray;
         if (!exceptionsNodes.empty()) {
-            exceptionsArray = make_unique<parser::Array>(
-                translateLoc(exceptionsNodes.front()->location.start, exceptionsNodes.back()->location.end),
-                move(exceptions));
+            auto arrayLoc = translateLoc(exceptionsNodes.front()->location.start, exceptionsNodes.back()->location.end);
+
+            if (!directlyDesugar || !hasExpr(exceptions)) {
+                exceptionsArray = make_unique<parser::Array>(arrayLoc, move(exceptions));
+            } else {
+                // Check if there are any splats in the exceptions
+                bool hasSplat = false;
+                for (auto *node : exceptionsNodes) {
+                    if (PM_NODE_TYPE_P(node, PM_SPLAT_NODE)) {
+                        hasSplat = true;
+                        break;
+                    }
+                }
+
+                // Build ast::Array expression from exceptions
+                ast::Array::ENTRY_store astExceptions;
+                astExceptions.reserve(exceptions.size());
+                for (auto &exception : exceptions) {
+                    astExceptions.emplace_back(exception->takeDesugaredExpr());
+                }
+
+                ast::ExpressionPtr arrayExpr;
+                if (hasSplat) {
+                    // Use desugarArray to properly handle splats with concat() calls
+                    arrayExpr = desugarArray(arrayLoc, exceptionsNodes, move(astExceptions));
+                } else {
+                    // Simple case: just create an array without desugaring splats
+                    arrayExpr = ast::make_expression<ast::Array>(arrayLoc, move(astExceptions));
+                }
+
+                exceptionsArray = make_node_with_expr<parser::Array>(move(arrayExpr), arrayLoc, move(exceptions));
+            }
         }
 
         auto resbodyLoc = translateLoc(currentRescueNode->base.location);
@@ -4820,22 +4847,58 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
             }
 
             ast::ExpressionPtr varExpr;
-            if (var != nullptr) {
+            ast::ExpressionPtr rescueBodyExpr;
+
+            // Check if var is an lvalue (IVarLhs, CVarLhs, GVarLhs, etc.) that needs wrapping
+            bool isLvalue = var != nullptr && (parser::NodeWithExpr::isa_node<parser::IVarLhs>(var.get()) ||
+                                               parser::NodeWithExpr::isa_node<parser::CVarLhs>(var.get()) ||
+                                               parser::NodeWithExpr::isa_node<parser::GVarLhs>(var.get()));
+
+            if (isLvalue) {
+                // For lvalue exception variables (like @ex), create a temp variable and wrap the body
+                auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
+                auto varLoc = var->loc;
+                varExpr = ast::MK::Local(varLoc, rescueTemp);
+
+                // Create InsSeq: { @ex = <rescueTemp>; <rescue body> }
+                auto lhsExpr = var->takeDesugaredExpr();
+                auto assignExpr = ast::MK::Assign(varLoc, move(lhsExpr), ast::MK::Local(varLoc, rescueTemp));
+
+                ast::InsSeq::STATS_store stats;
+                stats.emplace_back(move(assignExpr));
+
+                ast::ExpressionPtr bodyExpr;
+                if (rescueBody != nullptr) {
+                    bodyExpr = rescueBody->takeDesugaredExpr();
+                } else {
+                    bodyExpr = ast::MK::EmptyTree();
+                }
+
+                rescueBodyExpr = ast::MK::InsSeq(varLoc, move(stats), move(bodyExpr));
+            } else if (var != nullptr) {
+                // Regular local variable or parameter
                 varExpr = var->takeDesugaredExpr();
+
+                if (rescueBody != nullptr) {
+                    rescueBodyExpr = rescueBody->takeDesugaredExpr();
+                } else {
+                    rescueBodyExpr = ast::MK::EmptyTree();
+                }
             } else {
                 // For bare rescue clauses with no variable, create a <rescueTemp> variable
-                // Legacy parser uses zero-length location when rescue body is empty, full keyword otherwise
+                // Legacy parser uses zero-length location only when there are no exceptions AND no body,
+                // otherwise uses full keyword location
                 auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
-                auto syntheticVarLoc =
-                    (rescueBody == nullptr) ? rescueKeywordLoc.copyWithZeroLength() : rescueKeywordLoc;
+                auto syntheticVarLoc = (exceptionsArray == nullptr && rescueBody == nullptr)
+                                           ? rescueKeywordLoc.copyWithZeroLength()
+                                           : rescueKeywordLoc;
                 varExpr = ast::MK::Local(syntheticVarLoc, rescueTemp);
-            }
 
-            ast::ExpressionPtr rescueBodyExpr;
-            if (rescueBody != nullptr) {
-                rescueBodyExpr = rescueBody->takeDesugaredExpr();
-            } else {
-                rescueBodyExpr = ast::MK::EmptyTree();
+                if (rescueBody != nullptr) {
+                    rescueBodyExpr = rescueBody->takeDesugaredExpr();
+                } else {
+                    rescueBodyExpr = ast::MK::EmptyTree();
+                }
             }
 
             auto rescueCaseExpr = ast::make_expression<ast::RescueCase>(resbodyLoc, move(astExceptions), move(varExpr),
