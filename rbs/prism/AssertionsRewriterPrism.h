@@ -2,6 +2,7 @@
 #define SORBET_RBS_ASSERTIONS_REWRITER_PRISM_H
 
 #include "parser/parser.h"
+#include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "rbs/prism/CommentsAssociatorPrism.h"
 #include "rbs/rbs_common.h"
@@ -31,15 +32,18 @@ class AssertionsRewriterPrism {
 public:
     AssertionsRewriterPrism(core::MutableContext ctx,
                             std::map<parser::Node *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(nullptr), legacyCommentsByNode(&commentsByNode), prismCommentsByNode(nullptr){};
+        : ctx(ctx), parser(nullptr), prism(std::nullopt), legacyCommentsByNode(&commentsByNode),
+          prismCommentsByNode(nullptr){};
     AssertionsRewriterPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
                             std::map<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(&parser), legacyCommentsByNode(nullptr), prismCommentsByNode(&commentsByNode){};
+        : ctx(ctx), parser(&parser), prism(const_cast<parser::Prism::Parser &>(parser)), legacyCommentsByNode(nullptr),
+          prismCommentsByNode(&commentsByNode){};
     pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
     const parser::Prism::Parser *parser;
+    std::optional<parser::Prism::Factory> prism;
     std::map<parser::Node *, std::vector<CommentNodePrism>> *legacyCommentsByNode;
     [[maybe_unused]] std::map<pm_node_t *, std::vector<CommentNodePrism>> *prismCommentsByNode;
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};

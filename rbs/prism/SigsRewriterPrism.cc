@@ -350,7 +350,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     if (typeBeginLoc == std::string::npos) {
         // No '=' found, invalid type alias
         auto loc = parser.translateLocation(node->location);
-        return PMK::TTypeAlias(loc, PMK::TUntyped(loc));
+        return prism.TTypeAlias(loc, prism.TUntyped(loc));
     }
 
     auto typeDeclaration = RBSDeclaration{vector<Comment>{Comment{
@@ -366,11 +366,11 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
 
     if (type == nullptr) {
         auto loc = parser.translateLocation(node->location);
-        type = PMK::TUntyped(loc);
+        type = prism.TUntyped(loc);
     }
 
     auto loc = parser.translateLocation(type->location);
-    return PMK::TTypeAlias(loc, type);
+    return prism.TTypeAlias(loc, type);
 }
 
 void SigsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
@@ -698,9 +698,6 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 }
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
-    // Set parser once for all PMK helpers
-    PMK::setParser(&parser);
-
     return rewriteBody(node);
 }
 

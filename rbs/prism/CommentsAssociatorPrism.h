@@ -3,6 +3,7 @@
 
 #include "common/common.h"
 #include "parser/parser.h"
+#include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include <memory>
 #include <regex>
@@ -44,6 +45,7 @@ private:
 
     core::MutableContext ctx;
     const parser::Prism::Parser &parser;
+    parser::Prism::Factory prism;
     std::vector<core::LocOffsets> commentLocations;
     std::map<int, CommentNodePrism> commentByLine;
     std::map<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
