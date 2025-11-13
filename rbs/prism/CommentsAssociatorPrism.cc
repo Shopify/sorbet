@@ -612,9 +612,13 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
 
-            // Handle safe navigation setter calls: `foo&.bar = val #: Type`
-            if (call->arguments != nullptr && call->arguments->arguments.size == 1 && PMK::isSafeNavigationCall(node) &&
-                PMK::isSetterCall(node, parser)) {
+            if (PMK::isVisibilityCall(node, parser)) {
+                // This is a visibility modifier wrapping a method definition: `private def foo; end`
+                associateSignatureCommentsToNode(node);
+                consumeCommentsInsideNode(node, "send");
+            } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
+                       PMK::isSafeNavigationCall(node) && PMK::isSetterCall(node, parser)) {
+                // Handle safe navigation setter calls: `foo&.bar = val #: Type`
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
                 consumeCommentsInsideNode(node, "csend");

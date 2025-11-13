@@ -799,4 +799,34 @@ bool PMK::isSafeNavigationCall(pm_node_t *node) {
     return PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
 }
 
+bool PMK::isVisibilityCall(pm_node_t *node, const Parser &parser) {
+    if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(node);
+
+    // Must have no receiver (implicit self)
+    if (call->receiver != nullptr) {
+        return false;
+    }
+
+    // Must have exactly one argument
+    if (call->arguments == nullptr || call->arguments->arguments.size != 1) {
+        return false;
+    }
+
+    // That argument must be a method definition
+    pm_node_t *arg = call->arguments->arguments.nodes[0];
+    if (PM_NODE_TYPE(arg) != PM_DEF_NODE) {
+        return false;
+    }
+
+    // Check if the method name is a visibility modifier
+    auto methodName = parser.resolveConstant(call->name);
+    return methodName == "private" || methodName == "protected" || methodName == "public" ||
+           methodName == "private_class_method" || methodName == "public_class_method" ||
+           methodName == "package_private" || methodName == "package_private_class_method";
+}
+
 } // namespace sorbet::parser::Prism
