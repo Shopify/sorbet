@@ -319,6 +319,7 @@ public:
     static bool isTUntyped(pm_node_t *node);
     static bool isSetterCall(pm_node_t *node, const Parser &parser);
     static bool isSafeNavigationCall(pm_node_t *node);
+    static bool isVisibilityCall(pm_node_t *node, const Parser &parser);
 };
 
 } // namespace sorbet::parser::Prism

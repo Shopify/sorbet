@@ -21,8 +21,7 @@ namespace sorbet::rbs {
 
 namespace {
 
-// Prism version of signaturesTarget
-pm_node_t *signaturesTargetForPrism(pm_node_t *node) {
+pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser) {
     if (node == nullptr) {
         return nullptr;
     }
@@ -33,9 +32,10 @@ pm_node_t *signaturesTargetForPrism(pm_node_t *node) {
             // (singleton methods have a receiver field set)
             return node;
         case PM_CALL_NODE: {
-            // TODO: Need to implement isAttrAccessorSend and isVisibilitySend for Prism nodes
-            // This requires checking the method name and context
-            // For now, return nullptr until we implement the helper functions
+            if (PMK::isVisibilityCall(node, parser)) {
+                return node;
+            }
+            // TODO: Need to implement isAttrAccessorSend for Prism nodes
             return nullptr;
         }
         default:
@@ -303,19 +303,22 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
             }
         } else if (PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
             auto *call = down_cast<pm_call_node_t>(node);
-            // TODO: Implement isVisibilitySend and isAttrAccessorSend for Prism nodes
-            // This requires checking the method name and context like the original:
-            // if (isVisibilitySendPrism(call)) {
-            //     auto sig = signatureTranslator.translateMethodSignature(call->arguments->arguments.nodes[0],
-            //     declaration, comments.annotations); signatures->emplace_back(move(sig));
-            // } else if (isAttrAccessorSendPrism(call)) {
-            //     auto sig = signatureTranslator.translateAttrSignature(call, declaration, comments.annotations);
-            //     signatures->emplace_back(move(sig));
-            // } else {
-            //     Exception::raise("Unimplemented call node type");
-            // }
-            (void)call;        // Suppress unused warning
-            (void)declaration; // Suppress unused warning
+            if (PMK::isVisibilityCall(node, parser)) {
+                // For visibility modifiers, translate the signature for the inner method definition
+                auto sig = signatureTranslator.translateMethodSignature(call->arguments->arguments.nodes[0],
+                                                                        declaration, comments.annotations);
+                if (sig) {
+                    signatures->emplace_back(sig);
+                }
+            } else {
+                // TODO: Implement isAttrAccessorSend for Prism nodes
+                // } else if (PMK::isAttrAccessorCall(call, parser)) {
+                //     auto sig = signatureTranslator.translateAttrSignature(call, declaration, comments.annotations);
+                //     if (sig) {
+                //         signatures->emplace_back(sig);
+                //     }
+                Exception::raise("Unimplemented call node type for signatures");
+            }
         } else {
             Exception::raise("Unimplemented node type for signatures: {}", (int)PM_NODE_TYPE(node));
         }
@@ -396,7 +399,7 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
         for (size_t i = 0; i < oldStmts.size; i++) {
             pm_node_t *stmt = oldStmts.nodes[i];
 
-            if (auto target = signaturesTargetForPrism(stmt)) {
+            if (auto target = signaturesTarget(stmt, parser)) {
                 if (auto signatures = signaturesForNode(target)) {
                     // Add all signatures
                     for (auto sig : *signatures) {
@@ -416,7 +419,7 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     }
 
     // Handle single node that is a signature target
-    if (auto target = signaturesTargetForPrism(node)) {
+    if (auto target = signaturesTarget(node, parser)) {
         if (auto signatures = signaturesForNode(target)) {
             // Wrap in a statements node with signatures + node
             return createStatementsWithSignatures(rewriteNode(node), move(signatures));
