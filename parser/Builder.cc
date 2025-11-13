@@ -203,6 +203,8 @@ public:
 
                 auto raw_numparam_stack = driver_->numparam_stack.stackCopy();
 
+                auto opening_token = raw_numparam_stack.back().opening_token;
+
                 // ignore current block scope
                 raw_numparam_stack.pop_back();
 
@@ -226,7 +228,11 @@ public:
                 }
 
                 driver_->lex.declare(name_str);
-                auto intro = make_unique<LVar>(node->loc, id->name);
+
+                // The LVar's location matches the non-zero length NumParams node. See `numparams()` for details.
+                core::LocOffsets loc = tokLoc(opening_token).copyEndWithZeroLength();
+                auto intro = make_unique<LVar>(loc, id->name);
+
                 auto decls = driver_->alloc.node_list();
                 decls->emplace_back(toForeign(std::move(intro)));
                 driver_->numparam_stack.regis(name_str[1] - '0', std::move(decls));
@@ -1348,7 +1354,7 @@ public:
     // `tok` is the opening token:
     //     - for blocks, it's opening `do` or `{`
     //     - for lambdas, it's the `->`
-    // We use it to set the location of the numparams to a zero-length loc just after, as if you had written:
+    // We use it to set the location of the NumParams to a zero-length loc just after, as if you had written:
     //     - `do|_1, _2| ... end`
     //     - `{|_1, _2| ... }`
     //     - `->(_1, _2) { ... }`
