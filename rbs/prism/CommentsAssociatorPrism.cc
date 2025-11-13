@@ -612,20 +612,35 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
 
+            // Handle safe navigation setter calls: `foo&.bar = val #: Type`
             if (call->arguments != nullptr && call->arguments->arguments.size == 1 && PMK::isSafeNavigationCall(node) &&
                 PMK::isSetterCall(node, parser)) {
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
                 consumeCommentsInsideNode(node, "csend");
-                break;
+            } else if (parser.resolveConstant(call->name) == "[]=" || PMK::isSetterCall(node, parser)) {
+                // This is an assign through a send, either: `foo[key]=(y)` or `foo.x=(y)`
+                //
+                // Note: the parser groups the args on the right hand side of the assignment into an array node:
+                //  * for `foo.x = 1, 2` the args are `[1, 2]`
+                //  * for `foo[k1, k2] = 1, 2` the args are `[k1, k2, [1, 2]]`
+                //
+                // We always apply the cast starting from the last arg by walking them in reverse order.
+                if (call->arguments != nullptr) {
+                    for (int i = call->arguments->arguments.size - 1; i >= 0; i--) {
+                        walkNode(call->arguments->arguments.nodes[i]);
+                    }
+                }
+                walkNode(call->receiver);
+                consumeCommentsInsideNode(node, "send");
+            } else {
+                associateAssertionCommentsToNode(node);
+                walkNode(call->receiver);
+                if (call->arguments != nullptr) {
+                    walkNodes(call->arguments->arguments);
+                }
+                walkNode(call->block);
             }
-
-            associateAssertionCommentsToNode(node);
-            walkNode(call->receiver);
-            if (call->arguments != nullptr) {
-                walkNodes(call->arguments->arguments);
-            }
-            walkNode(call->block);
             break;
         }
         case PM_DEF_NODE: {
