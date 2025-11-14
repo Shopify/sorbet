@@ -612,17 +612,17 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
 
-            if (prism.isVisibilityCall(node, parser)) {
+            if (prism.isVisibilityCall(node)) {
                 // This is a visibility modifier wrapping a method definition: `private def foo; end`
                 associateSignatureCommentsToNode(node);
                 consumeCommentsInsideNode(node, "send");
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
-                       prism.isSafeNavigationCall(node) && prism.isSetterCall(node, parser)) {
+                       prism.isSafeNavigationCall(node) && prism.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
                 consumeCommentsInsideNode(node, "csend");
-            } else if (parser.resolveConstant(call->name) == "[]=" || PMK::isSetterCall(node, parser)) {
+            } else if (parser.resolveConstant(call->name) == "[]=" || prism.isSetterCall(node)) {
                 // This is an assign through a send, either: `foo[key]=(y)` or `foo.x=(y)`
                 //
                 // Note: the parser groups the args on the right hand side of the assignment into an array node:
