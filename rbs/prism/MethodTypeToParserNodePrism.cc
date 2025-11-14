@@ -640,7 +640,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     }
 
     // Build sig chain
-    pm_node_t *sigReceiver = prism->Self();
+    pm_node_t *sigReceiver = prism->Self(fullTypeLoc);
     if (!sigReceiver)
         return nullptr;
 
@@ -651,7 +651,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
         for (auto &param : typeParams) {
             string nameStr = param.second.show(ctx.state);
-            pm_node_t *symbolNode = prism->Symbol(param.first, nameStr.c_str());
+            pm_node_t *symbolNode = prism->Symbol(param.first, nameStr);
             typeParamSymbols.push_back(symbolNode);
         }
 
@@ -751,7 +751,7 @@ pm_node_t *MethodTypeToParserNodePrism::createSymbolNode(rbs_ast_symbol_t *name,
     auto nameStr = parser.resolveConstant(name);
     string nameString(nameStr);
 
-    return prism->Symbol(nameLoc, nameString.c_str());
+    return prism->Symbol(nameLoc, nameString);
 }
 
 } // namespace sorbet::rbs

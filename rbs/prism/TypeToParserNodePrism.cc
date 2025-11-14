@@ -41,7 +41,7 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
             auto nameStr = parser.resolveConstant(symbol);
             string nameString(nameStr);
 
-            pm_node_t *constNode = prism.ConstantReadNode(nameString.c_str(), loc);
+            pm_node_t *constNode = prism.ConstantReadNode(nameString, loc);
             if (parent) {
                 // Create constant path node for scoped access
                 // This is simplified - full implementation would use pm_constant_path_node_create
@@ -88,7 +88,7 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
         if (hasTypeParam(typeParams, nameUTF8)) {
             // Ensure proper string conversion from string_view
             string nameString{nameStr.data(), nameStr.size()};
-            pm_node_t *symbolNode = prism.Symbol(loc, nameString.c_str());
+            pm_node_t *symbolNode = prism.Symbol(loc, nameString);
             return prism.TTypeParameter(loc, symbolNode);
         }
     }
@@ -96,9 +96,9 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
     // Create a proper constant path node (parent::name or just name if no parent)
     string nameString{nameStr.data(), nameStr.size()};
     if (parent) {
-        return prism.ConstantPathNode(loc, parent, nameString.c_str());
+        return prism.ConstantPathNode(loc, parent, nameString);
     } else {
-        return prism.ConstantReadNode(nameString.c_str(), loc);
+        return prism.ConstantReadNode(nameString, loc);
     }
 }
 
@@ -108,7 +108,7 @@ pm_node_t *TypeToParserNodePrism::aliasType(const rbs_types_alias_t *node, core:
     auto nameStr = "type " + string(nameView);
 
     // addConstantToPool copies the string, so it's safe to pass a temporary
-    return prism.ConstantReadNode(nameStr.c_str(), loc);
+    return prism.ConstantReadNode(nameStr, loc);
 }
 
 pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instance_t *node, core::LocOffsets loc,
@@ -275,7 +275,7 @@ pm_node_t *TypeToParserNodePrism::variableType(const rbs_types_variable_t *node,
     rbs_ast_symbol_t *symbol = (rbs_ast_symbol_t *)node->name;
     auto nameStr = parser.resolveConstant(symbol);
     string nameString(nameStr);
-    pm_node_t *symbolNode = prism.Symbol(loc, nameString.c_str());
+    pm_node_t *symbolNode = prism.Symbol(loc, nameString);
     // fmt::print("DEBUG: Creating type parameter reference: {}\n", nameString);
     return prism.TTypeParameter(loc, symbolNode);
 }

@@ -49,21 +49,15 @@ pm_node_t **copyNodesToArray(const vector<pm_node_t *> &nodes) {
     return nodeArray;
 }
 
-} // namespace
-
-void PMK::setParser(const Parser *p) {
-    prismParser = p;
-}
-
-pm_node_t PMK::initializeBaseNode(pm_node_type_t type) {
-    pm_parser_t *prismParser = parser()->getRawParserPointer();
+pm_node_t Factory::initializeBaseNode(pm_node_type_t type, const pm_location_t loc) {
+    pm_parser_t *prismParser = parser.getRawParserPointer();
     prismParser->node_id++;
     uint32_t nodeId = prismParser->node_id;
 
     return (pm_node_t){.type = type, .flags = 0, .node_id = nodeId, .location = loc};
 }
 
-pm_node_t *Factory::ConstantReadNode(const char *name) {
+pm_node_t *Factory::ConstantReadNode(std::string_view name, core::LocOffsets loc) {
     pm_constant_id_t constantId = addConstantToPool(name);
     if (constantId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
@@ -71,8 +65,8 @@ pm_node_t *Factory::ConstantReadNode(const char *name) {
 
     pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
 
-    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE, getZeroWidthLocation()),
-                                      .name = constantId};
+    pm_location_t pmLoc = convertLocOffsets(loc);
+    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE, pmLoc), .name = constantId};
 
     return up_cast(node);
 }
@@ -106,16 +100,11 @@ pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, st
 
     pm_location_t pmLoc = convertLocOffsets(loc);
 
-    *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE),
+    *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE, pmLoc),
                                       .parent = parent,
                                       .name = nameId,
                                       .delimiter_loc = pmLoc,
                                       .name_loc = pmLoc};
-
-    // The translator uses node->location (i.e., node->base.location) to assign locations to
-    // the translated Whitequark AST nodes. Without this, nodes get {0,0} locations, breaking
-    // features like check-and-and creation.
-    node->base.location = pmLoc;
 
     return up_cast(node);
 }
@@ -307,10 +296,10 @@ pm_node_t *Factory::Send0(core::LocOffsets loc, pm_node_t *receiver, string_view
         return nullptr;
     }
 
-    pm_location_t full_loc = convertLocOffsets(loc);
-    pm_location_t tiny_loc = convertLocOffsets(loc.copyWithZeroLength());
+    pm_location_t fullLoc = convertLocOffsets(loc);
+    pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, method_id, nullptr, tiny_loc, full_loc, tiny_loc));
+    return up_cast(createSendNode(receiver, methodId, nullptr, tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *Factory::Send1(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1) {
@@ -344,20 +333,21 @@ pm_node_t *Factory::Send(core::LocOffsets loc, pm_node_t *receiver, string_view 
 
     pm_arguments_node_t *arguments = nullptr;
     if (!args.empty()) {
-        arguments = createArgumentsNode(args, loc);
+        pm_location_t pmLoc = convertLocOffsets(loc);
+        arguments = createArgumentsNode(args, pmLoc);
     }
 
     pm_location_t fullLoc = convertLocOffsets(loc);
     pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, method_id, up_cast(arguments), tiny_loc, full_loc, tiny_loc, block));
+    return up_cast(createSendNode(receiver, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc, block));
 }
 
 pm_node_t *Factory::T(core::LocOffsets loc) {
     return ConstantPathNode(loc, nullptr, "T");
 }
 
-pm_node_t *PMK::TUntyped(core::LocOffsets loc) {
+pm_node_t *Factory::TUntyped(core::LocOffsets loc) {
     pm_node_t *tConst = T(loc);
     return Send0(loc, tConst, "untyped"sv);
 }
@@ -382,15 +372,14 @@ pm_node_t *Factory::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) 
         return nullptr;
     }
 
-    pm_arguments_node_t *arguments = createArgumentsNode(args, loc);
-
     pm_location_t fullLoc = convertLocOffsets(loc);
     pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
+    pm_arguments_node_t *arguments = createArgumentsNode(args, fullLoc);
 
     return up_cast(createSendNode(tConst, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
-pm_node_t *PMK::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) {
+pm_node_t *Factory::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) {
     pm_node_t *tConst = T(loc);
     if (args.empty()) {
         Exception::raise("Args is empty");
@@ -401,10 +390,9 @@ pm_node_t *PMK::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) {
         return nullptr;
     }
 
-    pm_arguments_node_t *arguments = createArgumentsNode(args, loc);
-
     pm_location_t fullLoc = convertLocOffsets(loc);
     pm_location_t tinyLoc = convertLocOffsets(loc.copyWithZeroLength());
+    pm_arguments_node_t *arguments = createArgumentsNode(args, fullLoc);
 
     return up_cast(createSendNode(tConst, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
@@ -608,17 +596,17 @@ bool Factory::isTUntyped(pm_node_t *node) {
 
     pm_call_node_t *call = down_cast<pm_call_node_t>(node);
     if (!call->receiver || PM_NODE_TYPE(call->receiver) != PM_CONSTANT_PATH_NODE) {
-        Exception::raise("Receiver is null or not a constant path node");
+        return false;
     }
 
     pm_constant_path_node_t *receiver = down_cast<pm_constant_path_node_t>(call->receiver);
     if (receiver->parent != nullptr) {
-        Exception::raise("Receiver is not root-anchored");
+        return false; // Should be root-anchored ::T
     }
 
     auto methodName = parser.resolveConstant(call->name);
     if (methodName != "untyped") {
-        Exception::raise("Method name is not untyped");
+        return false;
     }
 
     auto receiverName = parser.resolveConstant(receiver->name);
