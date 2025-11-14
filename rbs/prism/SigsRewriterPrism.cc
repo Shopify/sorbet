@@ -334,16 +334,8 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
  */
 pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     auto comments = commentsForNode(node);
-
-    if (comments.signatures.empty()) {
-        // This should never happen
-        Exception::raise("No inline comment found for synthetic type alias");
-    }
-
-    if (comments.signatures.size() > 1) {
-        // This should never happen
-        Exception::raise("Multiple signatures found for synthetic type alias");
-    }
+    ENFORCE(!comments.signatures.empty(), "No inline comment found for synthetic type alias");
+    ENFORCE(comments.signatures.size() <= 1, "Multiple signatures found for synthetic type alias");
 
     auto aliasDeclaration = comments.signatures[0];
     auto fullString = aliasDeclaration.string;

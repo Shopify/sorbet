@@ -59,9 +59,7 @@ pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) {
 }
 
 pm_node_t *Factory::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value) {
-    if (!value) {
-        Exception::raise("ConstantWriteNode: value is required");
-    }
+    ENFORCE(value, "ConstantWriteNode: value is required");
 
     pm_constant_write_node_t *node = allocateNode<pm_constant_write_node_t>();
 
@@ -97,9 +95,7 @@ pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, st
 }
 
 pm_node_t *Factory::SingleArgumentNode(pm_node_t *arg) {
-    if (!arg) {
-        Exception::raise("SingleArgumentNode: arg is required");
-    }
+    ENFORCE(arg, "SingleArgumentNode: arg is required");
 
     vector<pm_node_t *> args = {arg};
     pm_arguments_node_t *arguments = createArgumentsNode(args, arg->location);
@@ -193,9 +189,7 @@ pm_node_t *Factory::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_
 }
 
 pm_node_t *Factory::AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *value) {
-    if (!key || !value) {
-        Exception::raise("Key or value is null");
-    }
+    ENFORCE(key && value, "Key or value is null");
 
     pm_assoc_node_t *assocNode = allocateNode<pm_assoc_node_t>();
 
@@ -262,18 +256,14 @@ pm_node_t *Factory::TSigWithoutRuntime(core::LocOffsets loc) {
 }
 
 pm_node_t *Factory::Symbol(core::LocOffsets nameLoc, string_view name) {
-    if (name.empty()) {
-        Exception::raise("Name is empty");
-    }
+    ENFORCE(!name.empty(), "Name is empty");
 
     pm_constant_id_t nameId = addConstantToPool(name);
     return SymbolFromConstant(nameLoc, nameId);
 }
 
 pm_node_t *Factory::Send0(core::LocOffsets loc, pm_node_t *receiver, string_view method) {
-    if (!receiver || method.empty()) {
-        Exception::raise("Receiver or method is null");
-    }
+    ENFORCE(receiver && !method.empty(), "Receiver or method is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
     if (methodId == PM_CONSTANT_ID_UNSET) {
@@ -287,9 +277,7 @@ pm_node_t *Factory::Send0(core::LocOffsets loc, pm_node_t *receiver, string_view
 }
 
 pm_node_t *Factory::Send1(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1) {
-    if (!receiver || method.empty() || !arg1) {
-        Exception::raise("Receiver or method or argument is null");
-    }
+    ENFORCE(receiver && !method.empty() && arg1, "Receiver or method or argument is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
     if (methodId == PM_CONSTANT_ID_UNSET) {
@@ -306,9 +294,7 @@ pm_node_t *Factory::Send1(core::LocOffsets loc, pm_node_t *receiver, string_view
 
 pm_node_t *Factory::Send(core::LocOffsets loc, pm_node_t *receiver, string_view method, const vector<pm_node_t *> &args,
                          pm_node_t *block) {
-    if (!receiver || method.empty()) {
-        Exception::raise("Receiver or method is null");
-    }
+    ENFORCE(receiver && !method.empty(), "Receiver or method is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
     if (methodId == PM_CONSTANT_ID_UNSET) {
@@ -337,20 +323,16 @@ pm_node_t *Factory::TUntyped(core::LocOffsets loc) {
 }
 
 pm_node_t *Factory::TNilable(core::LocOffsets loc, pm_node_t *type) {
-    if (!type) {
-        Exception::raise("TNilable: type parameter is required");
-    }
+    ENFORCE(type, "TNilable: type parameter is required");
 
     pm_node_t *tConst = T(loc);
     return Send1(loc, tConst, "nilable"sv, type);
 }
 
 pm_node_t *Factory::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) {
-    pm_node_t *tConst = T(loc);
-    if (args.empty()) {
-        Exception::raise("Args is empty");
-    }
+    ENFORCE(!args.empty(), "Args is empty");
 
+    pm_node_t *tConst = T(loc);
     pm_constant_id_t methodId = addConstantToPool("any"sv);
     if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
@@ -364,11 +346,9 @@ pm_node_t *Factory::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) 
 }
 
 pm_node_t *Factory::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) {
-    pm_node_t *tConst = T(loc);
-    if (args.empty()) {
-        Exception::raise("Args is empty");
-    }
+    ENFORCE(!args.empty(), "Args is empty");
 
+    pm_node_t *tConst = T(loc);
     pm_constant_id_t methodId = addConstantToPool("all"sv);
     if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
@@ -382,9 +362,7 @@ pm_node_t *Factory::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) 
 }
 
 pm_node_t *Factory::TTypeParameter(core::LocOffsets loc, pm_node_t *name) {
-    if (!name) {
-        Exception::raise("Name is null");
-    }
+    ENFORCE(name, "Name is null");
 
     pm_node_t *tConst = T(loc);
 
@@ -392,9 +370,7 @@ pm_node_t *Factory::TTypeParameter(core::LocOffsets loc, pm_node_t *name) {
 }
 
 pm_node_t *Factory::TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType) {
-    if (!returnType) {
-        Exception::raise("Return type is null");
-    }
+    ENFORCE(returnType, "Return type is null");
 
     pm_node_t *builder = T(loc);
 
@@ -421,9 +397,7 @@ pm_node_t *Factory::TProcVoid(core::LocOffsets loc, pm_node_t *args) {
 
 pm_node_t *Factory::Send2(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1,
                           pm_node_t *arg2) {
-    if (!receiver || method.empty() || !arg1 || !arg2) {
-        Exception::raise("Receiver or method or arguments are null");
-    }
+    ENFORCE(receiver && !method.empty() && arg1 && arg2, "Receiver or method or arguments are null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
     if (methodId == PM_CONSTANT_ID_UNSET) {
@@ -441,66 +415,52 @@ pm_node_t *Factory::Send2(core::LocOffsets loc, pm_node_t *receiver, string_view
 }
 
 pm_node_t *Factory::TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) {
-    pm_node_t *tConst = T(loc);
-    if (!value || !type) {
-        Exception::raise("Value or type is null");
-    }
+    ENFORCE(value && type, "Value or type is null");
 
+    pm_node_t *tConst = T(loc);
     return Send2(loc, tConst, "let"sv, value, type);
 }
 
 pm_node_t *Factory::TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) {
-    pm_node_t *tConst = T(loc);
-    if (!value || !type) {
-        Exception::raise("Value or type is null");
-    }
+    ENFORCE(value && type, "Value or type is null");
 
+    pm_node_t *tConst = T(loc);
     return Send2(loc, tConst, "cast"sv, value, type);
 }
 
 pm_node_t *Factory::TMust(core::LocOffsets loc, pm_node_t *value) {
-    pm_node_t *tConst = T(loc);
-    if (!value) {
-        Exception::raise("Value is null");
-    }
+    ENFORCE(value, "Value is null");
 
+    pm_node_t *tConst = T(loc);
     return Send1(loc, tConst, "must"sv, value);
 }
 
 pm_node_t *Factory::TUnsafe(core::LocOffsets loc, pm_node_t *value) {
-    pm_node_t *tConst = T(loc);
-    if (!value) {
-        Exception::raise("Value is null");
-    }
+    ENFORCE(value, "Value is null");
 
+    pm_node_t *tConst = T(loc);
     return Send1(loc, tConst, "unsafe"sv, value);
 }
 
 pm_node_t *Factory::TAbsurd(core::LocOffsets loc, pm_node_t *value) {
-    pm_node_t *tConst = T(loc);
-    if (!value) {
-        Exception::raise("Value is null");
-    }
+    ENFORCE(value, "Value is null");
 
+    pm_node_t *tConst = T(loc);
     return Send1(loc, tConst, "absurd"sv, value);
 }
 pm_node_t *Factory::TBindSelf(core::LocOffsets loc, pm_node_t *type) {
-    pm_node_t *tConst = T(loc);
-    if (!type) {
-        Exception::raise("Type is null");
-    }
+    ENFORCE(type, "Type is null");
 
+    pm_node_t *tConst = T(loc);
     pm_node_t *selfNode = Self(loc);
 
     return Send2(loc, tConst, "bind"sv, selfNode, type);
 }
 
 pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
-    pm_node_t *tConst = T(loc);
-    if (!type) {
-        Exception::raise("Type is null");
-    }
+    ENFORCE(type, "Type is null");
 
+    pm_node_t *tConst = T(loc);
     pm_node_t *send = Send0(loc, tConst, "type_alias"sv);
 
     pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
