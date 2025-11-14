@@ -324,8 +324,8 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             continuationFor = placeholder;
 
             // Create constant assignment node: `type foo = placeholder`
-            pm_constant_id_t name_id = PMK::addConstantToPool(nameStr.c_str());
-            pm_node_t *constantWrite = PMK::ConstantWriteNode(it->second.loc, name_id, placeholder);
+            pm_constant_id_t name_id = prism.addConstantToPool(nameStr.c_str());
+            pm_node_t *constantWrite = prism.ConstantWriteNode(it->second.loc, name_id, placeholder);
 
             // Insert the assignment into the statement list
             insertNodeAtIndex(nodes, constantWrite, index);
@@ -612,17 +612,17 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
 
-            if (PMK::isVisibilityCall(node, parser)) {
+            if (parser.isVisibilityCall(node)) {
                 // This is a visibility modifier wrapping a method definition: `private def foo; end`
                 associateSignatureCommentsToNode(node);
                 consumeCommentsInsideNode(node, "send");
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
-                       PMK::isSafeNavigationCall(node) && PMK::isSetterCall(node, parser)) {
+                       parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
                 consumeCommentsInsideNode(node, "csend");
-            } else if (parser.resolveConstant(call->name) == "[]=" || PMK::isSetterCall(node, parser)) {
+            } else if (parser.resolveConstant(call->name) == "[]=" || parser.isSetterCall(node)) {
                 // This is an assign through a send, either: `foo[key]=(y)` or `foo.x=(y)`
                 //
                 // Note: the parser groups the args on the right hand side of the assignment into an array node:
@@ -982,9 +982,6 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
 }
 
 CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
-    // Set parser for PMK helpers
-    PMK::setParser(&parser);
-
     // Remove any comments that don't start with RBS prefixes
     for (auto it = commentByLine.begin(); it != commentByLine.end();) {
         if (!absl::StartsWith(it->second.string, RBS_PREFIX) &&
@@ -1011,9 +1008,9 @@ CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
     return CommentMapPrismNode{signaturesForNode, assertionsForNode};
 }
 
-CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                                                  vector<core::LocOffsets> commentLocations)
-    : ctx(ctx), parser(parser), commentLocations(commentLocations), commentByLine() {
+    : ctx(ctx), parser(parser), prism(parser), commentLocations(commentLocations), commentByLine() {
     for (auto &loc : commentLocations) {
         auto comment_string = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.endPos() - loc.beginPos());
         auto start32 = static_cast<uint32_t>(loc.beginPos());

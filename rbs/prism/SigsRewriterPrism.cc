@@ -21,7 +21,7 @@ namespace sorbet::rbs {
 
 namespace {
 
-pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser) {
+pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
     if (node == nullptr) {
         return nullptr;
     }
@@ -32,7 +32,8 @@ pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser
             // (singleton methods have a receiver field set)
             return node;
         case PM_CALL_NODE: {
-            if (PMK::isVisibilityCall(node, parser)) {
+            Factory prism(parser);
+            if (parser.isVisibilityCall(node)) {
                 return node;
             }
             // TODO: Need to implement isAttrAccessorSend for Prism nodes
@@ -303,7 +304,8 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
             }
         } else if (PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
             auto *call = down_cast<pm_call_node_t>(node);
-            if (PMK::isVisibilityCall(node, parser)) {
+            Factory prism(parser);
+            if (parser.isVisibilityCall(node)) {
                 // For visibility modifiers, translate the signature for the inner method definition
                 auto sig = signatureTranslator.translateMethodSignature(call->arguments->arguments.nodes[0],
                                                                         declaration, comments.annotations);
@@ -332,16 +334,8 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
  */
 pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     auto comments = commentsForNode(node);
-
-    if (comments.signatures.empty()) {
-        // This should never happen
-        Exception::raise("No inline comment found for synthetic type alias");
-    }
-
-    if (comments.signatures.size() > 1) {
-        // This should never happen
-        Exception::raise("Multiple signatures found for synthetic type alias");
-    }
+    ENFORCE(!comments.signatures.empty(), "No inline comment found for synthetic type alias");
+    ENFORCE(comments.signatures.size() <= 1, "Multiple signatures found for synthetic type alias");
 
     auto aliasDeclaration = comments.signatures[0];
     auto fullString = aliasDeclaration.string;
@@ -350,7 +344,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     if (typeBeginLoc == std::string::npos) {
         // No '=' found, invalid type alias
         auto loc = parser.translateLocation(node->location);
-        return PMK::TTypeAlias(loc, PMK::TUntyped(loc));
+        return prism.TTypeAlias(loc, prism.TUntyped(loc));
     }
 
     auto typeDeclaration = RBSDeclaration{vector<Comment>{Comment{
@@ -366,11 +360,11 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
 
     if (type == nullptr) {
         auto loc = parser.translateLocation(node->location);
-        type = PMK::TUntyped(loc);
+        type = prism.TUntyped(loc);
     }
 
     auto loc = parser.translateLocation(type->location);
-    return PMK::TTypeAlias(loc, type);
+    return prism.TTypeAlias(loc, type);
 }
 
 void SigsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
@@ -698,9 +692,6 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 }
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
-    // Set parser once for all PMK helpers
-    PMK::setParser(&parser);
-
     return rewriteBody(node);
 }
 
