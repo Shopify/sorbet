@@ -118,6 +118,16 @@ pm_node_t *Factory::Self(core::LocOffsets loc) const {
     return up_cast(selfNode);
 }
 
+pm_node_t *Factory::True(core::LocOffsets loc) const {
+    ENFORCE(loc.exists(), "True: location is required");
+
+    pm_true_node_t *trueNode = allocateNode<pm_true_node_t>();
+
+    *trueNode = (pm_true_node_t){.base = initializeBaseNode(PM_TRUE_NODE, parser.convertLocOffsets(loc))};
+
+    return up_cast(trueNode);
+}
+
 pm_constant_id_t Factory::addConstantToPool(string_view name) const {
     pm_parser_t *prismParser = parser.getRawParserPointer();
     size_t nameLen = name.size();
@@ -275,6 +285,11 @@ pm_node_t *Factory::Send(core::LocOffsets loc, pm_node_t *receiver, string_view 
 
 pm_node_t *Factory::T(core::LocOffsets loc) const {
     return ConstantPathNode(loc, nullptr, "T");
+}
+
+pm_node_t *Factory::THelpers(core::LocOffsets loc) const {
+    // Create T::Helpers constant path
+    return ConstantPathNode(loc, T(loc), "Helpers");
 }
 
 pm_node_t *Factory::TUntyped(core::LocOffsets loc) const {

@@ -34,6 +34,7 @@ public:
     pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, std::string_view name) const;
     pm_node_t *SingleArgumentNode(pm_node_t *arg) const;
     pm_node_t *Self(core::LocOffsets loc) const;
+    pm_node_t *True(core::LocOffsets loc) const;
 
     // Symbol and hash node creators
     pm_node_t *Symbol(core::LocOffsets nameLoc, std::string_view name) const;
@@ -64,6 +65,7 @@ public:
 
     // T constant and method helpers
     pm_node_t *T(core::LocOffsets loc) const;
+    pm_node_t *THelpers(core::LocOffsets loc) const;
     pm_node_t *TUntyped(core::LocOffsets loc) const;
     pm_node_t *TNilable(core::LocOffsets loc, pm_node_t *type) const;
     pm_node_t *TAny(core::LocOffsets loc, const std::vector<pm_node_t *> &args) const;
