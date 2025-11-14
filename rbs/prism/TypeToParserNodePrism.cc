@@ -291,8 +291,14 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
             return PMK::TUntyped(nodeLoc);
         case RBS_TYPES_BASES_BOOL:
             return PMK::ConstantReadNode("T::Boolean", nodeLoc);
-        case RBS_TYPES_BASES_BOTTOM:
-            return PMK::ConstantReadNode("T.noreturn", nodeLoc);
+        case RBS_TYPES_BASES_BOTTOM: {
+            // Create T.noreturn() method call
+            pm_node_t *t_const = PMK::T(nodeLoc);
+            if (!t_const) {
+                return nullptr;
+            }
+            return PMK::Send0(nodeLoc, t_const, "noreturn");
+        }
         case RBS_TYPES_BASES_CLASS: {
             if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS type `{}` is not supported", "class");

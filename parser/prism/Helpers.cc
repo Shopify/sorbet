@@ -760,6 +760,34 @@ pm_node_t *PMK::T_Range(core::LocOffsets loc) {
     return ConstantPathNode(loc, T(loc), "Range");
 }
 
+pm_node_t *PMK::THelpers(core::LocOffsets loc) {
+    // Create T::Helpers constant path
+    return ConstantPathNode(loc, T(loc), "Helpers");
+}
+
+bool PMK::isT(pm_node_t *node, const Parser &parser) {
+    if (!node) {
+        return false;
+    }
+
+    // Check for bare T (PM_CONSTANT_READ_NODE)
+    if (PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE)) {
+        auto *constNode = down_cast<pm_constant_read_node_t>(node);
+        auto name = parser.resolveConstant(constNode->name);
+        return name == "T";
+    }
+
+    // Check for ::T (PM_CONSTANT_PATH_NODE with parent=nullptr)
+    if (PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE)) {
+        auto *pathNode = down_cast<pm_constant_path_node_t>(node);
+        auto name = parser.resolveConstant(pathNode->name);
+        // Must be named "T" and have no parent (meaning root ::)
+        return name == "T" && pathNode->parent == nullptr;
+    }
+
+    return false;
+}
+
 bool PMK::isTUntyped(pm_node_t *node) {
     if (!node || node->type != PM_CALL_NODE) {
         return false;
@@ -827,6 +855,20 @@ bool PMK::isVisibilityCall(pm_node_t *node, const Parser &parser) {
     return methodName == "private" || methodName == "protected" || methodName == "public" ||
            methodName == "private_class_method" || methodName == "public_class_method" ||
            methodName == "package_private" || methodName == "package_private_class_method";
+}
+
+pm_node_t *PMK::True(core::LocOffsets loc) {
+    pm_true_node_t *node = allocateNode<pm_true_node_t>();
+    if (!node)
+        return nullptr;
+
+    *node = (pm_true_node_t){
+        .base = initializeBaseNode(PM_TRUE_NODE),
+    };
+
+    node->base.location = convertLocOffsets(loc);
+
+    return up_cast(node);
 }
 
 } // namespace sorbet::parser::Prism

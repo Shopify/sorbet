@@ -243,6 +243,9 @@ public:
     static pm_node_t *Hash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
     static pm_node_t *KeywordHash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
 
+    // Literal node creators
+    static pm_node_t *True(core::LocOffsets loc);
+
     // Low-level method call creation
     static pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
                                           pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
@@ -291,11 +294,13 @@ public:
     static pm_node_t *T_Hash(core::LocOffsets loc);
     static pm_node_t *T_Set(core::LocOffsets loc);
     static pm_node_t *T_Range(core::LocOffsets loc);
+    static pm_node_t *THelpers(core::LocOffsets loc);
 
     // Array node creator
     static pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements);
 
     // Utility functions for type checking
+    static bool isT(pm_node_t *node, const Parser &parser);
     static bool isTUntyped(pm_node_t *node);
     static bool isSetterCall(pm_node_t *node, const Parser &parser);
     static bool isSafeNavigationCall(pm_node_t *node);

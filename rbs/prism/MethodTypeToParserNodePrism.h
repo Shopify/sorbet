@@ -19,8 +19,6 @@ class MethodTypeToParserNodePrism {
   const parser::Prism::Parser *prismParser; // For Prism node creation
 
 public:
-  MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser)
-      : ctx(ctx), parser(parser), prismParser(nullptr) {}
   MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser,
                               const parser::Prism::Parser &prismParser)
       : ctx(ctx), parser(parser), prismParser(&prismParser) {}
