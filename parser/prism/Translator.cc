@@ -3020,8 +3020,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return make_node_with_expr<parser::Nil>(MK::Nil(location), location);
         }
         case PM_NO_KEYWORDS_PARAMETER_NODE: { // `**nil`, such as in `def foo(**nil)` or `h in { k: v, **nil}`
-            unreachable("PM_NO_KEYWORDS_PARAMETER_NODE is handled separately in `PM_HASH_PATTERN_NODE` and "
-                        "`PM_PARAMETERS_NODE`.");
+            return make_unique<parser::Kwnilarg>(location);
         }
         case PM_NUMBERED_PARAMETERS_NODE: { // An invisible node that models the numbered parameters in a block
             // ... for a block like `proc { _1 + _2 }`, which has no explicitly declared parameters.
@@ -4110,6 +4109,7 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
     }
 
     translateMultiInto(params, posts);
+
     translateMultiInto(params, keywords);
 
     if (auto *prismKwRestNode = paramsNode->keyword_rest) {
