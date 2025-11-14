@@ -2021,6 +2021,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
             auto classNode = down_cast<pm_class_node>(node);
 
+            if (classNode->constant_path == nullptr ||
+                (!PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_READ_NODE) &&
+                 !PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                return translate(classNode->body);
+            }
+
             auto name = translate(classNode->constant_path);
             auto declLoc = translateLoc(classNode->class_keyword_loc).join(name->loc);
             auto superclass = translate(classNode->superclass);
@@ -2931,6 +2937,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
             auto moduleNode = down_cast<pm_module_node>(node);
+
+            if (moduleNode->constant_path == nullptr ||
+                (!PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_READ_NODE) &&
+                 !PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                return translate(moduleNode->body);
+            }
 
             auto name = translate(moduleNode->constant_path);
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
