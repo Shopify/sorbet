@@ -60,7 +60,7 @@ pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) {
 
 pm_node_t *Factory::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value) {
     if (!value) {
-        return nullptr;
+        Exception::raise("ConstantWriteNode: value is required");
     }
 
     pm_constant_write_node_t *node = allocateNode<pm_constant_write_node_t>();
@@ -97,11 +97,12 @@ pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, st
 }
 
 pm_node_t *Factory::SingleArgumentNode(pm_node_t *arg) {
+    if (!arg) {
+        Exception::raise("SingleArgumentNode: arg is required");
+    }
+
     vector<pm_node_t *> args = {arg};
     pm_arguments_node_t *arguments = createArgumentsNode(args, arg->location);
-    if (!arguments) {
-        return nullptr;
-    }
 
     return up_cast(arguments);
 }
@@ -109,8 +110,7 @@ pm_node_t *Factory::SingleArgumentNode(pm_node_t *arg) {
 pm_node_t *Factory::Self(core::LocOffsets loc) {
     pm_self_node_t *selfNode = allocateNode<pm_self_node_t>();
 
-    *selfNode = (pm_self_node_t){
-        .base = initializeBaseNode(PM_SELF_NODE, convertLocOffsets(loc))}; // check if none needs special handling
+    *selfNode = (pm_self_node_t){.base = initializeBaseNode(PM_SELF_NODE, convertLocOffsets(loc))};
 
     return up_cast(selfNode);
 }
@@ -337,12 +337,12 @@ pm_node_t *Factory::TUntyped(core::LocOffsets loc) {
 }
 
 pm_node_t *Factory::TNilable(core::LocOffsets loc, pm_node_t *type) {
-    pm_node_t *tConst = T(loc);
-    if (!tConst || !type) {
-        return nullptr;
+    if (!type) {
+        Exception::raise("TNilable: type parameter is required");
     }
 
-    return Send1(loc, tConst, "nilable", type);
+    pm_node_t *tConst = T(loc);
+    return Send1(loc, tConst, "nilable"sv, type);
 }
 
 pm_node_t *Factory::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) {
@@ -369,7 +369,7 @@ pm_node_t *Factory::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) 
         Exception::raise("Args is empty");
     }
 
-    pm_constant_id_t methodId = addConstantToPool("all");
+    pm_constant_id_t methodId = addConstantToPool("all"sv);
     if (methodId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
     }
@@ -569,7 +569,7 @@ pm_node_t *Factory::T_Range(core::LocOffsets loc) {
 }
 
 bool Factory::isTUntyped(pm_node_t *node) {
-    if (!node || PM_NODE_TYPE(node) != PM_CALL_NODE) {
+    if (!node || !PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
         return false;
     }
 
@@ -593,7 +593,7 @@ bool Factory::isTUntyped(pm_node_t *node) {
 }
 
 bool Factory::isSetterCall(pm_node_t *node) {
-    if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
+    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
         return false;
     }
 
@@ -603,15 +603,11 @@ bool Factory::isSetterCall(pm_node_t *node) {
 }
 
 bool Factory::isSafeNavigationCall(pm_node_t *node) {
-    if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
-        return false;
-    }
-
-    return PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
+    return PM_NODE_TYPE_P(node, PM_CALL_NODE) && PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
 }
 
 bool Factory::isVisibilityCall(pm_node_t *node) {
-    if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
+    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
         return false;
     }
 
