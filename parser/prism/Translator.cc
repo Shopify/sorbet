@@ -1848,7 +1848,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 auto matchExpr = MK::RaiseUnimplemented(patternLoc);
 
                 // The body is the statements from the "in" clause
-                auto thenExpr = inPattern->body != nullptr ? inPattern->body->takeDesugaredExpr() : MK::EmptyTree();
+                auto thenExpr = inPattern->body != nullptr && hasExpr(inPattern->body)
+                                    ? inPattern->body->takeDesugaredExpr()
+                                    : MK::EmptyTree();
 
                 // Collect pattern variable assignments from the pattern
                 ast::InsSeq::STATS_store vars;
@@ -2005,8 +2007,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     }
                 }
 
-                auto thenExpr =
-                    whenNodeWrapped->body != nullptr ? whenNodeWrapped->body->takeDesugaredExpr() : MK::EmptyTree();
+                auto thenExpr = whenNodeWrapped->body != nullptr && hasExpr(whenNodeWrapped->body)
+                                    ? whenNodeWrapped->body->takeDesugaredExpr()
+                                    : MK::EmptyTree();
                 resultExpr = MK::If(whenNodeWrapped->loc, move(patternsResult), move(thenExpr), move(resultExpr));
             }
 
