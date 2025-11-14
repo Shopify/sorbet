@@ -342,7 +342,7 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
         }
         return node;
     } else {
-        Exception::raise("Unknown assertion kind");
+        unreachable("Unknown assertion kind");
     }
 }
 
@@ -351,11 +351,7 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
  */
 pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
     auto inlineComment = commentForNode(node);
-
-    if (!inlineComment) {
-        // This should never happen
-        Exception::raise("No inline comment found for synthetic bind");
-    }
+    ENFORCE(inlineComment, "No inline comment found for synthetic bind");
 
     auto pair = parseComment(ctx, parser, inlineComment.value(), typeParams);
 
@@ -366,11 +362,7 @@ pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
     }
 
     auto kind = pair->second;
-
-    if (kind != InlineCommentPrism::Kind::BIND) {
-        // This should never happen
-        Exception::raise("Invalid inline comment for synthetic bind");
-    }
+    ENFORCE(kind == InlineCommentPrism::Kind::BIND, "Invalid inline comment for synthetic bind");
 
     auto type = pair->first;
     auto typeLoc = translateLocation(type->location);
