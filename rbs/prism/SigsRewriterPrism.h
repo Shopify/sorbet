@@ -2,6 +2,7 @@
 #define SORBET_RBS_SIGS_REWRITER_PRISM_H
 
 #include "parser/parser.h"
+#include "parser/prism/Factory.h"
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "rbs/prism/CommentsAssociatorPrism.h"
@@ -35,15 +36,14 @@ struct CommentsPrism {
 
 class SigsRewriterPrism {
 public:
-    SigsRewriterPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+    SigsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                       std::map<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(parser), prism(const_cast<parser::Prism::Parser &>(parser)),
-          commentsByNode(&commentsByNode){};
+        : ctx(ctx), parser(parser), prism(parser), commentsByNode(&commentsByNode){};
     pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
-    const parser::Prism::Parser &parser;
+    parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
     std::map<pm_node_t *, std::vector<rbs::CommentNodePrism>> *commentsByNode;
 

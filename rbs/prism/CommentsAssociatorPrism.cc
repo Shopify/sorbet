@@ -612,17 +612,17 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
 
-            if (prism.isVisibilityCall(node)) {
+            if (parser.isVisibilityCall(node)) {
                 // This is a visibility modifier wrapping a method definition: `private def foo; end`
                 associateSignatureCommentsToNode(node);
                 consumeCommentsInsideNode(node, "send");
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
-                       prism.isSafeNavigationCall(node) && prism.isSetterCall(node)) {
+                       parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
                 consumeCommentsInsideNode(node, "csend");
-            } else if (parser.resolveConstant(call->name) == "[]=" || prism.isSetterCall(node)) {
+            } else if (parser.resolveConstant(call->name) == "[]=" || parser.isSetterCall(node)) {
                 // This is an assign through a send, either: `foo[key]=(y)` or `foo.x=(y)`
                 //
                 // Note: the parser groups the args on the right hand side of the assignment into an array node:
@@ -1008,10 +1008,9 @@ CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
     return CommentMapPrismNode{signaturesForNode, assertionsForNode};
 }
 
-CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                                                  vector<core::LocOffsets> commentLocations)
-    : ctx(ctx), parser(parser), prism(const_cast<parser::Prism::Parser &>(parser)), commentLocations(commentLocations),
-      commentByLine() {
+    : ctx(ctx), parser(parser), prism(parser), commentLocations(commentLocations), commentByLine() {
     for (auto &loc : commentLocations) {
         auto comment_string = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.endPos() - loc.beginPos());
         auto start32 = static_cast<uint32_t>(loc.beginPos());

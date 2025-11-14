@@ -215,9 +215,6 @@ inline std::string_view cast_prism_string(const uint8_t *source, size_t length) 
     return std::string_view(reinterpret_cast<const char *>(source), length);
 }
 
-// Forward declarations
-class Parser;
-
 template <typename SorbetLHSType> struct IdentKindHelper {};
 
 template <> struct IdentKindHelper<parser::IVarLhs> {
@@ -239,95 +236,6 @@ template <> struct IdentKindHelper<parser::LVarLhs> {
 template <typename SorbetLHSType> constexpr ast::UnresolvedIdent::Kind getIdentKind() {
     return IdentKindHelper<SorbetLHSType>::Kind;
 }
-
-class Factory {
-private:
-    Parser &parser;
-
-public:
-    Factory(Parser &parser) : parser(parser) {}
-
-    template <typename T> T *allocateNode() {
-        try {
-            return new T();
-        } catch (...) {
-            throw std::runtime_error("Failed to allocate memory for node");
-        }
-    }
-
-    pm_node_t initializeBaseNode(pm_node_type_t type, const pm_location_t loc);
-
-    // Basic node creators
-    pm_node_t *ConstantReadNode(std::string_view name, core::LocOffsets loc);
-    pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value);
-    pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, std::string_view name);
-    pm_node_t *SingleArgumentNode(pm_node_t *arg);
-    pm_node_t *Self(core::LocOffsets loc = core::LocOffsets::none());
-
-    // Symbol and hash node creators
-    pm_node_t *Symbol(core::LocOffsets nameLoc, std::string_view name);
-    pm_node_t *SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId);
-    pm_node_t *AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *value);
-    pm_node_t *Hash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
-    pm_node_t *KeywordHash(core::LocOffsets loc, const std::vector<pm_node_t *> &pairs);
-
-    // Low-level method call creation
-    pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
-                                   pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
-                                   pm_node_t *block = nullptr);
-
-    // High-level method call builders (similar to ast::MK)
-    pm_node_t *Send(core::LocOffsets loc, pm_node_t *receiver, std::string_view method,
-                    const std::vector<pm_node_t *> &args, pm_node_t *block = nullptr);
-    pm_node_t *Send0(core::LocOffsets loc, pm_node_t *receiver, std::string_view method);
-    pm_node_t *Send1(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1);
-    pm_node_t *Send2(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1,
-                     pm_node_t *arg2);
-
-    // Utility functions
-    pm_constant_id_t addConstantToPool(std::string_view name);
-    pm_location_t getZeroWidthLocation();
-    pm_location_t convertLocOffsets(core::LocOffsets loc);
-
-    // High-level node creators
-    pm_node_t *SorbetPrivateStatic(core::LocOffsets loc);
-    pm_node_t *TSigWithoutRuntime(core::LocOffsets loc);
-
-    // T constant and method helpers
-    pm_node_t *T(core::LocOffsets loc);
-    pm_node_t *TUntyped(core::LocOffsets loc);
-    pm_node_t *TNilable(core::LocOffsets loc, pm_node_t *type);
-    pm_node_t *TAny(core::LocOffsets loc, const std::vector<pm_node_t *> &args);
-    pm_node_t *TAll(core::LocOffsets loc, const std::vector<pm_node_t *> &args);
-    pm_node_t *TTypeParameter(core::LocOffsets loc, pm_node_t *name);
-    pm_node_t *TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType);
-    pm_node_t *TProcVoid(core::LocOffsets loc, pm_node_t *args);
-    pm_node_t *TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
-    pm_node_t *TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type);
-    pm_node_t *TMust(core::LocOffsets loc, pm_node_t *value);
-    pm_node_t *TUnsafe(core::LocOffsets loc, pm_node_t *value);
-    pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value);
-    pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type);
-    pm_node_t *TTypeAlias(core::LocOffsets loc, pm_node_t *type);
-    pm_node_t *T_Array(core::LocOffsets loc);
-    pm_node_t *T_Class(core::LocOffsets loc);
-    pm_node_t *T_Enumerable(core::LocOffsets loc);
-    pm_node_t *T_Enumerator(core::LocOffsets loc);
-    pm_node_t *T_Hash(core::LocOffsets loc);
-    pm_node_t *T_Set(core::LocOffsets loc);
-    pm_node_t *T_Range(core::LocOffsets loc);
-
-    pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements);
-
-    bool isTUntyped(pm_node_t *node);
-    bool isSetterCall(pm_node_t *node);
-    bool isSafeNavigationCall(pm_node_t *node);
-    bool isVisibilityCall(pm_node_t *node);
-
-private:
-    pm_arguments_node_t *createArgumentsNode(std::vector<pm_node_t *> args, const pm_location_t loc);
-    pm_node_t **copyNodesToArray(const std::vector<pm_node_t *> &nodes);
-};
 
 } // namespace sorbet::parser::Prism
 

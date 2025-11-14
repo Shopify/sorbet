@@ -2,6 +2,7 @@
 #define RBS_METHOD_TYPE_TO_PARSER_NODE_PRISM_H
 
 #include "parser/parser.h"
+#include "parser/prism/Factory.h"
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "rbs/rbs_common.h"
@@ -16,15 +17,12 @@ namespace sorbet::rbs {
 class MethodTypeToParserNodePrism {
     core::MutableContext ctx;
     Parser parser;
-    const parser::Prism::Parser *prismParser; // For Prism node creation
-    std::optional<parser::Prism::Factory> prism;
+    parser::Prism::Parser &prismParser; // For Prism node creation
+    const parser::Prism::Factory prism;
 
 public:
-    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser)
-        : ctx(ctx), parser(parser), prismParser(nullptr), prism(std::nullopt) {}
-    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser, const parser::Prism::Parser &prismParser)
-        : ctx(ctx), parser(parser), prismParser(&prismParser), prism(const_cast<parser::Prism::Parser &>(prismParser)) {
-    }
+    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parse, parser::Prism::Parser &prismParser)
+        : ctx(ctx), parser(parse), prismParser(prismParser), prism(prismParser) {}
 
     /**
      * Create a Prism signature node from RBS method signature.

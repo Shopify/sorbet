@@ -30,20 +30,16 @@ struct InlineCommentPrism {
 
 class AssertionsRewriterPrism {
 public:
-    AssertionsRewriterPrism(core::MutableContext ctx,
-                            std::map<parser::Node *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(nullptr), prism(std::nullopt), legacyCommentsByNode(&commentsByNode),
-          prismCommentsByNode(nullptr){};
-    AssertionsRewriterPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+    AssertionsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                             std::map<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(&parser), prism(const_cast<parser::Prism::Parser &>(parser)), legacyCommentsByNode(nullptr),
+        : ctx(ctx), parser(&parser), prism(parser), legacyCommentsByNode(nullptr),
           prismCommentsByNode(&commentsByNode){};
     pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
-    const parser::Prism::Parser *parser;
-    std::optional<parser::Prism::Factory> prism;
+    parser::Prism::Parser *parser;
+    parser::Prism::Factory prism;
     std::map<parser::Node *, std::vector<CommentNodePrism>> *legacyCommentsByNode;
     [[maybe_unused]] std::map<pm_node_t *, std::vector<CommentNodePrism>> *prismCommentsByNode;
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};

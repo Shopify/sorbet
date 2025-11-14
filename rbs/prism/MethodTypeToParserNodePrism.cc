@@ -112,10 +112,10 @@ unique_ptr<parser::Node> handleAnnotations(core::MutableContext ctx, const pm_no
             // no-op, `final` is handled in the `sig()` call later
         } else if (annotation.string == "abstract") {
             sigBuilder =
-                parser::prism->Send0(annotation.typeLoc, move(sigBuilder), core::Names::abstract(),
+                parser::prism.Send0(annotation.typeLoc, move(sigBuilder), core::Names::abstract(),
 annotation.typeLoc); ensureAbstractMethodRaises(ctx, node); } else if (annotation.string == "overridable") { sigBuilder
-= parser::prism->Send0(annotation.typeLoc, move(sigBuilder), core::Names::overridable(), annotation.typeLoc); } else
-if (annotation.string == "override") { sigBuilder = parser::prism->Send0(annotation.typeLoc, move(sigBuilder),
+= parser::prism.Send0(annotation.typeLoc, move(sigBuilder), core::Names::overridable(), annotation.typeLoc); } else
+if (annotation.string == "override") { sigBuilder = parser::prism.Send0(annotation.typeLoc, move(sigBuilder),
 core::Names::override_(), annotation.typeLoc);
         }
         // TODO: Add support for other annotations like override(allow_incompatible: true)
@@ -458,13 +458,13 @@ unique_ptr<parser::Node> MethodTypeToParserNodePrism::attrSignature(const pm_cal
     auto firstLineTypeLoc = declaration.firstLineTypeLoc();
 
     // Build a minimal sig { void } signature
-    auto sigBuilder = parser::prism->Send0(fullTypeLoc, parser::prism->Self(fullTypeLoc), core::Names::void_(),
+    auto sigBuilder = parser::prism.Send0(fullTypeLoc, parser::prism.Self(fullTypeLoc), core::Names::void_(),
 fullTypeLoc);
 
     auto sigArgs = parser::NodeVec();
-    sigArgs.emplace_back(parser::prism->T_Sig_WithoutRuntime(firstLineTypeLoc));
+    sigArgs.emplace_back(parser::prism.T_Sig_WithoutRuntime(firstLineTypeLoc));
 
-    auto sig = parser::prism->Send(fullTypeLoc, parser::prism->SorbetPrivateStatic(fullTypeLoc), core::Names::sig(),
+    auto sig = parser::prism.Send(fullTypeLoc, parser::prism.SorbetPrivateStatic(fullTypeLoc), core::Names::sig(),
                                 firstLineTypeLoc, move(sigArgs));
 
     return make_unique<parser::Block>(commentLoc, move(sig), nullptr, move(sigBuilder));
@@ -475,10 +475,6 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
                                                         const RBSDeclaration &declaration,
                                                         const vector<Comment> &annotations) {
     // fmt::print("DEBUG: MethodTypeToParserNodePrism::methodSignature called\n");
-
-    if (!prismParser) {
-        return nullptr; // Need Prism parser for node creation
-    }
 
     // Parse the RBS method type and create appropriate signature nodes
     const auto &node = *methodType;
@@ -544,27 +540,18 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     auto firstLineTypeLoc = declaration.firstLineTypeLoc();
     auto commentLoc = declaration.commentLoc();
 
-    // Pre-calculate frequently used locations to avoid redundant calculations
-    pm_location_t full_loc = prism->convertLocOffsets(fullTypeLoc);
-    pm_location_t tiny_loc = prism->convertLocOffsets(firstLineTypeLoc.copyWithZeroLength());
-    pm_location_t end_zero_loc = prism->convertLocOffsets(fullTypeLoc.copyEndWithZeroLength());
-
     // Create receiver: Sorbet::Private::Static
-    pm_node_t *receiver = prism->SorbetPrivateStatic(fullTypeLoc);
-    if (!receiver)
-        return nullptr;
+    pm_node_t *receiver = prism.SorbetPrivateStatic(fullTypeLoc);
 
     // Create argument: T::Sig::WithoutRuntime
-    pm_node_t *t_sig_arg = prism->TSigWithoutRuntime(fullTypeLoc);
-    if (!t_sig_arg)
-        return nullptr;
+    pm_node_t *t_sig_arg = prism.TSigWithoutRuntime(fullTypeLoc);
 
     // Create sig parameter pairs for .params() call (keyword arguments)
     vector<pm_node_t *> sigParams;
     sigParams.reserve(args.size());
 
     // Create type converter for RBS types to Prism nodes
-    auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, *prismParser);
+    auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
 
     // Collect Ruby method parameter names once (mirror WQ)
     vector<MethodParamInfo> methodArgs;
@@ -596,11 +583,11 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
         pm_node_t *methodArg = methodArgs[paramIndex].node;
         if (!checkParameterKindMatch(arg, methodArg)) {
             if (auto e = ctx.beginIndexerError(arg.loc, core::errors::Rewriter::RBSIncorrectParameterKind)) {
-                auto methodArgNameStr = prismParser->resolveConstant(methodArgs[paramIndex].nameId);
+                auto methodArgNameStr = prismParser.resolveConstant(methodArgs[paramIndex].nameId);
                 e.setHeader("Argument kind mismatch for `{}`, method declares `{}`, but RBS signature declares `{}`",
                             methodArgNameStr, nodeKindToString(methodArg), argKindToString(arg.kind));
 
-                e.maybeAddAutocorrect(autocorrectArg(ctx, methodArg, arg, *prismParser, declaration));
+                e.maybeAddAutocorrect(autocorrectArg(ctx, methodArg, arg, prismParser, declaration));
             }
         }
 
@@ -616,14 +603,14 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
                 // Special case: anonymous block parameter (&) should use symbol :&
                 if (arg.kind == RBSArg::Kind::Block && methodArg.nameId == PM_CONSTANT_ID_UNSET) {
-                    symbolNode = prism->Symbol(tinyLocOffsets, "&");
+                    symbolNode = prism.Symbol(tinyLocOffsets, "&"sv);
                 } else if (methodArg.nameId != PM_CONSTANT_ID_UNSET) {
-                    symbolNode = prism->SymbolFromConstant(tinyLocOffsets, methodArg.nameId);
+                    symbolNode = prism.SymbolFromConstant(tinyLocOffsets, methodArg.nameId);
                 }
             }
             if (!symbolNode) {
                 // As a last resort, synthesize a symbol ':arg'
-                symbolNode = prism->Symbol(tinyLocOffsets, "arg");
+                symbolNode = prism.Symbol(tinyLocOffsets, "arg"sv);
             }
         }
         if (!symbolNode) {
@@ -632,17 +619,13 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
         // Create association node (key-value pair) for keyword argument
         core::LocOffsets tinyLocOffsets = firstLineTypeLoc.copyWithZeroLength();
-        pm_node_t *pairNode = prism->AssocNode(tinyLocOffsets, symbolNode, typeNode);
-        if (pairNode) {
-            sigParams.push_back(pairNode);
-        }
+        pm_node_t *pairNode = prism.AssocNode(tinyLocOffsets, symbolNode, typeNode);
+        sigParams.push_back(pairNode);
         paramIndex++;
     }
 
     // Build sig chain
-    pm_node_t *sigReceiver = prism->Self(fullTypeLoc);
-    if (!sigReceiver)
-        return nullptr;
+    pm_node_t *sigReceiver = prism.Self(fullTypeLoc);
 
     // Add .type_parameters() call if we have type parameters
     if (typeParams.size() > 0) {
@@ -651,11 +634,11 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
         for (auto &param : typeParams) {
             string nameStr = param.second.show(ctx.state);
-            pm_node_t *symbolNode = prism->Symbol(param.first, nameStr);
+            pm_node_t *symbolNode = prism.Symbol(param.first, nameStr);
             typeParamSymbols.push_back(symbolNode);
         }
 
-        pm_node_t *typeParamsCall = prism->Send(fullTypeLoc, sigReceiver, "type_parameters", typeParamSymbols);
+        pm_node_t *typeParamsCall = prism.Send(fullTypeLoc, sigReceiver, "type_parameters"sv, typeParamSymbols);
         ENFORCE(typeParamsCall, "Failed to create type parameters call");
 
         sigReceiver = typeParamsCall;
@@ -665,16 +648,10 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     if (sigParams.size() > 0) {
         // Wrap pairs in KeywordHashNode for keyword arguments
         core::LocOffsets hashLoc = fullTypeLoc;
-        pm_node_t *paramsHash = prism->KeywordHash(hashLoc, sigParams);
-        if (!paramsHash) {
-            return nullptr;
-        }
+        pm_node_t *paramsHash = prism.KeywordHash(hashLoc, sigParams);
 
         // Create .params() method call with keyword hash
-        pm_node_t *paramsCall = prism->Send1(fullTypeLoc, sigReceiver, "params", paramsHash);
-        if (!paramsCall) {
-            return nullptr;
-        }
+        pm_node_t *paramsCall = prism.Send1(fullTypeLoc, sigReceiver, "params"sv, paramsHash);
 
         sigReceiver = paramsCall;
     }
@@ -684,14 +661,12 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
     // Pre-calculate return type location for setting on the return type node
     pm_location_t return_type_full_loc =
-        prism->convertLocOffsets(declaration.typeLocFromRange(functionType->return_type->location->rg));
+        prismParser.convertLocOffsets(declaration.typeLocFromRange(functionType->return_type->location->rg));
 
     if (functionType->return_type->type == RBS_TYPES_BASES_VOID) {
         // Create: sigReceiver.void()
         blockBody =
-            prism->Send0(declaration.typeLocFromRange(functionType->return_type->location->rg), sigReceiver, "void");
-        if (!blockBody)
-            return nullptr;
+            prism.Send0(declaration.typeLocFromRange(functionType->return_type->location->rg), sigReceiver, "void"sv);
         // debugPrintLocation("void.call.base", voidCall->base.location);
         // debugPrintLocation("void.call.msg", voidCall->message_loc);
     } else {
@@ -703,34 +678,16 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
         // Set return type node base.location to actual return type span
         returnTypeNode->location = return_type_full_loc;
 
-        blockBody = prism->Send1(declaration.typeLocFromRange(functionType->return_type->location->rg), sigReceiver,
-                                 "returns", returnTypeNode);
-        if (!blockBody)
-            return nullptr;
+        blockBody = prism.Send1(declaration.typeLocFromRange(functionType->return_type->location->rg), sigReceiver,
+                                "returns"sv, returnTypeNode);
         // debugPrintLocation("returns.call.base", returnsCall->base.location);
         // debugPrintLocation("returns.call.msg", returnsCall->message_loc);
     }
 
-    if (!blockBody)
-        return nullptr;
+    pm_node_t *block = prism.Block(fullTypeLoc, blockBody);
 
-    // Create block node
-    pm_block_node_t *block = prism->allocateNode<pm_block_node_t>();
-    if (!block)
-        return nullptr;
-
-    *block = (pm_block_node_t){.base = prism->initializeBaseNode(PM_BLOCK_NODE, full_loc),
-                               .locals = {.size = 0, .capacity = 0, .ids = nullptr},
-                               .parameters = nullptr,
-                               .body = blockBody,
-                               .opening_loc = tiny_loc,
-                               .closing_loc = end_zero_loc};
-
-    // Create the main sig call with block
     vector<pm_node_t *> sig_args = {t_sig_arg};
-    pm_node_t *call = prism->Send(fullTypeLoc, receiver, "sig", sig_args, up_cast(block));
-    if (!call)
-        return nullptr;
+    pm_node_t *call = prism.Send(fullTypeLoc, receiver, "sig"sv, sig_args, block);
 
     // Debug print important locations to diagnose substr crashes
     // debugPrintLocation("sig.call.base", call->base.location);
@@ -751,7 +708,7 @@ pm_node_t *MethodTypeToParserNodePrism::createSymbolNode(rbs_ast_symbol_t *name,
     auto nameStr = parser.resolveConstant(name);
     string nameString(nameStr);
 
-    return prism->Symbol(nameLoc, nameString);
+    return prism.Symbol(nameLoc, nameString);
 }
 
 } // namespace sorbet::rbs

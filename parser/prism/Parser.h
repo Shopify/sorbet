@@ -72,8 +72,18 @@ public:
     std::string_view resolveConstant(pm_constant_id_t constantId) const;
     std::string_view extractString(pm_string_t *string) const;
 
+    pm_location_t getZeroWidthLocation() const;
+    pm_location_t convertLocOffsets(core::LocOffsets loc) const;
+
+    bool isTUntyped(pm_node_t *node) const;
+    bool isSetterCall(pm_node_t *node) const;
+    bool isSafeNavigationCall(pm_node_t *node) const;
+    bool isVisibilityCall(pm_node_t *node) const;
+
     // Access to internal parser for node creation
-    pm_parser_t *getInternalParser() const { return const_cast<pm_parser_t *>(&parser); }
+    pm_parser_t *getInternalParser() const {
+        return const_cast<pm_parser_t *>(&parser);
+    }
 
 private:
     std::vector<ParseError> collectErrors();

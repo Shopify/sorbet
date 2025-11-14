@@ -1,6 +1,7 @@
 #ifndef RBS_PRISM_TYPE_TO_PARSER_NODE_PRISM_H
 #define RBS_PRISM_TYPE_TO_PARSER_NODE_PRISM_H
 
+#include "parser/prism/Factory.h"
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "prism.h"
@@ -11,14 +12,15 @@ namespace sorbet::rbs {
 class TypeToParserNodePrism {
     core::MutableContext ctx;
     absl::Span<const std::pair<core::LocOffsets, core::NameRef>> typeParams;
-    Parser parser;
+    rbs::Parser parser;
+    parser::Prism::Parser &prismParser;
     parser::Prism::Factory prism;
 
 public:
     TypeToParserNodePrism(core::MutableContext ctx,
                           absl::Span<const std::pair<core::LocOffsets, core::NameRef>> typeParams, Parser parser,
-                          const parser::Prism::Parser &prismParser)
-        : ctx(ctx), typeParams(typeParams), parser(parser), prism(const_cast<parser::Prism::Parser &>(prismParser)) {}
+                          parser::Prism::Parser &prismParser)
+        : ctx(ctx), typeParams(typeParams), parser(parser), prismParser(prismParser), prism(prismParser) {}
 
     /**
      * Convert an RBS type to a Prism `pm_node_t`.
