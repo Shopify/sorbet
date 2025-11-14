@@ -120,6 +120,28 @@ bool Parser::isTUntyped(pm_node_t *node) const {
     return receiverName == "T"sv;
 }
 
+bool Parser::isT(pm_node_t *node) const {
+    if (!node) {
+        return false;
+    }
+
+    // T
+    if (PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE)) {
+        auto *constNode = down_cast<pm_constant_read_node_t>(node);
+        auto name = resolveConstant(constNode->name);
+        return name == "T";
+    }
+
+    // ::T
+    if (PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE)) {
+        auto *pathNode = down_cast<pm_constant_path_node_t>(node);
+        auto name = resolveConstant(pathNode->name);
+        return name == "T" && pathNode->parent == nullptr;
+    }
+
+    return false;
+}
+
 bool Parser::isSetterCall(pm_node_t *node) const {
     if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
         return false;

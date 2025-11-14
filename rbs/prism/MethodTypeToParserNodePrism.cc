@@ -42,35 +42,63 @@ core::LocOffsets adjustNameLoc(const RBSDeclaration &declaration, rbs_node_t *no
 }
 */
 
-/* TODO: Implement when needed
-bool isSelfOrKernel(pm_node_t *node) {
+bool isSelfOrKernel(pm_node_t *node, const parser::Prism::Parser *prismParser) {
     if (PM_NODE_TYPE_P(node, PM_SELF_NODE)) {
         return true;
     }
 
     if (PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE)) {
         auto *constant = down_cast<pm_constant_read_node_t>(node);
-        // TODO: Check if the constant name is "Kernel" and has no scope
-        // For now, simplified check
-        (void)constant; // Suppress unused warning
-        return false;
+        auto name = prismParser->resolveConstant(constant->name);
+        // Check if it's Kernel constant with no scope (::Kernel or bare Kernel)
+        return name == "Kernel";
+    }
+
+    if (PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE)) {
+        auto *constantPath = down_cast<pm_constant_path_node_t>(node);
+        // Check if it's ::Kernel (parent is nullptr, representing root ::)
+        // We reject Foo::Kernel or any other scoped constant
+        if (constantPath->parent == nullptr) {
+            auto name = prismParser->resolveConstant(constantPath->name);
+            return name == "Kernel";
+        }
     }
 
     return false;
 }
-*/
 
-// bool isRaise(pm_node_t *node) {
-//     if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
-//         return false;
-//     }
+bool isRaise(pm_node_t *node, const parser::Prism::Parser *prismParser) {
+    if (!node) {
+        return false;
+    }
 
-//     auto *call = down_cast<pm_call_node_t>(node);
-//     // TODO: Check if method name is 'raise' and receiver is nil or self/Kernel
-//     // For now, simplified implementation
-//     (void)call; // Suppress unused warning
-//     return false;
-// }
+    // In Prism, method bodies are always wrapped in PM_STATEMENTS_NODE.
+    // Unwrap if it contains exactly one statement (just the raise call).
+    // Reject if multiple statements (e.g., puts + raise).
+    if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
+        auto *stmts = down_cast<pm_statements_node_t>(node);
+        if (stmts->body.size == 1) {
+            node = stmts->body.nodes[0];
+        } else {
+            return false; // Multiple statements, not just a raise
+        }
+    }
+
+    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(node);
+    auto methodName = prismParser->resolveConstant(call->name);
+
+    // TODO: Use nameref
+    if (methodName != "raise") {
+        return false;
+    }
+
+    // Check receiver is nil (implicit self) or self/Kernel
+    return call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser);
+}
 
 /* TODO: Migrate autocorrect functions to work with Prism nodes
 core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pm_node_t *method,
@@ -85,44 +113,57 @@ core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pm
 }
 */
 
-/* TODO: Implement when needed
-void ensureAbstractMethodRaises(core::MutableContext ctx, const pm_node_t *node) {
+void ensureAbstractMethodRaises(core::MutableContext ctx, const pm_node_t *node,
+                                const parser::Prism::Parser *prismParser) {
     if (PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
         auto *def = down_cast<pm_def_node_t>(const_cast<pm_node_t *>(node));
-        if (def->body && isRaise(def->body)) {
-            // Method raises properly, remove body to not error later
-            // TODO: Implement body nulling for Prism nodes
+        if (def->body && isRaise(def->body, prismParser)) {
+            // If the method raises properly, we remove the body to not error later (see error 5019)
+            def->body = nullptr;
             return;
         }
 
-        if (auto e = ctx.beginIndexerError(translateLocation(node->location),
-                                           core::errors::Rewriter::RBSAbstractMethodNoRaises)) {
+        // Convert Prism location to LocOffsets
+        auto nodeLoc = prismParser->translateLocation(node->location);
+
+        if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSAbstractMethodNoRaises)) {
             e.setHeader("Methods declared @abstract with an RBS comment must always raise");
-            // TODO: Add autocorrect for Prism nodes
+            // TODO: Add autocorrect for Prism nodes if needed
         }
     }
 }
-*/
 
-/* TODO: Implement when needed
-unique_ptr<parser::Node> handleAnnotations(core::MutableContext ctx, const pm_node_t *node,
-                                           unique_ptr<parser::Node> sigBuilder, const vector<Comment> &annotations) {
+pm_node_t *handleAnnotations(core::MutableContext ctx, const pm_node_t *node, pm_node_t *sigBuilder,
+                             const vector<Comment> &annotations, const parser::Prism::Parser *prismParser,
+                             const parser::Prism::Factory &prism) {
     for (auto &annotation : annotations) {
         if (annotation.string == "final") {
             // no-op, `final` is handled in the `sig()` call later
         } else if (annotation.string == "abstract") {
-            sigBuilder =
-                parser::prism.Send0(annotation.typeLoc, move(sigBuilder), core::Names::abstract(),
-annotation.typeLoc); ensureAbstractMethodRaises(ctx, node); } else if (annotation.string == "overridable") { sigBuilder
-= parser::prism.Send0(annotation.typeLoc, move(sigBuilder), core::Names::overridable(), annotation.typeLoc); } else
-if (annotation.string == "override") { sigBuilder = parser::prism.Send0(annotation.typeLoc, move(sigBuilder),
-core::Names::override_(), annotation.typeLoc);
+            sigBuilder = prism.Send0(annotation.typeLoc, sigBuilder, core::Names::abstract().show(ctx.state));
+            ensureAbstractMethodRaises(ctx, node, prismParser);
+        } else if (annotation.string == "overridable") {
+            sigBuilder = prism.Send0(annotation.typeLoc, sigBuilder, core::Names::overridable().show(ctx.state));
+        } else if (annotation.string == "override") {
+            sigBuilder = prism.Send0(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state));
+        } else if (annotation.string == "override(allow_incompatible: true)") {
+            // Create hash: {allow_incompatible: true}
+            auto key = prism.Symbol(annotation.typeLoc, core::Names::allowIncompatible().show(ctx.state));
+            auto value = prism.True(annotation.typeLoc);
+            auto pair = prism.AssocNode(annotation.typeLoc, key, value);
+
+            vector<pm_node_t *> pairs;
+            pairs.push_back(pair);
+            auto hash = prism.KeywordHash(annotation.typeLoc, pairs);
+
+            vector<pm_node_t *> args;
+            args.push_back(hash);
+
+            sigBuilder = prism.Send(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state), args);
         }
-        // TODO: Add support for other annotations like override(allow_incompatible: true)
     }
     return sigBuilder;
 }
-*/
 
 /* TODO: Implement when needed
 core::NameRef nodeName(const pm_node_t *node) {
@@ -505,8 +546,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
     auto *functionType = (rbs_types_function_t *)node.type;
 
-    (void)methodDef;   // Suppress unused warning for now
-    (void)annotations; // Suppress unused warning for now
+    (void)methodDef; // Suppress unused warning for now
 
     // Collect RBS parameters for sig params
     vector<RBSArg> args;
@@ -627,6 +667,9 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     // Build sig chain
     pm_node_t *sigReceiver = prism.Self(fullTypeLoc);
 
+    // Add annotations (abstract, override, etc.)
+    sigReceiver = handleAnnotations(ctx, methodDef, sigReceiver, annotations, &prismParser, prism);
+
     // Add .type_parameters() call if we have type parameters
     if (typeParams.size() > 0) {
         vector<pm_node_t *> typeParamSymbols;
@@ -688,6 +731,15 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
     vector<pm_node_t *> sig_args = {t_sig_arg};
     pm_node_t *call = prism.Send(fullTypeLoc, receiver, "sig"sv, sig_args, block);
+
+    // Check for @final annotation and add :final as second argument if present
+    auto final = absl::c_find_if(annotations, [](const Comment &annotation) { return annotation.string == "final"; });
+    if (final != annotations.end()) {
+        pm_node_t *finalSymbol = prism.Symbol(final->typeLoc, core::Names::final_().show(ctx.state));
+        if (finalSymbol) {
+            sig_args.push_back(finalSymbol);
+        }
+    }
 
     // Debug print important locations to diagnose substr crashes
     // debugPrintLocation("sig.call.base", call->base.location);

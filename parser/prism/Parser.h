@@ -90,6 +90,7 @@ public:
     pm_location_t convertLocOffsets(core::LocOffsets loc) const;
 
     bool isTUntyped(pm_node_t *node) const;
+    bool isT(pm_node_t *node) const;
     bool isSetterCall(pm_node_t *node) const;
     bool isSafeNavigationCall(pm_node_t *node) const;
     bool isVisibilityCall(pm_node_t *node) const;

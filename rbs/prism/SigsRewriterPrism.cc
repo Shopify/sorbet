@@ -32,7 +32,6 @@ pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
             // (singleton methods have a receiver field set)
             return node;
         case PM_CALL_NODE: {
-            Factory prism(parser);
             if (parser.isVisibilityCall(node)) {
                 return node;
             }
@@ -66,112 +65,190 @@ pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
 //     return rbs::SignatureTranslator(ctx).translateType(RBSDeclaration{vector<Comment>{comment}});
 // }
 
-// TODO(Prism migration): helpers extraction is not required for signature translation; keeping for reference.
-// parser::NodeVec extractHelpersPrism(core::MutableContext ctx, vector<Comment> annotations) {
-//     parser::NodeVec helpers;
-//     for (auto &annotation : annotations) {
-//         if (annotation.string == "abstract") {
-//             auto send = parser::MK::Send0(annotation.typeLoc, parser::MK::Self(annotation.typeLoc),
-//                                           core::Names::declareAbstract(), annotation.typeLoc);
-//             helpers.emplace_back(move(send));
-//         } else if (annotation.string == "interface") {
-//             auto send = parser::MK::Send0(annotation.typeLoc, parser::MK::Self(annotation.typeLoc),
-//                                           core::Names::declareInterface(), annotation.typeLoc);
-//             helpers.emplace_back(move(send));
-//         } else if (annotation.string == "final") {
-//             auto send = parser::MK::Send0(annotation.typeLoc, parser::MK::Self(annotation.typeLoc),
-//                                           core::Names::declareFinal(), annotation.typeLoc);
-//             helpers.emplace_back(move(send));
-//         } else if (annotation.string == "sealed") {
-//             auto send = parser::MK::Send0(annotation.typeLoc, parser::MK::Self(annotation.typeLoc),
-//                                           core::Names::declareSealed(), annotation.typeLoc);
-//             helpers.emplace_back(move(send));
-//         } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
-//             if (auto type = extractHelperArgumentPrism(ctx, annotation, 18)) {
-//                 auto body = make_unique<parser::Begin>(annotation.typeLoc, parser::NodeVec());
-//                 body->stmts.emplace_back(move(type));
-//                 auto send = parser::MK::Send0(annotation.typeLoc, parser::MK::Self(annotation.typeLoc),
-//                                               core::Names::requiresAncestor(), annotation.typeLoc);
-//                 auto block = make_unique<parser::Block>(annotation.typeLoc, move(send), nullptr, move(body));
-//                 helpers.emplace_back(move(block));
-//             }
-//         }
-//     }
-//     return helpers;
-// }
+/**
+ * Extracts class-level helper method calls from annotations.
+ *
+ * For example, given the annotations:
+ *     # @abstract
+ *     # @interface
+ *
+ * This function will return Prism call nodes for:
+ *     self.abstract!()
+ *     self.interface!()
+ *
+ * It doesn't insert them into the body of the class/module/etc.
+ */
+vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Comment> &annotations,
+                                   parser::Prism::Parser &parser) {
+    Factory prism(parser);
+    vector<pm_node_t *> helpers;
 
-// TODO(Prism migration): body wrapping for helpers not needed for signature translation.
-// unique_ptr<parser::Node> maybeWrapBodyPrism(unique_ptr<parser::Node> &owner, unique_ptr<parser::Node> body) {
-//     if (body == nullptr) {
-//         return make_unique<parser::Begin>(owner->loc, parser::NodeVec());
-//     } else if (parser::isa_node<parser::Begin>(body.get())) {
-//         return body;
-//     } else {
-//         auto newBody = make_unique<parser::Begin>(body->loc, parser::NodeVec());
-//         newBody->stmts.emplace_back(move(body));
-//         return newBody;
-//     }
-// }
+    for (auto &annotation : annotations) {
+        pm_node_t *helperNode = nullptr;
 
-// TODO(Prism migration): helpers utilities not needed for signature translation.
-// bool containsExtendTHelperPrism(parser::Begin *body) {
-//     for (auto &stmt : body->stmts) {
-//         auto send = parser::cast_node<parser::Send>(stmt.get());
-//         if (send == nullptr) {
-//             continue;
-//         }
+        // TODO: Should send0 use core::NameRef?
+        if (annotation.string == "abstract") {
+            pm_node_t *self = prism.Self(annotation.typeLoc);
+            helperNode = prism.Send0(annotation.typeLoc, self, "abstract!"sv);
+        } else if (annotation.string == "interface") {
+            pm_node_t *self = prism.Self(annotation.typeLoc);
+            helperNode = prism.Send0(annotation.typeLoc, self, "interface!"sv);
+        } else if (annotation.string == "final") {
+            pm_node_t *self = prism.Self(annotation.typeLoc);
+            if (self) {
+                helperNode = prism.Send0(annotation.typeLoc, self, "final!"sv);
+            }
+        } else if (annotation.string == "sealed") {
+            pm_node_t *self = prism.Self(annotation.typeLoc);
+            if (self) {
+                helperNode = prism.Send0(annotation.typeLoc, self, "sealed!"sv);
+            }
+        }
+        // TODO: Implement requires_ancestor support (more complex, needs block)
 
-//         if (send->method != core::Names::extend()) {
-//             continue;
-//         }
+        if (helperNode) {
+            helpers.push_back(helperNode);
+        }
+    }
 
-//         if (send->receiver != nullptr && !parser::isa_node<parser::Self>(send->receiver.get())) {
-//             continue;
-//         }
+    return helpers;
+}
 
-//         if (send->args.size() != 1) {
-//             continue;
-//         }
+/**
+ * Wraps the body in a `PM_STATEMENTS_NODE` if it isn't already.
+ *
+ * This is useful for cases where we want to insert helpers into the body of a class/module/etc.
+ */
+[[maybe_unused]] pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &parser) {
+    Factory prism(const_cast<parser::Prism::Parser &>(parser));
 
-//         auto arg = parser::cast_node<parser::Const>(send->args[0].get());
-//         if (arg == nullptr) {
-//             continue;
-//         }
+    if (body == nullptr) {
+        // Create empty statements node
+        pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
+        if (!stmts) {
+            return nullptr;
+        }
+        *stmts =
+            (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(loc)),
+                                   .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
+        return up_cast(stmts);
+    }
 
-//         if (arg->name != core::Names::Constants::Helpers() || !parser::MK::isT(arg->scope)) {
-//             continue;
-//         }
+    if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE)) {
+        return body; // Already wrapped
+    }
 
-//         return true;
-//     }
+    // Wrap single node in statements
+    pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
+    if (!stmts) {
+        return nullptr;
+    }
 
-//     return false;
-// }
+    pm_node_t **nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
+    if (!nodes) {
+        free(stmts);
+        return nullptr;
+    }
+    nodes[0] = body;
 
-// TODO(Prism migration): helpers utilities not needed for signature translation.
-// void maybeInsertExtendTHelpersPrism(unique_ptr<parser::Node> *body) {
-//     auto begin = parser::cast_node<parser::Begin>(body->get());
-//     ENFORCE(begin != nullptr);
+    *stmts = (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, body->location),
+                                    .body = {.size = 1, .capacity = 1, .nodes = nodes}};
 
-//     if (containsExtendTHelperPrism(begin)) {
-//         return;
-//     }
+    return up_cast(stmts);
+}
 
-//     auto send = parser::MK::Send1(begin->loc, parser::MK::Self(begin->loc), core::Names::extend(), begin->loc,
-//                                   parser::MK::T_Helpers(begin->loc));
+/**
+ * Returns true if the body contains an `extend T::Helpers` call already.
+ */
+[[maybe_unused]] bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Parser *prismParser,
+                                            core::MutableContext ctx) {
+    ENFORCE(body != nullptr);
 
-//     begin->stmts.emplace_back(move(send));
-// }
+    for (size_t i = 0; i < body->body.size; i++) {
+        pm_node_t *stmt = body->body.nodes[i];
 
-// TODO(Prism migration): helpers utilities not needed for signature translation.
-// void insertHelpersPrism(unique_ptr<parser::Node> *body, parser::NodeVec helpers) {
-//     auto begin = parser::cast_node<parser::Begin>(body->get());
-//     ENFORCE(begin != nullptr);
+        if (!PM_NODE_TYPE_P(stmt, PM_CALL_NODE)) {
+            continue;
+        }
 
-//     for (auto &helper : helpers) {
-//         begin->stmts.emplace_back(move(helper));
-//     }
-// }
+        auto *call = down_cast<pm_call_node_t>(stmt);
+        auto methodName = prismParser->resolveConstant(call->name);
+
+        if (methodName != "extend") {
+            continue;
+        }
+
+        if (call->receiver != nullptr && !PM_NODE_TYPE_P(call->receiver, PM_SELF_NODE)) {
+            continue;
+        }
+
+        if (call->arguments == nullptr || call->arguments->arguments.size != 1) {
+            continue;
+        }
+
+        pm_node_t *arg = call->arguments->arguments.nodes[0];
+        if (!PM_NODE_TYPE_P(arg, PM_CONSTANT_PATH_NODE)) {
+            continue;
+        }
+
+        auto *constantPath = down_cast<pm_constant_path_node_t>(arg);
+        auto argName = prismParser->resolveConstant(constantPath->name);
+
+        if (argName != "Helpers") {
+            continue;
+        }
+
+        if (prismParser->isT(constantPath->parent)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Inserts an `extend T::Helpers` call into the body if it doesn't already exist.
+ */
+[[maybe_unused]] void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc,
+                                                const parser::Prism::Parser *prismParser, core::MutableContext ctx,
+                                                const parser::Prism::Factory &prism) {
+    auto *stmts = down_cast<pm_statements_node_t>(*body);
+    ENFORCE(stmts != nullptr);
+
+    if (containsExtendTHelper(stmts, prismParser, ctx)) {
+        return;
+    }
+
+    // Create "extend T::Helpers" call
+    pm_node_t *tHelpers = prism.THelpers(loc);
+    if (!tHelpers) {
+        return;
+    }
+
+    pm_node_t *selfNode = prism.Self(loc);
+    if (!selfNode) {
+        return;
+    }
+
+    pm_node_t *extendCall = prism.Send1(loc, selfNode, "extend"sv, tHelpers);
+    if (!extendCall) {
+        return;
+    }
+
+    pm_node_list_append(&stmts->body, extendCall);
+}
+
+/**
+ * Inserts the helpers into the body.
+ */
+[[maybe_unused]] void insertHelpers(pm_node_t **body, vector<pm_node_t *> &helpers) {
+    auto *stmts = down_cast<pm_statements_node_t>(*body);
+    ENFORCE(stmts != nullptr);
+
+    for (auto *helper : helpers) {
+        pm_node_list_append(&stmts->body, helper);
+    }
+}
 
 } // namespace
 
@@ -429,38 +506,53 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
     }
 
     auto comments = commentsForNode(node);
-    // TODO: Implement extractHelpers for Prism - extracts @abstract, @interface, @final, etc.
-    // auto helpers = extractHelpers(ctx, comments.annotations);
+    auto helpers = extractHelpers(ctx, comments.annotations, parser);
 
-    if (comments.signatures.empty()) {
-        // TODO: When helpers are implemented, also check: && helpers.empty()
+    if (comments.signatures.empty() && helpers.empty()) {
         return node;
     }
 
     switch (PM_NODE_TYPE(node)) {
         case PM_CLASS_NODE: {
             auto *klass = down_cast<pm_class_node_t>(node);
-            (void)klass; // Suppress unused variable warning
-            // TODO: Implement body wrapping and helper insertion for Prism
-            // This should follow the same pattern as the original:
-            // 1. klass->body = maybeWrapBody(node, move(klass->body));
-            // 2. if (!helpers.empty()) {
-            //        maybeInsertExtendTHelpers(&klass->body);
-            //        insertHelpers(&klass->body, move(helpers));
-            //    }
-            // 3. insertTypeParams(klass, &klass->body);
+            auto loc = klass->body ? parser.translateLocation(klass->body->location)
+                                   : parser.translateLocation(node->location);
+
+            klass->body = maybeWrapBody(klass->body, loc, parser);
+            if (!helpers.empty()) {
+                maybeInsertExtendTHelpers(&klass->body, loc, &parser, ctx, prism);
+                insertHelpers(&klass->body, helpers);
+            }
+
+            // TODO: insertTypeParams(klass, &klass->body);
             break;
         }
         case PM_MODULE_NODE: {
             auto *module = down_cast<pm_module_node_t>(node);
-            (void)module; // Suppress unused variable warning
-            // TODO: Same implementation as class case
+            auto loc = module->body ? parser.translateLocation(module->body->location)
+                                    : parser.translateLocation(node->location);
+
+            module->body = maybeWrapBody(module->body, loc, parser);
+            if (!helpers.empty()) {
+                maybeInsertExtendTHelpers(&module->body, loc, &parser, ctx, prism);
+                insertHelpers(&module->body, helpers);
+            }
+
+            // TODO: insertTypeParams(module, &module->body);
             break;
         }
         case PM_SINGLETON_CLASS_NODE: {
             auto *sclass = down_cast<pm_singleton_class_node_t>(node);
-            (void)sclass; // Suppress unused variable warning
-            // TODO: Same implementation as class case
+            auto loc = sclass->body ? parser.translateLocation(sclass->body->location)
+                                    : parser.translateLocation(node->location);
+
+            sclass->body = maybeWrapBody(sclass->body, loc, parser);
+            if (!helpers.empty()) {
+                maybeInsertExtendTHelpers(&sclass->body, loc, &parser, ctx, prism);
+                insertHelpers(&sclass->body, helpers);
+            }
+
+            // TODO: insertTypeParams(sclass, &sclass->body);
             break;
         }
         default:
@@ -506,12 +598,12 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_MODULE_NODE: {
             auto *mod = down_cast<pm_module_node_t>(node);
             mod->body = rewriteBody(mod->body);
-            return node;
+            return rewriteClass(node);
         }
         case PM_CLASS_NODE: {
             auto *cls = down_cast<pm_class_node_t>(node);
             cls->body = rewriteBody(cls->body);
-            return node;
+            return rewriteClass(node);
         }
         case PM_DEF_NODE: {
             auto *def = down_cast<pm_def_node_t>(node);
@@ -521,7 +613,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_SINGLETON_CLASS_NODE: {
             auto *sclass = down_cast<pm_singleton_class_node_t>(node);
             sclass->body = rewriteBody(sclass->body);
-            return node;
+            return rewriteClass(node);
         }
         case PM_FOR_NODE: {
             auto *for_ = down_cast<pm_for_node_t>(node);
