@@ -36,19 +36,6 @@ inline constexpr auto freeDeleter = [](void *p) { free(p); };
 
 template <typename T> using UniqueCPtr = std::unique_ptr<T, decltype(freeDeleter)>;
 
-pm_node_t **copyNodesToArray(const vector<pm_node_t *> &nodes) {
-    pm_node_t **nodeArray = (pm_node_t **)calloc(nodes.size(), sizeof(pm_node_t *));
-    if (!nodeArray) {
-        return nullptr;
-    }
-
-    for (size_t i = 0; i < nodes.size(); i++) {
-        nodeArray[i] = nodes[i];
-    }
-
-    return nodeArray;
-}
-
 pm_node_t Factory::initializeBaseNode(pm_node_type_t type, const pm_location_t loc) {
     pm_parser_t *prismParser = parser.getRawParserPointer();
     prismParser->node_id++;
@@ -57,7 +44,7 @@ pm_node_t Factory::initializeBaseNode(pm_node_type_t type, const pm_location_t l
     return (pm_node_t){.type = type, .flags = 0, .node_id = nodeId, .location = loc};
 }
 
-pm_node_t *Factory::ConstantReadNode(std::string_view name, core::LocOffsets loc) {
+pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) {
     pm_constant_id_t constantId = addConstantToPool(name);
     if (constantId == PM_CONSTANT_ID_UNSET) {
         return nullptr;
@@ -189,9 +176,6 @@ pm_node_t *Factory::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_
     memcpy(stable.get(), nameView.data(), nameSize);
 
     pm_symbol_node_t *symbolNode = allocateNode<pm_symbol_node_t>();
-    if (!symbolNode) {
-        return nullptr;
-    }
 
     pm_location_t location = convertLocOffsets(nameLoc.copyWithZeroLength());
 
@@ -525,10 +509,7 @@ pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) {
     pm_node_list_append(&stmts->body, type);
 
     pm_block_node_t *block = allocateNode<pm_block_node_t>();
-    if (!block) {
-        free(stmts);
-        return nullptr;
-    }
+
     *block = (pm_block_node_t){.base = initializeBaseNode(PM_BLOCK_NODE, convertLocOffsets(loc)),
                                .locals = {.size = 0, .capacity = 0, .ids = nullptr},
                                .parameters = nullptr,
@@ -555,8 +536,6 @@ pm_node_t *Factory::Array(core::LocOffsets loc, const vector<pm_node_t *> &eleme
                                .elements = {.size = elementsSize, .capacity = elementsSize, .nodes = elemNodes},
                                .opening_loc = convertLocOffsets(loc.copyWithZeroLength()),
                                .closing_loc = convertLocOffsets(loc.copyEndWithZeroLength())};
-
-    array->base.location = convertLocOffsets(loc);
 
     return up_cast(array);
 }
