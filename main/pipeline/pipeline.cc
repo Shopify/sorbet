@@ -379,7 +379,7 @@ ast::ParsedFile emptyParsedFile(core::FileRef file) {
 pm_node_t *runPrismRBSRewrite(sorbet::core::GlobalState &gs, sorbet::core::FileRef file, pm_node_t *node,
                               const std::vector<sorbet::core::LocOffsets> &commentLocations,
                               const sorbet::realmain::options::Printers &print, sorbet::core::MutableContext &ctx,
-                              const parser::Prism::Parser &parser) {
+                              parser::Prism::Parser &parser) {
     Timer timeit(gs.tracer(), "runPrismRBSRewrite", {{"file", string(file.data(gs).path())}});
 
     // fmt::print("TRIGGERING COMMENTS ASSOCIATOR PRISM\n");

@@ -27,7 +27,7 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
 
     if (rbsNamespace->absolute) {
         // Create root constant access (::)
-        parent = prism.ConstantReadNode("", loc);
+        parent = prism.ConstantReadNode(""sv, loc);
     }
 
     if (typePath != nullptr) {
@@ -136,7 +136,7 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
 pm_node_t *TypeToParserNodePrism::classSingletonType(const rbs_types_class_singleton_t *node, core::LocOffsets loc,
                                                      const RBSDeclaration &declaration) {
     // Simplified - should create T.class_of call
-    return prism.ConstantReadNode("T.class_of", loc);
+    return prism.ConstantReadNode("T.class_of"sv, loc);
 }
 
 pm_node_t *TypeToParserNodePrism::unionType(const rbs_types_union_t *node, core::LocOffsets loc,
@@ -162,14 +162,14 @@ pm_node_t *TypeToParserNodePrism::intersectionType(const rbs_types_intersection_
 pm_node_t *TypeToParserNodePrism::optionalType(const rbs_types_optional_t *node, core::LocOffsets loc,
                                                const RBSDeclaration &declaration) {
     auto innerType = toPrismNode(node->type, declaration);
-    if (prism.isTUntyped(innerType)) {
+    if (prismParser.isTUntyped(innerType)) {
         return innerType;
     }
     return prism.TNilable(loc, innerType);
 }
 
 pm_node_t *TypeToParserNodePrism::voidType(const rbs_types_bases_void_t *node, core::LocOffsets loc) {
-    return prism.ConstantReadNode("T.void", loc);
+    return prism.ConstantReadNode("T.void"sv, loc);
 }
 
 pm_node_t *TypeToParserNodePrism::functionType(const rbs_types_function_t *node, core::LocOffsets loc,
@@ -244,7 +244,7 @@ pm_node_t *TypeToParserNodePrism::blockType(const rbs_types_block_t *node, core:
     if (selfNode != nullptr) {
         auto selfLoc = declaration.typeLocFromRange(selfNode->location->rg);
         auto selfType = toPrismNode(selfNode, declaration);
-        function = prism.Send1(selfLoc, function, "bind", selfType);
+        function = prism.Send1(selfLoc, function, "bind"sv, selfType);
     }
 
     if (!node->required) {
@@ -268,7 +268,7 @@ pm_node_t *TypeToParserNodePrism::tupleType(const rbs_types_tuple_t *node, core:
 
 pm_node_t *TypeToParserNodePrism::recordType(const rbs_types_record_t *node, core::LocOffsets loc,
                                              const RBSDeclaration &declaration) {
-    return prism.ConstantReadNode("Hash", loc);
+    return prism.ConstantReadNode("Hash"sv, loc);
 }
 
 pm_node_t *TypeToParserNodePrism::variableType(const rbs_types_variable_t *node, core::LocOffsets loc) {
@@ -290,9 +290,9 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
         case RBS_TYPES_BASES_ANY:
             return prism.TUntyped(nodeLoc);
         case RBS_TYPES_BASES_BOOL:
-            return prism.ConstantReadNode("T::Boolean", nodeLoc);
+            return prism.ConstantReadNode("T::Boolean"sv, nodeLoc);
         case RBS_TYPES_BASES_BOTTOM:
-            return prism.ConstantReadNode("T.noreturn", nodeLoc);
+            return prism.ConstantReadNode("T.noreturn"sv, nodeLoc);
         case RBS_TYPES_BASES_CLASS: {
             if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSUnsupported)) {
                 e.setHeader("RBS type `{}` is not supported", "class");
@@ -300,13 +300,13 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
             return prism.TUntyped(nodeLoc);
         }
         case RBS_TYPES_BASES_INSTANCE:
-            return prism.ConstantReadNode("T.attached_class", nodeLoc);
+            return prism.ConstantReadNode("T.attached_class"sv, nodeLoc);
         case RBS_TYPES_BASES_NIL:
-            return prism.ConstantReadNode("NilClass", nodeLoc);
+            return prism.ConstantReadNode("NilClass"sv, nodeLoc);
         case RBS_TYPES_BASES_SELF:
-            return prism.ConstantReadNode("T.self_type", nodeLoc);
+            return prism.ConstantReadNode("T.self_type"sv, nodeLoc);
         case RBS_TYPES_BASES_TOP:
-            return prism.ConstantReadNode("T.anything", nodeLoc);
+            return prism.ConstantReadNode("T.anything"sv, nodeLoc);
         case RBS_TYPES_BASES_VOID:
             return voidType((rbs_types_bases_void_t *)node, nodeLoc);
         case RBS_TYPES_BLOCK:

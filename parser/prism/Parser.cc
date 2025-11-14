@@ -7,6 +7,8 @@ using namespace std;
 
 namespace sorbet::parser::Prism {
 
+using namespace std::literals::string_view_literals;
+
 parser::ParseResult Parser::run(core::MutableContext ctx, bool directlyDesugar, bool preserveConcreteSyntax) {
     auto file = ctx.file;
     auto source = file.data(ctx).source();
@@ -53,6 +55,18 @@ string_view Parser::extractString(pm_string_t *string) const {
     return cast_prism_string(pm_string_source(string), pm_string_length(string));
 }
 
+pm_location_t Parser::getZeroWidthLocation() const {
+    const uint8_t *sourceStart = parser.start;
+    return {.start = sourceStart, .end = sourceStart};
+}
+
+pm_location_t Parser::convertLocOffsets(core::LocOffsets loc) const {
+    const uint8_t *sourceStart = parser.start;
+    const uint8_t *startPtr = sourceStart + loc.beginPos();
+    const uint8_t *endPtr = sourceStart + loc.endPos();
+    return {.start = startPtr, .end = endPtr};
+}
+
 vector<ParseError> Parser::collectErrors() {
     vector<ParseError> parseErrors;
     parseErrors.reserve(parser.error_list.size);
@@ -85,4 +99,73 @@ vector<core::LocOffsets> Parser::collectCommentLocations() {
 
     return commentLocations;
 }
+
+bool Parser::isTUntyped(pm_node_t *node) const {
+    if (!node || !PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
+        return false;
+    }
+
+    pm_call_node_t *call = down_cast<pm_call_node_t>(node);
+    if (!call->receiver || PM_NODE_TYPE_P(call->receiver, PM_CONSTANT_PATH_NODE)) {
+        return false;
+    }
+
+    pm_constant_path_node_t *receiver = down_cast<pm_constant_path_node_t>(call->receiver);
+    if (receiver->parent != nullptr) {
+        return false; // Should be root-anchored ::T
+    }
+
+    auto methodName = resolveConstant(call->name);
+    if (methodName != "untyped"sv) {
+        return false;
+    }
+
+    auto receiverName = resolveConstant(receiver->name);
+    return receiverName == "T"sv;
+}
+
+bool Parser::isSetterCall(pm_node_t *node) const {
+    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(node);
+    auto methodName = resolveConstant(call->name);
+    return !methodName.empty() && methodName.back() == '=';
+}
+
+bool Parser::isSafeNavigationCall(pm_node_t *node) const {
+    return PM_NODE_TYPE_P(node, PM_CALL_NODE) && PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
+}
+
+bool Parser::isVisibilityCall(pm_node_t *node) const {
+    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(node);
+
+    // Must have no receiver (implicit self)
+    if (call->receiver != nullptr) {
+        return false;
+    }
+
+    // Must have exactly one argument
+    if (call->arguments == nullptr || call->arguments->arguments.size != 1) {
+        return false;
+    }
+
+    // That argument must be a method definition
+    pm_node_t *arg = call->arguments->arguments.nodes[0];
+    if (PM_NODE_TYPE_P(arg, PM_DEF_NODE)) {
+        return false;
+    }
+
+    // Check if the method name is a visibility modifier
+    auto methodName = resolveConstant(call->name);
+    return methodName == "private"sv || methodName == "protected"sv || methodName == "public"sv ||
+           methodName == "private_class_method"sv || methodName == "public_class_method"sv ||
+           methodName == "package_private"sv || methodName == "package_private_class_method"sv;
+}
+
 }; // namespace sorbet::parser::Prism

@@ -29,18 +29,18 @@ const regex absurd_pattern_prism("^\\s*absurd\\s*(#.*)?$");
  * Returns `nullopt` if the comment is not a valid RBS expression (an error is produced).
  */
 optional<pair<pm_node_t *, InlineCommentPrism::Kind>>
-parseComment(core::MutableContext ctx, const parser::Prism::Parser *parser, InlineCommentPrism comment,
+parseComment(core::MutableContext ctx, parser::Prism::Parser *parser, InlineCommentPrism comment,
              vector<pair<core::LocOffsets, core::NameRef>> typeParams) {
-    Factory prism(const_cast<parser::Prism::Parser &>(*parser));
+    Factory prism(*parser);
 
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
         pm_nil_node_t *nil = prism.allocateNode<pm_nil_node_t>();
         *nil = (pm_nil_node_t){
-            .base = prism.initializeBaseNode(PM_NIL_NODE, prism.convertLocOffsets(comment.comment.typeLoc)),
+            .base = prism.initializeBaseNode(PM_NIL_NODE, parser->convertLocOffsets(comment.comment.typeLoc)),
         };
-        nil->base.location = prism.convertLocOffsets(comment.comment.typeLoc);
+        nil->base.location = parser->convertLocOffsets(comment.comment.typeLoc);
         return pair<pm_node_t *, InlineCommentPrism::Kind>{
             up_cast(nil),
             comment.kind,
@@ -327,15 +327,15 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     auto typeLoc = translateLocation(type->location);
 
     if (kind == InlineCommentPrism::Kind::LET) {
-        return prism->TLet(typeLoc, node, type);
+        return prism.TLet(typeLoc, node, type);
     } else if (kind == InlineCommentPrism::Kind::CAST) {
-        return prism->TCast(typeLoc, node, type);
+        return prism.TCast(typeLoc, node, type);
     } else if (kind == InlineCommentPrism::Kind::MUST) {
-        return prism->TMust(typeLoc, node);
+        return prism.TMust(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::UNSAFE) {
-        return prism->TUnsafe(typeLoc, node);
+        return prism.TUnsafe(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::ABSURD) {
-        return prism->TAbsurd(typeLoc, node);
+        return prism.TAbsurd(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::BIND) {
         if (auto e = ctx.beginIndexerError(typeLoc, core::errors::Rewriter::RBSUnsupported)) {
             e.setHeader("`{}` binding can't be used as a trailing comment", "self");
@@ -358,7 +358,7 @@ pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
     if (!pair) {
         // We already raised an error while parsing the comment, so we just bind to `T.untyped`
         auto loc = translateLocation(node->location);
-        return prism->TBindSelf(loc, prism->TUntyped(loc));
+        return prism.TBindSelf(loc, prism.TUntyped(loc));
     }
 
     auto kind = pair->second;
@@ -367,7 +367,7 @@ pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
     auto type = pair->first;
     auto typeLoc = translateLocation(type->location);
 
-    return prism->TBindSelf(typeLoc, type);
+    return prism.TBindSelf(typeLoc, type);
 }
 
 /**
@@ -413,7 +413,7 @@ void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_
             }
 
             // Create array node
-            auto arr = prism->Array(loc, nodeVec);
+            auto arr = prism.Array(loc, nodeVec);
             arr = rewriteNode(arr);
 
             // Replace nodes list with single array element
@@ -712,7 +712,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
                 // parameters from the method signature.
                 return node;
             }
-            if (prism->isSafeNavigationCall(node) && prism->isSetterCall(node)) {
+            if (parser->isSafeNavigationCall(node) && parser->isSetterCall(node)) {
                 // For safe navigation setter calls (e.g., `obj&.foo = val`), the cast should be applied to the receiver
                 // and the argument, but not to the call node itself
                 call->receiver = maybeInsertCast(call->receiver);
