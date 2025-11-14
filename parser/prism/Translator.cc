@@ -4111,10 +4111,14 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
 
     translateMultiInto(params, keywords);
 
+    bool hasForwardingParameter = false;
     if (auto *prismKwRestNode = paramsNode->keyword_rest) {
         switch (PM_NODE_TYPE(prismKwRestNode)) {
             case PM_KEYWORD_REST_PARAMETER_NODE: // `def foo(**kwargs)`
+                params.emplace_back(translate(prismKwRestNode));
+                break;
             case PM_FORWARDING_PARAMETER_NODE: { // `def foo(...)`
+                hasForwardingParameter = true;
                 params.emplace_back(translate(prismKwRestNode));
                 break;
             }
@@ -4142,11 +4146,17 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
             enclosingBlockParamName = nextUniqueParserName(core::Names::ampersand());
         }
 
-        auto blockParamExpr = MK::BlockParam(blockParamLoc, MK::Local(blockParamLoc, enclosingBlockParamName));
-        auto blockParamNode =
-            make_node_with_expr<parser::BlockParam>(move(blockParamExpr), blockParamLoc, enclosingBlockParamName);
+        // If we have a forwarding parameter we skip adding the block parameter to prevent duplicate BlockParam nodes.
+        if (!hasForwardingParameter) {
+            auto blockParamExpr = MK::BlockParam(blockParamLoc, MK::Local(blockParamLoc, enclosingBlockParamName));
+            auto blockParamNode =
+                make_node_with_expr<parser::BlockParam>(move(blockParamExpr), blockParamLoc, enclosingBlockParamName);
 
-        params.emplace_back(move(blockParamNode));
+            params.emplace_back(move(blockParamNode));
+        }
+    } else if (hasForwardingParameter) {
+        // When we have a forwarding parameter `...` we use the forwarded block's name
+        enclosingBlockParamName = core::Names::fwdBlock();
     } else {
         // Desugaring a method def like `def foo(a, b)` should behave like `def foo(a, b, &<blk>)`,
         // so we set a synthetic name here for `yield` to use.
