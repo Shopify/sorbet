@@ -613,7 +613,7 @@ bool Factory::isTUntyped(pm_node_t *node) {
     return receiverName == "T";
 }
 
-bool Factory::isSetterCall(pm_node_t *node, const Parser &parser) {
+bool Factory::isSetterCall(pm_node_t *node) {
     if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
         return false;
     }
@@ -631,7 +631,7 @@ bool Factory::isSafeNavigationCall(pm_node_t *node) {
     return PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
 }
 
-bool PMK::isVisibilityCall(pm_node_t *node, const Parser &parser) {
+bool Factory::isVisibilityCall(pm_node_t *node) {
     if (PM_NODE_TYPE(node) != PM_CALL_NODE) {
         return false;
     }

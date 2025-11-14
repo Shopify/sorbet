@@ -32,7 +32,8 @@ pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser
             // (singleton methods have a receiver field set)
             return node;
         case PM_CALL_NODE: {
-            if (PMK::isVisibilityCall(node, parser)) {
+            Factory prism(const_cast<parser::Prism::Parser &>(parser));
+            if (prism.isVisibilityCall(node)) {
                 return node;
             }
             // TODO: Need to implement isAttrAccessorSend for Prism nodes
@@ -303,7 +304,8 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
             }
         } else if (PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
             auto *call = down_cast<pm_call_node_t>(node);
-            if (PMK::isVisibilityCall(node, parser)) {
+            Factory prism(const_cast<parser::Prism::Parser &>(parser));
+            if (prism.isVisibilityCall(node)) {
                 // For visibility modifiers, translate the signature for the inner method definition
                 auto sig = signatureTranslator.translateMethodSignature(call->arguments->arguments.nodes[0],
                                                                         declaration, comments.annotations);

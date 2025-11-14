@@ -320,9 +320,9 @@ public:
     pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements);
 
     bool isTUntyped(pm_node_t *node);
-    bool isSetterCall(pm_node_t *node, const Parser &parser);
+    bool isSetterCall(pm_node_t *node);
     bool isSafeNavigationCall(pm_node_t *node);
-    bool isVisibilityCall(pm_node_t *node, const Parser &parser);
+    bool isVisibilityCall(pm_node_t *node);
 
 private:
     pm_arguments_node_t *createArgumentsNode(std::vector<pm_node_t *> args, const pm_location_t loc);
