@@ -268,12 +268,16 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 }
                 case realmain::options::Parser::PRISM: {
                     if (gs.cacheSensitiveOptions.rbsEnabled) {
-                        // The RBS rewriter produces plain Whitequark nodes and not `NodeWithExpr` which causes errors
-                        // in `PrismDesugar.cc`. For now, just use the legacy parser for RBS.
-                    } else {
-                        auto directlyDesugar = true;
-                        prismParseResult = parser::Prism::Parser::run(ctx, directlyDesugar);
+                        continue;
                     }
+
+                    try {
+                        prismParseResult = parser::Prism::Parser::run(ctx);
+                    } catch (parser::Prism::PrismFallback &) {
+                        continue;
+                    }
+
+                    break;
                 }
             }
         }
@@ -778,8 +782,16 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                auto directlyDesugar = false;
-                parseResult = parser::Prism::Parser::run(ctx, directlyDesugar);
+                if (gs->cacheSensitiveOptions.rbsEnabled) {
+                    continue;
+                }
+
+                try {
+                    parseResult = parser::Prism::Parser::run(ctx);
+                } catch (parser::Prism::PrismFallback &) {
+                    continue;
+                }
+
                 break;
             }
         }
@@ -803,7 +815,17 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         ast::ExpressionPtr ast;
         {
             core::UnfreezeNameTable nameTableAccess(ctx); // enters original strings
-            ast = ast::desugar::node2Tree(ctx, move(nodes));
+
+            switch (parser) {
+                case realmain::options::Parser::ORIGINAL: {
+                    ast = ast::desugar::node2Tree(ctx, move(nodes));
+                    break;
+                }
+                case realmain::options::Parser::PRISM: {
+                    ast = ast::prismDesugar::node2Tree(ctx, move(nodes));
+                    break;
+                }
+            }
         }
 
         ast::ParsedFile file = testSerialize(*gs, ast::ParsedFile{move(ast), f.file});
