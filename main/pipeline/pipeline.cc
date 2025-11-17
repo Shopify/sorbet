@@ -285,10 +285,9 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
             node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
 
-        bool directlyDesugar = !gs.cacheSensitiveOptions.rbsEnabled;
-        auto translatedTree = parser::Prism::Translator(parser, ctx, prismResult.getParseErrors(), directlyDesugar,
-                                                        preserveConcreteSyntax)
-                                  .translate(node);
+        auto translatedTree =
+            parser::Prism::Translator(parser, ctx, prismResult.getParseErrors(), preserveConcreteSyntax)
+                .translate(node);
 
         parseResult = parser::ParseResult{move(translatedTree), prismResult.getCommentLocations()};
     }
