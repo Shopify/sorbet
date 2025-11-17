@@ -50,6 +50,10 @@ pm_node_t Factory::initializeBaseNode(pm_node_type_t type, const pm_location_t l
 
 pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) const {
     pm_constant_id_t constantId = addConstantToPool(name);
+    return ConstantReadNode(constantId, loc);
+}
+
+pm_node_t *Factory::ConstantReadNode(pm_constant_id_t constantId, core::LocOffsets loc) const {
     pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
 
     pm_location_t pmLoc = parser.convertLocOffsets(loc);

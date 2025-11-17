@@ -28,17 +28,8 @@ static const regex HEREDOC_PATTERN_PRISM("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(
  */
 pm_node_t *createSyntheticPlaceholder(sorbet::parser::Prism::Parser &parser, const CommentNodePrism &comment,
                                       pm_constant_id_t marker) {
-    pm_constant_read_node_t *constantRead = (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
-    constantRead->base.type = PM_CONSTANT_READ_NODE;
-    constantRead->base.flags = 0;
-
-    pm_parser_t *rawParser = parser.getRawParserPointer();
-    const uint8_t *source = rawParser->start;
-    constantRead->base.location.start = source + comment.loc.beginPos();
-    constantRead->base.location.end = source + comment.loc.endPos();
-    constantRead->name = marker;
-
-    return (pm_node_t *)constantRead;
+    sorbet::parser::Prism::Factory factory{parser};
+    return factory.ConstantReadNode(marker, comment.loc);
 }
 
 namespace {
