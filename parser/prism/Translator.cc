@@ -3223,14 +3223,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto resbodyLoc = core::LocOffsets{keywordLoc.beginPos(), location.endPos()};
 
-            if (!hasExpr(body, rescue)) {
-                // In rescue modifiers, users can't specify exception classes or names, so they're always null.
-                std::unique_ptr<Node> rescuedExceptions = nullptr;
-                auto resBody = make_unique<parser::Resbody>(resbodyLoc, move(rescuedExceptions), nullptr, move(rescue));
-
-                auto cases = NodeVec1(move(resBody));
-                return make_unique<parser::Rescue>(location, move(body), move(cases), nullptr);
-            }
+            enforceHasExpr(body, rescue);
 
             auto bodyExpr = body->takeDesugaredExpr();
             auto rescueExpr = rescue->takeDesugaredExpr();
@@ -3283,9 +3276,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 return make_node_with_expr<parser::Return>(move(expr), location, move(returnValues));
             }
 
-            if (!hasExpr(returnValues)) {
-                return make_unique<parser::Return>(location, move(returnValues));
-            }
+            enforceHasExpr(returnValues);
 
             ExpressionPtr returnArgs;
             if (returnValues.size() == 1) {
@@ -4761,7 +4752,6 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
     ENFORCE(prismRescueNode, "translateRescue() should only be called if there's a `rescue` clause.")
 
     NodeVec rescueBodies;
-    bool allRescueBodiesHaveExpr = true;
 
     // Each `rescue` clause generates a `Resbody` node, which is a child of the `Rescue` node.
     for (pm_rescue_node *currentRescueNode = prismRescueNode; currentRescueNode != nullptr;
@@ -4956,13 +4946,7 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
 
     core::LocOffsets rescueLoc = translateLoc(rescueStart, rescueEnd);
 
-    // Check if all nodes have expressions
-    bool hasExpressions = hasExpr(bodyNode) && allRescueBodiesHaveExpr;
-
-    // The `Rescue` node combines the main body, the rescue clauses, and the else clause.
-    if (!hasExpressions) {
-        return make_unique<parser::Rescue>(rescueLoc, move(bodyNode), move(rescueBodies), move(elseNode));
-    }
+    enforceHasExpr(bodyNode);
 
     // Build the ast::Rescue expression
     auto bodyExpr = takeDesugaredExprOrEmptyTree(bodyNode);
