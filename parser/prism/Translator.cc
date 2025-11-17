@@ -40,22 +40,6 @@ template <typename... Tail> void enforceHasExpr(const std::unique_ptr<parser::No
     enforceHasExpr(tail...);
 }
 
-bool hasExpr(const std::unique_ptr<parser::Node> &node) {
-    auto result = node == nullptr || node->hasDesugaredExpr();
-    if (!result) {
-        throw PrismFallback{};
-    }
-    return true;
-}
-
-bool hasExpr(const parser::NodeVec &nodes) {
-    return absl::c_all_of(nodes, [](const auto &node) { return hasExpr(node); });
-}
-
-template <typename... Tail> bool hasExpr(const std::unique_ptr<parser::Node> &head, const Tail &...tail) {
-    return hasExpr(head) && hasExpr(tail...);
-}
-
 // Helper template to convert nodes to any store type with takeDesugaredExpr or EmptyTree for nulls.
 // This is used to convert a NodeVec to the store type argument for nodes including `Send`, `InsSeq`.
 template <typename StoreType> StoreType nodeVecToStore(const sorbet::parser::NodeVec &nodes) {
