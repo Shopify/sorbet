@@ -52,15 +52,11 @@ string_view Parser::extractString(pm_string_t *string) const {
 }
 
 pm_location_t Parser::getZeroWidthLocation() const {
-    const uint8_t *sourceStart = parser.start;
-    return {.start = sourceStart, .end = sourceStart};
+    return {.start = parser.start, .end = parser.start};
 }
 
 pm_location_t Parser::convertLocOffsets(core::LocOffsets loc) const {
-    const uint8_t *sourceStart = parser.start;
-    const uint8_t *startPtr = sourceStart + loc.beginPos();
-    const uint8_t *endPtr = sourceStart + loc.endPos();
-    return {.start = startPtr, .end = endPtr};
+    return {.start = parser.start + loc.beginPos(), .end = parser.start + loc.endPos()};
 }
 
 vector<ParseError> Parser::collectErrors() {

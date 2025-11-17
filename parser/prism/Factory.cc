@@ -192,10 +192,6 @@ pm_node_t *Factory::AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *v
 }
 
 pm_node_t *Factory::Hash(core::LocOffsets loc, const vector<pm_node_t *> &pairs) const {
-    if (pairs.empty()) {
-        return nullptr;
-    }
-
     pm_hash_node_t *hashNode = allocateNode<pm_hash_node_t>();
 
     pm_node_list_t elements = copyNodesToList(pairs);
@@ -213,10 +209,6 @@ pm_node_t *Factory::Hash(core::LocOffsets loc, const vector<pm_node_t *> &pairs)
 }
 
 pm_node_t *Factory::KeywordHash(core::LocOffsets loc, const vector<pm_node_t *> &pairs) const {
-    if (pairs.empty()) {
-        return nullptr;
-    }
-
     pm_keyword_hash_node_t *hashNode = allocateNode<pm_keyword_hash_node_t>();
 
     pm_node_list_t elements = copyNodesToList(pairs);
@@ -306,8 +298,7 @@ pm_node_t *Factory::T(core::LocOffsets loc) const {
 }
 
 pm_node_t *Factory::TUntyped(core::LocOffsets loc) const {
-    pm_node_t *tConst = T(loc);
-    return Send0(loc, tConst, "untyped"sv);
+    return Send0(loc, T(loc), "untyped"sv);
 }
 
 pm_node_t *Factory::TNilable(core::LocOffsets loc, pm_node_t *type) const {
@@ -352,9 +343,7 @@ pm_node_t *Factory::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) 
 pm_node_t *Factory::TTypeParameter(core::LocOffsets loc, pm_node_t *name) const {
     ENFORCE(name, "Name is null");
 
-    pm_node_t *tConst = T(loc);
-
-    return Send1(loc, tConst, "type_parameter"sv, name);
+    return Send1(loc, T(loc), "type_parameter"sv, name);
 }
 
 pm_node_t *Factory::TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType) const {
@@ -392,7 +381,6 @@ pm_node_t *Factory::Send2(core::LocOffsets loc, pm_node_t *receiver, string_view
         return nullptr;
     }
 
-    // Create arguments node with two arguments
     vector<pm_node_t *> args = {arg1, arg2};
     pm_arguments_node_t *arguments = createArgumentsNode(args, parser.convertLocOffsets(loc));
 
@@ -439,10 +427,7 @@ pm_node_t *Factory::TAbsurd(core::LocOffsets loc, pm_node_t *value) const {
 pm_node_t *Factory::TBindSelf(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
 
-    pm_node_t *tConst = T(loc);
-    pm_node_t *selfNode = Self(loc);
-
-    return Send2(loc, tConst, "bind"sv, selfNode, type);
+    return Send2(loc, T(loc), "bind"sv, Self(loc), type);
 }
 
 pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) const {
