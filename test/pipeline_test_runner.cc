@@ -231,7 +231,6 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
         // Parser
         parser::ParseResult parseResult;
-        unique_ptr<parser::Node> directlyDesugaredTree;
         {
             core::UnfreezeNameTable nameTableAccess(gs); // enters original strings
             core::MutableContext ctx(gs, core::Symbols::root(), file);
@@ -244,17 +243,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                     break;
                 }
                 case realmain::options::Parser::PRISM: {
-                    auto directlyDesugar = false;
-                    parseResult = parser::Prism::Parser::run(ctx, directlyDesugar);
-
-                    // The RBS rewriter produces plain Whitequark nodes and not `NodeWithExpr` which causes errors in
-                    // `PrismDesugar.cc`. For now, disable direct desugaring, and fallback to `Desugar.cc`.
-                    if (gs.cacheSensitiveOptions.rbsEnabled) {
-                        directlyDesugaredTree = nullptr;
-                    } else {
-                        auto directlyDesugar = true;
-                        directlyDesugaredTree = parser::Prism::Parser::run(ctx, directlyDesugar).tree;
-                    }
+                    parseResult = parser::Prism::Parser::run(ctx);
 
                     break;
                 }
@@ -292,24 +281,6 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             core::UnfreezeNameTable nameTableAccess(ctx); // enters original strings
 
             ast::ExpressionPtr ast = ast::desugar::node2Tree(ctx, move(nodes));
-
-            if (directlyDesugaredTree != nullptr) {
-                // This AST would have been desugared deirectly by Prism::Translator
-                auto directlyDesugaredAST = ast::prismDesugar::node2Tree(ctx, move(directlyDesugaredTree));
-
-                if (!ast.prismDesugarEqual(gs, directlyDesugaredAST, file)) {
-                    auto expected = ast.showRawWithLocs(gs, file);
-                    auto actual = directlyDesugaredAST.showRawWithLocs(gs, file);
-
-                    cout << "--- Expected: " << endl;
-                    cout << expected << endl << endl;
-                    cout << "+++ Actual: " << endl;
-                    cout << actual << endl << endl;
-                    cout << "Diff:" << endl;
-                    CHECK_EQ_DIFF(expected, actual,
-                                  fmt::format("Prism desugared tree does not match legacy desugared tree"));
-                }
-            }
 
             desugared = testSerialize(gs, ast::ParsedFile{move(ast), file});
         }
@@ -766,8 +737,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 break;
             }
             case realmain::options::Parser::PRISM: {
-                auto directlyDesugar = false;
-                parseResult = parser::Prism::Parser::run(ctx, directlyDesugar);
+                parseResult = parser::Prism::Parser::run(ctx);
                 break;
             }
         }
