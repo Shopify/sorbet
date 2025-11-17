@@ -24,11 +24,7 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
     rbs_node_list *typePath = rbsNamespace->path;
 
     pm_node_t *parent = nullptr;
-
-    if (rbsNamespace->absolute) {
-        // Create root constant access (::)
-        parent = prism.ConstantReadNode(""sv, loc);
-    }
+    bool isAbsolute = rbsNamespace->absolute;
 
     if (typePath != nullptr) {
         for (rbs_node_list_node *list_node = typePath->head; list_node != nullptr; list_node = list_node->next) {
@@ -39,15 +35,13 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
 
             rbs_ast_symbol_t *symbol = (rbs_ast_symbol_t *)node;
             auto nameStr = parser.resolveConstant(symbol);
-            string nameString(nameStr);
+            string_view nameString{nameStr.data(), nameStr.size()};
 
-            pm_node_t *constNode = prism.ConstantReadNode(nameString, loc);
-            if (parent) {
-                // Create constant path node for scoped access
-                // This is simplified - full implementation would use pm_constant_path_node_create
-                parent = constNode;
+            if (parent != nullptr || isAbsolute) {
+                // Create constant path node for scoped access (A::B or ::A)
+                parent = prism.ConstantPathNode(loc, parent, nameString);
             } else {
-                parent = constNode;
+                parent = prism.ConstantReadNode(nameString, loc);
             }
         }
     }
@@ -60,6 +54,7 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
     auto loc = declaration.typeLocFromRange(((rbs_node_t *)typeName)->location->rg);
 
     pm_node_t *parent = namespaceConst(typeName->rbs_namespace, declaration, loc);
+    bool isAbsolute = typeName->rbs_namespace && typeName->rbs_namespace->absolute;
 
     auto nameStr = parser.resolveConstant(typeName->name);
     auto nameUTF8 = ctx.state.enterNameUTF8(nameStr);
@@ -94,8 +89,9 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
     }
 
     // Create a proper constant path node (parent::name or just name if no parent)
-    string nameString{nameStr.data(), nameStr.size()};
-    if (parent) {
+    string_view nameString{nameStr.data(), nameStr.size()};
+    if (parent || isAbsolute) {
+        // Create constant path node for scoped constants (A::B) or absolute constants (::A)
         return prism.ConstantPathNode(loc, parent, nameString);
     } else {
         return prism.ConstantReadNode(nameString, loc);

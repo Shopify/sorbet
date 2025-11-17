@@ -41,6 +41,27 @@ pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::Lo
     return typeToParserNodePrism.toPrismNode(rbsType, assertion);
 }
 
+pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declaration) {
+    rbs_string_t rbsString = makeRBSString(declaration.string);
+    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+
+    Parser parser(rbsString, encoding);
+    rbs_node_t *rbsType = parser.parseType();
+
+    if (parser.hasError()) {
+        core::LocOffsets offset = declaration.typeLocFromRange(parser.getError()->token.range);
+        if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("Failed to parse RBS type ({})", parser.getError()->message);
+        }
+
+        return nullptr;
+    }
+
+    vector<pair<core::LocOffsets, core::NameRef>> emptyTypeParams;
+    auto typeTranslator = TypeToParserNodePrism(ctx, emptyTypeParams, move(parser), *this->parser);
+    return typeTranslator.toPrismNode(rbsType, declaration);
+}
+
 // unique_ptr<parser::Node> SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
 //                                                                           const RBSDeclaration &declaration,
 //                                                                           const vector<Comment> &annotations) {

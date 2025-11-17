@@ -46,24 +46,25 @@ pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
 /**
  * Extracts and parses the argument from the annotation string.
  *
- * Considering an annotation like `@mixes_in_class_methods: ClassMethods`,
- * this function will extract and parse `ClassMethods` as a type then return the corresponding parser::Node.
+ * Considering an annotation like `@requires_ancestor: SomeModule`,
+ * this function will extract and parse `SomeModule` as a type then return the corresponding Prism node.
  *
  * We do not error if the node is not a constant, we just insert it as is and let the pipeline error down the line.
  */
-// unique_ptr<parser::Node> extractHelperArgumentPrism(core::MutableContext ctx, Comment annotation, int offset) {
-//     while (annotation.string[offset] == ' ') {
-//         offset++;
-//     }
+pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser &parser, Comment annotation,
+                                 int offset) {
+    while (annotation.string[offset] == ' ') {
+        offset++;
+    }
 
-//     Comment comment = {
-//         core::LocOffsets{annotation.typeLoc.beginPos() + offset, annotation.typeLoc.endPos()},
-//         core::LocOffsets{annotation.typeLoc.beginPos() + offset, annotation.typeLoc.endPos()},
-//         annotation.string.substr(offset),
-//     };
+    Comment comment = {
+        core::LocOffsets{annotation.typeLoc.beginPos() + offset, annotation.typeLoc.endPos()},
+        core::LocOffsets{annotation.typeLoc.beginPos() + offset, annotation.typeLoc.endPos()},
+        annotation.string.substr(offset),
+    };
 
-//     return rbs::SignatureTranslator(ctx).translateType(RBSDeclaration{vector<Comment>{comment}});
-// }
+    return rbs::SignatureTranslatorPrism(ctx, parser).translateType(RBSDeclaration{vector<Comment>{comment}});
+}
 
 /**
  * Extracts class-level helper method calls from annotations.
@@ -103,8 +104,39 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
             if (self) {
                 helperNode = prism.Send0(annotation.typeLoc, self, "sealed!"sv);
             }
+        } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
+            if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
+                // Create statements node with the type
+                pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
+                if (stmts) {
+                    *stmts = (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(annotation.typeLoc)),
+                                                    .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
+                    pm_node_list_append(&stmts->body, type);
+
+                    // Create self.requires_ancestor call
+                    pm_node_t *self = prism.Self(annotation.typeLoc);
+                    pm_node_t *send = prism.Send0(annotation.typeLoc, self, "requires_ancestor"sv);
+
+                    if (send && self) {
+                        // Create block with the statements as body
+                        pm_block_node_t *block = prism.allocateNode<pm_block_node_t>();
+                        if (block) {
+                            *block = (pm_block_node_t){.base = prism.initializeBaseNode(PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
+                                                       .locals = {.size = 0, .capacity = 0, .ids = nullptr},
+                                                       .parameters = nullptr,
+                                                       .body = up_cast(stmts),
+                                                       .opening_loc = parser.getZeroWidthLocation(),
+                                                       .closing_loc = parser.getZeroWidthLocation()};
+
+                            // Attach block to the call
+                            auto *call = down_cast<pm_call_node_t>(send);
+                            call->block = up_cast(block);
+                            helperNode = send;
+                        }
+                    }
+                }
+            }
         }
-        // TODO: Implement requires_ancestor support (more complex, needs block)
 
         if (helperNode) {
             helpers.push_back(helperNode);
@@ -160,8 +192,8 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
 /**
  * Returns true if the body contains an `extend T::Helpers` call already.
  */
-[[maybe_unused]] bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Parser *prismParser,
-                                            core::MutableContext ctx) {
+bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Parser *prismParser,
+                           core::MutableContext ctx) {
     ENFORCE(body != nullptr);
 
     for (size_t i = 0; i < body->body.size; i++) {
@@ -241,7 +273,7 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
 /**
  * Inserts the helpers into the body.
  */
-[[maybe_unused]] void insertHelpers(pm_node_t **body, vector<pm_node_t *> &helpers) {
+void insertHelpers(pm_node_t **body, vector<pm_node_t *> &helpers) {
     auto *stmts = down_cast<pm_statements_node_t>(*body);
     ENFORCE(stmts != nullptr);
 
