@@ -27,10 +27,8 @@ public:
 
     pm_node_t *translateType(const RBSDeclaration &declaration);
 
-    // TODO: Implement when needed for Prism versions
-    // pm_node_t* translateAttrSignature(const pm_call_node_t *call,
-    //                                   const RBSDeclaration &declaration,
-    //                                   const std::vector<Comment> &annotations);
+    pm_node_t *translateAttrSignature(const pm_call_node_t *call, const RBSDeclaration &declaration,
+                                      const std::vector<Comment> &annotations);
 
 private:
     core::MutableContext ctx;

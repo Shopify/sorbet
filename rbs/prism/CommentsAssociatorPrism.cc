@@ -606,6 +606,14 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 // This is a visibility modifier wrapping a method definition: `private def foo; end`
                 associateSignatureCommentsToNode(node);
                 consumeCommentsInsideNode(node, "send");
+            } else if (parser.isAttrAccessorCall(node)) {
+                associateSignatureCommentsToNode(node);
+                associateAssertionCommentsToNode(node);
+                walkNode(call->receiver);
+                if (call->arguments != nullptr) {
+                    walkNodes(call->arguments->arguments);
+                }
+                consumeCommentsInsideNode(node, "send");
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
                        parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
