@@ -279,9 +279,7 @@ pm_node_t *Factory::TUntyped(core::LocOffsets loc) const {
 
 pm_node_t *Factory::TNilable(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "TNilable: type parameter is required");
-
-    pm_node_t *tConst = T(loc);
-    return Send1(loc, tConst, "nilable"sv, type);
+    return Send1(loc, T(loc), "nilable"sv, type);
 }
 
 pm_node_t *Factory::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) const {
@@ -354,37 +352,27 @@ pm_node_t *Factory::Send2(core::LocOffsets loc, pm_node_t *receiver, string_view
 
 pm_node_t *Factory::TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) const {
     ENFORCE(value && type, "Value or type is null");
-
-    pm_node_t *tConst = T(loc);
-    return Send2(loc, tConst, "let"sv, value, type);
+    return Send2(loc, T(loc), "let"sv, value, type);
 }
 
 pm_node_t *Factory::TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) const {
     ENFORCE(value && type, "Value or type is null");
-
-    pm_node_t *tConst = T(loc);
-    return Send2(loc, tConst, "cast"sv, value, type);
+    return Send2(loc, T(loc), "cast"sv, value, type);
 }
 
 pm_node_t *Factory::TMust(core::LocOffsets loc, pm_node_t *value) const {
     ENFORCE(value, "Value is null");
-
-    pm_node_t *tConst = T(loc);
-    return Send1(loc, tConst, "must"sv, value);
+    return Send1(loc, T(loc), "must"sv, value);
 }
 
 pm_node_t *Factory::TUnsafe(core::LocOffsets loc, pm_node_t *value) const {
     ENFORCE(value, "Value is null");
-
-    pm_node_t *tConst = T(loc);
-    return Send1(loc, tConst, "unsafe"sv, value);
+    return Send1(loc, T(loc), "unsafe"sv, value);
 }
 
 pm_node_t *Factory::TAbsurd(core::LocOffsets loc, pm_node_t *value) const {
     ENFORCE(value, "Value is null");
-
-    pm_node_t *tConst = T(loc);
-    return Send1(loc, tConst, "absurd"sv, value);
+    return Send1(loc, T(loc), "absurd"sv, value);
 }
 pm_node_t *Factory::TBindSelf(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
@@ -395,8 +383,7 @@ pm_node_t *Factory::TBindSelf(core::LocOffsets loc, pm_node_t *type) const {
 pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
 
-    pm_node_t *tConst = T(loc);
-    pm_node_t *send = Send0(loc, tConst, "type_alias"sv);
+    pm_node_t *send = Send0(loc, T(loc), "type_alias"sv);
 
     pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
     *stmts = (pm_statements_node_t){.base = initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(loc)),
