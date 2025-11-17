@@ -699,72 +699,22 @@ pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
 pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *originalNode,
                                                              std::unique_ptr<std::vector<pm_node_t *>> signatures) {
     if (!signatures || signatures->empty()) {
-        return originalNode; // No signatures, return original node
-    }
-
-    // Create a statements node that wraps the signature + original method
-    pm_parser_t *p = parser.getInternalParser();
-
-    // Create the statements node
-    pm_statements_node_t *stmts = (pm_statements_node_t *)calloc(1, sizeof(pm_statements_node_t));
-    if (!stmts)
         return originalNode;
+    }
 
-    *stmts = (pm_statements_node_t){
-        .base = {.type = PM_STATEMENTS_NODE,
-                 .flags = 0,
-                 .node_id = ++p->node_id,
-                 .location = {.start = originalNode->location.start, .end = originalNode->location.end}},
-        .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
+    // Build the body: signatures + original node
+    std::vector<pm_node_t *> body;
+    body.reserve(signatures->size() + 1);
 
-    // Add all the Prism signature nodes
-    for (auto sigCall : *signatures) {
+    for (auto *sigCall : *signatures) {
         if (sigCall) {
-            addNodeToStatements(stmts, sigCall);
+            body.push_back(sigCall);
         }
     }
+    body.push_back(originalNode);
 
-    // Add the original method
-    addNodeToStatements(stmts, originalNode);
-
-    return up_cast(stmts);
-}
-
-// Helper to add a node to a statements node
-bool SigsRewriterPrism::addNodeToStatements(pm_statements_node_t *stmts, pm_node_t *node) {
-    if (!stmts || !node)
-        return false;
-
-    // Grow the node list if needed
-    if (stmts->body.size >= stmts->body.capacity) {
-        size_t new_capacity = stmts->body.capacity == 0 ? 4 : stmts->body.capacity * 2;
-        pm_node_t **new_nodes = (pm_node_t **)realloc(stmts->body.nodes, sizeof(pm_node_t *) * new_capacity);
-        if (!new_nodes)
-            return false;
-
-        stmts->body.nodes = new_nodes;
-        stmts->body.capacity = new_capacity;
-    }
-
-    // Add the node
-    stmts->body.nodes[stmts->body.size++] = node;
-
-    // Update the statements location to encompass the new node
-    if (stmts->body.size == 1) {
-        // First node - set the statements bounds
-        stmts->base.location.start = node->location.start;
-        stmts->base.location.end = node->location.end;
-    } else {
-        // Expand bounds to include new node
-        if (node->location.start < stmts->base.location.start) {
-            stmts->base.location.start = node->location.start;
-        }
-        if (node->location.end > stmts->base.location.end) {
-            stmts->base.location.end = node->location.end;
-        }
-    }
-
-    return true;
+    auto loc = parser.translateLocation(originalNode->location);
+    return prism.StatementsNode(loc, body);
 }
 
 } // namespace sorbet::rbs

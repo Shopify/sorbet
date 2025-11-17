@@ -87,6 +87,7 @@ public:
 
     pm_node_t *Array(core::LocOffsets loc, const std::vector<pm_node_t *> &elements) const;
     pm_node_t *Block(core::LocOffsets loc, pm_node_t *body) const;
+    pm_node_t *StatementsNode(core::LocOffsets loc, const std::vector<pm_node_t *> &body) const;
 
 private:
     pm_arguments_node_t *createArgumentsNode(std::vector<pm_node_t *> args, const pm_location_t loc) const;

@@ -50,10 +50,6 @@ pm_node_t Factory::initializeBaseNode(pm_node_type_t type, const pm_location_t l
 
 pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) const {
     pm_constant_id_t constantId = addConstantToPool(name);
-    if (constantId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
 
     pm_location_t pmLoc = parser.convertLocOffsets(loc);
@@ -81,10 +77,6 @@ pm_node_t *Factory::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nam
 
 pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, string_view name) const {
     pm_constant_id_t nameId = addConstantToPool(name);
-    if (nameId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_constant_path_node_t *node = allocateNode<pm_constant_path_node_t>();
 
     pm_location_t pmLoc = parser.convertLocOffsets(loc);
@@ -122,7 +114,7 @@ pm_constant_id_t Factory::addConstantToPool(string_view name) const {
     size_t nameLen = name.size();
     UniqueCPtr<uint8_t> stable((uint8_t *)calloc(nameLen, sizeof(uint8_t)), freeDeleter);
     if (!stable) {
-        return PM_CONSTANT_ID_UNSET;
+        Exception::raise("Out of memory: failed to allocate memory for constant pool");
     }
     memcpy(stable.get(), name.data(), nameLen);
     pm_constant_id_t id = pm_constant_pool_insert_owned(&prismParser->constant_pool, stable.release(), nameLen);
@@ -148,16 +140,12 @@ pm_call_node_t *Factory::createSendNode(pm_node_t *receiver, pm_constant_id_t me
 }
 
 pm_node_t *Factory::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId) const {
-    if (nameId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     auto nameView = parser.resolveConstant(nameId);
     size_t nameSize = nameView.size();
 
     UniqueCPtr<uint8_t> stable((uint8_t *)calloc(nameSize, sizeof(uint8_t)), freeDeleter);
     if (!stable) {
-        return nullptr;
+        Exception::raise("Out of memory: failed to allocate memory for symbol");
     }
     memcpy(stable.get(), nameView.data(), nameSize);
 
@@ -246,10 +234,6 @@ pm_node_t *Factory::Send0(core::LocOffsets loc, pm_node_t *receiver, string_view
     ENFORCE(receiver && !method.empty(), "Receiver or method is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
-    if (methodId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
 
@@ -260,10 +244,6 @@ pm_node_t *Factory::Send1(core::LocOffsets loc, pm_node_t *receiver, string_view
     ENFORCE(receiver && !method.empty() && arg1, "Receiver or method or argument is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
-    if (methodId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_node_t *arguments = SingleArgumentNode(arg1);
 
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
@@ -277,10 +257,6 @@ pm_node_t *Factory::Send(core::LocOffsets loc, pm_node_t *receiver, string_view 
     ENFORCE(receiver && !method.empty(), "Receiver or method is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
-    if (methodId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_arguments_node_t *arguments = nullptr;
     if (!args.empty()) {
         pm_location_t pmLoc = parser.convertLocOffsets(loc);
@@ -311,33 +287,23 @@ pm_node_t *Factory::TNilable(core::LocOffsets loc, pm_node_t *type) const {
 pm_node_t *Factory::TAny(core::LocOffsets loc, const vector<pm_node_t *> &args) const {
     ENFORCE(!args.empty(), "Args is empty");
 
-    pm_node_t *tConst = T(loc);
     pm_constant_id_t methodId = addConstantToPool("any"sv);
-    if (methodId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
     pm_arguments_node_t *arguments = createArgumentsNode(args, fullLoc);
 
-    return up_cast(createSendNode(tConst, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
+    return up_cast(createSendNode(T(loc), methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *Factory::TAll(core::LocOffsets loc, const vector<pm_node_t *> &args) const {
     ENFORCE(!args.empty(), "Args is empty");
 
-    pm_node_t *tConst = T(loc);
     pm_constant_id_t methodId = addConstantToPool("all"sv);
-    if (methodId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
     pm_arguments_node_t *arguments = createArgumentsNode(args, fullLoc);
 
-    return up_cast(createSendNode(tConst, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
+    return up_cast(createSendNode(T(loc), methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *Factory::TTypeParameter(core::LocOffsets loc, pm_node_t *name) const {
@@ -377,10 +343,6 @@ pm_node_t *Factory::Send2(core::LocOffsets loc, pm_node_t *receiver, string_view
     ENFORCE(receiver && !method.empty() && arg1 && arg2, "Receiver or method or arguments are null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
-    if (methodId == PM_CONSTANT_ID_UNSET) {
-        return nullptr;
-    }
-
     vector<pm_node_t *> args = {arg1, arg2};
     pm_arguments_node_t *arguments = createArgumentsNode(args, parser.convertLocOffsets(loc));
 
@@ -503,6 +465,18 @@ pm_node_t *Factory::T_Set(core::LocOffsets loc) const {
 
 pm_node_t *Factory::T_Range(core::LocOffsets loc) const {
     return ConstantPathNode(loc, T(loc), "Range"sv);
+}
+
+pm_node_t *Factory::StatementsNode(core::LocOffsets loc, const vector<pm_node_t *> &body) const {
+    pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
+    *stmts = (pm_statements_node_t){.base = initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(loc)),
+                                    .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
+
+    for (auto *node : body) {
+        pm_node_list_append(&stmts->body, node);
+    }
+
+    return up_cast(stmts);
 }
 
 } // namespace sorbet::parser::Prism
