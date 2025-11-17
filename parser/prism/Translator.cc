@@ -2911,6 +2911,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto value = patternTranslate(matchRequiredNode->value);
             auto pattern = patternTranslate(matchRequiredNode->pattern);
 
+            throw PrismFallback{};
             return make_unique<parser::MatchPattern>(location, move(value), move(pattern));
         }
         case PM_MATCH_PREDICATE_NODE: {
@@ -2919,6 +2920,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto value = patternTranslate(matchPredicateNode->value);
             auto pattern = patternTranslate(matchPredicateNode->pattern);
 
+            throw PrismFallback{};
             return make_unique<parser::MatchPatternP>(location, move(value), move(pattern));
         }
         case PM_MATCH_WRITE_NODE: { // A regex match that assigns to a local variable, like `a =~ /wat/`
