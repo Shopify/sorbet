@@ -14,6 +14,16 @@ extern "C" {
 #include "parser/ParseResult.h"
 
 namespace sorbet::parser::Prism {
+class Parser;
+} // namespace sorbet::parser::Prism
+
+namespace sorbet::rbs {
+struct CommentNodePrism;
+pm_node_t *createSyntheticPlaceholder(sorbet::parser::Prism::Parser &parser, const CommentNodePrism &comment,
+                                      pm_constant_id_t marker);
+} // namespace sorbet::rbs
+
+namespace sorbet::parser::Prism {
 
 class ParseResult;
 
@@ -46,6 +56,9 @@ class Parser final {
     friend class ParseResult;
     friend struct NodeDeleter;
     friend class Factory;
+    friend pm_node_t *sorbet::rbs::createSyntheticPlaceholder(Parser &parser,
+                                                              const sorbet::rbs::CommentNodePrism &comment,
+                                                              pm_constant_id_t marker);
 
 public:
     Parser(std::string_view sourceCode) : parser{}, options{} {
@@ -80,11 +93,6 @@ public:
     bool isSetterCall(pm_node_t *node) const;
     bool isSafeNavigationCall(pm_node_t *node) const;
     bool isVisibilityCall(pm_node_t *node) const;
-
-    // Access to internal parser for node creation
-    pm_parser_t *getInternalParser() const {
-        return const_cast<pm_parser_t *>(&parser);
-    }
 
 private:
     std::vector<ParseError> collectErrors();

@@ -22,7 +22,7 @@ parser::ParseResult Parser::run(core::MutableContext ctx, bool directlyDesugar, 
     return parser::ParseResult{move(translatedTree), move(parseResult.commentLocations)};
 }
 
-pm_parser_t *Parser::getRawParserPointer() { // maybe add back constness
+pm_parser_t *Parser::getRawParserPointer() {
     return &parser;
 }
 

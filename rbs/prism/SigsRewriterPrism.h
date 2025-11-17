@@ -57,9 +57,6 @@ private:
     pm_node_t *replaceSyntheticTypeAlias(pm_node_t *node);
     pm_node_t *createStatementsWithSignatures(pm_node_t *originalNode,
                                               std::unique_ptr<std::vector<pm_node_t *>> signatures);
-
-    // Helper methods for statements management
-    bool addNodeToStatements(pm_statements_node_t *stmts, pm_node_t *node);
 };
 
 } // namespace sorbet::rbs
