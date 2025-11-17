@@ -29,25 +29,25 @@ const regex absurd_pattern_prism("^\\s*absurd\\s*(#.*)?$");
  * Returns `nullopt` if the comment is not a valid RBS expression (an error is produced).
  */
 optional<pair<pm_node_t *, InlineCommentPrism::Kind>>
-parseComment(core::MutableContext ctx, parser::Prism::Parser *parser, InlineCommentPrism comment,
+parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineCommentPrism comment,
              vector<pair<core::LocOffsets, core::NameRef>> typeParams) {
-    Factory prism(*parser);
+    Factory prism(parser);
 
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
         pm_nil_node_t *nil = prism.allocateNode<pm_nil_node_t>();
         *nil = (pm_nil_node_t){
-            .base = prism.initializeBaseNode(PM_NIL_NODE, parser->convertLocOffsets(comment.comment.typeLoc)),
+            .base = prism.initializeBaseNode(PM_NIL_NODE, parser.convertLocOffsets(comment.comment.typeLoc)),
         };
-        nil->base.location = parser->convertLocOffsets(comment.comment.typeLoc);
+        nil->base.location = parser.convertLocOffsets(comment.comment.typeLoc);
         return pair<pm_node_t *, InlineCommentPrism::Kind>{
             up_cast(nil),
             comment.kind,
         };
     }
 
-    auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, *parser);
+    auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, parser);
     vector<Comment> comments;
     comments.push_back(comment.comment);
     auto declaration = RBSDeclaration(comments);
@@ -194,7 +194,7 @@ bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
     auto *callNode = down_cast<pm_call_node_t>(call);
 
     // Check if this is a sig() call
-    auto methodName = parser->resolveConstant(callNode->name);
+    auto methodName = parser.resolveConstant(callNode->name);
     if (methodName != "sig") {
         return false;
     }
@@ -204,7 +204,7 @@ bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
         return false;
     }
 
-    typeParams = extractTypeParamsPrism(ctx, *parser, callNode->block);
+    typeParams = extractTypeParamsPrism(ctx, parser, callNode->block);
 
     return true;
 }
@@ -711,7 +711,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
                 // parameters from the method signature.
                 return node;
             }
-            if (parser->isSafeNavigationCall(node) && parser->isSetterCall(node)) {
+            if (parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // For safe navigation setter calls (e.g., `obj&.foo = val`), the cast should be applied to the receiver
                 // and the argument, but not to the call node itself
                 call->receiver = maybeInsertCast(call->receiver);
