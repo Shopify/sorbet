@@ -55,6 +55,8 @@ public:
           parserUniqueCounter(this->parserUniqueCounterStorage),
           desugarUniqueCounter(this->desugarUniqueCounterStorage) {}
 
+    ast::ExpressionPtr desugar(pm_node_t *node, bool preserveConcreteSyntax = false);
+
     // Translates the given AST from Prism's node types into the equivalent AST in Sorbet's legacy parser node types.
     std::unique_ptr<parser::Node> translate(pm_node_t *node, bool preserveConcreteSyntax = false);
 
@@ -103,6 +105,9 @@ private:
 
     NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);
+
+    // translateKeyValuePairs + desugarHash in one
+    ast::ExpressionPtr translateKeyValuePairs2(core::LocOffsets loc, pm_node_list_t elements);
 
     ast::ExpressionPtr desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> prismElements,
                                     ast::Array::ENTRY_store elements);
