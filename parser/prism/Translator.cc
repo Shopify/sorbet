@@ -22,7 +22,11 @@ using sorbet::ast::MK;
 using ExpressionPtr = sorbet::ast::ExpressionPtr;
 
 bool hasExpr(const std::unique_ptr<parser::Node> &node) {
-    return node == nullptr || node->hasDesugaredExpr();
+    auto result = node == nullptr || node->hasDesugaredExpr();
+    if (!result) {
+        throw PrismFallback{};
+    }
+    return true;
 }
 
 bool hasExpr(const parser::NodeVec &nodes) {
@@ -85,7 +89,7 @@ unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desu
     if (directlyDesugar) {
         return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
     } else {
-        return whiteQuarkNode;
+        throw PrismFallback{};
     }
 }
 
