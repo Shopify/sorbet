@@ -418,10 +418,9 @@ void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_
 
             // Replace nodes list with single array element
             free(nodes.nodes);
-            nodes.nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
-            nodes.nodes[0] = arr;
-            nodes.size = 1;
-            nodes.capacity = 1;
+
+            auto buffer = new pm_node_t *[1] { arr };
+            nodes = (pm_node_list){.size = 1, .capacity = 1, .nodes = buffer};
         }
 
         if (auto type = parseComment(ctx, parser, inlineComment.value(), typeParams)) {
