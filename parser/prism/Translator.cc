@@ -2727,9 +2727,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto sorbetParts = translateMulti(interpolatedStringNode->parts);
 
-            if (!hasExpr(sorbetParts)) {
-                return make_unique<parser::DString>(location, move(sorbetParts));
-            }
+            enforceHasExpr(sorbetParts);
 
             // Desugar `"a #{b} c"` to `::Magic.<string-interpolate>("a ", b, " c")`
             auto desugared = desugarDString(location, interpolatedStringNode->parts);
@@ -2740,9 +2738,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto sorbetParts = translateMulti(interpolatedSymbolNode->parts);
 
-            if (!hasExpr(sorbetParts)) {
-                return make_unique<parser::DSymbol>(location, move(sorbetParts));
-            }
+            enforceHasExpr(sorbetParts);
 
             // Desugar `:"a #{b} c"` to `::Magic.<string-interpolate>("a ", b, " c").intern()`
             auto desugared = desugarDString(location, interpolatedSymbolNode->parts);
@@ -2754,9 +2750,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto sorbetParts = translateMulti(interpolatedXStringNode->parts);
 
-            if (!hasExpr(sorbetParts)) {
-                return make_unique<parser::XString>(location, move(sorbetParts));
-            }
+            enforceHasExpr(sorbetParts);
 
             auto desugared = desugarDString(location, interpolatedXStringNode->parts);
             auto res = MK::Send1(location, MK::Self(location), core::Names::backtick(), location.copyWithZeroLength(),
@@ -2906,9 +2900,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
             auto body = this->enterModuleContext().translate(moduleNode->body);
 
-            if (!hasExpr(name, body)) {
-                return make_unique<parser::Module>(location, declLoc, move(name), move(body));
-            }
+            enforceHasExpr(name, body);
 
             auto bodyExprsOpt = desugarScopeBodyToRHSStore(moduleNode->body, body);
             if (!bodyExprsOpt.has_value()) {
@@ -2940,9 +2932,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             // so we can't just use the entire Prism location for the Masgn node.
             location = translateLoc(startLoc(up_cast(multiWriteNode)), endLoc(multiWriteNode->value));
 
-            if (!hasExpr(rhsValue, multiLhsNode->exprs)) {
-                return make_unique<parser::Masgn>(location, move(multiLhsNode), move(rhsValue));
-            }
+            enforceHasExpr(rhsValue, multiLhsNode->exprs);
 
             auto rhsExpr = rhsValue->takeDesugaredExpr();
             auto expr = desugarMlhs(location, multiLhsNode.get(), move(rhsExpr));
@@ -2958,9 +2948,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
             }
 
-            if (!hasExpr(arguments)) {
-                return make_unique<parser::Next>(location, move(arguments));
-            }
+            enforceHasExpr(arguments);
 
             ExpressionPtr nextArgs;
             if (arguments.size() == 1) {
@@ -3001,9 +2989,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto name = translateConstantName(optionalKeywordParamNode->name);
             auto value = translate(optionalKeywordParamNode->value);
 
-            if (!hasExpr(value)) {
-                return make_unique<parser::Kwoptarg>(location, name, nameLoc, move(value));
-            }
+            enforceHasExpr(value);
 
             auto expr = MK::OptionalParam(location, MK::KeywordArg(nameLoc, name), value->takeDesugaredExpr());
             return make_node_with_expr<parser::Kwoptarg>(move(expr), location, name, nameLoc, move(value));
@@ -3015,9 +3001,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto name = translateConstantName(optionalParamNode->name);
             auto value = translate(optionalParamNode->value);
 
-            if (!hasExpr(value)) {
-                return make_unique<parser::OptParam>(location, name, nameLoc, move(value));
-            }
+            enforceHasExpr(value);
 
             auto expr = MK::OptionalParam(location, MK::Local(nameLoc, name), value->takeDesugaredExpr());
             return make_node_with_expr<parser::OptParam>(move(expr), location, name, nameLoc, move(value));
@@ -3028,9 +3012,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto left = translate(orNode->left);
             auto right = translate(orNode->right);
 
-            if (!hasExpr(left, right)) {
-                return make_unique<parser::Or>(location, move(left), move(right));
-            }
+            enforceHasExpr(left, right);
 
             auto lhsExpr = left->takeDesugaredExpr();
             auto rhsExpr = right->takeDesugaredExpr();
@@ -3114,13 +3096,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             bool isExclusive = PM_NODE_FLAG_P(rangeNode, PM_RANGE_FLAGS_EXCLUDE_END);
 
-            if (!hasExpr(left, right)) {
-                if (isExclusive) { // `...`
-                    return make_unique<parser::ERange>(location, move(left), move(right));
-                } else { // `..`
-                    return make_unique<parser::IRange>(location, move(left), move(right));
-                }
-            }
+            enforceHasExpr(left, right);
 
             auto recv = MK::Magic(location);
             auto locZeroLen = core::LocOffsets{location.beginPos(), location.beginPos()};
