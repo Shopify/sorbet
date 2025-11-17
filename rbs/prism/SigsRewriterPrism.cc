@@ -32,10 +32,9 @@ pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
             // (singleton methods have a receiver field set)
             return node;
         case PM_CALL_NODE: {
-            if (parser.isVisibilityCall(node)) {
+            if (parser.isAttrAccessorCall(node) || parser.isVisibilityCall(node)) {
                 return node;
             }
-            // TODO: Need to implement isAttrAccessorSend for Prism nodes
             return nullptr;
         }
         default:
@@ -109,8 +108,10 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
                 // Create statements node with the type
                 pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
                 if (stmts) {
-                    *stmts = (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(annotation.typeLoc)),
-                                                    .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
+                    *stmts =
+                        (pm_statements_node_t){.base = prism.initializeBaseNode(
+                                                   PM_STATEMENTS_NODE, parser.convertLocOffsets(annotation.typeLoc)),
+                                               .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
                     pm_node_list_append(&stmts->body, type);
 
                     // Create self.requires_ancestor call
@@ -121,7 +122,8 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
                         // Create block with the statements as body
                         pm_block_node_t *block = prism.allocateNode<pm_block_node_t>();
                         if (block) {
-                            *block = (pm_block_node_t){.base = prism.initializeBaseNode(PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
+                            *block = (pm_block_node_t){.base = prism.initializeBaseNode(
+                                                           PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
                                                        .locals = {.size = 0, .capacity = 0, .ids = nullptr},
                                                        .parameters = nullptr,
                                                        .body = up_cast(stmts),
@@ -241,9 +243,8 @@ bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Pars
 /**
  * Inserts an `extend T::Helpers` call into the body if it doesn't already exist.
  */
-[[maybe_unused]] void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc,
-                                                const parser::Prism::Parser *prismParser, core::MutableContext ctx,
-                                                const parser::Prism::Factory &prism) {
+void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc, const parser::Prism::Parser *prismParser,
+                               core::MutableContext ctx, const parser::Prism::Factory &prism) {
     auto *stmts = down_cast<pm_statements_node_t>(*body);
     ENFORCE(stmts != nullptr);
 
@@ -251,7 +252,6 @@ bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Pars
         return;
     }
 
-    // Create "extend T::Helpers" call
     pm_node_t *tHelpers = prism.THelpers(loc);
     if (!tHelpers) {
         return;
@@ -421,13 +421,12 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
                 if (sig) {
                     signatures->emplace_back(sig);
                 }
+            } else if (parser.isAttrAccessorCall(node)) {
+                auto sig = signatureTranslator.translateAttrSignature(call, declaration, comments.annotations);
+                if (sig) {
+                    signatures->emplace_back(sig);
+                }
             } else {
-                // TODO: Implement isAttrAccessorSend for Prism nodes
-                // } else if (PMK::isAttrAccessorCall(call, parser)) {
-                //     auto sig = signatureTranslator.translateAttrSignature(call, declaration, comments.annotations);
-                //     if (sig) {
-                //         signatures->emplace_back(sig);
-                //     }
                 Exception::raise("Unimplemented call node type for signatures");
             }
         } else {

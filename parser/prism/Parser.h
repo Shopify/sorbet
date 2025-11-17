@@ -93,6 +93,7 @@ public:
     bool isSetterCall(pm_node_t *node) const;
     bool isSafeNavigationCall(pm_node_t *node) const;
     bool isVisibilityCall(pm_node_t *node) const;
+    bool isAttrAccessorCall(pm_node_t *node) const;
 
 private:
     std::vector<ParseError> collectErrors();

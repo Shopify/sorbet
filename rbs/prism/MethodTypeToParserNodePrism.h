@@ -39,9 +39,8 @@ public:
      * For example the attribute type comment `#: Integer` will be translated as
      * `sig { returns(Integer) }`.
      */
-    std::unique_ptr<parser::Node> attrSignature(const pm_call_node_t *call, const rbs_node_t *type,
-                                                const RBSDeclaration &declaration,
-                                                const std::vector<Comment> &annotations);
+    pm_node_t *attrSignature(const pm_call_node_t *call, const rbs_node_t *type, const RBSDeclaration &declaration,
+                             const std::vector<Comment> &annotations);
 
 private:
     // RBS-specific node creators (thin wrappers around PMK)

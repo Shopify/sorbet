@@ -62,45 +62,37 @@ pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declara
     return typeTranslator.toPrismNode(rbsType, declaration);
 }
 
-// unique_ptr<parser::Node> SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
-//                                                                           const RBSDeclaration &declaration,
-//                                                                           const vector<Comment> &annotations) {
-//     rbs_string_t rbsString = makeRBSString(declaration.string);
-//     const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
+                                                            const RBSDeclaration &declaration,
+                                                            const vector<Comment> &annotations) {
+    rbs_string_t rbsString = makeRBSString(declaration.string);
+    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
 
-//     Parser parser(rbsString, encoding);
-//     rbs_node_t *rbsType = parser.parseType();
+    Parser parser(rbsString, encoding);
+    rbs_node_t *rbsType = parser.parseType();
 
-//     if (parser.hasError()) {
-//         core::LocOffsets offset = declaration.typeLocFromRange(parser.getError()->token.range);
-//         // First parse failed, let's check if the user mistakenly used a method signature on an accessor
-//         auto methodParser = Parser(rbsString, encoding);
-//         methodParser.parseMethodType();
+    if (parser.hasError()) {
+        core::LocOffsets offset = declaration.typeLocFromRange(parser.getError()->token.range);
+        // First parse failed, let's check if the user mistakenly used a method signature on an accessor
+        auto methodParser = Parser(rbsString, encoding);
+        methodParser.parseMethodType();
 
-//         if (!methodParser.hasError()) {
-//             if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
-//                 e.setHeader("Using a method signature on an accessor is not allowed, use a bare type instead");
-//             }
-//         } else {
-//             if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
-//                 e.setHeader("Failed to parse RBS type ({})", methodParser.getError()->message);
-//             }
-//         }
+        if (!methodParser.hasError()) {
+            if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
+                e.setHeader("Using a method signature on an accessor is not allowed, use a bare type instead");
+            }
+        } else {
+            if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
+                e.setHeader("Failed to parse RBS type ({})", methodParser.getError()->message);
+            }
+        }
 
-//         return nullptr;
-//     }
+        return nullptr;
+    }
 
-//     // TODO: Need to implement MethodTypeToParserNode.attrSignature to work with Prism nodes
-//     // For now, we'll need to convert pm_call_node_t to parser::Send for compatibility
-//     (void)call; // Suppress unused variable warning
-//     (void)rbsType; // Suppress unused variable warning
-//     (void)annotations; // Suppress unused variable warning
-
-//     // Temporary stub - needs proper implementation
-//     // auto methodTypeToParserNode = MethodTypeToParserNode(ctx, move(parser));
-//     // return methodTypeToParserNode.attrSignature(prismCallToParserSend(call), rbsType, declaration, annotations);
-//     return nullptr;
-// }
+    auto methodTypeToParserNode = MethodTypeToParserNodePrism(ctx, move(parser), *this->parser);
+    return methodTypeToParserNode.attrSignature(call, rbsType, declaration, annotations);
+}
 
 pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *methodDef,
                                                               const RBSDeclaration &declaration,

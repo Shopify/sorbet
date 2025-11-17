@@ -171,7 +171,7 @@ bool Parser::isVisibilityCall(pm_node_t *node) const {
 
     // That argument must be a method definition
     pm_node_t *arg = call->arguments->arguments.nodes[0];
-    if (PM_NODE_TYPE_P(arg, PM_DEF_NODE)) {
+    if (!PM_NODE_TYPE_P(arg, PM_DEF_NODE)) {
         return false;
     }
 
@@ -180,6 +180,23 @@ bool Parser::isVisibilityCall(pm_node_t *node) const {
     return methodName == "private"sv || methodName == "protected"sv || methodName == "public"sv ||
            methodName == "private_class_method"sv || methodName == "public_class_method"sv ||
            methodName == "package_private"sv || methodName == "package_private_class_method"sv;
+}
+
+bool Parser::isAttrAccessorCall(pm_node_t *node) const {
+    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(node);
+
+    // Must have no receiver or self receiver
+    if (call->receiver != nullptr && !PM_NODE_TYPE_P(call->receiver, PM_SELF_NODE)) {
+        return false;
+    }
+
+    // Check if the method name is attr_reader, attr_writer, or attr_accessor
+    auto methodName = resolveConstant(call->name);
+    return methodName == "attr_reader"sv || methodName == "attr_writer"sv || methodName == "attr_accessor"sv;
 }
 
 }; // namespace sorbet::parser::Prism
