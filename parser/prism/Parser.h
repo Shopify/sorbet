@@ -57,8 +57,7 @@ public:
     Parser(Parser &&) = delete;
     Parser &operator=(Parser &&) = delete;
 
-    static parser::ParseResult run(core::MutableContext ctx, bool directlyDesugar = true,
-                                   bool preserveConcreteSyntax = false);
+    static parser::ParseResult run(core::MutableContext ctx, bool preserveConcreteSyntax = false);
 
     ParseResult parseWithoutTranslation(bool collectComments = false);
     core::LocOffsets translateLocation(pm_location_t location) const;
@@ -96,8 +95,8 @@ class ParseResult final {
 public:
     ParseResult(Parser &parser, pm_node_t *node, std::vector<ParseError> parseErrors,
                 std::vector<core::LocOffsets> commentLocations)
-        : parser{parser}, node{node, NodeDeleter{parser}}, parseErrors{parseErrors}, commentLocations{
-                                                                                         commentLocations} {}
+        : parser{parser}, node{node, NodeDeleter{parser}}, parseErrors{parseErrors},
+          commentLocations{commentLocations} {}
 
     ParseResult(const ParseResult &) = delete;            // Copy constructor
     ParseResult &operator=(const ParseResult &) = delete; // Copy assignment
