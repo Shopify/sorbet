@@ -2047,9 +2047,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 declLoc = declLoc.join(superclass->loc);
             }
 
-            if (!hasExpr(name, superclass, body)) {
-                return make_unique<parser::Class>(location, declLoc, move(name), move(superclass), move(body));
-            }
+            enforceHasExpr(name, superclass, body);
 
             auto bodyExprsOpt = desugarScopeBodyToRHSStore(classNode->body, body);
             if (!bodyExprsOpt.has_value()) {
@@ -2218,15 +2216,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     if (statements.size() == 1) {
                         body = move(statements[0]);
                     } else {
-                        if (!hasExpr(statements)) {
-                            body = make_unique<parser::Kwbegin>(location, move(statements));
-                        } else {
-                            auto args = nodeVecToStore<ast::InsSeq::STATS_store>(statements);
-                            auto finalExpr = move(args.back());
-                            args.pop_back();
-                            auto expr = MK::InsSeq(location, move(args), move(finalExpr));
-                            body = make_node_with_expr<parser::Kwbegin>(move(expr), location, move(statements));
-                        }
+                        enforceHasExpr(statements);
+
+                        auto args = nodeVecToStore<ast::InsSeq::STATS_store>(statements);
+                        auto finalExpr = move(args.back());
+                        args.pop_back();
+                        auto expr = MK::InsSeq(location, move(args), move(finalExpr));
+                        body = make_node_with_expr<parser::Kwbegin>(move(expr), location, move(statements));
                     }
 
                 } else {
@@ -2236,7 +2232,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             // Method defs are complex, and we're building support for different kinds of arguments bit by
             // bit. This bool is true when this particular method def is supported by our desugar logic.
-            auto attemptToDesugarParams = hasExpr(receiver, body);
+            enforceHasExpr(receiver, body);
+            auto attemptToDesugarParams = true;
 
             ast::MethodDef::PARAMS_store paramsStore;
             ast::InsSeq::STATS_store statsStore;
@@ -2414,9 +2411,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto collection = translate(forNode->collection);
             auto body = translateStatements(forNode->statements);
 
-            if (!hasExpr(variable, collection, body)) {
-                return make_unique<parser::For>(location, move(variable), move(collection), move(body));
-            }
+            enforceHasExpr(variable, collection, body);
 
             // Desugar `for x in collection; body; end` into `collection.each { |x| body }`
             bool canProvideNiceDesugar = true;
@@ -2536,10 +2531,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 // `parser::Pair` nodes never have a desugared expr, because they have no ExpressionPtr equivalent.
                 // Instead, we check their children ourselves.
                 if (auto *pair = parser::NodeWithExpr::cast_node<parser::Pair>(node.get())) {
-                    return hasExpr(pair->key, pair->value);
+                    enforceHasExpr(pair->key, pair->value);
+                    return true;
                 }
 
-                return hasExpr(node);
+                enforceHasExpr(node);
+
+                return true;
             });
 
             if (!elementsHaveExprs) {
@@ -2631,10 +2629,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto receiver = translate(indexedTargetNode->receiver);
             auto arguments = translateArguments(indexedTargetNode->arguments, up_cast(indexedTargetNode->block));
 
-            if (!hasExpr(receiver, arguments)) {
-                return make_unique<parser::Send>(location, move(receiver), core::Names::squareBracketsEq(), lBracketLoc,
-                                                 move(arguments));
-            }
+            enforceHasExpr(receiver, arguments);
 
             // Build the arguments for the Send expression
             ast::Send::ARGS_store argExprs;
