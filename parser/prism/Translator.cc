@@ -4990,21 +4990,19 @@ NodeVec Translator::translateEnsure(pm_begin_node *beginNode) {
 
             auto loc = translateLoc(start, end);
 
-            if (!hasExpr(translatedRescue, ensureBody)) {
-                translatedEnsure = make_unique<parser::Ensure>(loc, move(translatedRescue), move(ensureBody));
-            } else {
-                // Build ast::Rescue expression with ensure field set
-                // When we have both rescue and ensure, the translatedRescue is already an ast::Rescue,
-                // so we just need to set its ensure field
-                auto bodyExpr = translatedRescue->takeDesugaredExpr();
-                auto rescue = ast::cast_tree<ast::Rescue>(bodyExpr);
-                ENFORCE(rescue != nullptr, "translatedRescue should be a Rescue node");
+            enforceHasExpr(translatedRescue, ensureBody);
 
-                rescue->ensure = ensureBody != nullptr ? ensureBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+            // Build ast::Rescue expression with ensure field set
+            // When we have both rescue and ensure, the translatedRescue is already an ast::Rescue,
+            // so we just need to set its ensure field
+            auto bodyExpr = translatedRescue->takeDesugaredExpr();
+            auto rescue = ast::cast_tree<ast::Rescue>(bodyExpr);
+            ENFORCE(rescue != nullptr, "translatedRescue should be a Rescue node");
 
-                translatedEnsure =
-                    make_node_with_expr<parser::Ensure>(move(bodyExpr), loc, move(translatedRescue), move(ensureBody));
-            }
+            rescue->ensure = ensureBody != nullptr ? ensureBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+
+            translatedEnsure =
+                make_node_with_expr<parser::Ensure>(move(bodyExpr), loc, move(translatedRescue), move(ensureBody));
         } else {
             // When there's no rescue clause, the Ensure node location depends on whether there are begin statements:
             // - If there are begin statements: span from start of begin statements to end of ensure statements
@@ -5026,25 +5024,23 @@ NodeVec Translator::translateEnsure(pm_begin_node *beginNode) {
 
             auto loc = translateLoc(start, end);
 
-            if (!hasExpr(bodyNode, ensureBody)) {
-                translatedEnsure = make_unique<parser::Ensure>(loc, move(bodyNode), move(ensureBody));
-            } else {
-                // Build ast::Rescue expression with ensure field set
-                // When there's no rescue clause, create a new Rescue with empty rescue cases
-                ast::ExpressionPtr bodyExpr;
-                bodyExpr = (bodyNode != nullptr) ? bodyNode->takeDesugaredExpr() : ast::MK::EmptyTree();
+            enforceHasExpr(bodyNode, ensureBody);
 
-                ast::ExpressionPtr ensureExpr =
-                    (ensureBody != nullptr) ? ensureBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+            // Build ast::Rescue expression with ensure field set
+            // When there's no rescue clause, create a new Rescue with empty rescue cases
+            ast::ExpressionPtr bodyExpr;
+            bodyExpr = (bodyNode != nullptr) ? bodyNode->takeDesugaredExpr() : ast::MK::EmptyTree();
 
-                // Create ast::Rescue with empty rescue cases
-                ast::Rescue::RESCUE_CASE_store emptyCases;
-                auto emptyElseClause = ast::MK::EmptyTree();
-                auto rescueExpr = ast::make_expression<ast::Rescue>(loc, move(bodyExpr), move(emptyCases),
-                                                                    move(emptyElseClause), move(ensureExpr));
-                translatedEnsure =
-                    make_node_with_expr<parser::Ensure>(move(rescueExpr), loc, move(bodyNode), move(ensureBody));
-            }
+            ast::ExpressionPtr ensureExpr =
+                (ensureBody != nullptr) ? ensureBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+
+            // Create ast::Rescue with empty rescue cases
+            ast::Rescue::RESCUE_CASE_store emptyCases;
+            auto emptyElseClause = ast::MK::EmptyTree();
+            auto rescueExpr = ast::make_expression<ast::Rescue>(loc, move(bodyExpr), move(emptyCases),
+                                                                move(emptyElseClause), move(ensureExpr));
+            translatedEnsure =
+                make_node_with_expr<parser::Ensure>(move(rescueExpr), loc, move(bodyNode), move(ensureBody));
         }
 
         statements.emplace_back(move(translatedEnsure));
@@ -5095,9 +5091,7 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
         return make_node_with_expr<parser::Begin>(MK::Nil(beginNodeLoc), beginNodeLoc, NodeVec{});
     }
 
-    if (!hasExpr(sorbetStmts)) {
-        return make_unique<parser::Begin>(beginNodeLoc, move(sorbetStmts));
-    }
+    enforceHasExpr(sorbetStmts);
 
     ast::InsSeq::STATS_store statements;
     statements.reserve(sorbetStmts.size() - 1); // -1 because the `Begin` node stores the last element separately.
@@ -5118,9 +5112,7 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
 unique_ptr<parser::Node> Translator::translateIfNode(core::LocOffsets location, unique_ptr<parser::Node> predicate,
                                                      unique_ptr<parser::Node> ifTrue,
                                                      unique_ptr<parser::Node> ifFalse) {
-    if (!hasExpr(predicate, ifTrue, ifFalse)) {
-        return make_unique<parser::If>(location, move(predicate), move(ifTrue), move(ifFalse));
-    }
+    enforceHasExpr(predicate, ifTrue, ifFalse);
 
     auto condExpr = predicate->takeDesugaredExpr();
     auto thenExpr = ifTrue ? ifTrue->takeDesugaredExpr() : MK::EmptyTree();
@@ -5381,13 +5373,11 @@ optional<ast::ClassDef::RHS_store> Translator::desugarScopeBodyToRHSStore(pm_nod
         return result;
     }
 
+    enforceHasExpr(scopeBody);
+
     ENFORCE(PM_NODE_TYPE_P(prismBodyNode, PM_STATEMENTS_NODE));
 
     if (1 < down_cast<pm_statements_node>(prismBodyNode)->body.size) { // Handle multi-statement body
-        if (!hasExpr(scopeBody)) {
-            return nullopt;
-        }
-
         auto beginExpr = scopeBody->takeDesugaredExpr();
 
         auto insSeqExpr = ast::cast_tree<ast::InsSeq>(beginExpr);
@@ -5402,10 +5392,6 @@ optional<ast::ClassDef::RHS_store> Translator::desugarScopeBodyToRHSStore(pm_nod
         result.emplace_back(move(insSeqExpr->expr));
         return result;
     } else { // Handle single-statement body
-        if (!hasExpr(scopeBody)) {
-            return nullopt;
-        }
-
         ast::ClassDef::RHS_store result;
         result.emplace_back(scopeBody->takeDesugaredExpr());
         return result;
