@@ -32,13 +32,13 @@ class AssertionsRewriterPrism {
 public:
     AssertionsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                             std::map<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(&parser), prism(parser), legacyCommentsByNode(nullptr),
+        : ctx(ctx), parser(parser), prism(parser), legacyCommentsByNode(nullptr),
           prismCommentsByNode(&commentsByNode){};
     pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
-    parser::Prism::Parser *parser;
+    parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
     std::map<parser::Node *, std::vector<CommentNodePrism>> *legacyCommentsByNode;
     [[maybe_unused]] std::map<pm_node_t *, std::vector<CommentNodePrism>> *prismCommentsByNode;
