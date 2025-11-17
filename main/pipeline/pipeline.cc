@@ -286,10 +286,8 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
     {
         core::MutableContext ctx(gs, core::Symbols::root(), file);
         core::UnfreezeNameTable nameTableAccess(gs); // enters strings from source code as names
-        // The RBS rewriter produces plain Whitequark nodes and not `NodeWithExpr` which causes errors in
-        // `PrismDesugar.cc`. For now, disable all direct translation, and fallback to `Desugar.cc`.
-        auto directlyTranslate = !gs.cacheSensitiveOptions.rbsEnabled;
-        parseResult = parser::Prism::Parser::run(ctx, directlyTranslate);
+
+        parseResult = parser::Prism::Parser::run(ctx);
     }
 
     if (print.ParseTree.enabled) {
