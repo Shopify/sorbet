@@ -1339,8 +1339,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 return true;
             });
-            auto supportedCallType =
-                constantNameString != "block_given?" && kwargsHashHasExpr && hasExpr(receiver) && supportedArgs;
+
+            enforceHasExpr(receiver);
+            auto supportedCallType = constantNameString != "block_given?" && kwargsHashHasExpr && supportedArgs;
 
             unique_ptr<parser::Node> blockBody;       // e.g. `123` in `foo { |x| 123 }`
             unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
@@ -1358,7 +1359,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                     blockBody = this->enterBlockContext().translate(blockNode->body);
 
-                    supportedCallType &= hasExpr(blockBody);
+                    enforceHasExpr(blockBody);
 
                     auto attemptToDesugarBlockParams = supportedCallType;
                     bool didDesugarBlockParams = false;
@@ -1454,7 +1455,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         } else {
                             auto blockPassArgNode = translate(bp->expression);
 
-                            if (supportedCallType && hasExpr(blockPassArgNode)) {
+                            if (supportedCallType) {
+                                enforceHasExpr(blockPassArgNode);
+
                                 blockPassArg = blockPassArgNode->takeDesugaredExpr();
                                 supportedBlock = true;
                             } else {
@@ -1920,7 +1923,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             whenNodes.reserve(prismWhenNodes.size());
 
             size_t totalPatterns = 0;
-            bool allWhensHaveDesugaredExpr = true;
 
             for (auto *whenNodePtr : prismWhenNodes) {
                 auto *whenNode = down_cast<pm_when_node>(whenNodePtr);
@@ -1934,8 +1936,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 totalPatterns += patternNodes.size();
 
                 auto statementsNode = translateStatements(whenNode->statements);
-                allWhensHaveDesugaredExpr =
-                    allWhensHaveDesugaredExpr && hasExpr(statementsNode) && hasExpr(patternNodes);
+
+                enforceHasExpr(statementsNode, patternNodes);
 
                 // A single `when` clause does not desugar into a standalone Ruby expression; it only
                 // becomes meaningful when the enclosing `case` stitches together all clauses. Wrapping it
@@ -1948,9 +1950,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto elseClause = translate(up_cast(caseNode->else_clause));
 
-            if (!allWhensHaveDesugaredExpr || !hasExpr(predicate, elseClause)) {
-                return make_unique<Case>(location, move(predicate), move(whenNodes), move(elseClause));
-            }
+            enforceHasExpr(predicate, elseClause);
 
             if (preserveConcreteSyntax) {
                 auto locZeroLen = location.copyWithZeroLength();
