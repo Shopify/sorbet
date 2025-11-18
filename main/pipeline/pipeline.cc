@@ -297,6 +297,7 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
         parser::Prism::ParseResult prismResult = parser.parseWithoutTranslation(collectComments);
 
         auto node = prismResult.getRawNodePointer();
+
         if (gs.cacheSensitiveOptions.rbsEnabled) {
             node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
@@ -394,8 +395,7 @@ pm_node_t *runPrismRBSRewrite(sorbet::core::GlobalState &gs, sorbet::core::FileR
     node = assertionsRewriter.run(node);
 
     if (print.RBSRewriteTree.enabled) {
-        // TODO: Implement prism node to string conversion for debug output
-        // print.RBSRewriteTree.fmt("{}\n", node->toStringWithTabs(gs, 0));
+        print.RBSRewriteTree.fmt("{}\n", parser.prettyPrint(node));
     }
 
     return node;
