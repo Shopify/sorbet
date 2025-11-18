@@ -90,7 +90,15 @@ public:
     pm_node_t *Block(core::LocOffsets loc, pm_node_t *body) const;
     pm_node_t *StatementsNode(core::LocOffsets loc, const std::vector<pm_node_t *> &body) const;
 
+    // Wrappers around Prism's allocator functions, which raise `std::bad_alloc` instead of returning `nullptr`.
+    // Use these to allocate memory that will be owned by Prism.
+    void *malloc(size_t size) const;
+    void *calloc(size_t count, size_t size) const;
+    void *realloc(void *ptr, size_t size) const;
+    void free(void *ptr) const;
+
 private:
+    pm_node_list_t copyNodesToList(const std::vector<pm_node_t *> &nodes) const;
     pm_arguments_node_t *createArgumentsNode(std::vector<pm_node_t *> args, const pm_location_t loc) const;
 };
 
