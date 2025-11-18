@@ -272,6 +272,10 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
 
         auto node = prismResult.getRawNodePointer();
 
+        if (print.ParseTreePrism.enabled) {
+            print.ParseTreePrism.fmt("{}\n", parser.prettyPrint(node));
+        }
+
         if (gs.cacheSensitiveOptions.rbsEnabled) {
             node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
