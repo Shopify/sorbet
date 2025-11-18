@@ -7,7 +7,17 @@ namespace sorbet::parser::Prism {
 using namespace std;
 using namespace std::literals::string_view_literals;
 
-pm_node_list_t copyNodesToList(const vector<pm_node_t *> &nodes) {
+// See Prism's `include/prism/defines.h`
+inline constexpr auto prismFree = [](void *p) { xfree(p); };
+
+// A unique_ptr to memory that will be owned by Prism.
+// * Must be allocated from one of the Prism allocator functions
+//   See Prism's `include/prism/defines.h`
+// * Ownership can be transfered to a Prism-owned AST via `release()`.
+// * In the event of an exception, will be freed correctly using Prism's `xfree()`.
+template <typename T> using PrismUniquePtr = std::unique_ptr<T, decltype(prismFree)>;
+
+pm_node_list_t Factory::copyNodesToList(const vector<pm_node_t *> &nodes) const {
     if (nodes.empty()) {
         return (pm_node_list_t){.size = 0, .capacity = 0, .nodes = nullptr};
     }
@@ -18,7 +28,7 @@ pm_node_list_t copyNodesToList(const vector<pm_node_t *> &nodes) {
         return (pm_node_list_t){.size = 0, .capacity = 0, .nodes = nullptr};
     }
 
-    auto result = new pm_node_t *[size];
+    auto result = static_cast<pm_node_t **>(this->calloc(size, sizeof(pm_node_t *)));
     for (size_t i = 0; i < size; i++) {
         result[i] = nodes[i];
     }
@@ -34,11 +44,6 @@ pm_arguments_node_t *Factory::createArgumentsNode(vector<pm_node_t *> args, cons
 
     return arguments;
 }
-
-// Custom deleter for unique_ptr that calls free()
-inline constexpr auto freeDeleter = [](void *p) { free(p); };
-
-template <typename T> using UniqueCPtr = std::unique_ptr<T, decltype(freeDeleter)>;
 
 pm_node_t Factory::initializeBaseNode(pm_node_type_t type, const pm_location_t loc) const {
     pm_parser_t *prismParser = parser.getRawParserPointer();
@@ -116,10 +121,8 @@ pm_node_t *Factory::Self(core::LocOffsets loc) const {
 pm_constant_id_t Factory::addConstantToPool(string_view name) const {
     pm_parser_t *prismParser = parser.getRawParserPointer();
     size_t nameLen = name.size();
-    UniqueCPtr<uint8_t> stable((uint8_t *)calloc(nameLen, sizeof(uint8_t)), freeDeleter);
-    if (!stable) {
-        Exception::raise("Out of memory: failed to allocate memory for constant pool");
-    }
+    PrismUniquePtr<uint8_t> stable{reinterpret_cast<uint8_t *>(this->calloc(nameLen, sizeof(uint8_t))), prismFree};
+
     memcpy(stable.get(), name.data(), nameLen);
     pm_constant_id_t id = pm_constant_pool_insert_owned(&prismParser->constant_pool, stable.release(), nameLen);
     return id;
@@ -147,10 +150,7 @@ pm_node_t *Factory::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_
     auto nameView = parser.resolveConstant(nameId);
     size_t nameSize = nameView.size();
 
-    UniqueCPtr<uint8_t> stable((uint8_t *)calloc(nameSize, sizeof(uint8_t)), freeDeleter);
-    if (!stable) {
-        Exception::raise("Out of memory: failed to allocate memory for symbol");
-    }
+    PrismUniquePtr<uint8_t> stable{reinterpret_cast<uint8_t *>(this->calloc(nameSize, sizeof(uint8_t))), prismFree};
     memcpy(stable.get(), nameView.data(), nameSize);
 
     pm_symbol_node_t *symbolNode = allocateNode<pm_symbol_node_t>();
@@ -468,6 +468,35 @@ pm_node_t *Factory::StatementsNode(core::LocOffsets loc, const vector<pm_node_t 
     }
 
     return up_cast(stmts);
+}
+
+void *Factory::malloc(size_t size) const {
+    void *p = ::xmalloc(size); // see Prism's `include/prism/defines.h`
+    if (!p) {
+        throw std::bad_alloc{};
+    };
+    return p;
+}
+
+void *Factory::calloc(size_t count, size_t size) const {
+    void *p = ::xcalloc(count, size); // see Prism's `include/prism/defines.h`
+    if (!p) {
+        throw std::bad_alloc{};
+    };
+    return p;
+}
+
+void *Factory::realloc(void *ptr, size_t size) const {
+    void *p = ::xrealloc(ptr, size); // see Prism's `include/prism/defines.h`
+    if (!p) {
+        throw std::bad_alloc{};
+    };
+    return p;
+}
+
+void Factory::free(void *ptr) const { // see Prism's `include/prism/defines.h`
+    ENFORCE(ptr);
+    ::xfree(ptr);
 }
 
 } // namespace sorbet::parser::Prism
