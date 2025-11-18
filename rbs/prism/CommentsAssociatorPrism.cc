@@ -22,6 +22,16 @@ const regex TYPE_ALIAS_PATTERN_PRISM("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*(
 // Static regex pattern to avoid recompilation
 static const regex HEREDOC_PATTERN_PRISM("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
 
+/**
+ * Create a synthetic placeholder node (PM_CONSTANT_READ_NODE) with a marker constant ID.
+ * Used to mark locations for bind comments and type aliases.
+ */
+pm_node_t *createSyntheticPlaceholder(sorbet::parser::Prism::Parser &parser, const CommentNodePrism &comment,
+                                      pm_constant_id_t marker) {
+    sorbet::parser::Prism::Factory factory{parser};
+    return factory.ConstantReadNode(marker, comment.loc);
+}
+
 namespace {
 /**
  * Insert a node into a pm_node_list_t at a specific index.
@@ -33,23 +43,6 @@ void insertNodeAtIndex(pm_node_list_t &nodes, pm_node_t *node, size_t index) {
         nodes.nodes[i] = nodes.nodes[i - 1];
     }
     nodes.nodes[index] = node;
-}
-
-/**
- * Create a synthetic placeholder node (PM_CONSTANT_READ_NODE) with a marker constant ID.
- * Used to mark locations for bind comments and type aliases.
- */
-pm_node_t *createSyntheticPlaceholder(pm_parser_t *parser, const CommentNodePrism &comment, pm_constant_id_t marker) {
-    pm_constant_read_node_t *constantRead = (pm_constant_read_node_t *)malloc(sizeof(pm_constant_read_node_t));
-    constantRead->base.type = PM_CONSTANT_READ_NODE;
-    constantRead->base.flags = 0;
-
-    const uint8_t *source = parser->start;
-    constantRead->base.location.start = source + comment.loc.beginPos();
-    constantRead->base.location.end = source + comment.loc.endPos();
-    constantRead->name = marker;
-
-    return (pm_node_t *)constantRead;
 }
 
 /**
@@ -270,8 +263,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             continuationFor = nullptr;
 
             // Create placeholder node with special marker constant ID
-            auto *internalParser = parser.getInternalParser();
-            pm_node_t *placeholder = createSyntheticPlaceholder(internalParser, it->second, RBS_SYNTHETIC_BIND_MARKER);
+            pm_node_t *placeholder = createSyntheticPlaceholder(parser, it->second, RBS_SYNTHETIC_BIND_MARKER);
 
             // Register comment for later processing by AssertionsRewriter
             vector<CommentNodePrism> comments;
@@ -312,9 +304,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
 
             // Create placeholder for the type expression
             // This will be replaced with T.type_alias { Type } by SigsRewriter
-            auto *internalParser = parser.getInternalParser();
-            pm_node_t *placeholder =
-                createSyntheticPlaceholder(internalParser, it->second, RBS_SYNTHETIC_TYPE_ALIAS_MARKER);
+            pm_node_t *placeholder = createSyntheticPlaceholder(parser, it->second, RBS_SYNTHETIC_TYPE_ALIAS_MARKER);
 
             // Register comment for later processing by SigsRewriter
             vector<CommentNodePrism> comments;
@@ -324,8 +314,8 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             continuationFor = placeholder;
 
             // Create constant assignment node: `type foo = placeholder`
-            pm_constant_id_t name_id = PMK::addConstantToPool(nameStr.c_str());
-            pm_node_t *constantWrite = PMK::ConstantWriteNode(it->second.loc, name_id, placeholder);
+            pm_constant_id_t name_id = prism.addConstantToPool(nameStr.c_str());
+            pm_node_t *constantWrite = prism.ConstantWriteNode(it->second.loc, name_id, placeholder);
 
             // Insert the assignment into the statement list
             insertNodeAtIndex(nodes, constantWrite, index);
@@ -612,17 +602,17 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
 
-            if (PMK::isVisibilityCall(node, parser)) {
+            if (parser.isVisibilityCall(node)) {
                 // This is a visibility modifier wrapping a method definition: `private def foo; end`
                 associateSignatureCommentsToNode(node);
                 consumeCommentsInsideNode(node, "send");
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
-                       PMK::isSafeNavigationCall(node) && PMK::isSetterCall(node, parser)) {
+                       parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
                 consumeCommentsInsideNode(node, "csend");
-            } else if (parser.resolveConstant(call->name) == "[]=" || PMK::isSetterCall(node, parser)) {
+            } else if (parser.resolveConstant(call->name) == "[]=" || parser.isSetterCall(node)) {
                 // This is an assign through a send, either: `foo[key]=(y)` or `foo.x=(y)`
                 //
                 // Note: the parser groups the args on the right hand side of the assignment into an array node:
@@ -982,9 +972,6 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
 }
 
 CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
-    // Set parser for PMK helpers
-    PMK::setParser(&parser);
-
     // Remove any comments that don't start with RBS prefixes
     for (auto it = commentByLine.begin(); it != commentByLine.end();) {
         if (!absl::StartsWith(it->second.string, RBS_PREFIX) &&
@@ -1011,9 +998,9 @@ CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
     return CommentMapPrismNode{signaturesForNode, assertionsForNode};
 }
 
-CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                                                  vector<core::LocOffsets> commentLocations)
-    : ctx(ctx), parser(parser), commentLocations(commentLocations), commentByLine() {
+    : ctx(ctx), parser(parser), prism(parser), commentLocations(commentLocations), commentByLine() {
     for (auto &loc : commentLocations) {
         auto comment_string = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.endPos() - loc.beginPos());
         auto start32 = static_cast<uint32_t>(loc.beginPos());

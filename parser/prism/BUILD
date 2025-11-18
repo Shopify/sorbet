@@ -1,11 +1,12 @@
 cc_library(
     name = "prism",
     srcs = [
-        "Helpers.cc",
+        "Factory.cc",
         "Parser.cc",
         "Translator.cc",
     ],
     hdrs = [
+        "Factory.h",
         "Helpers.h",
         "Parser.h",
         "Translator.h",

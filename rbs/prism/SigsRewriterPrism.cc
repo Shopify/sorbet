@@ -21,7 +21,7 @@ namespace sorbet::rbs {
 
 namespace {
 
-pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser) {
+pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
     if (node == nullptr) {
         return nullptr;
     }
@@ -32,7 +32,8 @@ pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser
             // (singleton methods have a receiver field set)
             return node;
         case PM_CALL_NODE: {
-            if (PMK::isVisibilityCall(node, parser)) {
+            Factory prism(parser);
+            if (parser.isVisibilityCall(node)) {
                 return node;
             }
             // TODO: Need to implement isAttrAccessorSend for Prism nodes
@@ -303,7 +304,8 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
             }
         } else if (PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
             auto *call = down_cast<pm_call_node_t>(node);
-            if (PMK::isVisibilityCall(node, parser)) {
+            Factory prism(parser);
+            if (parser.isVisibilityCall(node)) {
                 // For visibility modifiers, translate the signature for the inner method definition
                 auto sig = signatureTranslator.translateMethodSignature(call->arguments->arguments.nodes[0],
                                                                         declaration, comments.annotations);
@@ -332,16 +334,8 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
  */
 pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     auto comments = commentsForNode(node);
-
-    if (comments.signatures.empty()) {
-        // This should never happen
-        Exception::raise("No inline comment found for synthetic type alias");
-    }
-
-    if (comments.signatures.size() > 1) {
-        // This should never happen
-        Exception::raise("Multiple signatures found for synthetic type alias");
-    }
+    ENFORCE(!comments.signatures.empty(), "No inline comment found for synthetic type alias");
+    ENFORCE(comments.signatures.size() <= 1, "Multiple signatures found for synthetic type alias");
 
     auto aliasDeclaration = comments.signatures[0];
     auto fullString = aliasDeclaration.string;
@@ -350,7 +344,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     if (typeBeginLoc == std::string::npos) {
         // No '=' found, invalid type alias
         auto loc = parser.translateLocation(node->location);
-        return PMK::TTypeAlias(loc, PMK::TUntyped(loc));
+        return prism.TTypeAlias(loc, prism.TUntyped(loc));
     }
 
     auto typeDeclaration = RBSDeclaration{vector<Comment>{Comment{
@@ -366,11 +360,11 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
 
     if (type == nullptr) {
         auto loc = parser.translateLocation(node->location);
-        type = PMK::TUntyped(loc);
+        type = prism.TUntyped(loc);
     }
 
     auto loc = parser.translateLocation(type->location);
-    return PMK::TTypeAlias(loc, type);
+    return prism.TTypeAlias(loc, type);
 }
 
 void SigsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
@@ -698,9 +692,6 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 }
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
-    // Set parser once for all PMK helpers
-    PMK::setParser(&parser);
-
     return rewriteBody(node);
 }
 
@@ -708,72 +699,22 @@ pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
 pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *originalNode,
                                                              std::unique_ptr<std::vector<pm_node_t *>> signatures) {
     if (!signatures || signatures->empty()) {
-        return originalNode; // No signatures, return original node
-    }
-
-    // Create a statements node that wraps the signature + original method
-    pm_parser_t *p = parser.getInternalParser();
-
-    // Create the statements node
-    pm_statements_node_t *stmts = (pm_statements_node_t *)calloc(1, sizeof(pm_statements_node_t));
-    if (!stmts)
         return originalNode;
+    }
 
-    *stmts = (pm_statements_node_t){
-        .base = {.type = PM_STATEMENTS_NODE,
-                 .flags = 0,
-                 .node_id = ++p->node_id,
-                 .location = {.start = originalNode->location.start, .end = originalNode->location.end}},
-        .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
+    // Build the body: signatures + original node
+    std::vector<pm_node_t *> body;
+    body.reserve(signatures->size() + 1);
 
-    // Add all the Prism signature nodes
-    for (auto sigCall : *signatures) {
+    for (auto *sigCall : *signatures) {
         if (sigCall) {
-            addNodeToStatements(stmts, sigCall);
+            body.push_back(sigCall);
         }
     }
+    body.push_back(originalNode);
 
-    // Add the original method
-    addNodeToStatements(stmts, originalNode);
-
-    return up_cast(stmts);
-}
-
-// Helper to add a node to a statements node
-bool SigsRewriterPrism::addNodeToStatements(pm_statements_node_t *stmts, pm_node_t *node) {
-    if (!stmts || !node)
-        return false;
-
-    // Grow the node list if needed
-    if (stmts->body.size >= stmts->body.capacity) {
-        size_t new_capacity = stmts->body.capacity == 0 ? 4 : stmts->body.capacity * 2;
-        pm_node_t **new_nodes = (pm_node_t **)realloc(stmts->body.nodes, sizeof(pm_node_t *) * new_capacity);
-        if (!new_nodes)
-            return false;
-
-        stmts->body.nodes = new_nodes;
-        stmts->body.capacity = new_capacity;
-    }
-
-    // Add the node
-    stmts->body.nodes[stmts->body.size++] = node;
-
-    // Update the statements location to encompass the new node
-    if (stmts->body.size == 1) {
-        // First node - set the statements bounds
-        stmts->base.location.start = node->location.start;
-        stmts->base.location.end = node->location.end;
-    } else {
-        // Expand bounds to include new node
-        if (node->location.start < stmts->base.location.start) {
-            stmts->base.location.start = node->location.start;
-        }
-        if (node->location.end > stmts->base.location.end) {
-            stmts->base.location.end = node->location.end;
-        }
-    }
-
-    return true;
+    auto loc = parser.translateLocation(originalNode->location);
+    return prism.StatementsNode(loc, body);
 }
 
 } // namespace sorbet::rbs

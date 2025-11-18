@@ -37,7 +37,7 @@ pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::Lo
         return nullptr;
     }
 
-    auto typeToParserNodePrism = TypeToParserNodePrism(ctx, typeParams, move(parser), this->parser);
+    auto typeToParserNodePrism = TypeToParserNodePrism(ctx, typeParams, move(parser), *this->parser);
     return typeToParserNodePrism.toPrismNode(rbsType, assertion);
 }
 

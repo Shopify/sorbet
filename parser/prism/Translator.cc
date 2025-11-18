@@ -69,13 +69,6 @@ std::unique_ptr<parser::Node> Translator::make_unsupported_node(TArgs &&...args)
     }
 }
 
-// Indicates that a particular code path should never be reached, with an explanation of why.
-// Throws a `sorbet::SorbetException` when triggered to help with debugging.
-template <typename... TArgs>
-[[noreturn]] void unreachable(fmt::format_string<TArgs...> reasonFormatStr, TArgs &&...args) {
-    Exception::raise(reasonFormatStr, forward<TArgs>(args)...);
-}
-
 template <typename PrismAssignmentNode, typename SorbetLHSNode>
 unique_ptr<parser::Assign> Translator::translateAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);

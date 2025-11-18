@@ -29,23 +29,25 @@ const regex absurd_pattern_prism("^\\s*absurd\\s*(#.*)?$");
  * Returns `nullopt` if the comment is not a valid RBS expression (an error is produced).
  */
 optional<pair<pm_node_t *, InlineCommentPrism::Kind>>
-parseComment(core::MutableContext ctx, const parser::Prism::Parser *parser, InlineCommentPrism comment,
+parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineCommentPrism comment,
              vector<pair<core::LocOffsets, core::NameRef>> typeParams) {
+    Factory prism(parser);
+
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
-        pm_nil_node_t *nil = PMK::allocateNode<pm_nil_node_t>();
+        pm_nil_node_t *nil = prism.allocateNode<pm_nil_node_t>();
         *nil = (pm_nil_node_t){
-            .base = PMK::initializeBaseNode(PM_NIL_NODE),
+            .base = prism.initializeBaseNode(PM_NIL_NODE, parser.convertLocOffsets(comment.comment.typeLoc)),
         };
-        nil->base.location = PMK::convertLocOffsets(comment.comment.typeLoc);
+        nil->base.location = parser.convertLocOffsets(comment.comment.typeLoc);
         return pair<pm_node_t *, InlineCommentPrism::Kind>{
             up_cast(nil),
             comment.kind,
         };
     }
 
-    auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, *parser);
+    auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, parser);
     vector<Comment> comments;
     comments.push_back(comment.comment);
     auto declaration = RBSDeclaration(comments);
@@ -192,7 +194,7 @@ bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
     auto *callNode = down_cast<pm_call_node_t>(call);
 
     // Check if this is a sig() call
-    auto methodName = parser->resolveConstant(callNode->name);
+    auto methodName = parser.resolveConstant(callNode->name);
     if (methodName != "sig") {
         return false;
     }
@@ -202,7 +204,7 @@ bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
         return false;
     }
 
-    typeParams = extractTypeParamsPrism(ctx, *parser, callNode->block);
+    typeParams = extractTypeParamsPrism(ctx, parser, callNode->block);
 
     return true;
 }
@@ -325,22 +327,22 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     auto typeLoc = translateLocation(type->location);
 
     if (kind == InlineCommentPrism::Kind::LET) {
-        return PMK::TLet(typeLoc, node, type);
+        return prism.TLet(typeLoc, node, type);
     } else if (kind == InlineCommentPrism::Kind::CAST) {
-        return PMK::TCast(typeLoc, node, type);
+        return prism.TCast(typeLoc, node, type);
     } else if (kind == InlineCommentPrism::Kind::MUST) {
-        return PMK::TMust(typeLoc, node);
+        return prism.TMust(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::UNSAFE) {
-        return PMK::TUnsafe(typeLoc, node);
+        return prism.TUnsafe(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::ABSURD) {
-        return PMK::TAbsurd(typeLoc, node);
+        return prism.TAbsurd(typeLoc, node);
     } else if (kind == InlineCommentPrism::Kind::BIND) {
         if (auto e = ctx.beginIndexerError(typeLoc, core::errors::Rewriter::RBSUnsupported)) {
             e.setHeader("`{}` binding can't be used as a trailing comment", "self");
         }
         return node;
     } else {
-        Exception::raise("Unknown assertion kind");
+        unreachable("Unknown assertion kind");
     }
 }
 
@@ -349,31 +351,23 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
  */
 pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
     auto inlineComment = commentForNode(node);
-
-    if (!inlineComment) {
-        // This should never happen
-        Exception::raise("No inline comment found for synthetic bind");
-    }
+    ENFORCE(inlineComment, "No inline comment found for synthetic bind");
 
     auto pair = parseComment(ctx, parser, inlineComment.value(), typeParams);
 
     if (!pair) {
         // We already raised an error while parsing the comment, so we just bind to `T.untyped`
         auto loc = translateLocation(node->location);
-        return PMK::TBindSelf(loc, PMK::TUntyped(loc));
+        return prism.TBindSelf(loc, prism.TUntyped(loc));
     }
 
     auto kind = pair->second;
-
-    if (kind != InlineCommentPrism::Kind::BIND) {
-        // This should never happen
-        Exception::raise("Invalid inline comment for synthetic bind");
-    }
+    ENFORCE(kind == InlineCommentPrism::Kind::BIND, "Invalid inline comment for synthetic bind");
 
     auto type = pair->first;
     auto typeLoc = translateLocation(type->location);
 
-    return PMK::TBindSelf(typeLoc, type);
+    return prism.TBindSelf(typeLoc, type);
 }
 
 /**
@@ -419,15 +413,15 @@ void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_
             }
 
             // Create array node
-            auto arr = PMK::Array(loc, nodeVec);
+            auto arr = prism.Array(loc, nodeVec);
             arr = rewriteNode(arr);
 
             // Replace nodes list with single array element
-            free(nodes.nodes);
-            nodes.nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
-            nodes.nodes[0] = arr;
-            nodes.size = 1;
-            nodes.capacity = 1;
+            prism.free(nodes.nodes);
+
+            pm_node_t **buffer = static_cast<pm_node_t **>(prism.calloc(1, sizeof(pm_node_t *)));
+            buffer[0] = arr;
+            nodes = (pm_node_list){.size = 1, .capacity = 1, .nodes = buffer};
         }
 
         if (auto type = parseComment(ctx, parser, inlineComment.value(), typeParams)) {
@@ -718,7 +712,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
                 // parameters from the method signature.
                 return node;
             }
-            if (PMK::isSafeNavigationCall(node) && PMK::isSetterCall(node, *parser)) {
+            if (parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // For safe navigation setter calls (e.g., `obj&.foo = val`), the cast should be applied to the receiver
                 // and the argument, but not to the call node itself
                 call->receiver = maybeInsertCast(call->receiver);
@@ -1006,9 +1000,6 @@ pm_node_t *AssertionsRewriterPrism::run(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
-
-    // Set parser once for all PMK helpers
-    PMK::setParser(parser);
 
     return rewriteBody(node);
 }
