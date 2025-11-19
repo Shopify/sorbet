@@ -100,35 +100,50 @@ bool isRaise(pm_node_t *node, const parser::Prism::Parser *prismParser) {
     return call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser);
 }
 
-/* TODO: Migrate autocorrect functions to work with Prism nodes
-core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pm_node_t *method,
-                                                        core::LocOffsets method_declLoc, pm_node_t *method_body) {
-    (void)ctx;
-    (void)method;
-    (void)method_declLoc;
-    (void)method_body;
+core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, const pm_node_t *method,
+                                                    const parser::Prism::Parser *prismParser, pm_node_t *method_body) {
+    core::LocOffsets editLoc;
+    string corrected;
 
-    // TODO: Implement autocorrect for Prism nodes
-    return core::AutocorrectSuggestion{"TODO: Implement autocorrect for Prism", {}};
+    auto *def = down_cast<pm_def_node_t>(const_cast<pm_node_t *>(method));
+    auto methodLoc = prismParser->translateLocation(method->location);
+    auto nameLoc = prismParser->translateLocation(def->name_loc);
+
+    auto lineStart = core::Loc::pos2Detail(ctx.file.data(ctx), nameLoc.endPos()).line;
+    auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), methodLoc.endPos()).line;
+
+    if (method_body) {
+        editLoc = prismParser->translateLocation(method_body->location);
+        corrected = "raise \"Abstract method called\"";
+    } else if (lineStart == lineEnd) {
+        editLoc = nameLoc.copyEndWithZeroLength().join(methodLoc.copyEndWithZeroLength());
+        corrected = " = raise(\"Abstract method called\")";
+    } else {
+        editLoc = nameLoc.copyEndWithZeroLength();
+        auto [_endLoc, indentLength] = ctx.locAt(methodLoc).findStartOfIndentation(ctx);
+        string indent(indentLength + 2, ' ');
+        corrected = "\n" + indent + "raise \"Abstract method called\"";
+    }
+
+    return core::AutocorrectSuggestion{fmt::format("Add `raise` to the method body"),
+                                       {core::AutocorrectSuggestion::Edit{ctx.locAt(editLoc), corrected}}};
 }
-*/
 
 void ensureAbstractMethodRaises(core::MutableContext ctx, const pm_node_t *node,
                                 const parser::Prism::Parser *prismParser) {
     if (PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
         auto *def = down_cast<pm_def_node_t>(const_cast<pm_node_t *>(node));
         if (def->body && isRaise(def->body, prismParser)) {
-            // If the method raises properly, we remove the body to not error later (see error 5019)
             def->body = nullptr;
             return;
         }
 
-        // Convert Prism location to LocOffsets
         auto nodeLoc = prismParser->translateLocation(node->location);
 
         if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSAbstractMethodNoRaises)) {
             e.setHeader("Methods declared @abstract with an RBS comment must always raise");
-            // TODO: Add autocorrect for Prism nodes if needed
+            auto autocorrect = autocorrectAbstractBody(ctx, node, prismParser, def->body);
+            e.addAutocorrect(move(autocorrect));
         }
     }
 }
