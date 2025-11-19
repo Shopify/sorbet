@@ -1324,8 +1324,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
                                     // TODO: future follow up, ensure we add the block local variables ("shadowargs"),
                                     // if any.
-                                    // TODO: this was switched from make_unique to make_unsupported_node
-                                    blockParameters = make_unsupported_node<parser::Params>(paramsLoc, NodeVec{});
+                                    blockParameters = make_unique<parser::Params>(paramsLoc, NodeVec{});
                                     didDesugarBlockParams = true;
                                 } else {
                                     unique_ptr<parser::Params> params;
@@ -1366,8 +1365,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
                                 didDesugarBlockParams = true;
 
-                                // TODO: this was switched from make_unique to make_unsupported_node
-                                blockParameters = make_unsupported_node<parser::NumParams>(numParamsLoc, move(params));
+                                blockParameters = make_unique<parser::NumParams>(numParamsLoc, move(params));
 
                                 break;
                             }
@@ -1819,7 +1817,10 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             auto caseMatchNode = down_cast<pm_case_match_node>(node);
 
             auto predicate = translate(caseMatchNode->predicate);
+
+            // Translate all InPattern nodes for the parse tree structure
             auto inNodes = patternTranslateMulti(caseMatchNode->conditions);
+
             auto elseClause = translate(up_cast(caseMatchNode->else_clause));
 
             // Build an if ladder similar to CASE_NODE
@@ -1837,6 +1838,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
 
             // Build the if ladder backwards from the last "in" to the first
+            // Work with the parser::InPattern nodes we just created
             for (auto it = inNodes.rbegin(); it != inNodes.rend(); ++it) {
                 auto inPattern = parser::NodeWithExpr::cast_node<parser::InPattern>(it->get());
                 ENFORCE(inPattern != nullptr, "case pattern without an in?");
@@ -1864,6 +1866,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                 resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
             }
 
+            // Return a CaseMatch node with the desugared expression
             return make_node_with_expr<parser::CaseMatch>(move(resultExpr), location, move(predicate), move(inNodes),
                                                           move(elseClause));
         }
@@ -2153,9 +2156,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                     // The definition has no parameters but still has parentheses, e.g. `def foo(); end`
                     // In this case, Sorbet's legacy parser will still hold an empty Args node
                     auto loc = translateLoc(defNode->lparen_loc.start, defNode->rparen_loc.end);
-                    // TODO: this was switched from make_unique to make_unsupported_node
-                    params = unique_ptr<parser::Params>(reinterpret_cast<parser::Params *>(
-                        make_unsupported_node<parser::Params>(loc, NodeVec{}).release()));
+                    params = make_unique<parser::Params>(loc, NodeVec{});
                 } else {
                     params = nullptr;
                 }
@@ -2568,8 +2569,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             // If there was a sign, wrap in unary operation
             // E.g. desugar `+42` to `42.+()`
             if (hasSign) {
-                // TODO: this was switched from make_unique to make_unsupported_node
-                auto complexNode = make_unsupported_node<parser::Complex>(numberLoc, string(value));
+                auto complexNode = make_unique<parser::Complex>(numberLoc, string(value));
                 core::NameRef unaryOp = (sign == '-') ? core::Names::unaryMinus() : core::Names::unaryPlus();
 
                 auto unarySend = MK::Send0(location, move(complexCall), unaryOp,
@@ -2719,8 +2719,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
             auto parts = translateMulti(interpolatedMatchLastLineNode->parts);
             auto options = translateRegexpOptions(interpolatedMatchLastLineNode->closing_loc);
-            // TODO: this was switched from make_unique to make_unsupported_node
-            auto regex = make_unsupported_node<parser::Regexp>(location, move(parts), move(options));
+            auto regex = make_unique<parser::Regexp>(location, move(parts), move(options));
 
             return make_unsupported_node<parser::MatchCurLine>(location, move(regex));
         }
@@ -3207,8 +3206,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             auto expr = ast::make_expression<ast::Rescue>(location, move(bodyExpr), move(rescueCases),
                                                           ast::MK::EmptyTree(), ast::MK::EmptyTree());
 
-            // TODO: this was switched from make_unique to make_unsupported_node
-            auto cases = NodeVec1(make_unsupported_node<parser::Resbody>(resbodyLoc, nullptr, nullptr, move(rescue)));
+            auto cases = NodeVec1(make_unique<parser::Resbody>(resbodyLoc, nullptr, nullptr, move(rescue)));
 
             return make_node_with_expr<parser::Rescue>(move(expr), location, move(body), move(cases), nullptr);
         }
@@ -3887,16 +3885,13 @@ unique_ptr<parser::NodeWithExpr> Translator::patternTranslate(pm_node_t *node) {
                     auto ifNode = down_cast<pm_if_node>(prismPattern);
                     conditionalStatements = ifNode->statements;
                     auto location = translateLoc(ifNode->if_keyword_loc.start, ifNode->base.location.end);
-                    // TODO: this was switched from make_unique to make_unsupported_node
-                    sorbetGuard = make_unsupported_node<parser::IfGuard>(location, translate(ifNode->predicate));
+                    sorbetGuard = make_unique<parser::IfGuard>(location, translate(ifNode->predicate));
                 } else { // PM_UNLESS_NODE
                     ENFORCE(PM_NODE_TYPE_P(prismPattern, PM_UNLESS_NODE));
                     auto unlessNode = down_cast<pm_unless_node>(prismPattern);
                     conditionalStatements = unlessNode->statements;
                     auto location = translateLoc(unlessNode->keyword_loc.start, unlessNode->base.location.end);
-                    // TODO: this was switched from make_unique to make_unsupported_node
-                    sorbetGuard =
-                        make_unsupported_node<parser::UnlessGuard>(location, translate(unlessNode->predicate));
+                    sorbetGuard = make_unique<parser::UnlessGuard>(location, translate(unlessNode->predicate));
                 }
 
                 ENFORCE(
@@ -4078,8 +4073,7 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
                 break;
             }
             case PM_NO_KEYWORDS_PARAMETER_NODE: { // `def foo(**nil)`
-                // TODO: this was switched from make_unique to make_unsupported_node
-                params.emplace_back(make_unsupported_node<parser::Kwnilarg>(translateLoc(prismKwRestNode->location)));
+                params.emplace_back(make_unique<parser::Kwnilarg>(translateLoc(prismKwRestNode->location)));
                 break;
             }
             default:
@@ -4113,10 +4107,7 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
         enclosingBlockParamName = core::Names::blkArg();
     }
 
-    // TODO: this was switched from make_unique to make_unsupported_node
-    return {unique_ptr<parser::Params>(reinterpret_cast<parser::Params *>(
-                make_unsupported_node<parser::Params>(location, move(params)).release())),
-            enclosingBlockParamName};
+    return {make_unique<parser::Params>(location, move(params)), enclosingBlockParamName};
 }
 
 tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store, bool /* didDesugarParams */>
@@ -4399,11 +4390,9 @@ parser::NodeVec Translator::translateKeyValuePairs(pm_node_list_t elements) {
 
             unique_ptr<parser::Node> sorbetSplatNode;
             if (value == nullptr) { // An anonymous splat like `f(**)`
-                // TODO: this was switched from make_unique to make_unsupported_node
-                sorbetSplatNode = make_unsupported_node<parser::ForwardedKwrestArg>(splatLoc);
+                sorbetSplatNode = make_unique<parser::ForwardedKwrestArg>(splatLoc);
             } else { // Splatting an expression like `f(**h)`
-                // TODO: this was switched from make_unique to make_unsupported_node
-                sorbetSplatNode = make_unsupported_node<parser::Kwsplat>(splatLoc, move(value));
+                sorbetSplatNode = make_unique<parser::Kwsplat>(splatLoc, move(value));
             }
 
             sorbetElements.emplace_back(move(sorbetSplatNode));
@@ -4461,9 +4450,8 @@ parser::NodeVec Translator::translateKeyValuePairs(pm_node_list_t elements) {
                     auto key = make_node_with_expr<parser::Symbol>(MK::Symbol(symbolLoc, symbolContent), symbolLoc,
                                                                    symbolContent);
                     auto value = translate(pair->value);
-                    // TODO: this was switched from make_unique to make_unsupported_node
-                    sorbetKVPair = make_unsupported_node<parser::Pair>(translateLoc(pair->base.location), move(key),
-                                                                       translate(pair->value));
+                    sorbetKVPair =
+                        make_unique<parser::Pair>(translateLoc(pair->base.location), move(key), translate(pair->value));
 
                 } else {
                     sorbetKVPair = translate(element);
@@ -4653,8 +4641,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translateCallWithBlock(pm_node_t *p
 
             auto params = translateNumberedParametersNode(numberedParamsNode,
                                                           down_cast<pm_statements_node>(prismBodyNode), nullptr);
-            // TODO: this was switched from make_unique to make_unsupported_node
-            parametersNode = make_unsupported_node<parser::NumParams>(numParamsLoc, move(params));
+            parametersNode = make_unique<parser::NumParams>(numParamsLoc, move(params));
         } else {
             parametersNode = translate(prismParametersNode);
         }
@@ -5204,8 +5191,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translateConst(PrismLhsNode *node) 
             parentExpr = parent ? parent->takeDesugaredExpr() : nullptr;
         } else { // This is the root of a fully qualified constant reference, like `::A`.
             auto delimiterLoc = translateLoc(node->delimiter_loc); // The location of the `::`
-            // TODO: this was switched from make_unique to make_unsupported_node
-            parent = make_unsupported_node<parser::Cbase>(delimiterLoc);
+            parent = make_unique<parser::Cbase>(delimiterLoc);
             parentExpr = MK::Constant(delimiterLoc, core::Symbols::root());
         }
     } else { // Handle plain constants like `A`, that aren't part of a constant path.
@@ -5356,13 +5342,10 @@ unique_ptr<parser::Mlhs> Translator::translateMultiTargetLhs(PrismNode *node, co
                 if (expression != nullptr && PM_NODE_TYPE_P(expression, PM_REQUIRED_PARAMETER_NODE)) {
                     auto requiredParamNode = down_cast<pm_required_parameter_node>(expression);
                     auto name = translateConstantName(requiredParamNode->name);
-                    // TODO: this was switched from make_unique to make_unsupported_node
-                    sorbetLhs.emplace_back(make_unsupported_node<parser::RestParam>(
-                        location, name, translateLoc(requiredParamNode->base.location)));
-                } else {
-                    // TODO: this was switched from make_unique to make_unsupported_node
                     sorbetLhs.emplace_back(
-                        make_unsupported_node<parser::SplatLhs>(location, move(translate(expression))));
+                        make_unique<parser::RestParam>(location, name, translateLoc(requiredParamNode->base.location)));
+                } else {
+                    sorbetLhs.emplace_back(make_unique<parser::SplatLhs>(location, move(translate(expression))));
                 }
 
                 break;
@@ -5377,9 +5360,7 @@ unique_ptr<parser::Mlhs> Translator::translateMultiTargetLhs(PrismNode *node, co
 
     translateMultiInto(sorbetLhs, prismRights);
 
-    // TODO: this was switched from make_unique to make_unsupported_node
-    return unique_ptr<parser::Mlhs>(
-        reinterpret_cast<parser::Mlhs *>(make_unsupported_node<parser::Mlhs>(location, move(sorbetLhs)).release()));
+    return make_unique<parser::Mlhs>(location, move(sorbetLhs));
 }
 
 // Extracts the desugared expressions out of a "scope" (class/sclass/module) body.
