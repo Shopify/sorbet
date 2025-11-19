@@ -136,6 +136,8 @@ prism_location_test_suite(
             "prism_regression/call_kw_nil_args.rb",
             "prism_regression/call_block_param_and_forwarding.rb",
             "prism_regression/constants_invalid.rb",
+            "prism_regression/class_missing_name.rb",
+            "prism_regression/module_missing_name.rb",
         ],
     ),
 )
