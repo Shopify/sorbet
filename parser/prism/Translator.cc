@@ -2688,9 +2688,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto parts = translateMulti(interpolatedRegexNode->parts);
             auto options = translateRegexpOptions(interpolatedRegexNode->closing_loc);
 
-            if (!directlyDesugar || !hasExpr(parts)) {
-                return make_unique<parser::Regexp>(location, move(parts), move(options));
-            }
+            enforceHasExpr(parts);
 
             // Desugar interpolated regexp to Regexp.new(pattern, options)
             auto pattern = desugarDString(location, interpolatedRegexNode->parts);
