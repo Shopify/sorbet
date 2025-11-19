@@ -477,7 +477,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
 
 void SigsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
     for (size_t i = 0; i < nodes.size; i++) {
-        nodes.nodes[i] = rewriteNode(nodes.nodes[i]);
+        nodes.nodes[i] = rewriteBody(nodes.nodes[i]);
     }
 }
 
@@ -601,6 +601,14 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
     // fmt::print("rewriting node: {}\n", PM_NODE_TYPE(node));
 
     switch (PM_NODE_TYPE(node)) {
+        case PM_BEGIN_NODE: {
+            auto *begin = down_cast<pm_begin_node_t>(node);
+            begin->statements = down_cast<pm_statements_node_t>(rewriteNode(up_cast(begin->statements)));
+            begin->rescue_clause = down_cast<pm_rescue_node_t>(rewriteNode(up_cast(begin->rescue_clause)));
+            begin->else_clause = down_cast<pm_else_node_t>(rewriteNode(up_cast(begin->else_clause)));
+            begin->ensure_clause = down_cast<pm_ensure_node_t>(rewriteNode(up_cast(begin->ensure_clause)));
+            return node;
+        }
         case PM_BLOCK_NODE: {
             auto *block = down_cast<pm_block_node_t>(node);
             block->body = rewriteBody(block->body);
