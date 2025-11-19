@@ -143,6 +143,48 @@ bool isa_reference(const ExpressionPtr &what) {
            isa_tree<ShadowArg>(what) || isa_tree<Self>(what);
 }
 
+bool ExpressionPtr::isa_cvar(const ExpressionPtr &expr) {
+    if (auto id = cast_tree<UnresolvedIdent>(expr)) {
+        return id->kind == UnresolvedIdent::Kind::Class;
+    }
+    return false;
+}
+
+bool ExpressionPtr::isa_ivar(const ExpressionPtr &expr) {
+    if (auto id = cast_tree<UnresolvedIdent>(expr)) {
+        return id->kind == UnresolvedIdent::Kind::Instance;
+    }
+    return false;
+}
+
+bool ExpressionPtr::isa_gvar(const ExpressionPtr &expr) {
+    if (auto id = cast_tree<UnresolvedIdent>(expr)) {
+        return id->kind == UnresolvedIdent::Kind::Global;
+    }
+    return false;
+}
+
+bool ExpressionPtr::isa_lvar(const ExpressionPtr &expr) {
+    if (auto id = cast_tree<UnresolvedIdent>(expr)) {
+        return id->kind == UnresolvedIdent::Kind::Local;
+    }
+    return false;
+}
+
+bool ExpressionPtr::isa_splat(const ExpressionPtr &expr) {
+    if (auto splat = cast_tree<Send>(expr)) {
+        return splat->fun == core::Names::splat();
+    }
+    return false;
+}
+
+bool ExpressionPtr::has_kwsplat(const ExpressionPtr &expr) {
+    if (auto send = cast_tree<Send>(expr)) {
+        return send->hasKwSplat();
+    }
+    return false;
+}
+
 /** https://git.corp.stripe.com/gist/nelhage/51564501674174da24822e60ad770f64
  *
  *  [] - prototype only
@@ -1497,7 +1539,7 @@ string_view Self::nodeName() const {
     return "Self";
 }
 
-ParsedFilesOrCancelled::ParsedFilesOrCancelled() : trees(nullopt){};
+ParsedFilesOrCancelled::ParsedFilesOrCancelled() : trees(nullopt) {};
 ParsedFilesOrCancelled::ParsedFilesOrCancelled(vector<ParsedFile> &&trees) : trees(move(trees)) {}
 
 ParsedFilesOrCancelled ParsedFilesOrCancelled::cancel(std::vector<ParsedFile> &&trees, WorkerPool &workers) {

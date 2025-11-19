@@ -525,8 +525,8 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
         auto cond = MK::cpRef(lhsExpr);
 
         // Check for T.let handling for instance and class variables in ||= assignments
-        auto lhsIsIvar = parser::NodeWithExpr::isa_node<parser::IVarLhs>(lhs.get());
-        auto lhsIsCvar = parser::NodeWithExpr::isa_node<parser::CVarLhs>(lhs.get());
+        auto lhsIsIvar = ast::ExpressionPtr::isa_ivar(lhsExpr);
+        auto lhsIsCvar = ast::ExpressionPtr::isa_cvar(lhsExpr);
         auto rhsIsTLet = asTLet(rhsExpr);
 
         ExpressionPtr assignExpr;
@@ -1937,7 +1937,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     auto patternLoc = patternExpr.loc();
 
                     ExpressionPtr testExpr;
-                    if (parser::NodeWithExpr::isa_node<parser::Splat>(patternNode.get())) {
+                    if (ast::ExpressionPtr::isa_splat(patternExpr)) {
                         // splat pattern in when clause, predicate is required, `case a when *others`
                         ENFORCE(hasPredicate, "splats need something to test against");
                         auto local = MK::Local(predicateLoc, tempName);
@@ -2362,12 +2362,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             // Check if the variable is a simple local variable or a multi-target with only local variables
             if (mlhs) {
                 // Multi-target: check if all are local variables (no nested Mlhs or other complex targets)
-                canProvideNiceDesugar = absl::c_all_of(mlhs->exprs, [](const auto &c) {
-                    return parser::NodeWithExpr::isa_node<parser::LVarLhs>(c.get());
+                canProvideNiceDesugar = absl::c_all_of(mlhs->exprs, [](const auto &node) {
+                    return ast::ExpressionPtr::isa_lvar(node->peekDesugaredExpr());
                 });
             } else {
                 // Single variable: check if it's a local variable
-                canProvideNiceDesugar = parser::NodeWithExpr::isa_node<parser::LVarLhs>(variable.get());
+                canProvideNiceDesugar = ast::ExpressionPtr::isa_lvar(variable->peekDesugaredExpr());
             }
 
             auto bodyExpr = body ? body->takeDesugaredExpr() : MK::EmptyTree();
