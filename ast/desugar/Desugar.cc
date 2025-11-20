@@ -36,7 +36,7 @@ struct DesugarContext final {
                    bool inModule, bool preserveConcreteSyntax)
         : ctx(ctx), uniqueCounter(uniqueCounter), enclosingBlockParamName(enclosingBlockParamName),
           enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName), inAnyBlock(inAnyBlock),
-          inModule(inModule), preserveConcreteSyntax(preserveConcreteSyntax){};
+          inModule(inModule), preserveConcreteSyntax(preserveConcreteSyntax) {};
 
     core::NameRef freshNameUnique(core::NameRef name) {
         return ctx.state.freshNameUnique(core::UniqueNameKind::Desugar, name, ++uniqueCounter);
@@ -705,6 +705,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
         ExpressionPtr result;
         typecase(
             what,
+            // Handle Prism-desugared nodes with pre-computed AST expressions
+            [&](parser::NodeWithExpr *nodeWithExpr) {
+                // For Prism-parsed files, nodes may be wrapped in NodeWithExpr
+                // with a pre-computed desugared expression. Return it directly.
+                result = nodeWithExpr->takeDesugaredExpr();
+            },
             // The top N clauses here are ordered according to observed
             // frequency in pay-server. Do not reorder the top of this list, or
             // add entries here, without consulting the "node.*" counters from a

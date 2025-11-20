@@ -1817,13 +1817,9 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             auto caseMatchNode = down_cast<pm_case_match_node>(node);
 
             auto predicate = translate(caseMatchNode->predicate);
-
-            // Translate all InPattern nodes for the parse tree structure
-            auto inNodes = patternTranslateMulti(caseMatchNode->conditions);
-
             auto elseClause = translate(up_cast(caseMatchNode->else_clause));
 
-            // Build an if ladder similar to CASE_NODE
+            // Build an if ladder directly from Prism nodes without creating parser::InPattern nodes
             core::NameRef tempName;
             core::LocOffsets predicateLoc;
 
@@ -1838,26 +1834,33 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
 
             // Build the if ladder backwards from the last "in" to the first
-            // Work with the parser::InPattern nodes we just created
-            for (auto it = inNodes.rbegin(); it != inNodes.rend(); ++it) {
-                auto inPattern = parser::NodeWithExpr::cast_node<parser::InPattern>(it->get());
-                ENFORCE(inPattern != nullptr, "case pattern without an in?");
+            // Work directly with Prism pm_in_node structures
+            auto prismInNodes = absl::MakeSpan(caseMatchNode->conditions.nodes, caseMatchNode->conditions.size);
+            for (auto it = prismInNodes.rbegin(); it != prismInNodes.rend(); ++it) {
+                auto *inNode = down_cast<pm_in_node>(*it);
+                auto inLoc = translateLoc(inNode->base.location);
+
+                // Translate the pattern and body
+                auto pattern = patternTranslate(inNode->pattern);
+                auto body = translateStatements(inNode->statements);
 
                 // Use RaiseUnimplemented as the condition (like desugarOnelinePattern)
-                auto patternLoc = inPattern->pattern != nullptr ? inPattern->pattern->loc : inPattern->loc;
+                auto patternLoc = pattern != nullptr ? pattern->loc : inLoc;
                 auto matchExpr = MK::RaiseUnimplemented(patternLoc);
 
                 // The body is the statements from the "in" clause
-                auto thenExpr = inPattern->body != nullptr ? inPattern->body->takeDesugaredExpr() : MK::EmptyTree();
+                auto thenExpr = body != nullptr ? body->takeDesugaredExpr() : MK::EmptyTree();
 
                 // Collect pattern variable assignments from the pattern
                 ast::InsSeq::STATS_store vars;
-                collectPatternMatchingVars(vars, inPattern->pattern.get());
+                if (pattern != nullptr) {
+                    collectPatternMatchingVars(vars, pattern.get());
+                }
                 if (!vars.empty()) {
                     thenExpr = MK::InsSeq(patternLoc, move(vars), move(thenExpr));
                 }
 
-                resultExpr = MK::If(inPattern->loc, move(matchExpr), move(thenExpr), move(resultExpr));
+                resultExpr = MK::If(inLoc, move(matchExpr), move(thenExpr), move(resultExpr));
             }
 
             // Wrap in an InsSeq with the predicate assignment (if there is a predicate)
@@ -1866,7 +1869,8 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                 resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
             }
 
-            // Return a CaseMatch node with the desugared expression
+            // Create empty InPattern nodes for CaseMatch constructor (temporary until it's removed)
+            NodeVec inNodes;
             return make_node_with_expr<parser::CaseMatch>(move(resultExpr), location, move(predicate), move(inNodes),
                                                           move(elseClause));
         }
