@@ -204,9 +204,9 @@ private:
 
     // Helper function for creating if nodes with optional desugaring
     std::unique_ptr<parser::NodeWithExpr> translateIfNode(core::LocOffsets location,
-                                                          std::unique_ptr<parser::Node> predicate,
-                                                          std::unique_ptr<parser::Node> ifTrue,
-                                                          std::unique_ptr<parser::Node> ifFalse);
+                                                          std::unique_ptr<parser::NodeWithExpr> predicate,
+                                                          std::unique_ptr<parser::NodeWithExpr> ifTrue,
+                                                          std::unique_ptr<parser::NodeWithExpr> ifFalse);
 
     std::pair<core::NameRef, core::LocOffsets> translateSymbol(pm_symbol_node *symbol);
 

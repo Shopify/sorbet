@@ -52,7 +52,12 @@ void enforceHasExpr(const std::unique_ptr<parser::NodeWithExpr> &head, const Tai
 
 // Helper to safely extract desugared expression from a node, or EmptyTree if null
 static ast::ExpressionPtr takeDesugaredExprOrEmptyTree(const std::unique_ptr<parser::Node> &node) {
-    return node == nullptr ? ast::MK::EmptyTree() : node->takeDesugaredExpr();
+    if (node == nullptr) {
+        return ast::MK::EmptyTree();
+    }
+    // Enforce that the node has a desugared expression (meaning it's a NodeWithExpr)
+    ENFORCE(node->hasDesugaredExpr(), "node must have desugared expression");
+    return node->takeDesugaredExpr();
 }
 
 // Overload for NodeWithExpr
@@ -2555,14 +2560,44 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
             // Desugar `for x in collection; body; end` into `collection.each { |x| body }`
             bool canProvideNiceDesugar = true;
-            auto *mlhs = parser::NodeWithExpr::cast_node<parser::Mlhs>(variable.get());
+            bool isMultiTarget = PM_NODE_TYPE_P(forNode->index, PM_MULTI_TARGET_NODE);
 
-            // Check if the variable is a simple local variable or a multi-target with only local variables
-            if (mlhs) {
-                // Multi-target: check if all are local variables (no nested Mlhs or other complex targets)
-                canProvideNiceDesugar = absl::c_all_of(mlhs->exprs, [](const auto &node) {
-                    return ast::ExpressionPtr::isa_lvar(node->peekDesugaredExpr());
-                });
+            // For multi-target, translate all elements once and store them for checking and reuse
+            NodeVec multiTargetElements;
+
+            if (isMultiTarget) {
+                // Multi-target: translate all elements and check if all are local variables
+                auto *multiTargetNode = down_cast<pm_multi_target_node>(forNode->index);
+                auto lefts = absl::MakeSpan(multiTargetNode->lefts.nodes, multiTargetNode->lefts.size);
+                auto rights = absl::MakeSpan(multiTargetNode->rights.nodes, multiTargetNode->rights.size);
+
+                // Translate and check all left elements
+                for (auto *elem : lefts) {
+                    auto elemNode = translate(elem);
+                    if (!ast::ExpressionPtr::isa_lvar(elemNode->peekDesugaredExpr())) {
+                        canProvideNiceDesugar = false;
+                    }
+                    multiTargetElements.emplace_back(move(elemNode));
+                }
+
+                // Translate and check rest element if present
+                if (multiTargetNode->rest != nullptr && PM_NODE_TYPE_P(multiTargetNode->rest, PM_SPLAT_NODE)) {
+                    auto *splatNode = down_cast<pm_splat_node>(multiTargetNode->rest);
+                    if (splatNode->expression != nullptr) {
+                        auto restNode = translate(splatNode->expression);
+                        canProvideNiceDesugar = false;
+                        multiTargetElements.emplace_back(move(restNode));
+                    }
+                }
+
+                // Translate and check all right elements
+                for (auto *elem : rights) {
+                    auto elemNode = translate(elem);
+                    if (!ast::ExpressionPtr::isa_lvar(elemNode->peekDesugaredExpr())) {
+                        canProvideNiceDesugar = false;
+                    }
+                    multiTargetElements.emplace_back(move(elemNode));
+                }
             } else {
                 // Single variable: check if it's a local variable
                 canProvideNiceDesugar = ast::ExpressionPtr::isa_lvar(variable->peekDesugaredExpr());
@@ -2575,9 +2610,10 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
             if (canProvideNiceDesugar) {
                 // Simple case: `for x in a; body; end` -> `a.each { |x| body }`
-                if (mlhs) {
-                    for (auto &c : mlhs->exprs) {
-                        params.emplace_back(c->takeDesugaredExpr());
+                if (isMultiTarget) {
+                    // Use the already-translated elements for block parameters
+                    for (auto &elemNode : multiTargetElements) {
+                        params.emplace_back(elemNode->takeDesugaredExpr());
                     }
                 } else {
                     params.emplace_back(variable->takeDesugaredExpr());
@@ -2589,9 +2625,10 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
                 // Desugar the assignment
                 ExpressionPtr masgnExpr;
-                if (mlhs) {
-                    // Multi-target: use desugarMlhs for complex expansion
-                    masgnExpr = desugarMlhs(location, mlhs, move(tempLocal));
+                if (isMultiTarget) {
+                    // Multi-target: use desugarMlhsPrism with the Prism node
+                    auto *multiTargetNode = down_cast<pm_multi_target_node>(forNode->index);
+                    masgnExpr = desugarMlhsPrism(location, multiTargetNode, move(tempLocal));
                 } else {
                     // Single variable: simple assignment
                     masgnExpr = MK::Assign(location, variable->takeDesugaredExpr(), move(tempLocal));
@@ -5271,9 +5308,9 @@ unique_ptr<parser::NodeWithExpr> Translator::translateStatements(pm_statements_n
 
 // Helper function for creating if nodes with optional desugaring
 unique_ptr<parser::NodeWithExpr> Translator::translateIfNode(core::LocOffsets location,
-                                                             unique_ptr<parser::Node> predicate,
-                                                             unique_ptr<parser::Node> ifTrue,
-                                                             unique_ptr<parser::Node> ifFalse) {
+                                                             unique_ptr<parser::NodeWithExpr> predicate,
+                                                             unique_ptr<parser::NodeWithExpr> ifTrue,
+                                                             unique_ptr<parser::NodeWithExpr> ifFalse) {
     enforceHasExpr(predicate, ifTrue, ifFalse);
 
     auto condExpr = predicate->takeDesugaredExpr();
