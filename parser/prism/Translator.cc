@@ -50,13 +50,23 @@ void enforceHasExpr(const std::unique_ptr<parser::NodeWithExpr> &head, const Tai
     enforceHasExpr(tail...);
 }
 
+// Helper to safely extract desugared expression from a node, or EmptyTree if null
+static ast::ExpressionPtr takeDesugaredExprOrEmptyTree(const std::unique_ptr<parser::Node> &node) {
+    return node == nullptr ? ast::MK::EmptyTree() : node->takeDesugaredExpr();
+}
+
+// Overload for NodeWithExpr
+static ast::ExpressionPtr takeDesugaredExprOrEmptyTree(const std::unique_ptr<parser::NodeWithExpr> &node) {
+    return node == nullptr ? ast::MK::EmptyTree() : node->takeDesugaredExpr();
+}
+
 // Helper template to convert nodes to any store type with takeDesugaredExpr or EmptyTree for nulls.
 // This is used to convert a NodeVec to the store type argument for nodes including `Send`, `InsSeq`.
 template <typename StoreType> StoreType nodeVecToStore(const sorbet::parser::NodeVec &nodes) {
     StoreType store;
     store.reserve(nodes.size());
     for (const auto &node : nodes) {
-        store.emplace_back(node ? node->takeDesugaredExpr() : sorbet::ast::MK::EmptyTree());
+        store.emplace_back(takeDesugaredExprOrEmptyTree(node));
     }
     return store;
 }
@@ -1246,7 +1256,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             ExpressionPtr breakArgs;
             if (arguments.size() == 1) {
                 auto &first = arguments[0];
-                breakArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                breakArgs = takeDesugaredExprOrEmptyTree(first);
             } else {
                 auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
                 auto arrayLocation = parser.translateLocation(breakNode->arguments->base.location);
@@ -1781,8 +1791,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                             blockExpr = desugarSymbolProc(symbol);
                         } else {
                             auto blockLoc = translateLoc(prismBlock->location);
-                            auto blockBodyExpr =
-                                blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
+                            auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
                             blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
                         }
 
@@ -1899,7 +1908,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                         blockExpr = desugarSymbolProc(symbol);
                     } else {
                         auto blockLoc = translateLoc(prismBlock->location);
-                        auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
+                        auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
                         blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
                     }
 
@@ -1975,7 +1984,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             }
 
             // Start with the else clause as the final else
-            ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
+            ExpressionPtr resultExpr = takeDesugaredExprOrEmptyTree(elseClause);
 
             // Build the if ladder backwards from the last "in" to the first
             // Work directly with Prism pm_in_node structures
@@ -1993,7 +2002,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                 auto matchExpr = MK::RaiseUnimplemented(patternLoc);
 
                 // The body is the statements from the "in" clause
-                auto thenExpr = body != nullptr ? body->takeDesugaredExpr() : MK::EmptyTree();
+                auto thenExpr = takeDesugaredExprOrEmptyTree(body);
 
                 // Collect pattern variable assignments from the pattern
                 ast::InsSeq::STATS_store vars;
@@ -2063,29 +2072,29 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
                 ast::Send::ARGS_store args;
                 args.reserve(2 + whenNodes.size() + totalPatterns); // +2 is for the predicate and the patterns count
-                args.emplace_back(predicate == nullptr ? MK::EmptyTree() : predicate->takeDesugaredExpr());
+                args.emplace_back(takeDesugaredExprOrEmptyTree(predicate));
                 args.emplace_back(MK::Int(locZeroLen, totalPatterns));
 
-                for (auto &whenNodePtr : whenNodes) {
-                    auto whenNodeWrapped = parser::NodeWithExpr::cast_node<parser::When>(whenNodePtr.get());
-                    ENFORCE(whenNodeWrapped != nullptr, "case without a when?");
-                    // Each pattern node already has a desugared expression (populated by translateMulti +
-                    // NodeWithExpr). Consume them now; the wrapper's placeholder expression is intentionally ignored.
-                    for (auto &patternNode : whenNodeWrapped->patterns) {
-                        args.emplace_back(patternNode == nullptr ? MK::EmptyTree() : patternNode->takeDesugaredExpr());
+                // Extract pattern expressions directly from Prism nodes instead of parser nodes
+                for (auto *prismWhenPtr : prismWhenNodes) {
+                    auto *prismWhen = down_cast<pm_when_node>(prismWhenPtr);
+                    auto prismPatterns = absl::MakeSpan(prismWhen->conditions.nodes, prismWhen->conditions.size);
+
+                    for (auto *prismPattern : prismPatterns) {
+                        auto patternNode = translate(prismPattern);
+                        args.emplace_back(takeDesugaredExprOrEmptyTree(patternNode));
                     }
                 }
 
-                for (auto &whenNodePtr : whenNodes) {
-                    auto whenNodeWrapped = parser::NodeWithExpr::cast_node<parser::When>(whenNodePtr.get());
-                    ENFORCE(whenNodeWrapped != nullptr, "case without a when?");
-                    // The body node also carries a real expression once translateStatements has run.
-                    auto bodyExpr =
-                        whenNodeWrapped->body == nullptr ? MK::EmptyTree() : whenNodeWrapped->body->takeDesugaredExpr();
+                // Extract body expressions directly from Prism nodes instead of parser nodes
+                for (auto *prismWhenPtr : prismWhenNodes) {
+                    auto *prismWhen = down_cast<pm_when_node>(prismWhenPtr);
+                    auto bodyNode = translateStatements(prismWhen->statements);
+                    auto bodyExpr = takeDesugaredExprOrEmptyTree(bodyNode);
                     args.emplace_back(move(bodyExpr));
                 }
 
-                args.emplace_back(elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr());
+                args.emplace_back(takeDesugaredExprOrEmptyTree(elseClause));
 
                 // Desugar to `::Magic.caseWhen(predicate, num_patterns, patterns..., bodies..., else)`
                 auto expr = MK::Send(location, MK::Magic(locZeroLen), core::Names::caseWhen(), locZeroLen, args.size(),
@@ -2108,15 +2117,18 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
             // The if/else ladder for the entire case statement, starting with the else clause as the final `else` when
             // building backwards
-            ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
+            ExpressionPtr resultExpr = takeDesugaredExprOrEmptyTree(elseClause);
 
-            for (auto it = whenNodes.rbegin(); it != whenNodes.rend(); ++it) {
-                auto whenNodeWrapped = parser::NodeWithExpr::cast_node<parser::When>(it->get());
-                ENFORCE(whenNodeWrapped != nullptr, "case without a when?");
+            // Iterate over Prism when nodes in reverse instead of using cast_node on parser nodes
+            for (auto it = prismWhenNodes.rbegin(); it != prismWhenNodes.rend(); ++it) {
+                auto *prismWhen = down_cast<pm_when_node>(*it);
+                auto whenLoc = translateLoc(prismWhen->base.location);
+                auto prismPatterns = absl::MakeSpan(prismWhen->conditions.nodes, prismWhen->conditions.size);
 
                 ExpressionPtr patternsResult; // the if/else ladder for this when clause's patterns
-                for (auto &patternNode : whenNodeWrapped->patterns) {
-                    auto patternExpr = patternNode == nullptr ? MK::EmptyTree() : patternNode->takeDesugaredExpr();
+                for (auto *prismPattern : prismPatterns) {
+                    auto patternNode = translate(prismPattern);
+                    auto patternExpr = takeDesugaredExprOrEmptyTree(patternNode);
                     auto patternLoc = patternExpr.loc();
 
                     ExpressionPtr testExpr;
@@ -2151,9 +2163,9 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                     }
                 }
 
-                auto thenExpr =
-                    whenNodeWrapped->body != nullptr ? whenNodeWrapped->body->takeDesugaredExpr() : MK::EmptyTree();
-                resultExpr = MK::If(whenNodeWrapped->loc, move(patternsResult), move(thenExpr), move(resultExpr));
+                auto bodyNode = translateStatements(prismWhen->statements);
+                auto thenExpr = takeDesugaredExprOrEmptyTree(bodyNode);
+                resultExpr = MK::If(whenLoc, move(patternsResult), move(thenExpr), move(resultExpr));
             }
 
             if (hasPredicate) {
@@ -2381,7 +2393,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                 }
             }
 
-            auto methodBody = body == nullptr ? MK::EmptyTree() : body->takeDesugaredExpr();
+            auto methodBody = takeDesugaredExprOrEmptyTree(body);
 
             auto methodExpr = MK::Method(location, declLoc, name, move(paramsStore), move(methodBody));
 
@@ -2556,7 +2568,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
                 canProvideNiceDesugar = ast::ExpressionPtr::isa_lvar(variable->peekDesugaredExpr());
             }
 
-            auto bodyExpr = body ? body->takeDesugaredExpr() : MK::EmptyTree();
+            auto bodyExpr = takeDesugaredExprOrEmptyTree(body);
             auto collectionExpr = collection->takeDesugaredExpr();
             auto locZeroLen = location.copyWithZeroLength();
             ast::MethodDef::PARAMS_store params;
@@ -3122,7 +3134,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             ExpressionPtr nextArgs;
             if (arguments.size() == 1) {
                 auto &first = arguments[0];
-                nextArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                nextArgs = takeDesugaredExprOrEmptyTree(first);
             } else {
                 auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
                 auto arrayLocation = parser.translateLocation(nextNode->arguments->base.location);
@@ -3270,8 +3282,8 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             auto recv = MK::Magic(location);
             auto locZeroLen = core::LocOffsets{location.beginPos(), location.beginPos()};
 
-            auto fromExpr = left ? left->takeDesugaredExpr() : MK::EmptyTree();
-            auto toExpr = right ? right->takeDesugaredExpr() : MK::EmptyTree();
+            auto fromExpr = takeDesugaredExprOrEmptyTree(left);
+            auto toExpr = takeDesugaredExprOrEmptyTree(right);
 
             auto excludeEndExpr = isExclusive ? MK::True(location) : MK::False(location);
 
@@ -3393,7 +3405,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             ExpressionPtr returnArgs;
             if (returnValues.size() == 1) {
                 auto &first = returnValues[0];
-                returnArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                returnArgs = takeDesugaredExprOrEmptyTree(first);
             } else {
                 auto args = nodeVecToStore<ast::Array::ENTRY_store>(std::move(returnValues));
                 auto arrayLocation = parser.translateLocation(returnNode->arguments->base.location);
@@ -3583,7 +3595,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             enforceHasExpr(predicate, statements);
 
             auto cond = predicate->takeDesugaredExpr();
-            auto body = statements ? statements->takeDesugaredExpr() : MK::EmptyTree();
+            auto body = takeDesugaredExprOrEmptyTree(statements);
 
             if (beginModifier) {
                 auto breaker = MK::If(location, std::move(cond), MK::Break(location, MK::EmptyTree()), MK::EmptyTree());
@@ -3619,7 +3631,7 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
             enforceHasExpr(predicate, statements);
 
             auto cond = predicate->takeDesugaredExpr();
-            auto body = statements ? statements->takeDesugaredExpr() : MK::EmptyTree();
+            auto body = takeDesugaredExprOrEmptyTree(statements);
 
             if (beginModifier) {
                 // TODO using bang (aka !) is not semantically correct because it can be overridden by the user.
@@ -5265,8 +5277,8 @@ unique_ptr<parser::NodeWithExpr> Translator::translateIfNode(core::LocOffsets lo
     enforceHasExpr(predicate, ifTrue, ifFalse);
 
     auto condExpr = predicate->takeDesugaredExpr();
-    auto thenExpr = ifTrue ? ifTrue->takeDesugaredExpr() : MK::EmptyTree();
-    auto elseExpr = ifFalse ? ifFalse->takeDesugaredExpr() : MK::EmptyTree();
+    auto thenExpr = takeDesugaredExprOrEmptyTree(ifTrue);
+    auto elseExpr = takeDesugaredExprOrEmptyTree(ifFalse);
     auto ifNode = MK::If(location, move(condExpr), move(thenExpr), move(elseExpr));
     return make_node_with_expr<parser::If>(move(ifNode), location, move(predicate), move(ifTrue), move(ifFalse));
 }
