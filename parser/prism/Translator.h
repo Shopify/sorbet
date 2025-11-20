@@ -101,6 +101,10 @@ private:
 
     ast::ExpressionPtr desugarSymbolProc(pm_symbol_node *symbol);
 
+    // Desugar multi-target assignments using Prism nodes directly
+    template <typename PrismNode>
+    ast::ExpressionPtr desugarMlhsPrism(core::LocOffsets loc, PrismNode *prismNode, ast::ExpressionPtr rhs);
+
     NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);
 

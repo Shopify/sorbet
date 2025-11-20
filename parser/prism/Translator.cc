@@ -384,6 +384,150 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *l
     return MK::InsSeq(loc, move(stats), MK::Local(loc, tempRhs));
 }
 
+// Desugar multiple left hand side assignments using Prism nodes directly (no parser::Mlhs dependency)
+//
+// This is a Prism-native version of desugarMlhs that works directly with pm_multi_target_node
+// and pm_multi_write_node structures, avoiding the need to create intermediate parser nodes.
+//
+// For the same example:
+// ```rb
+// arr = [1, 2, 3]
+// a, *b = arr
+// ```
+//
+// We desugar the assignment `a, *b = arr` into:
+// ```rb
+// tmp = ::<Magic>.expandSplat(arr, 1, 0)
+// a = tmp[0]
+// b = tmp.to_ary
+// ```
+template <typename PrismNode>
+ast::ExpressionPtr Translator::desugarMlhsPrism(core::LocOffsets loc, PrismNode *prismNode, ast::ExpressionPtr rhs) {
+    static_assert(is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
+                  "desugarMlhsPrism can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
+
+    ast::InsSeq::STATS_store stats;
+
+    core::NameRef tempRhs = nextUniqueDesugarName(core::Names::assignTemp());
+    core::NameRef tempExpanded = nextUniqueDesugarName(core::Names::assignTemp());
+
+    auto prismLefts = absl::MakeSpan(prismNode->lefts.nodes, prismNode->lefts.size);
+    auto prismRights = absl::MakeSpan(prismNode->rights.nodes, prismNode->rights.size);
+    auto prismSplat = prismNode->rest;
+
+    int i = 0;
+    int before = 0, after = 0;
+    bool didSplat = false;
+    auto zloc = loc.copyWithZeroLength();
+
+    // Process left-hand side elements
+    for (auto *elem : prismLefts) {
+        if (didSplat) {
+            ++after;
+        } else {
+            ++before;
+        }
+
+        auto elemLoc = translateLoc(elem->location);
+        auto zcloc = elemLoc.copyWithZeroLength();
+        auto val =
+            MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
+
+        // Check if this is a nested multi-target
+        if (PM_NODE_TYPE_P(elem, PM_MULTI_TARGET_NODE)) {
+            auto *nestedMulti = down_cast<pm_multi_target_node>(elem);
+            stats.emplace_back(desugarMlhsPrism(elemLoc, nestedMulti, move(val)));
+        } else {
+            auto translated = translate(elem);
+            ast::ExpressionPtr lh = translated->takeDesugaredExpr();
+            if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
+                if (auto e = ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
+                    e.setHeader("Unsupported rest args in destructure");
+                }
+                lh = move(restParam->expr);
+            }
+
+            auto lhloc = lh.loc();
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
+        }
+
+        i++;
+    }
+
+    // Process splat element (if present)
+    if (prismSplat != nullptr && PM_NODE_TYPE_P(prismSplat, PM_SPLAT_NODE)) {
+        ENFORCE(!didSplat, "did splat already");
+        didSplat = true;
+
+        auto *splatNode = down_cast<pm_splat_node>(prismSplat);
+
+        if (splatNode->expression != nullptr) {
+            auto splatExpr = translate(splatNode->expression);
+            ast::ExpressionPtr lh = splatExpr->takeDesugaredExpr();
+
+            int left = i;
+            int right = prismLefts.size() + prismRights.size() - left - 1;
+
+            if (!ast::isa_tree<ast::EmptyTree>(lh)) {
+                if (right == 0) {
+                    right = 1;
+                }
+                auto lhloc = lh.loc();
+                auto zlhloc = lhloc.copyWithZeroLength();
+                // Calling `to_ary` is not faithful to the runtime behavior,
+                // but it is faithful to the expected static type-checking behavior.
+                auto ary = MK::Send0(loc, MK::Local(loc, tempExpanded), core::Names::toAry(), zlhloc);
+                stats.emplace_back(MK::Assign(lhloc, move(lh), move(ary)));
+            }
+        }
+
+        i = -static_cast<int>(prismRights.size());
+    }
+
+    // Process right-hand side elements (after splat)
+    for (auto *elem : prismRights) {
+        if (didSplat) {
+            ++after;
+        } else {
+            ++before;
+        }
+
+        auto elemLoc = translateLoc(elem->location);
+        auto zcloc = elemLoc.copyWithZeroLength();
+        auto val =
+            MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
+
+        // Check if this is a nested multi-target
+        if (PM_NODE_TYPE_P(elem, PM_MULTI_TARGET_NODE)) {
+            auto *nestedMulti = down_cast<pm_multi_target_node>(elem);
+            stats.emplace_back(desugarMlhsPrism(elemLoc, nestedMulti, move(val)));
+        } else {
+            auto translated = translate(elem);
+            ast::ExpressionPtr lh = translated->takeDesugaredExpr();
+            if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
+                if (auto e = ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
+                    e.setHeader("Unsupported rest args in destructure");
+                }
+                lh = move(restParam->expr);
+            }
+
+            auto lhloc = lh.loc();
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
+        }
+
+        i++;
+    }
+
+    auto expanded = MK::Send3(loc, MK::Magic(loc), core::Names::expandSplat(), zloc, MK::Local(loc, tempRhs),
+                              MK::Int(loc, before), MK::Int(loc, after));
+    stats.insert(stats.begin(), MK::Assign(loc, tempExpanded, move(expanded)));
+    stats.insert(stats.begin(), MK::Assign(loc, tempRhs, move(rhs)));
+
+    // Regardless of how we destructure an assignment, Ruby evaluates the expression to the entire right hand side,
+    // not any individual component of the destructured assignment.
+    return MK::InsSeq(loc, move(stats), MK::Local(loc, tempRhs));
+}
+
 // Helper to check if an ExpressionPtr represents a T.let call
 ast::Send *asTLet(ExpressionPtr &arg) {
     auto send = ast::cast_tree<ast::Send>(arg);
