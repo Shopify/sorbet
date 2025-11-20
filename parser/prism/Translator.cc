@@ -1434,16 +1434,18 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
             // Method defs are really complex, and we're building support for different kinds of arguments bit
             // by bit. This bool is true when this particular method call is supported by our desugar logic.
-            auto supportedArgs = absl::c_all_of(args, [](const auto &arg) {
-                if (parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get()) ||
-                    parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
-                    return true;
+            auto supportedArgs = true;
+            for (size_t i = 0; i < args.size() && i < prismArgs.size(); ++i) {
+                auto prismArg = prismArgs[i];
+                // Check if this is a forwarding argument using the Prism node
+                bool isForwardingArg = PM_NODE_TYPE_P(prismArg, PM_FORWARDING_ARGUMENTS_NODE) ||
+                                       (PM_NODE_TYPE_P(prismArg, PM_SPLAT_NODE) &&
+                                        down_cast<pm_splat_node>(prismArg)->expression == nullptr);
+
+                if (!isForwardingArg) {
+                    enforceHasExpr(args[i]);
                 }
-
-                enforceHasExpr(arg);
-
-                return true;
-            });
+            }
 
             enforceHasExpr(receiver);
             auto supportedCallType = constantNameString != "block_given?" && kwargsHashHasExpr && supportedArgs;
@@ -1660,14 +1662,19 @@ unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool pre
 
                 ast::Array::ENTRY_store argExprs;
                 argExprs.reserve(prismArgs.size());
-                for (auto &arg : args) {
-                    if (parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get())) {
-                        continue; // Skip anonymous splats (like `f(*)`), which are handled separately in `PM_CALL_NODE`
-                    } else if (parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
-                        continue; // Skip forwarded args (like `f(...)`), which are handled separately in `PM_CALL_NODE`
+                for (size_t i = 0; i < args.size() && i < prismArgs.size(); ++i) {
+                    auto prismArg = prismArgs[i];
+                    // Check if this is a forwarding argument using the Prism node
+                    bool isForwardingArg = PM_NODE_TYPE_P(prismArg, PM_FORWARDING_ARGUMENTS_NODE) ||
+                                           (PM_NODE_TYPE_P(prismArg, PM_SPLAT_NODE) &&
+                                            down_cast<pm_splat_node>(prismArg)->expression == nullptr);
+
+                    if (isForwardingArg) {
+                        continue; // Skip forwarded args (like `f(...)`) and anonymous splats (like `f(*)`),
+                                  // which are handled separately in `PM_CALL_NODE`
                     }
 
-                    auto expr = arg->takeDesugaredExpr();
+                    auto expr = args[i]->takeDesugaredExpr();
                     ENFORCE(expr != nullptr);
                     argExprs.emplace_back(move(expr));
                 }
