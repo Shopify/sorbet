@@ -1,0 +1,87 @@
+test/prism_regression/invalid/begin_in_class_body.rb:8: unexpected 'end', ignoring it https://srb.help/2001
+     8 |end
+        ^^^
+
+test/prism_regression/invalid/begin_in_class_body.rb:4: Method `untypedfoo` does not exist on `T.class_of(T)` https://srb.help/7003
+     4 |  T.untypedfoo
+            ^^^^^^^^^^
+  Got `T.class_of(T)` originating from:
+    test/prism_regression/invalid/begin_in_class_body.rb:4:
+     4 |  T.untypedfoo
+          ^
+  Did you mean `untyped`? Use `-a` to autocorrect
+    test/prism_regression/invalid/begin_in_class_body.rb:4: Replace with `untyped`
+     4 |  T.untypedfoo
+            ^^^^^^^^^^
+    https://github.com/sorbet/sorbet/tree/master/rbi/sorbet/t.rbi#L139: Defined here
+     139 |  def self.untyped; end
+            ^^^^^^^^^^^^^^^^
+Errors: 2
+ClassDef{
+  kind = class
+  name = EmptyTree
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      kind = module
+      name = UnresolvedConstantLit{
+        cnst = <C <U Test>>
+        scope = EmptyTree
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = []
+      rhs = [
+        Rescue{
+          body = InsSeq{
+            stats = [
+              Send{
+                flags = {}
+                recv = UnresolvedConstantLit{
+                  cnst = <C <U T>>
+                  scope = EmptyTree
+                }
+                fun = <U untypedfoo>
+                block = nullptr
+                pos_args = 0
+                args = [
+                ]
+              }
+            ],
+            expr = Send{
+              flags = {privateOk}
+              recv = Self
+              fun = <U puts>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Literal{ value = "hi" }
+              ]
+            }
+          }
+          rescueCases = [
+            RescueCase{
+              exceptions = [
+              ]
+              var = UnresolvedIdent{
+                kind = Local
+                name = <D <U <rescueTemp>> $1>
+              }
+              body = EmptyTree
+            }
+          ]
+          else = EmptyTree
+          ensure = EmptyTree
+        }
+      ]
+    }
+
+    UnresolvedConstantLit{
+      cnst = <C <U <ErrorNode>>>
+      scope = EmptyTree
+    }
+  ]
+}

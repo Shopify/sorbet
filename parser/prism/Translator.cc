@@ -5561,7 +5561,31 @@ optional<ast::ClassDef::RHS_store> Translator::desugarScopeBodyToRHSStore(pm_nod
         return result;
     }
 
-    ENFORCE(PM_NODE_TYPE_P(prismBodyNode, PM_STATEMENTS_NODE));
+    // Handle PM_BEGIN_NODE (e.g., from explicit rescue/ensure blocks or error recovery)
+    if (PM_NODE_TYPE_P(prismBodyNode, PM_BEGIN_NODE)) {
+        if (!hasExpr(scopeBody)) {
+            return nullopt;
+        }
+
+        auto beginExpr = scopeBody->takeDesugaredExpr();
+
+        // PM_BEGIN_NODE with multiple statements or rescue/ensure clauses creates an InsSeq
+        auto insSeqExpr = ast::cast_tree<ast::InsSeq>(beginExpr);
+        if (insSeqExpr != nullptr) {
+            ast::ClassDef::RHS_store result;
+            result.reserve(insSeqExpr->stats.size());
+            for (auto &statement : insSeqExpr->stats) {
+                result.emplace_back(move(statement));
+            }
+            result.emplace_back(move(insSeqExpr->expr));
+            return result;
+        } else {
+            // Single expression case (empty begin or single statement)
+            ast::ClassDef::RHS_store result;
+            result.emplace_back(move(beginExpr));
+            return result;
+        }
+    }
 
     if (1 < down_cast<pm_statements_node>(prismBodyNode)->body.size) { // Handle multi-statement body
         if (!hasExpr(scopeBody)) {

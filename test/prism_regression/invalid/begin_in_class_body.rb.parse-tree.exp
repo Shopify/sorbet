@@ -1,0 +1,69 @@
+test/prism_regression/invalid/begin_in_class_body.rb:8: unexpected 'end', ignoring it https://srb.help/2001
+     8 |end
+        ^^^
+
+test/prism_regression/invalid/begin_in_class_body.rb:4: Method `untypedfoo` does not exist on `T.class_of(T)` https://srb.help/7003
+     4 |  T.untypedfoo
+            ^^^^^^^^^^
+  Got `T.class_of(T)` originating from:
+    test/prism_regression/invalid/begin_in_class_body.rb:4:
+     4 |  T.untypedfoo
+          ^
+  Did you mean `untyped`? Use `-a` to autocorrect
+    test/prism_regression/invalid/begin_in_class_body.rb:4: Replace with `untyped`
+     4 |  T.untypedfoo
+            ^^^^^^^^^^
+    https://github.com/sorbet/sorbet/tree/master/rbi/sorbet/t.rbi#L139: Defined here
+     139 |  def self.untyped; end
+            ^^^^^^^^^^^^^^^^
+Errors: 2
+Begin {
+  stmts = [
+    Module {
+      name = Const {
+        scope = NULL
+        name = <C <U Test>>
+      }
+      body = Kwbegin {
+        stmts = [
+          Rescue {
+            body = Begin {
+              stmts = [
+                Send {
+                  receiver = Const {
+                    scope = NULL
+                    name = <C <U T>>
+                  }
+                  method = <U untypedfoo>
+                  args = [
+                  ]
+                }
+                Send {
+                  receiver = NULL
+                  method = <U puts>
+                  args = [
+                    String {
+                      val = <U hi>
+                    }
+                  ]
+                }
+              ]
+            }
+            rescue = [
+              Resbody {
+                exception = NULL
+                var = NULL
+                body = NULL
+              }
+            ]
+            else_ = NULL
+          }
+        ]
+      }
+    }
+    Const {
+      scope = NULL
+      name = <C <U <ErrorNode>>>
+    }
+  ]
+}
