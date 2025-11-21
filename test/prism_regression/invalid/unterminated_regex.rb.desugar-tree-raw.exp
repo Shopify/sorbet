@@ -1,0 +1,77 @@
+test/prism_regression/invalid/unterminated_regex.rb:4: unterminated regexp meets end of file; expected a closing delimiter https://srb.help/2001
+     4 |  extend /::Helpers
+                 ^
+
+test/prism_regression/invalid/unterminated_regex.rb:6: expected an `end` to close the `module` statement https://srb.help/2001
+     6 |
+        ^
+
+test/prism_regression/invalid/unterminated_regex.rb:4: `extend` must only contain constant literals https://srb.help/4002
+     4 |  extend /::Helpers
+     5 |end
+     6 |
+
+test/prism_regression/invalid/unterminated_regex.rb:4: Expected `T::Module[T.anything]` but found `Regexp` for argument `arg0` https://srb.help/7002
+     4 |  extend /::Helpers
+     5 |end
+     6 |
+  Expected `T::Module[T.anything]` for argument `arg0` of method `Kernel#extend`:
+    https://github.com/sorbet/sorbet/tree/master/rbi/core/kernel.rbi#L440:
+     440 |      arg0: T::Module[T.anything],
+                ^^^^
+  Got `Regexp` originating from:
+    test/prism_regression/invalid/unterminated_regex.rb:4:
+     4 |  extend /::Helpers
+     5 |end
+     6 |
+Errors: 4
+ClassDef{
+  kind = class
+  name = EmptyTree
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    ClassDef{
+      kind = module
+      name = UnresolvedConstantLit{
+        cnst = <C <U Test>>
+        scope = EmptyTree
+      }
+      symbol = <C <U <todo sym>>>
+      ancestors = []
+      rhs = [
+        Send{
+          flags = {privateOk}
+          recv = Self
+          fun = <U extend>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Send{
+              flags = {}
+              recv = ConstantLit{
+                symbol = (class ::Regexp)
+                orig = nullptr
+              }
+              fun = <U new>
+              block = nullptr
+              pos_args = 2
+              args = [
+                Literal{ value = "::Helpers\nend\n" }
+                Literal{ value = 0 }
+              ]
+            }
+          ]
+        }
+
+        UnresolvedConstantLit{
+          cnst = <C <U <ErrorNode>>>
+          scope = EmptyTree
+        }
+      ]
+    }
+  ]
+}

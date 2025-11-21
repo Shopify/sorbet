@@ -5415,7 +5415,11 @@ unique_ptr<parser::Node> Translator::translateRegexpOptions(pm_location_t closin
     //            ^^
     //     $r{foo}im
     //            ^^
-    auto prismLoc = pm_location_t{.start = closingLoc.start + 1, .end = closingLoc.end};
+    // For unterminated regexes, closingLoc may have start >= end (error recovery),
+    // so we need to validate before creating the location
+    auto optionsStart = closingLoc.start + 1;
+    auto prismLoc =
+        pm_location_t{.start = optionsStart <= closingLoc.end ? optionsStart : closingLoc.end, .end = closingLoc.end};
     auto location = translateLoc(prismLoc);
 
     string_view options = sliceLocation(prismLoc);

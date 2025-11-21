@@ -1,0 +1,59 @@
+test/prism_regression/invalid/unterminated_regex.rb:4: unterminated regexp meets end of file; expected a closing delimiter https://srb.help/2001
+     4 |  extend /::Helpers
+                 ^
+
+test/prism_regression/invalid/unterminated_regex.rb:6: expected an `end` to close the `module` statement https://srb.help/2001
+     6 |
+        ^
+
+test/prism_regression/invalid/unterminated_regex.rb:4: `extend` must only contain constant literals https://srb.help/4002
+     4 |  extend /::Helpers
+     5 |end
+     6 |
+
+test/prism_regression/invalid/unterminated_regex.rb:4: Expected `T::Module[T.anything]` but found `Regexp` for argument `arg0` https://srb.help/7002
+     4 |  extend /::Helpers
+     5 |end
+     6 |
+  Expected `T::Module[T.anything]` for argument `arg0` of method `Kernel#extend`:
+    https://github.com/sorbet/sorbet/tree/master/rbi/core/kernel.rbi#L440:
+     440 |      arg0: T::Module[T.anything],
+                ^^^^
+  Got `Regexp` originating from:
+    test/prism_regression/invalid/unterminated_regex.rb:4:
+     4 |  extend /::Helpers
+     5 |end
+     6 |
+Errors: 4
+Module {
+  name = Const {
+    scope = NULL
+    name = <C <U Test>>
+  }
+  body = Begin {
+    stmts = [
+      Send {
+        receiver = NULL
+        method = <U extend>
+        args = [
+          Regexp {
+            regex = [
+              String {
+                val = <U ::Helpers
+end
+>
+              }
+            ]
+            opts = Regopt {
+              opts = ""
+            }
+          }
+        ]
+      }
+      Const {
+        scope = NULL
+        name = <C <U <ErrorNode>>>
+      }
+    ]
+  }
+}
