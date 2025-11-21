@@ -84,6 +84,7 @@ public:
     core::LocOffsets translateLocation(pm_location_t location) const;
     std::string_view resolveConstant(pm_constant_id_t constantId) const;
     std::string_view extractString(pm_string_t *string) const;
+    std::string prettyPrint(pm_node_t *node) const;
 
     pm_location_t getZeroWidthLocation() const;
     pm_location_t convertLocOffsets(core::LocOffsets loc) const;
