@@ -5489,8 +5489,7 @@ unique_ptr<parser::Node> Translator::translateRegexpOptions(pm_location_t closin
                 break;
         }
     }
-    auto flagsExpr = MK::Int(location, flags);
-    return make_node_with_expr<parser::Regopt>(move(flagsExpr), location, options);
+    return expr_only(MK::Int(location, flags));
 }
 
 // Translate an unescaped string from a Regexp literal
