@@ -1811,9 +1811,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto inNodes = patternTranslateMulti(caseMatchNode->conditions);
             auto elseClause = translate(up_cast(caseMatchNode->else_clause));
 
-            // We do not need to check if all the "in" patterns have desugared expressions because they are currently
-            // unused.
-            if (!directlyDesugar) {
+            if (!directlyDesugar || !hasExpr(inNodes) || !hasExpr(predicate, elseClause)) {
                 return make_unique<parser::CaseMatch>(location, move(predicate), move(inNodes), move(elseClause));
             }
 

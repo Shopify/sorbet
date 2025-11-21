@@ -1,0 +1,1229 @@
+ClassDef{
+  kind = class
+  name = EmptyTree
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    Assign{
+      lhs = UnresolvedIdent{
+        kind = Local
+        name = <U expr>
+      }
+      rhs = Hash{
+        pairs = [
+        ]
+      }
+    }
+
+    InsSeq{
+      stats = [
+        Assign{
+          lhs = UnresolvedIdent{
+            kind = Local
+            name = <D <U <assignTemp>> $2>
+          }
+          rhs = UnresolvedIdent{
+            kind = Local
+            name = <U expr>
+          }
+        }
+      ],
+      expr = If{
+        cond = Send{
+          flags = {rewriterSynthesized}
+          recv = Send{
+            flags = {}
+            recv = ConstantLit{
+              symbol = (module ::T)
+              orig = nullptr
+            }
+            fun = <U unsafe>
+            block = nullptr
+            pos_args = 1
+            args = [
+              ConstantLit{
+                symbol = (module ::Kernel)
+                orig = nullptr
+              }
+            ]
+          }
+          fun = <U raise>
+          block = nullptr
+          pos_args = 1
+          args = [
+            Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+          ]
+        }
+        thenp = InsSeq{
+          stats = [
+            Assign{
+              lhs = UnresolvedIdent{
+                kind = Local
+                name = <U a>
+              }
+              rhs = Send{
+                flags = {rewriterSynthesized}
+                recv = Send{
+                  flags = {}
+                  recv = ConstantLit{
+                    symbol = (module ::T)
+                    orig = nullptr
+                  }
+                  fun = <U unsafe>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    ConstantLit{
+                      symbol = (module ::Kernel)
+                      orig = nullptr
+                    }
+                  ]
+                }
+                fun = <U raise>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                ]
+              }
+            }
+          ],
+          expr = Send{
+            flags = {}
+            recv = UnresolvedConstantLit{
+              cnst = <C <U T>>
+              scope = EmptyTree
+            }
+            fun = <U reveal_type>
+            block = nullptr
+            pos_args = 1
+            args = [
+              UnresolvedIdent{
+                kind = Local
+                name = <U a>
+              }
+            ]
+          }
+        }
+        elsep = If{
+          cond = Send{
+            flags = {rewriterSynthesized}
+            recv = Send{
+              flags = {}
+              recv = ConstantLit{
+                symbol = (module ::T)
+                orig = nullptr
+              }
+              fun = <U unsafe>
+              block = nullptr
+              pos_args = 1
+              args = [
+                ConstantLit{
+                  symbol = (module ::Kernel)
+                  orig = nullptr
+                }
+              ]
+            }
+            fun = <U raise>
+            block = nullptr
+            pos_args = 1
+            args = [
+              Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+            ]
+          }
+          thenp = InsSeq{
+            stats = [
+              Assign{
+                lhs = UnresolvedIdent{
+                  kind = Local
+                  name = <U b>
+                }
+                rhs = Send{
+                  flags = {rewriterSynthesized}
+                  recv = Send{
+                    flags = {}
+                    recv = ConstantLit{
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      ConstantLit{
+                        symbol = (module ::Kernel)
+                        orig = nullptr
+                      }
+                    ]
+                  }
+                  fun = <U raise>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                  ]
+                }
+              }
+            ],
+            expr = Send{
+              flags = {}
+              recv = UnresolvedConstantLit{
+                cnst = <C <U T>>
+                scope = EmptyTree
+              }
+              fun = <U reveal_type>
+              block = nullptr
+              pos_args = 1
+              args = [
+                UnresolvedIdent{
+                  kind = Local
+                  name = <U b>
+                }
+              ]
+            }
+          }
+          elsep = If{
+            cond = Send{
+              flags = {rewriterSynthesized}
+              recv = Send{
+                flags = {}
+                recv = ConstantLit{
+                  symbol = (module ::T)
+                  orig = nullptr
+                }
+                fun = <U unsafe>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  ConstantLit{
+                    symbol = (module ::Kernel)
+                    orig = nullptr
+                  }
+                ]
+              }
+              fun = <U raise>
+              block = nullptr
+              pos_args = 1
+              args = [
+                Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+              ]
+            }
+            thenp = InsSeq{
+              stats = [
+                Assign{
+                  lhs = UnresolvedIdent{
+                    kind = Local
+                    name = <U c>
+                  }
+                  rhs = Send{
+                    flags = {rewriterSynthesized}
+                    recv = Send{
+                      flags = {}
+                      recv = ConstantLit{
+                        symbol = (module ::T)
+                        orig = nullptr
+                      }
+                      fun = <U unsafe>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        ConstantLit{
+                          symbol = (module ::Kernel)
+                          orig = nullptr
+                        }
+                      ]
+                    }
+                    fun = <U raise>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                    ]
+                  }
+                }
+                Assign{
+                  lhs = UnresolvedIdent{
+                    kind = Local
+                    name = <U d>
+                  }
+                  rhs = Send{
+                    flags = {rewriterSynthesized}
+                    recv = Send{
+                      flags = {}
+                      recv = ConstantLit{
+                        symbol = (module ::T)
+                        orig = nullptr
+                      }
+                      fun = <U unsafe>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        ConstantLit{
+                          symbol = (module ::Kernel)
+                          orig = nullptr
+                        }
+                      ]
+                    }
+                    fun = <U raise>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                    ]
+                  }
+                }
+              ],
+              expr = InsSeq{
+                stats = [
+                  Send{
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      cnst = <C <U T>>
+                      scope = EmptyTree
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        kind = Local
+                        name = <U c>
+                      }
+                    ]
+                  }
+                ],
+                expr = Send{
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    cnst = <C <U T>>
+                    scope = EmptyTree
+                  }
+                  fun = <U reveal_type>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    UnresolvedIdent{
+                      kind = Local
+                      name = <U d>
+                    }
+                  ]
+                }
+              }
+            }
+            elsep = If{
+              cond = Send{
+                flags = {rewriterSynthesized}
+                recv = Send{
+                  flags = {}
+                  recv = ConstantLit{
+                    symbol = (module ::T)
+                    orig = nullptr
+                  }
+                  fun = <U unsafe>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    ConstantLit{
+                      symbol = (module ::Kernel)
+                      orig = nullptr
+                    }
+                  ]
+                }
+                fun = <U raise>
+                block = nullptr
+                pos_args = 1
+                args = [
+                  Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                ]
+              }
+              thenp = InsSeq{
+                stats = [
+                  EmptyTree
+                  UnresolvedConstantLit{
+                    cnst = <C <U <ErrorNode>>>
+                    scope = EmptyTree
+                  }
+                  Hash{
+                    pairs = [
+                      [
+                        key = Literal{ value = :kg }
+                        value = Send{
+                          flags = {privateOk}
+                          recv = Self
+                          fun = <U g>
+                          block = nullptr
+                          pos_args = 0
+                          args = [
+                          ]
+                        }
+                      ]
+                    ]
+                  }
+                  UnresolvedConstantLit{
+                    cnst = <C <U <ErrorNode>>>
+                    scope = EmptyTree
+                  }
+                  UnresolvedConstantLit{
+                    cnst = <C <U <ErrorNode>>>
+                    scope = EmptyTree
+                  }
+                  Send{
+                    flags = {privateOk}
+                    recv = Self
+                    fun = <U h>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  UnresolvedConstantLit{
+                    cnst = <C <U <ErrorNode>>>
+                    scope = EmptyTree
+                  }
+                  UnresolvedConstantLit{
+                    cnst = <C <U <ErrorNode>>>
+                    scope = EmptyTree
+                  }
+                  Send{
+                    flags = {privateOk}
+                    recv = Self
+                    fun = <U i>
+                    block = nullptr
+                    pos_args = 0
+                    args = [
+                    ]
+                  }
+                  Send{
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      cnst = <C <U T>>
+                      scope = EmptyTree
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      UnresolvedIdent{
+                        kind = Local
+                        name = <U e>
+                      }
+                    ]
+                  }
+                  Send{
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      cnst = <C <U T>>
+                      scope = EmptyTree
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        flags = {privateOk}
+                        recv = Self
+                        fun = <U g>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                  Send{
+                    flags = {}
+                    recv = UnresolvedConstantLit{
+                      cnst = <C <U T>>
+                      scope = EmptyTree
+                    }
+                    fun = <U reveal_type>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Send{
+                        flags = {privateOk}
+                        recv = Self
+                        fun = <U h>
+                        block = nullptr
+                        pos_args = 0
+                        args = [
+                        ]
+                      }
+                    ]
+                  }
+                ],
+                expr = Send{
+                  flags = {}
+                  recv = UnresolvedConstantLit{
+                    cnst = <C <U T>>
+                    scope = EmptyTree
+                  }
+                  fun = <U reveal_type>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Send{
+                      flags = {privateOk}
+                      recv = Self
+                      fun = <U i>
+                      block = nullptr
+                      pos_args = 0
+                      args = [
+                      ]
+                    }
+                  ]
+                }
+              }
+              elsep = If{
+                cond = Send{
+                  flags = {rewriterSynthesized}
+                  recv = Send{
+                    flags = {}
+                    recv = ConstantLit{
+                      symbol = (module ::T)
+                      orig = nullptr
+                    }
+                    fun = <U unsafe>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      ConstantLit{
+                        symbol = (module ::Kernel)
+                        orig = nullptr
+                      }
+                    ]
+                  }
+                  fun = <U raise>
+                  block = nullptr
+                  pos_args = 1
+                  args = [
+                    Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                  ]
+                }
+                thenp = InsSeq{
+                  stats = [
+                    Assign{
+                      lhs = UnresolvedIdent{
+                        kind = Local
+                        name = <U m>
+                      }
+                      rhs = Send{
+                        flags = {rewriterSynthesized}
+                        recv = Send{
+                          flags = {}
+                          recv = ConstantLit{
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            ConstantLit{
+                              symbol = (module ::Kernel)
+                              orig = nullptr
+                            }
+                          ]
+                        }
+                        fun = <U raise>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                        ]
+                      }
+                    }
+                    Assign{
+                      lhs = UnresolvedIdent{
+                        kind = Local
+                        name = <U j>
+                      }
+                      rhs = Send{
+                        flags = {rewriterSynthesized}
+                        recv = Send{
+                          flags = {}
+                          recv = ConstantLit{
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            ConstantLit{
+                              symbol = (module ::Kernel)
+                              orig = nullptr
+                            }
+                          ]
+                        }
+                        fun = <U raise>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                        ]
+                      }
+                    }
+                    Assign{
+                      lhs = UnresolvedIdent{
+                        kind = Local
+                        name = <U l>
+                      }
+                      rhs = Send{
+                        flags = {rewriterSynthesized}
+                        recv = Send{
+                          flags = {}
+                          recv = ConstantLit{
+                            symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            ConstantLit{
+                              symbol = (module ::Kernel)
+                              orig = nullptr
+                            }
+                          ]
+                        }
+                        fun = <U raise>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                        ]
+                      }
+                    }
+                  ],
+                  expr = InsSeq{
+                    stats = [
+                      Send{
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          cnst = <C <U T>>
+                          scope = EmptyTree
+                        }
+                        fun = <U reveal_type>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            kind = Local
+                            name = <U j>
+                          }
+                        ]
+                      }
+                      Send{
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          cnst = <C <U T>>
+                          scope = EmptyTree
+                        }
+                        fun = <U reveal_type>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            kind = Local
+                            name = <U l>
+                          }
+                        ]
+                      }
+                    ],
+                    expr = Send{
+                      flags = {}
+                      recv = UnresolvedConstantLit{
+                        cnst = <C <U T>>
+                        scope = EmptyTree
+                      }
+                      fun = <U reveal_type>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        UnresolvedIdent{
+                          kind = Local
+                          name = <U m>
+                        }
+                      ]
+                    }
+                  }
+                }
+                elsep = If{
+                  cond = Send{
+                    flags = {rewriterSynthesized}
+                    recv = Send{
+                      flags = {}
+                      recv = ConstantLit{
+                        symbol = (module ::T)
+                        orig = nullptr
+                      }
+                      fun = <U unsafe>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        ConstantLit{
+                          symbol = (module ::Kernel)
+                          orig = nullptr
+                        }
+                      ]
+                    }
+                    fun = <U raise>
+                    block = nullptr
+                    pos_args = 1
+                    args = [
+                      Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                    ]
+                  }
+                  thenp = InsSeq{
+                    stats = [
+                      Assign{
+                        lhs = UnresolvedIdent{
+                          kind = Local
+                          name = <U n4>
+                        }
+                        rhs = Send{
+                          flags = {rewriterSynthesized}
+                          recv = Send{
+                            flags = {}
+                            recv = ConstantLit{
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              ConstantLit{
+                                symbol = (module ::Kernel)
+                                orig = nullptr
+                              }
+                            ]
+                          }
+                          fun = <U raise>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                          ]
+                        }
+                      }
+                      Assign{
+                        lhs = UnresolvedIdent{
+                          kind = Local
+                          name = <U n1>
+                        }
+                        rhs = Send{
+                          flags = {rewriterSynthesized}
+                          recv = Send{
+                            flags = {}
+                            recv = ConstantLit{
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              ConstantLit{
+                                symbol = (module ::Kernel)
+                                orig = nullptr
+                              }
+                            ]
+                          }
+                          fun = <U raise>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                          ]
+                        }
+                      }
+                      Assign{
+                        lhs = UnresolvedIdent{
+                          kind = Local
+                          name = <U n2>
+                        }
+                        rhs = Send{
+                          flags = {rewriterSynthesized}
+                          recv = Send{
+                            flags = {}
+                            recv = ConstantLit{
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              ConstantLit{
+                                symbol = (module ::Kernel)
+                                orig = nullptr
+                              }
+                            ]
+                          }
+                          fun = <U raise>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                          ]
+                        }
+                      }
+                      Assign{
+                        lhs = UnresolvedIdent{
+                          kind = Local
+                          name = <U n3>
+                        }
+                        rhs = Send{
+                          flags = {rewriterSynthesized}
+                          recv = Send{
+                            flags = {}
+                            recv = ConstantLit{
+                              symbol = (module ::T)
+                              orig = nullptr
+                            }
+                            fun = <U unsafe>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              ConstantLit{
+                                symbol = (module ::Kernel)
+                                orig = nullptr
+                              }
+                            ]
+                          }
+                          fun = <U raise>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                          ]
+                        }
+                      }
+                    ],
+                    expr = InsSeq{
+                      stats = [
+                        Send{
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            cnst = <C <U T>>
+                            scope = EmptyTree
+                          }
+                          fun = <U reveal_type>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              kind = Local
+                              name = <U n1>
+                            }
+                          ]
+                        }
+                        Send{
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            cnst = <C <U T>>
+                            scope = EmptyTree
+                          }
+                          fun = <U reveal_type>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              kind = Local
+                              name = <U n2>
+                            }
+                          ]
+                        }
+                        Send{
+                          flags = {}
+                          recv = UnresolvedConstantLit{
+                            cnst = <C <U T>>
+                            scope = EmptyTree
+                          }
+                          fun = <U reveal_type>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            UnresolvedIdent{
+                              kind = Local
+                              name = <U n3>
+                            }
+                          ]
+                        }
+                      ],
+                      expr = Send{
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          cnst = <C <U T>>
+                          scope = EmptyTree
+                        }
+                        fun = <U reveal_type>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            kind = Local
+                            name = <U n4>
+                          }
+                        ]
+                      }
+                    }
+                  }
+                  elsep = If{
+                    cond = Send{
+                      flags = {rewriterSynthesized}
+                      recv = Send{
+                        flags = {}
+                        recv = ConstantLit{
+                          symbol = (module ::T)
+                          orig = nullptr
+                        }
+                        fun = <U unsafe>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          ConstantLit{
+                            symbol = (module ::Kernel)
+                            orig = nullptr
+                          }
+                        ]
+                      }
+                      fun = <U raise>
+                      block = nullptr
+                      pos_args = 1
+                      args = [
+                        Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                      ]
+                    }
+                    thenp = InsSeq{
+                      stats = [
+                        Assign{
+                          lhs = UnresolvedIdent{
+                            kind = Local
+                            name = <U o>
+                          }
+                          rhs = Send{
+                            flags = {rewriterSynthesized}
+                            recv = Send{
+                              flags = {}
+                              recv = ConstantLit{
+                                symbol = (module ::T)
+                                orig = nullptr
+                              }
+                              fun = <U unsafe>
+                              block = nullptr
+                              pos_args = 1
+                              args = [
+                                ConstantLit{
+                                  symbol = (module ::Kernel)
+                                  orig = nullptr
+                                }
+                              ]
+                            }
+                            fun = <U raise>
+                            block = nullptr
+                            pos_args = 1
+                            args = [
+                              Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                            ]
+                          }
+                        }
+                      ],
+                      expr = Send{
+                        flags = {}
+                        recv = UnresolvedConstantLit{
+                          cnst = <C <U T>>
+                          scope = EmptyTree
+                        }
+                        fun = <U reveal_type>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          UnresolvedIdent{
+                            kind = Local
+                            name = <U o>
+                          }
+                        ]
+                      }
+                    }
+                    elsep = If{
+                      cond = Send{
+                        flags = {rewriterSynthesized}
+                        recv = Send{
+                          flags = {}
+                          recv = ConstantLit{
+         test/prism_regression/invalid/case_match_error_recovery.rb:13: symbol literal with interpolation is not allowed https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+            ^^^^^^^^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: expected a `}` to close the pattern expression https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                      ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: expected a delimiter after the patterns of an `in` clause https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                      ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: expected an expression after `,` https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected write target https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                       ^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected label, expecting end-of-input https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                          ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected label, ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                          ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected ',', expecting end-of-input https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                     ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected ',', ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                     ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected label, ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                       ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected '}', expecting end-of-input https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                            ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected '}', ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                            ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected '=>', ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                              ^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:7: Revealed type: `T.untyped` https://srb.help/7014
+     7 |  T.reveal_type(a) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:6:
+     6 |in {a: a}
+               ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:9: Revealed type: `T.untyped` https://srb.help/7014
+     9 |  T.reveal_type(b) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:8:
+     8 |in {"kb": b}
+                  ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:11: Revealed type: `T.untyped` https://srb.help/7014
+    11 |  T.reveal_type(c) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:10:
+    10 |in {"kc": c, kd: d}
+                  ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:12: Revealed type: `T.untyped` https://srb.help/7014
+    12 |  T.reveal_type(d) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:10:
+    10 |in {"kc": c, kd: d}
+                         ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: Method `g` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                   ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: Method `h` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                           ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: Method `i` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                                 ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:14: Revealed type: `NilClass` https://srb.help/7014
+    14 |  T.reveal_type(e) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `NilClass` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3: Possibly uninitialized (`NilClass`) in:
+     3 |expr = {}
+     4 |
+     5 |case expr
+     6 |in {a: a}
+     7 |  T.reveal_type(a) # error: Revealed type: `T.untyped`
+       |...
+    26 |  T.reveal_type(n4) # error: Revealed type: `T.untyped`
+    27 |in **o
+    28 |  T.reveal_type(o) # error: Revealed type: `T.untyped`
+    29 |in **nil
+    30 |end
+
+test/prism_regression/invalid/case_match_error_recovery.rb:15: Method `g` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    15 |  T.reveal_type(g) # error: Revealed type: `T.untyped`
+                        ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:15: Revealed type: `T.untyped` https://srb.help/7014
+    15 |  T.reveal_type(g) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:15:
+    15 |  T.reveal_type(g) # error: Revealed type: `T.untyped`
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:16: Method `h` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    16 |  T.reveal_type(h) # error: Revealed type: `T.untyped`
+                        ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:16: Revealed type: `T.untyped` https://srb.help/7014
+    16 |  T.reveal_type(h) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:16:
+    16 |  T.reveal_type(h) # error: Revealed type: `T.untyped`
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:17: Method `i` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    17 |  T.reveal_type(i) # error: Revealed type: `T.untyped`
+                        ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:17: Revealed type: `T.untyped` https://srb.help/7014
+    17 |  T.reveal_type(i) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:17:
+    17 |  T.reveal_type(i) # error: Revealed type: `T.untyped`
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:19: Revealed type: `T.untyped` https://srb.help/7014
+    19 |  T.reveal_type(j) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:18:
+    18 |in {"kj": j} | {"kh": l} => m
+                  ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:20: Revealed type: `T.untyped` https://srb.help/7014
+    20 |  T.reveal_type(l) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:18:
+    18 |in {"kj": j} | {"kh": l} => m
+                              ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:21: Revealed type: `T.untyped` https://srb.help/7014
+    21 |  T.reveal_type(m) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:18:
+    18 |in {"kj": j} | {"kh": l} => m
+                                    ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:23: Revealed type: `T.untyped` https://srb.help/7014
+    23 |  T.reveal_type(n1) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+            ^^^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:24: Revealed type: `T.untyped` https://srb.help/7014
+    24 |  T.reveal_type(n2) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+                   ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:25: Revealed type: `T.untyped` https://srb.help/7014
+    25 |  T.reveal_type(n3) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+                        ^^^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:26: Revealed type: `T.untyped` https://srb.help/7014
+    26 |  T.reveal_type(n4) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+                                  ^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:28: Revealed type: `T.untyped` https://srb.help/7014
+    28 |  T.reveal_type(o) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:27:
+    27 |in **o
+             ^
+Errors: 35
+                   symbol = (module ::T)
+                            orig = nullptr
+                          }
+                          fun = <U unsafe>
+                          block = nullptr
+                          pos_args = 1
+                          args = [
+                            ConstantLit{
+                              symbol = (module ::Kernel)
+                              orig = nullptr
+                            }
+                          ]
+                        }
+                        fun = <U raise>
+                        block = nullptr
+                        pos_args = 1
+                        args = [
+                          Literal{ value = "Sorbet rewriter pass partially unimplemented" }
+                        ]
+                      }
+                      thenp = EmptyTree
+                      elsep = EmptyTree
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

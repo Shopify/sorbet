@@ -1,0 +1,692 @@
+Begin {
+  stmts = [
+    Assign {
+      lhs = LVarLhs {
+        name = <U expr>
+      }
+      rhs = Hash {
+        kwargs = false
+        pairs = [
+        ]
+      }
+    }
+    CaseMatch {
+      expr = LVar {
+        name = <U expr>
+      }
+      inBodies = [
+        InPattern {
+          pattern = HashPattern {
+            pairs = [
+              Pair {
+                key = Symbol {
+                  val = <U a>
+                }
+                value = MatchVar {
+                  name = <U a>
+                }
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = Const {
+              scope = NULL
+              name = <C <U T>>
+            }
+            method = <U reveal_type>
+            args = [
+              LVar {
+                name = <U a>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = HashPattern {
+            pairs = [
+              Pair {
+                key = Symbol {
+                  val = <U kb>
+                }
+                value = MatchVar {
+                  name = <U b>
+                }
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = Const {
+              scope = NULL
+              name = <C <U T>>
+            }
+            method = <U reveal_type>
+            args = [
+              LVar {
+                name = <U b>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = HashPattern {
+            pairs = [
+              Pair {
+                key = Symbol {
+                  val = <U kc>
+                }
+                value = MatchVar {
+                  name = <U c>
+                }
+              }
+              Pair {
+                key = Symbol {
+                  val = <U kd>
+                }
+                value = MatchVar {
+                  name = <U d>
+                }
+              }
+            ]
+          }
+          guard = NULL
+          body = Begin {
+            stmts = [
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U c>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U d>
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = HashPattern {
+            pairs = [
+              Pair {
+                key = DSymbol {
+                  nodes = [
+                    String {
+                      val = <U k>
+                    }
+                    Begin {
+                      stmts = [
+                        String {
+                          val = <U e>
+                        }
+                      ]
+                    }
+                  ]
+                }
+                value = Const {
+                  scope = NULL
+                  name = <C <U <ErrorNode>>>
+                }
+              }
+            ]
+          }
+          guard = NULL
+          body = Begin {
+            stmts = [
+              Mlhs {
+                exprs = [
+                  LVarLhs {
+                    name = <U e>
+                  }
+                  Const {
+                    scope = NULL
+                    name = <C <U <ErrorNode>>>
+                  }
+                ]
+              }
+              Const {
+                scope = NULL
+                name = <C <U <ErrorNode>>>
+              }
+              Hash {
+                kwargs = false
+                pairs = [
+                  Pair {
+                    key = Symbol {
+                      val = <U kg>
+                    }
+                    value = Send {
+                      receiver = NULL
+                      method = <U g>
+                      args = [
+                      ]
+                    }
+                  }
+                ]
+              }
+              Const {
+                scope = NULL
+                name = <C <U <ErrorNode>>>
+              }
+              Const {
+                scope = NULL
+                name = <C <U <ErrorNode>>>
+              }
+              Send {
+                receiver = NULL
+                method = <U h>
+                args = [
+                ]
+              }
+              Const {
+                scope = NULL
+                name = <C <U <ErrorNode>>>
+              }
+              Const {
+                scope = NULL
+                name = <C <U <ErrorNode>>>
+              }
+              Send {
+                receiver = NULL
+                method = <U i>
+                args = [
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U e>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  Send {
+                    receiver = NULL
+                    method = <U g>
+                    args = [
+                    ]
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  Send {
+                    receiver = NULL
+                    method = <U h>
+                    args = [
+                    ]
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  Send {
+                    receiver = NULL
+                    method = <U i>
+                    args = [
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = MatchAs {
+            value = MatchAlt {
+              left = HashPattern {
+                pairs = [
+                  Pair {
+                    key = Symbol {
+                      val = <U kj>
+                    }
+                    value = MatchVar {
+                      name = <U j>
+                    }
+                  }
+                ]
+              }
+              right = HashPattern {
+                pairs = [
+                  Pair {
+                    key = Symbol {
+                      val = <U kh>
+                    }
+                    value = MatchVar {
+                      name = <U l>
+                    }
+                  }
+                ]
+              }
+            }
+            as = MatchVar {
+              name = <U m>
+            }
+          }
+          guard = NULL
+          body = Begin {
+            stmts = [
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U j>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U l>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+            test/prism_regression/invalid/case_match_error_recovery.rb:13: symbol literal with interpolation is not allowed https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+            ^^^^^^^^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: expected a `}` to close the pattern expression https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                      ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: expected a delimiter after the patterns of an `in` clause https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                      ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: expected an expression after `,` https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected write target https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                       ^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected label, expecting end-of-input https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                          ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected label, ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                          ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected ',', expecting end-of-input https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                     ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected ',', ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                     ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected label, ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                       ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected '}', expecting end-of-input https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                            ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected '}', ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                            ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: unexpected '=>', ignoring it https://srb.help/2001
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                              ^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:7: Revealed type: `T.untyped` https://srb.help/7014
+     7 |  T.reveal_type(a) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:6:
+     6 |in {a: a}
+               ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:9: Revealed type: `T.untyped` https://srb.help/7014
+     9 |  T.reveal_type(b) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:8:
+     8 |in {"kb": b}
+                  ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:11: Revealed type: `T.untyped` https://srb.help/7014
+    11 |  T.reveal_type(c) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:10:
+    10 |in {"kc": c, kd: d}
+                  ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:12: Revealed type: `T.untyped` https://srb.help/7014
+    12 |  T.reveal_type(d) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:10:
+    10 |in {"kc": c, kd: d}
+                         ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: Method `g` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                   ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: Method `h` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                           ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:13: Method `i` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    13 |in {"k#{"e"}": e, kf: {kg: g}, kh: h} => i
+                                                 ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:14: Revealed type: `NilClass` https://srb.help/7014
+    14 |  T.reveal_type(e) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `NilClass` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3: Possibly uninitialized (`NilClass`) in:
+     3 |expr = {}
+     4 |
+     5 |case expr
+     6 |in {a: a}
+     7 |  T.reveal_type(a) # error: Revealed type: `T.untyped`
+       |...
+    26 |  T.reveal_type(n4) # error: Revealed type: `T.untyped`
+    27 |in **o
+    28 |  T.reveal_type(o) # error: Revealed type: `T.untyped`
+    29 |in **nil
+    30 |end
+
+test/prism_regression/invalid/case_match_error_recovery.rb:15: Method `g` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    15 |  T.reveal_type(g) # error: Revealed type: `T.untyped`
+                        ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:15: Revealed type: `T.untyped` https://srb.help/7014
+    15 |  T.reveal_type(g) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:15:
+    15 |  T.reveal_type(g) # error: Revealed type: `T.untyped`
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:16: Method `h` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    16 |  T.reveal_type(h) # error: Revealed type: `T.untyped`
+                        ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:16: Revealed type: `T.untyped` https://srb.help/7014
+    16 |  T.reveal_type(h) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:16:
+    16 |  T.reveal_type(h) # error: Revealed type: `T.untyped`
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:17: Method `i` does not exist on `T.class_of(<root>)` https://srb.help/7003
+    17 |  T.reveal_type(i) # error: Revealed type: `T.untyped`
+                        ^
+  Got `T.class_of(<root>)` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:3:
+     3 |expr = {}
+        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:17: Revealed type: `T.untyped` https://srb.help/7014
+    17 |  T.reveal_type(i) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:17:
+    17 |  T.reveal_type(i) # error: Revealed type: `T.untyped`
+                        ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:19: Revealed type: `T.untyped` https://srb.help/7014
+    19 |  T.reveal_type(j) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:18:
+    18 |in {"kj": j} | {"kh": l} => m
+                  ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:20: Revealed type: `T.untyped` https://srb.help/7014
+    20 |  T.reveal_type(l) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:18:
+    18 |in {"kj": j} | {"kh": l} => m
+                              ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:21: Revealed type: `T.untyped` https://srb.help/7014
+    21 |  T.reveal_type(m) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:18:
+    18 |in {"kj": j} | {"kh": l} => m
+                                    ^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:23: Revealed type: `T.untyped` https://srb.help/7014
+    23 |  T.reveal_type(n1) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+            ^^^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:24: Revealed type: `T.untyped` https://srb.help/7014
+    24 |  T.reveal_type(n2) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+                   ^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:25: Revealed type: `T.untyped` https://srb.help/7014
+    25 |  T.reveal_type(n3) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+                        ^^^^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:26: Revealed type: `T.untyped` https://srb.help/7014
+    26 |  T.reveal_type(n4) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:22:
+    22 |in {"n1":, n2:, "n3":} => n4
+                                  ^^
+
+test/prism_regression/invalid/case_match_error_recovery.rb:28: Revealed type: `T.untyped` https://srb.help/7014
+    28 |  T.reveal_type(o) # error: Revealed type: `T.untyped`
+          ^^^^^^^^^^^^^^^^
+  Got `T.untyped` originating from:
+    test/prism_regression/invalid/case_match_error_recovery.rb:27:
+    27 |in **o
+             ^
+Errors: 35
+      scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U m>
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = MatchAs {
+            value = HashPattern {
+              pairs = [
+                MatchVar {
+                  name = <U n1>
+                }
+                MatchVar {
+                  name = <U n2>
+                }
+                MatchVar {
+                  name = <U n3>
+                }
+              ]
+            }
+            as = MatchVar {
+              name = <U n4>
+            }
+          }
+          guard = NULL
+          body = Begin {
+            stmts = [
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U n1>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U n2>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U n3>
+                  }
+                ]
+              }
+              Send {
+                receiver = Const {
+                  scope = NULL
+                  name = <C <U T>>
+                }
+                method = <U reveal_type>
+                args = [
+                  LVar {
+                    name = <U n4>
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = HashPattern {
+            pairs = [
+              MatchRest {
+                var = MatchVar {
+                  name = <U o>
+                }
+              }
+            ]
+          }
+          guard = NULL
+          body = Send {
+            receiver = Const {
+              scope = NULL
+              name = <C <U T>>
+            }
+            method = <U reveal_type>
+            args = [
+              LVar {
+                name = <U o>
+              }
+            ]
+          }
+        }
+        InPattern {
+          pattern = HashPattern {
+            pairs = [
+              MatchNilPattern {
+              }
+            ]
+          }
+          guard = NULL
+          body = NULL
+        }
+      ]
+      elseBody = NULL
+    }
+  ]
+}
