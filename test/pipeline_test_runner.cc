@@ -144,7 +144,7 @@ public:
 
     ExpectationHandler(Expectations &test, shared_ptr<core::ErrorQueue> &errorQueue,
                        shared_ptr<core::ErrorCollector> &errorCollector)
-        : test(test), errorQueue(errorQueue), errorCollector(errorCollector){};
+        : test(test), errorQueue(errorQueue), errorCollector(errorCollector) {};
 
     bool hasExpectation(string_view expectationType) {
         return test.expectations.contains(expectationType);
@@ -239,7 +239,6 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                 case realmain::options::Parser::ORIGINAL: {
                     auto settings = parser::Parser::Settings{false, false, false, gs.cacheSensitiveOptions.rbsEnabled};
                     parseResult = parser::Parser::run(gs, file, settings);
-                    directlyDesugaredTree = nullptr;
                     break;
                 }
                 case realmain::options::Parser::PRISM: {
@@ -515,8 +514,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         realmain::Minimize::writeDiff(*gs, *gsForMinimize, printerConfig);
 
         auto addNewline = false;
-        handler.addObserved(
-            *gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
+        handler.addObserved(*gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
     }
 
     // Simulate what pipeline.cc does: We want to start typechecking big files first because it helps with better work
@@ -699,7 +697,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
     // Allow later phases to have errors that we didn't test for
     errorQueue->flushAllErrors(*gs);
-    { auto _ = errorCollector->drainErrors(); }
+    {
+        auto _ = errorCollector->drainErrors();
+    }
 
     // now we test the incremental resolver
 
@@ -841,7 +841,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
     // and drain all the remaining errors
     errorQueue->flushAllErrors(*gs);
-    { auto _ = errorCollector->drainErrors(); }
+    {
+        auto _ = errorCollector->drainErrors();
+    }
 
     {
         INFO("the incremental resolver should not add new symbols");

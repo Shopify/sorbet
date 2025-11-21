@@ -270,6 +270,18 @@ public:
         release();
         return std::unique_ptr<E>(p.get());
     }
+
+    // Helper methods to check for specific UnresolvedIdent kinds
+    static bool isa_cvar(const ExpressionPtr &expr);
+    static bool isa_ivar(const ExpressionPtr &expr);
+    static bool isa_gvar(const ExpressionPtr &expr);
+    static bool isa_lvar(const ExpressionPtr &expr);
+
+    // Helper to check if an expression is a splat (::Magic.<splat>(...))
+    static bool isa_splat(const ExpressionPtr &expr);
+
+    // Helper to check if an expression is a Send with a keyword splat
+    static bool has_kwsplat(const ExpressionPtr &expr);
 };
 
 template <class E, typename... Args> ExpressionPtr make_expression(Args &&...args) {

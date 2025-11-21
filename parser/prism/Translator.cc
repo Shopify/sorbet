@@ -29,6 +29,10 @@ void enforceHasExpr(const std::unique_ptr<parser::Node> &node) {
     throw PrismFallback{};
 }
 
+void enforceHasExpr(const std::unique_ptr<parser::NodeWithExpr> &node) {
+    enforceHasExpr(reinterpret_cast<const std::unique_ptr<parser::Node> &>(node));
+}
+
 void enforceHasExpr(const parser::NodeVec &nodes) {
     for (const auto &node : nodes) {
         enforceHasExpr(node);
@@ -40,13 +44,34 @@ template <typename... Tail> void enforceHasExpr(const std::unique_ptr<parser::No
     enforceHasExpr(tail...);
 }
 
+template <typename... Tail>
+void enforceHasExpr(const std::unique_ptr<parser::NodeWithExpr> &head, const Tail &...tail) {
+    enforceHasExpr(head);
+    enforceHasExpr(tail...);
+}
+
+// Helper to safely extract desugared expression from a node, or EmptyTree if null
+static ast::ExpressionPtr takeDesugaredExprOrEmptyTree(const std::unique_ptr<parser::Node> &node) {
+    if (node == nullptr) {
+        return ast::MK::EmptyTree();
+    }
+    // Enforce that the node has a desugared expression (meaning it's a NodeWithExpr)
+    ENFORCE(node->hasDesugaredExpr(), "node must have desugared expression");
+    return node->takeDesugaredExpr();
+}
+
+// Overload for NodeWithExpr
+static ast::ExpressionPtr takeDesugaredExprOrEmptyTree(const std::unique_ptr<parser::NodeWithExpr> &node) {
+    return node == nullptr ? ast::MK::EmptyTree() : node->takeDesugaredExpr();
+}
+
 // Helper template to convert nodes to any store type with takeDesugaredExpr or EmptyTree for nulls.
 // This is used to convert a NodeVec to the store type argument for nodes including `Send`, `InsSeq`.
 template <typename StoreType> StoreType nodeVecToStore(const sorbet::parser::NodeVec &nodes) {
     StoreType store;
     store.reserve(nodes.size());
     for (const auto &node : nodes) {
-        store.emplace_back(node ? node->takeDesugaredExpr() : sorbet::ast::MK::EmptyTree());
+        store.emplace_back(takeDesugaredExprOrEmptyTree(node));
     }
     return store;
 }
@@ -87,14 +112,15 @@ static void collectPatternMatchingVars(ast::InsSeq::STATS_store &vars, parser::N
 
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
-unique_ptr<parser::Node> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const {
+unique_ptr<parser::NodeWithExpr> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr,
+                                                                 TArgs &&...args) const {
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
     return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
 }
 
 // Like `make_node_with_expr`, but specifically for unsupported nodes.
 template <typename SorbetNode, typename... TArgs>
-std::unique_ptr<parser::Node> Translator::make_unsupported_node(TArgs &&...args) const {
+std::unique_ptr<parser::NodeWithExpr> Translator::make_unsupported_node(TArgs &&...args) const {
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
 
     if (auto e = ctx.beginIndexerError(whiteQuarkNode->loc, core::errors::Desugar::UnsupportedNode)) {
@@ -373,6 +399,150 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *l
     return MK::InsSeq(loc, move(stats), MK::Local(loc, tempRhs));
 }
 
+// Desugar multiple left hand side assignments using Prism nodes directly (no parser::Mlhs dependency)
+//
+// This is a Prism-native version of desugarMlhs that works directly with pm_multi_target_node
+// and pm_multi_write_node structures, avoiding the need to create intermediate parser nodes.
+//
+// For the same example:
+// ```rb
+// arr = [1, 2, 3]
+// a, *b = arr
+// ```
+//
+// We desugar the assignment `a, *b = arr` into:
+// ```rb
+// tmp = ::<Magic>.expandSplat(arr, 1, 0)
+// a = tmp[0]
+// b = tmp.to_ary
+// ```
+template <typename PrismNode>
+ast::ExpressionPtr Translator::desugarMlhsPrism(core::LocOffsets loc, PrismNode *prismNode, ast::ExpressionPtr rhs) {
+    static_assert(is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
+                  "desugarMlhsPrism can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
+
+    ast::InsSeq::STATS_store stats;
+
+    core::NameRef tempRhs = nextUniqueDesugarName(core::Names::assignTemp());
+    core::NameRef tempExpanded = nextUniqueDesugarName(core::Names::assignTemp());
+
+    auto prismLefts = absl::MakeSpan(prismNode->lefts.nodes, prismNode->lefts.size);
+    auto prismRights = absl::MakeSpan(prismNode->rights.nodes, prismNode->rights.size);
+    auto prismSplat = prismNode->rest;
+
+    int i = 0;
+    int before = 0, after = 0;
+    bool didSplat = false;
+    auto zloc = loc.copyWithZeroLength();
+
+    // Process left-hand side elements
+    for (auto *elem : prismLefts) {
+        if (didSplat) {
+            ++after;
+        } else {
+            ++before;
+        }
+
+        auto elemLoc = translateLoc(elem->location);
+        auto zcloc = elemLoc.copyWithZeroLength();
+        auto val =
+            MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
+
+        // Check if this is a nested multi-target
+        if (PM_NODE_TYPE_P(elem, PM_MULTI_TARGET_NODE)) {
+            auto *nestedMulti = down_cast<pm_multi_target_node>(elem);
+            stats.emplace_back(desugarMlhsPrism(elemLoc, nestedMulti, move(val)));
+        } else {
+            auto translated = translate(elem);
+            ast::ExpressionPtr lh = translated->takeDesugaredExpr();
+            if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
+                if (auto e = ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
+                    e.setHeader("Unsupported rest args in destructure");
+                }
+                lh = move(restParam->expr);
+            }
+
+            auto lhloc = lh.loc();
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
+        }
+
+        i++;
+    }
+
+    // Process splat element (if present)
+    if (prismSplat != nullptr && PM_NODE_TYPE_P(prismSplat, PM_SPLAT_NODE)) {
+        ENFORCE(!didSplat, "did splat already");
+        didSplat = true;
+
+        auto *splatNode = down_cast<pm_splat_node>(prismSplat);
+
+        if (splatNode->expression != nullptr) {
+            auto splatExpr = translate(splatNode->expression);
+            ast::ExpressionPtr lh = splatExpr->takeDesugaredExpr();
+
+            int left = i;
+            int right = prismLefts.size() + prismRights.size() - left - 1;
+
+            if (!ast::isa_tree<ast::EmptyTree>(lh)) {
+                if (right == 0) {
+                    right = 1;
+                }
+                auto lhloc = lh.loc();
+                auto zlhloc = lhloc.copyWithZeroLength();
+                // Calling `to_ary` is not faithful to the runtime behavior,
+                // but it is faithful to the expected static type-checking behavior.
+                auto ary = MK::Send0(loc, MK::Local(loc, tempExpanded), core::Names::toAry(), zlhloc);
+                stats.emplace_back(MK::Assign(lhloc, move(lh), move(ary)));
+            }
+        }
+
+        i = -static_cast<int>(prismRights.size());
+    }
+
+    // Process right-hand side elements (after splat)
+    for (auto *elem : prismRights) {
+        if (didSplat) {
+            ++after;
+        } else {
+            ++before;
+        }
+
+        auto elemLoc = translateLoc(elem->location);
+        auto zcloc = elemLoc.copyWithZeroLength();
+        auto val =
+            MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
+
+        // Check if this is a nested multi-target
+        if (PM_NODE_TYPE_P(elem, PM_MULTI_TARGET_NODE)) {
+            auto *nestedMulti = down_cast<pm_multi_target_node>(elem);
+            stats.emplace_back(desugarMlhsPrism(elemLoc, nestedMulti, move(val)));
+        } else {
+            auto translated = translate(elem);
+            ast::ExpressionPtr lh = translated->takeDesugaredExpr();
+            if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
+                if (auto e = ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
+                    e.setHeader("Unsupported rest args in destructure");
+                }
+                lh = move(restParam->expr);
+            }
+
+            auto lhloc = lh.loc();
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
+        }
+
+        i++;
+    }
+
+    auto expanded = MK::Send3(loc, MK::Magic(loc), core::Names::expandSplat(), zloc, MK::Local(loc, tempRhs),
+                              MK::Int(loc, before), MK::Int(loc, after));
+    stats.insert(stats.begin(), MK::Assign(loc, tempExpanded, move(expanded)));
+    stats.insert(stats.begin(), MK::Assign(loc, tempRhs, move(rhs)));
+
+    // Regardless of how we destructure an assignment, Ruby evaluates the expression to the entire right hand side,
+    // not any individual component of the destructured assignment.
+    return MK::InsSeq(loc, move(stats), MK::Local(loc, tempRhs));
+}
+
 // Helper to check if an ExpressionPtr represents a T.let call
 ast::Send *asTLet(ExpressionPtr &arg) {
     auto send = ast::cast_tree<ast::Send>(arg);
@@ -390,7 +560,7 @@ ast::Send *asTLet(ExpressionPtr &arg) {
 // Had to widen the type from `parser::Assign` to `parser::Node` to handle `make_node_with_expr` correctly.
 // TODO: narrow the type back after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
 template <typename PrismAssignmentNode, typename SorbetLHSNode>
-unique_ptr<parser::Node> Translator::translateAssignment(pm_node_t *untypedNode) {
+unique_ptr<parser::NodeWithExpr> Translator::translateAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
     auto location = translateLoc(untypedNode->location);
     auto rhs = translate(node->value);
@@ -425,8 +595,9 @@ unique_ptr<parser::Node> Translator::translateAssignment(pm_node_t *untypedNode)
 // TODO: narrow the type back after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
 // The location is the location of the whole Prism assignment node.
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
-unique_ptr<parser::Node> Translator::translateAnyOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
-                                                              unique_ptr<parser::Node> lhs) {
+unique_ptr<parser::NodeWithExpr> Translator::translateAnyOpAssignment(PrismAssignmentNode *node,
+                                                                      core::LocOffsets location,
+                                                                      unique_ptr<parser::Node> lhs) {
     auto rhs = translate(node->value);
 
     if constexpr (is_same_v<SorbetAssignmentNode, parser::AndAsgn>) {
@@ -444,7 +615,8 @@ unique_ptr<parser::Node> Translator::translateAnyOpAssignment(PrismAssignmentNod
 
 // The location is the location of the whole Prism assignment node.
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateIndexAssignment(pm_node_t *untypedNode, core::LocOffsets location) {
+unique_ptr<parser::NodeWithExpr> Translator::translateIndexAssignment(pm_node_t *untypedNode,
+                                                                      core::LocOffsets location) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
 
     // Handle operator assignment to an indexed expression, like `a[0] += 1`
@@ -475,8 +647,9 @@ unique_ptr<parser::Node> Translator::translateIndexAssignment(pm_node_t *untyped
 
 // The location is the location of the whole Prism assignment node.
 template <typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets location, unique_ptr<parser::Node> lhs,
-                                                              unique_ptr<parser::Node> rhs) {
+unique_ptr<parser::NodeWithExpr> Translator::translateAndOrAssignment(core::LocOffsets location,
+                                                                      unique_ptr<parser::Node> lhs,
+                                                                      unique_ptr<parser::Node> rhs) {
     const auto isOrAsgn = is_same_v<SorbetAssignmentNode, parser::OrAsgn>;
     const auto isAndAsgn = is_same_v<SorbetAssignmentNode, parser::AndAsgn>;
     static_assert(isOrAsgn || isAndAsgn);
@@ -525,8 +698,8 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
         auto cond = MK::cpRef(lhsExpr);
 
         // Check for T.let handling for instance and class variables in ||= assignments
-        auto lhsIsIvar = parser::NodeWithExpr::isa_node<parser::IVarLhs>(lhs.get());
-        auto lhsIsCvar = parser::NodeWithExpr::isa_node<parser::CVarLhs>(lhs.get());
+        auto lhsIsIvar = ast::ExpressionPtr::isa_ivar(lhsExpr);
+        auto lhsIsCvar = ast::ExpressionPtr::isa_cvar(lhsExpr);
         auto rhsIsTLet = asTLet(rhsExpr);
 
         ExpressionPtr assignExpr;
@@ -643,8 +816,9 @@ Translator::OpAsgnScaffolding Translator::copyArgsForOpAsgn(ast::Send *s) {
 
 // The location is the location of the whole Prism assignment node.
 template <typename SorbetAssignmentNode, typename PrismAssignmentNode>
-unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
-                                                           unique_ptr<parser::Node> lhs, unique_ptr<parser::Node> rhs) {
+unique_ptr<parser::NodeWithExpr> Translator::translateOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
+                                                                   unique_ptr<parser::Node> lhs,
+                                                                   unique_ptr<parser::Node> rhs) {
     // `OpAsgn` assign needs more information about the specific operator here, so it gets special handling here.
     auto opLoc = translateLoc(node->binary_operator_loc);
     auto op = translateConstantName(node->binary_operator);
@@ -737,7 +911,7 @@ unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *
 }
 
 template <typename PrismConstantNode, typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateConstantAssignment(pm_node_t *node, core::LocOffsets location) {
+unique_ptr<parser::NodeWithExpr> Translator::translateConstantAssignment(pm_node_t *node, core::LocOffsets location) {
     if (auto e = ctx.beginIndexerError(location, core::errors::Desugar::NoConstantReassignment)) {
         e.setHeader("Constant reassignment is not supported");
     }
@@ -750,7 +924,8 @@ unique_ptr<parser::Node> Translator::translateConstantAssignment(pm_node_t *node
 }
 
 template <typename PrismConstantPathNode, typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateConstantPathAssignment(pm_node_t *node, core::LocOffsets location) {
+unique_ptr<parser::NodeWithExpr> Translator::translateConstantPathAssignment(pm_node_t *node,
+                                                                             core::LocOffsets location) {
     auto constantPathNode = down_cast<PrismConstantPathNode>(node);
     auto target = constantPathNode->target;
     auto lhs = translateConst<pm_constant_path_node, parser::ConstLhs>(target);
@@ -759,7 +934,7 @@ unique_ptr<parser::Node> Translator::translateConstantPathAssignment(pm_node_t *
 }
 
 template <typename PrismVariableNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
-unique_ptr<parser::Node> Translator::translateVariableAssignment(pm_node_t *node, core::LocOffsets location) {
+unique_ptr<parser::NodeWithExpr> Translator::translateVariableAssignment(pm_node_t *node, core::LocOffsets location) {
     auto variableNode = down_cast<PrismVariableNode>(node);
     auto nameLoc = translateLoc(variableNode->name_loc);
     auto name = translateConstantName(variableNode->name);
@@ -773,9 +948,10 @@ unique_ptr<parser::Node> Translator::translateVariableAssignment(pm_node_t *node
 // Handle operator assignment to the result of a safe method call, like `a&.b += 1`
 // This creates a pattern like: { $temp = a; if $temp == nil then nil else $temp.b += 1 }
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateCSendAssignment(PrismAssignmentNode *callNode, core::LocOffsets location,
-                                                              unique_ptr<parser::Node> receiver, core::NameRef name,
-                                                              core::LocOffsets messageLoc) {
+unique_ptr<parser::NodeWithExpr> Translator::translateCSendAssignment(PrismAssignmentNode *callNode,
+                                                                      core::LocOffsets location,
+                                                                      unique_ptr<parser::Node> receiver,
+                                                                      core::NameRef name, core::LocOffsets messageLoc) {
     enforceHasExpr(receiver);
 
     // Create temporary variable to hold the receiver
@@ -816,7 +992,7 @@ unique_ptr<parser::Node> Translator::translateCSendAssignment(PrismAssignmentNod
 // 2. `recv.a ||= b`
 // 3. `recv.a  += b`
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, core::LocOffsets location) {
+unique_ptr<parser::NodeWithExpr> Translator::translateSendAssignment(pm_node_t *node, core::LocOffsets location) {
     auto callNode = down_cast<PrismAssignmentNode>(node);
     auto name = translateConstantName(callNode->read_name);
     auto receiver = translate(callNode->receiver);
@@ -851,7 +1027,11 @@ unique_ptr<parser::Node> Translator::translateSendAssignment(pm_node_t *node, co
                                                                                              move(lhs));
 }
 
-unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveConcreteSyntax) {
+// options:
+// return unique_ptr<ExpressionPtr> - this is the ultimate goal
+// or
+// return unique_ptr<NodeWithExpr> - narrow this to not take whitequark nodes
+unique_ptr<parser::NodeWithExpr> Translator::translate(pm_node_t *node, bool preserveConcreteSyntax) {
     if (node == nullptr)
         return nullptr;
 
@@ -987,7 +1167,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto key = translate(assocNode->key);
             auto value = translate(assocNode->value);
 
-            return make_unique<parser::Pair>(location, move(key), move(value));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::Pair>(location, move(key), move(value));
         }
         case PM_ASSOC_SPLAT_NODE: { // A Hash splat, e.g. `**h` in `f(a: 1, **h)` and `{ k: v, **h }`
             unreachable("PM_ASSOC_SPLAT_NODE is handled separately in `Translator::translateKeyValuePairs()` and "
@@ -1029,7 +1210,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto expr = translate(blockArg->expression);
 
-            return make_unique<parser::BlockPass>(location, move(expr));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::BlockPass>(location, move(expr));
         }
         case PM_BLOCK_NODE: { // An explicit block passed to a method call, i.e. `{ ... }` or `do ... end`
             unreachable("PM_BLOCK_NODE has special handling in translateCallWithBlock, see its docs for details.");
@@ -1049,7 +1231,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (paramsNode->parameters == nullptr) {
                 // TODO: future follow up, ensure we add the block local variables ("shadowargs"), if any.
-                return make_unique<parser::Params>(location, NodeVec{});
+                // TODO: this was switched from make_unique to make_unsupported_node
+                return make_unsupported_node<parser::Params>(location, NodeVec{});
             }
 
             unique_ptr<parser::Params> params;
@@ -1061,7 +1244,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             params->params.insert(params->params.end(), make_move_iterator(sorbetShadowParams.begin()),
                                   make_move_iterator(sorbetShadowParams.end()));
 
-            return params;
+            return unique_ptr<parser::NodeWithExpr>(reinterpret_cast<parser::NodeWithExpr *>(params.release()));
         }
         case PM_BREAK_NODE: { // A `break` statement, e.g. `break`, `break 1, 2, 3`
             auto breakNode = down_cast<pm_break_node>(node);
@@ -1078,7 +1261,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             ExpressionPtr breakArgs;
             if (arguments.size() == 1) {
                 auto &first = arguments[0];
-                breakArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                breakArgs = takeDesugaredExprOrEmptyTree(first);
             } else {
                 auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
                 auto arrayLocation = parser.translateLocation(breakNode->arguments->base.location);
@@ -1244,23 +1427,25 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             pm_node_t *prismBlock = callNode->block;
 
-            unique_ptr<parser::Node> sendNode;
+            unique_ptr<parser::NodeWithExpr> sendNode;
 
             auto name = ctx.state.enterNameUTF8(constantNameString);
             auto methodName = MK::Symbol(sendLoc0, name);
 
             // Method defs are really complex, and we're building support for different kinds of arguments bit
             // by bit. This bool is true when this particular method call is supported by our desugar logic.
-            auto supportedArgs = absl::c_all_of(args, [](const auto &arg) {
-                if (parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get()) ||
-                    parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
-                    return true;
+            auto supportedArgs = true;
+            for (size_t i = 0; i < args.size() && i < prismArgs.size(); ++i) {
+                auto prismArg = prismArgs[i];
+                // Check if this is a forwarding argument using the Prism node
+                bool isForwardingArg = PM_NODE_TYPE_P(prismArg, PM_FORWARDING_ARGUMENTS_NODE) ||
+                                       (PM_NODE_TYPE_P(prismArg, PM_SPLAT_NODE) &&
+                                        down_cast<pm_splat_node>(prismArg)->expression == nullptr);
+
+                if (!isForwardingArg) {
+                    enforceHasExpr(args[i]);
                 }
-
-                enforceHasExpr(arg);
-
-                return true;
-            });
+            }
 
             enforceHasExpr(receiver);
             auto supportedCallType = constantNameString != "block_given?" && kwargsHashHasExpr && supportedArgs;
@@ -1427,9 +1612,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 }
 
                 if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
-                    sendNode = make_unique<parser::CSend>(sendLoc, move(receiver), name, messageLoc, move(args));
+                    // TODO: this was switched from make_unique to make_unsupported_node
+                    sendNode =
+                        make_unsupported_node<parser::CSend>(sendLoc, move(receiver), name, messageLoc, move(args));
                 } else {
-                    sendNode = make_unique<parser::Send>(sendLoc, move(receiver), name, messageLoc, move(args));
+                    // TODO: this was switched from make_unique to make_unsupported_node
+                    sendNode =
+                        make_unsupported_node<parser::Send>(sendLoc, move(receiver), name, messageLoc, move(args));
                 }
 
                 if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
@@ -1473,14 +1662,19 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 ast::Array::ENTRY_store argExprs;
                 argExprs.reserve(prismArgs.size());
-                for (auto &arg : args) {
-                    if (parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get())) {
-                        continue; // Skip anonymous splats (like `f(*)`), which are handled separately in `PM_CALL_NODE`
-                    } else if (parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
-                        continue; // Skip forwarded args (like `f(...)`), which are handled separately in `PM_CALL_NODE`
+                for (size_t i = 0; i < args.size() && i < prismArgs.size(); ++i) {
+                    auto prismArg = prismArgs[i];
+                    // Check if this is a forwarding argument using the Prism node
+                    bool isForwardingArg = PM_NODE_TYPE_P(prismArg, PM_FORWARDING_ARGUMENTS_NODE) ||
+                                           (PM_NODE_TYPE_P(prismArg, PM_SPLAT_NODE) &&
+                                            down_cast<pm_splat_node>(prismArg)->expression == nullptr);
+
+                    if (isForwardingArg) {
+                        continue; // Skip forwarded args (like `f(...)`) and anonymous splats (like `f(*)`),
+                                  // which are handled separately in `PM_CALL_NODE`
                     }
 
-                    auto expr = arg->takeDesugaredExpr();
+                    auto expr = args[i]->takeDesugaredExpr();
                     ENFORCE(expr != nullptr);
                     argExprs.emplace_back(move(expr));
                 }
@@ -1609,8 +1803,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                             blockExpr = desugarSymbolProc(symbol);
                         } else {
                             auto blockLoc = translateLoc(prismBlock->location);
-                            auto blockBodyExpr =
-                                blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
+                            auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
                             blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
                         }
 
@@ -1727,7 +1920,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         blockExpr = desugarSymbolProc(symbol);
                     } else {
                         auto blockLoc = translateLoc(prismBlock->location);
-                        auto blockBodyExpr = blockBody == nullptr ? MK::EmptyTree() : blockBody->takeDesugaredExpr();
+                        auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
                         blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
                     }
 
@@ -1778,19 +1971,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             if (PM_NODE_FLAG_P(callTargetNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
                 // Handle conditional send, e.g. `self&.target1, self&.target2 = 1, 2`
                 // It's not valid Ruby, but the parser needs to support it for the diagnostics to work
-                return make_unique<parser::CSend>(location, move(receiver), name, messageLoc, NodeVec{});
+                // TODO: this was switched from make_unique to make_unsupported_node
+                return make_unsupported_node<parser::CSend>(location, move(receiver), name, messageLoc, NodeVec{});
             } else { // Regular send, e.g. `self.target1, self.target2 = 1, 2`
-                return make_unique<parser::Send>(location, move(receiver), name, messageLoc, NodeVec{});
+                // TODO: this was switched from make_unique to make_unsupported_node
+                return make_unsupported_node<parser::Send>(location, move(receiver), name, messageLoc, NodeVec{});
             }
         }
         case PM_CASE_MATCH_NODE: { // A pattern-matching `case` statement that only uses `in` (and not `when`)
             auto caseMatchNode = down_cast<pm_case_match_node>(node);
 
             auto predicate = translate(caseMatchNode->predicate);
-            auto inNodes = patternTranslateMulti(caseMatchNode->conditions);
             auto elseClause = translate(up_cast(caseMatchNode->else_clause));
 
-            // Build an if ladder similar to CASE_NODE
+            // Build an if ladder directly from Prism nodes without creating parser::InPattern nodes
             core::NameRef tempName;
             core::LocOffsets predicateLoc;
 
@@ -1802,28 +1996,36 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             }
 
             // Start with the else clause as the final else
-            ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
+            ExpressionPtr resultExpr = takeDesugaredExprOrEmptyTree(elseClause);
 
             // Build the if ladder backwards from the last "in" to the first
-            for (auto it = inNodes.rbegin(); it != inNodes.rend(); ++it) {
-                auto inPattern = parser::NodeWithExpr::cast_node<parser::InPattern>(it->get());
-                ENFORCE(inPattern != nullptr, "case pattern without an in?");
+            // Work directly with Prism pm_in_node structures
+            auto prismInNodes = absl::MakeSpan(caseMatchNode->conditions.nodes, caseMatchNode->conditions.size);
+            for (auto it = prismInNodes.rbegin(); it != prismInNodes.rend(); ++it) {
+                auto *inNode = down_cast<pm_in_node>(*it);
+                auto inLoc = translateLoc(inNode->base.location);
+
+                // Translate the pattern and body
+                auto pattern = patternTranslate(inNode->pattern);
+                auto body = translateStatements(inNode->statements);
 
                 // Use RaiseUnimplemented as the condition (like desugarOnelinePattern)
-                auto patternLoc = inPattern->pattern != nullptr ? inPattern->pattern->loc : inPattern->loc;
+                auto patternLoc = pattern != nullptr ? pattern->loc : inLoc;
                 auto matchExpr = MK::RaiseUnimplemented(patternLoc);
 
                 // The body is the statements from the "in" clause
-                auto thenExpr = inPattern->body != nullptr ? inPattern->body->takeDesugaredExpr() : MK::EmptyTree();
+                auto thenExpr = takeDesugaredExprOrEmptyTree(body);
 
                 // Collect pattern variable assignments from the pattern
                 ast::InsSeq::STATS_store vars;
-                collectPatternMatchingVars(vars, inPattern->pattern.get());
+                if (pattern != nullptr) {
+                    collectPatternMatchingVars(vars, pattern.get());
+                }
                 if (!vars.empty()) {
                     thenExpr = MK::InsSeq(patternLoc, move(vars), move(thenExpr));
                 }
 
-                resultExpr = MK::If(inPattern->loc, move(matchExpr), move(thenExpr), move(resultExpr));
+                resultExpr = MK::If(inLoc, move(matchExpr), move(thenExpr), move(resultExpr));
             }
 
             // Wrap in an InsSeq with the predicate assignment (if there is a predicate)
@@ -1832,6 +2034,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
             }
 
+            // Create empty InPattern nodes for CaseMatch constructor (temporary until it's removed)
+            NodeVec inNodes;
             return make_node_with_expr<parser::CaseMatch>(move(resultExpr), location, move(predicate), move(inNodes),
                                                           move(elseClause));
         }
@@ -1880,29 +2084,29 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 ast::Send::ARGS_store args;
                 args.reserve(2 + whenNodes.size() + totalPatterns); // +2 is for the predicate and the patterns count
-                args.emplace_back(predicate == nullptr ? MK::EmptyTree() : predicate->takeDesugaredExpr());
+                args.emplace_back(takeDesugaredExprOrEmptyTree(predicate));
                 args.emplace_back(MK::Int(locZeroLen, totalPatterns));
 
-                for (auto &whenNodePtr : whenNodes) {
-                    auto whenNodeWrapped = parser::NodeWithExpr::cast_node<parser::When>(whenNodePtr.get());
-                    ENFORCE(whenNodeWrapped != nullptr, "case without a when?");
-                    // Each pattern node already has a desugared expression (populated by translateMulti +
-                    // NodeWithExpr). Consume them now; the wrapper's placeholder expression is intentionally ignored.
-                    for (auto &patternNode : whenNodeWrapped->patterns) {
-                        args.emplace_back(patternNode == nullptr ? MK::EmptyTree() : patternNode->takeDesugaredExpr());
+                // Extract pattern expressions directly from Prism nodes instead of parser nodes
+                for (auto *prismWhenPtr : prismWhenNodes) {
+                    auto *prismWhen = down_cast<pm_when_node>(prismWhenPtr);
+                    auto prismPatterns = absl::MakeSpan(prismWhen->conditions.nodes, prismWhen->conditions.size);
+
+                    for (auto *prismPattern : prismPatterns) {
+                        auto patternNode = translate(prismPattern);
+                        args.emplace_back(takeDesugaredExprOrEmptyTree(patternNode));
                     }
                 }
 
-                for (auto &whenNodePtr : whenNodes) {
-                    auto whenNodeWrapped = parser::NodeWithExpr::cast_node<parser::When>(whenNodePtr.get());
-                    ENFORCE(whenNodeWrapped != nullptr, "case without a when?");
-                    // The body node also carries a real expression once translateStatements has run.
-                    auto bodyExpr =
-                        whenNodeWrapped->body == nullptr ? MK::EmptyTree() : whenNodeWrapped->body->takeDesugaredExpr();
+                // Extract body expressions directly from Prism nodes instead of parser nodes
+                for (auto *prismWhenPtr : prismWhenNodes) {
+                    auto *prismWhen = down_cast<pm_when_node>(prismWhenPtr);
+                    auto bodyNode = translateStatements(prismWhen->statements);
+                    auto bodyExpr = takeDesugaredExprOrEmptyTree(bodyNode);
                     args.emplace_back(move(bodyExpr));
                 }
 
-                args.emplace_back(elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr());
+                args.emplace_back(takeDesugaredExprOrEmptyTree(elseClause));
 
                 // Desugar to `::Magic.caseWhen(predicate, num_patterns, patterns..., bodies..., else)`
                 auto expr = MK::Send(location, MK::Magic(locZeroLen), core::Names::caseWhen(), locZeroLen, args.size(),
@@ -1925,19 +2129,22 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             // The if/else ladder for the entire case statement, starting with the else clause as the final `else` when
             // building backwards
-            ExpressionPtr resultExpr = elseClause == nullptr ? MK::EmptyTree() : elseClause->takeDesugaredExpr();
+            ExpressionPtr resultExpr = takeDesugaredExprOrEmptyTree(elseClause);
 
-            for (auto it = whenNodes.rbegin(); it != whenNodes.rend(); ++it) {
-                auto whenNodeWrapped = parser::NodeWithExpr::cast_node<parser::When>(it->get());
-                ENFORCE(whenNodeWrapped != nullptr, "case without a when?");
+            // Iterate over Prism when nodes in reverse instead of using cast_node on parser nodes
+            for (auto it = prismWhenNodes.rbegin(); it != prismWhenNodes.rend(); ++it) {
+                auto *prismWhen = down_cast<pm_when_node>(*it);
+                auto whenLoc = translateLoc(prismWhen->base.location);
+                auto prismPatterns = absl::MakeSpan(prismWhen->conditions.nodes, prismWhen->conditions.size);
 
                 ExpressionPtr patternsResult; // the if/else ladder for this when clause's patterns
-                for (auto &patternNode : whenNodeWrapped->patterns) {
-                    auto patternExpr = patternNode == nullptr ? MK::EmptyTree() : patternNode->takeDesugaredExpr();
+                for (auto *prismPattern : prismPatterns) {
+                    auto patternNode = translate(prismPattern);
+                    auto patternExpr = takeDesugaredExprOrEmptyTree(patternNode);
                     auto patternLoc = patternExpr.loc();
 
                     ExpressionPtr testExpr;
-                    if (parser::NodeWithExpr::isa_node<parser::Splat>(patternNode.get())) {
+                    if (ast::ExpressionPtr::isa_splat(patternExpr)) {
                         // splat pattern in when clause, predicate is required, `case a when *others`
                         ENFORCE(hasPredicate, "splats need something to test against");
                         auto local = MK::Local(predicateLoc, tempName);
@@ -1968,9 +2175,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     }
                 }
 
-                auto thenExpr =
-                    whenNodeWrapped->body != nullptr ? whenNodeWrapped->body->takeDesugaredExpr() : MK::EmptyTree();
-                resultExpr = MK::If(whenNodeWrapped->loc, move(patternsResult), move(thenExpr), move(resultExpr));
+                auto bodyNode = translateStatements(prismWhen->statements);
+                auto thenExpr = takeDesugaredExprOrEmptyTree(bodyNode);
+                resultExpr = MK::If(whenLoc, move(patternsResult), move(thenExpr), move(resultExpr));
             }
 
             if (hasPredicate) {
@@ -2189,13 +2396,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (!didDesugarParams) {
                 if (isSingletonMethod) {
-                    return make_unique<parser::DefS>(location, declLoc, move(receiver), name, move(params), move(body));
+                    // TODO: this was switched from make_unique to make_unsupported_node
+                    return make_unsupported_node<parser::DefS>(location, declLoc, move(receiver), name, move(params),
+                                                               move(body));
                 } else {
-                    return make_unique<parser::DefMethod>(location, declLoc, name, move(params), move(body));
+                    // TODO: this was switched from make_unique to make_unsupported_node
+                    return make_unsupported_node<parser::DefMethod>(location, declLoc, name, move(params), move(body));
                 }
             }
 
-            auto methodBody = body == nullptr ? MK::EmptyTree() : body->takeDesugaredExpr();
+            auto methodBody = takeDesugaredExprOrEmptyTree(body);
 
             auto methodExpr = MK::Method(location, declLoc, name, move(paramsStore), move(methodBody));
 
@@ -2357,29 +2567,60 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             // Desugar `for x in collection; body; end` into `collection.each { |x| body }`
             bool canProvideNiceDesugar = true;
-            auto *mlhs = parser::NodeWithExpr::cast_node<parser::Mlhs>(variable.get());
+            bool isMultiTarget = PM_NODE_TYPE_P(forNode->index, PM_MULTI_TARGET_NODE);
 
-            // Check if the variable is a simple local variable or a multi-target with only local variables
-            if (mlhs) {
-                // Multi-target: check if all are local variables (no nested Mlhs or other complex targets)
-                canProvideNiceDesugar = absl::c_all_of(mlhs->exprs, [](const auto &c) {
-                    return parser::NodeWithExpr::isa_node<parser::LVarLhs>(c.get());
-                });
+            // For multi-target, translate all elements once and store them for checking and reuse
+            NodeVec multiTargetElements;
+
+            if (isMultiTarget) {
+                // Multi-target: translate all elements and check if all are local variables
+                auto *multiTargetNode = down_cast<pm_multi_target_node>(forNode->index);
+                auto lefts = absl::MakeSpan(multiTargetNode->lefts.nodes, multiTargetNode->lefts.size);
+                auto rights = absl::MakeSpan(multiTargetNode->rights.nodes, multiTargetNode->rights.size);
+
+                // Translate and check all left elements
+                for (auto *elem : lefts) {
+                    auto elemNode = translate(elem);
+                    if (!ast::ExpressionPtr::isa_lvar(elemNode->peekDesugaredExpr())) {
+                        canProvideNiceDesugar = false;
+                    }
+                    multiTargetElements.emplace_back(move(elemNode));
+                }
+
+                // Translate and check rest element if present
+                if (multiTargetNode->rest != nullptr && PM_NODE_TYPE_P(multiTargetNode->rest, PM_SPLAT_NODE)) {
+                    auto *splatNode = down_cast<pm_splat_node>(multiTargetNode->rest);
+                    if (splatNode->expression != nullptr) {
+                        auto restNode = translate(splatNode->expression);
+                        canProvideNiceDesugar = false;
+                        multiTargetElements.emplace_back(move(restNode));
+                    }
+                }
+
+                // Translate and check all right elements
+                for (auto *elem : rights) {
+                    auto elemNode = translate(elem);
+                    if (!ast::ExpressionPtr::isa_lvar(elemNode->peekDesugaredExpr())) {
+                        canProvideNiceDesugar = false;
+                    }
+                    multiTargetElements.emplace_back(move(elemNode));
+                }
             } else {
                 // Single variable: check if it's a local variable
-                canProvideNiceDesugar = parser::NodeWithExpr::isa_node<parser::LVarLhs>(variable.get());
+                canProvideNiceDesugar = ast::ExpressionPtr::isa_lvar(variable->peekDesugaredExpr());
             }
 
-            auto bodyExpr = body ? body->takeDesugaredExpr() : MK::EmptyTree();
+            auto bodyExpr = takeDesugaredExprOrEmptyTree(body);
             auto collectionExpr = collection->takeDesugaredExpr();
             auto locZeroLen = location.copyWithZeroLength();
             ast::MethodDef::PARAMS_store params;
 
             if (canProvideNiceDesugar) {
                 // Simple case: `for x in a; body; end` -> `a.each { |x| body }`
-                if (mlhs) {
-                    for (auto &c : mlhs->exprs) {
-                        params.emplace_back(c->takeDesugaredExpr());
+                if (isMultiTarget) {
+                    // Use the already-translated elements for block parameters
+                    for (auto &elemNode : multiTargetElements) {
+                        params.emplace_back(elemNode->takeDesugaredExpr());
                     }
                 } else {
                     params.emplace_back(variable->takeDesugaredExpr());
@@ -2391,9 +2632,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 // Desugar the assignment
                 ExpressionPtr masgnExpr;
-                if (mlhs) {
-                    // Multi-target: use desugarMlhs for complex expansion
-                    masgnExpr = desugarMlhs(location, mlhs, move(tempLocal));
+                if (isMultiTarget) {
+                    // Multi-target: use desugarMlhsPrism with the Prism node
+                    auto *multiTargetNode = down_cast<pm_multi_target_node>(forNode->index);
+                    masgnExpr = desugarMlhsPrism(location, multiTargetNode, move(tempLocal));
                 } else {
                     // Single variable: simple assignment
                     masgnExpr = MK::Assign(location, variable->takeDesugaredExpr(), move(tempLocal));
@@ -2408,11 +2650,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return make_node_with_expr<parser::For>(move(expr), location, move(variable), move(collection), move(body));
         }
         case PM_FORWARDING_ARGUMENTS_NODE: { // The `...` argument in a method call, like `foo(...)`
-            return make_unique<parser::ForwardedArgs>(location);
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::ForwardedArgs>(location);
         }
         case PM_FORWARDING_PARAMETER_NODE: { // The `...` parameter in a method definition, like `def foo(...)`
             // Desugared in desugarParametersNode().
-            return make_unique<parser::ForwardArg>(location);
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::ForwardArg>(location);
         }
         case PM_FORWARDING_SUPER_NODE: { // A `super` with no explicit arguments
             // It might have a literal block argument, though.
@@ -2483,7 +2727,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             });
 
             if (!elementsHaveExprs) {
-                return make_unique<parser::Hash>(location, false, move(kvPairs));
+                // TODO: this was switched from make_unique to make_unsupported_node
+                return make_unsupported_node<parser::Hash>(location, false, move(kvPairs));
             }
 
             auto hashExpr = desugarHash(location, kvPairs);
@@ -2688,9 +2933,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto parts = translateMulti(interpolatedRegexNode->parts);
             auto options = translateRegexpOptions(interpolatedRegexNode->closing_loc);
 
-            if (!directlyDesugar || !hasExpr(parts)) {
-                return make_unique<parser::Regexp>(location, move(parts), move(options));
-            }
+            enforceHasExpr(parts);
 
             // Desugar interpolated regexp to Regexp.new(pattern, options)
             auto pattern = desugarDString(location, interpolatedRegexNode->parts);
@@ -2771,7 +3014,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                    return false;
                                });
 
-            return make_unique<parser::Hash>(location, isKwargs, move(kvPairs));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::Hash>(location, isKwargs, move(kvPairs));
         }
         case PM_KEYWORD_REST_PARAMETER_NODE: { // A keyword rest parameter, like `def foo(**kwargs)`
             // This doesn't include `**nil`, which is a `PM_NO_KEYWORDS_PARAMETER_NODE`.
@@ -2799,9 +3043,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_LAMBDA_NODE: { // lambda literals, like `-> { 123 }`
             auto lambdaNode = down_cast<pm_lambda_node>(node);
 
-            auto receiver = make_unique<parser::Const>(location, nullptr, core::Names::Constants::Kernel());
-            auto sendNode = make_unique<parser::Send>(location, move(receiver), core::Names::lambda(),
-                                                      translateLoc(lambdaNode->operator_loc), NodeVec{});
+            // TODO: this was switched from make_unique to make_unsupported_node
+            auto receiver = make_unsupported_node<parser::Const>(location, nullptr, core::Names::Constants::Kernel());
+            // TODO: this was switched from make_unique to make_unsupported_node
+            auto sendNode = make_unsupported_node<parser::Send>(location, move(receiver), core::Names::lambda(),
+                                                                translateLoc(lambdaNode->operator_loc), NodeVec{});
 
             return translateCallWithBlock(node, move(sendNode));
         }
@@ -2852,7 +3098,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto value = patternTranslate(matchRequiredNode->value);
             auto pattern = patternTranslate(matchRequiredNode->pattern);
 
-            return make_unique<parser::MatchPattern>(location, move(value), move(pattern));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::MatchPattern>(location, move(value), move(pattern));
         }
         case PM_MATCH_PREDICATE_NODE: {
             auto matchPredicateNode = down_cast<pm_match_predicate_node>(node);
@@ -2860,7 +3107,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto value = patternTranslate(matchPredicateNode->value);
             auto pattern = patternTranslate(matchPredicateNode->pattern);
 
-            return make_unique<parser::MatchPatternP>(location, move(value), move(pattern));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::MatchPatternP>(location, move(value), move(pattern));
         }
         case PM_MATCH_WRITE_NODE: { // A regex match that assigns to a local variable, like `a =~ /wat/`
             auto matchWriteNode = down_cast<pm_match_write_node>(node);
@@ -2894,7 +3142,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto lhsLoc = translateLoc(mlhsLocation(multiTargetNode));
 
-            return translateMultiTargetLhs(multiTargetNode, lhsLoc);
+            return unique_ptr<parser::NodeWithExpr>(
+                reinterpret_cast<parser::NodeWithExpr *>(translateMultiTargetLhs(multiTargetNode, lhsLoc).release()));
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
@@ -2929,7 +3178,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             ExpressionPtr nextArgs;
             if (arguments.size() == 1) {
                 auto &first = arguments[0];
-                nextArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                nextArgs = takeDesugaredExprOrEmptyTree(first);
             } else {
                 auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
                 auto arrayLocation = parser.translateLocation(nextNode->arguments->base.location);
@@ -3077,8 +3326,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto recv = MK::Magic(location);
             auto locZeroLen = core::LocOffsets{location.beginPos(), location.beginPos()};
 
-            auto fromExpr = left ? left->takeDesugaredExpr() : MK::EmptyTree();
-            auto toExpr = right ? right->takeDesugaredExpr() : MK::EmptyTree();
+            auto fromExpr = takeDesugaredExprOrEmptyTree(left);
+            auto toExpr = takeDesugaredExprOrEmptyTree(right);
 
             auto excludeEndExpr = isExclusive ? MK::True(location) : MK::False(location);
 
@@ -3200,7 +3449,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             ExpressionPtr returnArgs;
             if (returnValues.size() == 1) {
                 auto &first = returnValues[0];
-                returnArgs = first == nullptr ? MK::EmptyTree() : first->takeDesugaredExpr();
+                returnArgs = takeDesugaredExprOrEmptyTree(first);
             } else {
                 auto args = nodeVecToStore<ast::Array::ENTRY_store>(std::move(returnValues));
                 auto arrayLocation = parser.translateLocation(returnNode->arguments->base.location);
@@ -3333,12 +3582,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (blockArgumentNode != nullptr && PM_NODE_TYPE_P(blockArgumentNode, PM_BLOCK_NODE)) {
                 returnValues = translateArguments(superNode->arguments);
-                auto superNode = make_unique<parser::Super>(location, move(returnValues));
+                // TODO: this was switched from make_unique to make_unsupported_node
+                auto superNode = make_unsupported_node<parser::Super>(location, move(returnValues));
                 return translateCallWithBlock(blockArgumentNode, move(superNode));
             }
 
             returnValues = translateArguments(superNode->arguments, blockArgumentNode);
-            return make_unique<parser::Super>(location, move(returnValues));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::Super>(location, move(returnValues));
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
             auto symNode = down_cast<pm_symbol_node>(node);
@@ -3388,7 +3639,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             enforceHasExpr(predicate, statements);
 
             auto cond = predicate->takeDesugaredExpr();
-            auto body = statements ? statements->takeDesugaredExpr() : MK::EmptyTree();
+            auto body = takeDesugaredExprOrEmptyTree(statements);
 
             if (beginModifier) {
                 auto breaker = MK::If(location, std::move(cond), MK::Break(location, MK::EmptyTree()), MK::EmptyTree());
@@ -3409,7 +3660,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto sorbetConditions = translateMulti(whenNode->conditions);
             auto statements = translateStatements(whenNode->statements);
 
-            return make_unique<parser::When>(location, move(sorbetConditions), move(statements));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::When>(location, move(sorbetConditions), move(statements));
         }
         case PM_WHILE_NODE: { // A `while` loop, like `while condition; ...; end`
             auto whileNode = down_cast<pm_while_node>(node);
@@ -3423,7 +3675,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             enforceHasExpr(predicate, statements);
 
             auto cond = predicate->takeDesugaredExpr();
-            auto body = statements ? statements->takeDesugaredExpr() : MK::EmptyTree();
+            auto body = takeDesugaredExprOrEmptyTree(statements);
 
             if (beginModifier) {
                 // TODO using bang (aka !) is not semantically correct because it can be overridden by the user.
@@ -3499,7 +3751,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             unreachable("Prism's parser never produces `PM_SCOPE_NODE` nodes.");
 
         case PM_MISSING_NODE:
-            return make_unique<parser::Const>(location, nullptr, core::Names::Constants::ErrorNode());
+            return make_unsupported_node<parser::Const>(location, nullptr, core::Names::Constants::ErrorNode());
     }
 }
 
@@ -3578,7 +3830,7 @@ void Translator::translateMultiInto(NodeVec &outSorbetNodes, absl::Span<pm_node_
 //
 // E.g. `PM_LOCAL_VARIABLE_TARGET_NODE` normally translates to `parser::LVarLhs`, but `parser::MatchVar` in the context
 // of a pattern.
-unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
+unique_ptr<parser::NodeWithExpr> Translator::patternTranslate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
 
@@ -3612,7 +3864,8 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                     auto name = translateConstantName(localVarTargetNode->name);
 
                     // Use the location of the assoc node:
-                    return make_unique<MatchVar>(location, name);
+                    // TODO: this was switched from make_unique to make_unsupported_node
+                    return make_unsupported_node<MatchVar>(location, name);
                 }
 
                 return patternTranslate(assocNode->value);
@@ -3664,7 +3917,7 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 patternLoc = translateLoc(arrayPatternNode->opening_loc.start, arrayPatternNode->closing_loc.end);
             }
 
-            unique_ptr<parser::Node> arrayPattern = nullptr;
+            unique_ptr<parser::NodeWithExpr> arrayPattern = nullptr;
 
             enforceHasExpr(sorbetElements);
 
@@ -3701,7 +3954,8 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
             auto pattern = patternTranslate(capturePatternNode->value);
             auto target = patternTranslate(up_cast(capturePatternNode->target));
 
-            return make_unique<parser::MatchAs>(location, move(pattern), move(target));
+            // TODO: this was switched from make_unique to make_unsupported_node
+            return make_unsupported_node<parser::MatchAs>(location, move(pattern), move(target));
         }
         case PM_FIND_PATTERN_NODE: { // A find pattern such as the `[*, middle, *]` in the `a in [*, middle, *]`
             auto findPatternNode = down_cast<pm_find_pattern_node>(node);
@@ -3791,7 +4045,7 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                 patternLoc = translateLoc(hashPatternNode->opening_loc.start, hashPatternNode->closing_loc.end);
             }
 
-            unique_ptr<parser::Node> hashPattern = nullptr;
+            unique_ptr<parser::NodeWithExpr> hashPattern = nullptr;
 
             enforceHasExpr(sorbetElements);
 
@@ -4548,8 +4802,8 @@ ast::ExpressionPtr Translator::desugarHash(core::LocOffsets loc, NodeVec &kvPair
 //
 // This function translates between the two, creating a `Block`node for the given `pm_block_node *`
 // or `pm_lambda_node *`, and wrapping it around the given `Send` node.
-unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
-                                                            unique_ptr<parser::Node> sendNode) {
+unique_ptr<parser::NodeWithExpr> Translator::translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
+                                                                    unique_ptr<parser::NodeWithExpr> sendNode) {
     pm_node_t *prismParametersNode;
     pm_node_t *prismBodyNode;
     auto blockLoc = translateLoc(prismBlockOrLambdaNode->location);
@@ -4628,7 +4882,8 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
         }
     }
 
-    return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
+    // TODO: this was switched from make_unique to make_unsupported_node
+    return make_unsupported_node<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
 }
 
 // Prism represents a `begin ... rescue ... end` construct using a `pm_begin_node` that may contain:
@@ -5008,8 +5263,8 @@ NodeVec Translator::translateEnsure(pm_begin_node *beginNode) {
 // Translates the given Prism Statements Node into a `parser::Begin` node or an inlined `parser::Node`.
 // @param inlineIfSingle If enabled and there's 1 child node, we skip the `Begin` and just return the one `parser::Node`
 // @param overrideLocation If provided, use this location for the Begin node instead of the statements node location
-unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle,
-                                                         core::LocOffsets overrideLocation) {
+unique_ptr<parser::NodeWithExpr> Translator::translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle,
+                                                                 core::LocOffsets overrideLocation) {
     if (stmtsNode == nullptr)
         return nullptr;
 
@@ -5059,14 +5314,15 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
 }
 
 // Helper function for creating if nodes with optional desugaring
-unique_ptr<parser::Node> Translator::translateIfNode(core::LocOffsets location, unique_ptr<parser::Node> predicate,
-                                                     unique_ptr<parser::Node> ifTrue,
-                                                     unique_ptr<parser::Node> ifFalse) {
+unique_ptr<parser::NodeWithExpr> Translator::translateIfNode(core::LocOffsets location,
+                                                             unique_ptr<parser::NodeWithExpr> predicate,
+                                                             unique_ptr<parser::NodeWithExpr> ifTrue,
+                                                             unique_ptr<parser::NodeWithExpr> ifFalse) {
     enforceHasExpr(predicate, ifTrue, ifFalse);
 
     auto condExpr = predicate->takeDesugaredExpr();
-    auto thenExpr = ifTrue ? ifTrue->takeDesugaredExpr() : MK::EmptyTree();
-    auto elseExpr = ifFalse ? ifFalse->takeDesugaredExpr() : MK::EmptyTree();
+    auto thenExpr = takeDesugaredExprOrEmptyTree(ifTrue);
+    auto elseExpr = takeDesugaredExprOrEmptyTree(ifFalse);
     auto ifNode = MK::If(location, move(condExpr), move(thenExpr), move(elseExpr));
     return make_node_with_expr<parser::If>(move(ifNode), location, move(predicate), move(ifTrue), move(ifFalse));
 }
@@ -5086,7 +5342,7 @@ unique_ptr<parser::Node> Translator::translateIfNode(core::LocOffsets location, 
 // Usually returns the `SorbetLHSNode`, but for constant writes and targets,
 // it can can return an `LVarLhs` as a workaround in the case of a dynamic constant assignment.
 template <typename PrismLhsNode, typename SorbetLHSNode, bool checkForDynamicConstAssign>
-unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node) {
+unique_ptr<parser::NodeWithExpr> Translator::translateConst(PrismLhsNode *node) {
     static_assert(is_same_v<SorbetLHSNode, parser::Const> || is_same_v<SorbetLHSNode, parser::ConstLhs>,
                   "Invalid LHS type. Must be one of `parser::Const` or `parser::ConstLhs`.");
 
@@ -5183,7 +5439,7 @@ core::NameRef Translator::nextUniqueDesugarName(core::NameRef original) {
 // Translate the options from a Regexp literal, if any. E.g. the `i` in `/foo/i`
 // Had to widen the type from `parser::Assign` to `parser::Node` to handle `make_node_with_expr` correctly.
 // TODO: narrow the type back after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
-unique_ptr<parser::Node> Translator::translateRegexpOptions(pm_location_t closingLoc) {
+unique_ptr<parser::NodeWithExpr> Translator::translateRegexpOptions(pm_location_t closingLoc) {
     ENFORCE(closingLoc.start && closingLoc.end);
 
     // Chop off Regexp's closing delimiter from the start of the Regopt location,
@@ -5224,8 +5480,8 @@ unique_ptr<parser::Node> Translator::translateRegexpOptions(pm_location_t closin
 }
 
 // Translate an unescaped string from a Regexp literal
-unique_ptr<parser::Node> Translator::translateRegexp(core::LocOffsets location, core::LocOffsets contentLoc,
-                                                     pm_string_t content, pm_location_t closingLoc) {
+unique_ptr<parser::NodeWithExpr> Translator::translateRegexp(core::LocOffsets location, core::LocOffsets contentLoc,
+                                                             pm_string_t content, pm_location_t closingLoc) {
     // Sorbet's Regexp can have multiple nodes, e.g. for a `PM_INTERPOLATED_REGULAR_EXPRESSION_NODE`,
     // but we'll only have up to one String node here for this non-interpolated Regexp.
     parser::NodeVec parts;
@@ -5316,7 +5572,7 @@ unique_ptr<parser::Mlhs> Translator::translateMultiTargetLhs(PrismNode *node, co
 // Return nullopt if the body does not have all of its expressions desugared.
 // TODO: make the return non-optional after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
 ast::ClassDef::RHS_store Translator::desugarScopeBodyToRHSStore(pm_node *prismBodyNode,
-                                                                unique_ptr<parser::Node> &scopeBody) {
+                                                                unique_ptr<parser::NodeWithExpr> &scopeBody) {
     if (scopeBody == nullptr) { // Empty body
         ast::ClassDef::RHS_store result;
         result.emplace_back(MK::EmptyTree());
