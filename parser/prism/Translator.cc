@@ -1573,35 +1573,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             supportedCallType &= !PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
 
             if (!supportedCallType) {
-                // We previously popped the kwargs Hash off, in the hopes that we can directly desugar it.
-                // Turns out we can't, so let's put it back (and in the correct order).
-                if (kwargsHash) {
-                    args.emplace_back(move(kwargsHash));
-                }
-
-                if (prismBlock && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
-                    // PM_BLOCK_ARGUMENT_NODE models the `&b` in `a.map(&b)`,
-                    // but not a literal block with `{ ... }` or `do ... end`
-
-                    args.emplace_back(move(blockPassNode));
-                }
-
-                if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
-                    sendNode = make_unique<parser::CSend>(sendLoc, move(receiver), name, messageLoc, move(args));
-                } else {
-                    sendNode = make_unique<parser::Send>(sendLoc, move(receiver), name, messageLoc, move(args));
-                }
-
-                if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                    // PM_BLOCK_NODE models an explicit block arg with `{ ... }` or
-                    // `do ... end`, but not a forwarded block like the `&b` in `a.map(&b)`.
-                    // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child, but the
-                    // The legacy parser inverts this , with a parent "Block" with a child
-                    // "Send".
-                    return translateCallWithBlock(prismBlock, move(sendNode));
-                }
-
-                return sendNode;
+                throw PrismFallback{};
             }
 
             ast::Send::Flags flags;
@@ -5576,28 +5548,14 @@ unique_ptr<parser::Node> Translator::translateRegexpOptions(pm_location_t closin
 }
 
 // Translate an unescaped string from a Regexp literal
-unique_ptr<parser::Node> Translator::translateRegexp(core::LocOffsets location, core::LocOffsets contentLoc,
-                                                     pm_string_t content, pm_location_t closingLoc) {
-    // Sorbet's Regexp can have multiple nodes, e.g. for a `PM_INTERPOLATED_REGULAR_EXPRESSION_NODE`,
-    // but we'll only have up to one String node here for this non-interpolated Regexp.
-    parser::NodeVec parts;
+unique_ptr<ExprOnly> Translator::translateRegexp(core::LocOffsets location, core::LocOffsets contentLoc,
+                                                 pm_string_t content, pm_location_t closingLoc) {
     auto source = parser.extractString(&content);
-    if (!source.empty()) {
-        // Create a String node with its desugared expression
-        auto name = ctx.state.enterNameUTF8(source);
-        auto expr = MK::String(location, name);
-        auto sourceStringNode = make_node_with_expr<parser::String>(move(expr), contentLoc, name);
-        parts.emplace_back(move(sourceStringNode));
-    }
+
+    auto stringContent = source.empty() ? core::Names::empty() : ctx.state.enterNameUTF8(source);
+    auto pattern = MK::String(location, stringContent);
 
     auto options = translateRegexpOptions(closingLoc);
-
-    ast::ExpressionPtr pattern;
-    if (parts.empty()) {
-        pattern = MK::String(location, core::Names::empty());
-    } else {
-        pattern = parts[0]->takeDesugaredExpr();
-    }
     auto optsExpr = options->takeDesugaredExpr();
 
     auto cnst = MK::Constant(location, core::Symbols::Regexp());
@@ -5606,7 +5564,7 @@ unique_ptr<parser::Node> Translator::translateRegexp(core::LocOffsets location, 
     auto expr = MK::Send2(location, move(cnst), core::Names::new_(), location.copyWithZeroLength(), move(pattern),
                           move(optsExpr));
 
-    return make_node_with_expr<parser::Regexp>(move(expr), location, move(parts), move(options));
+    return expr_only(move(expr));
 }
 
 string_view Translator::sliceLocation(pm_location_t loc) const {
