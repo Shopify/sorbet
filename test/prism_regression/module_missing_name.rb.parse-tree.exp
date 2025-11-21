@@ -1,0 +1,33 @@
+Begin {
+  stmts = [
+    Module {
+      name = Const {
+        scope = NULL
+        name = <C <U <ConstantNameMissing>>>
+      }
+      body = NULL
+    }
+    Const {
+      scope = NULL
+      name = <C <U <ErrorNode>>>
+    }
+    Module {
+      name = Const {
+        scope = NULL
+        name = <C <U <ConstantNameMissing>>>
+      }
+      body = NULL
+    }
+    Module {
+      name = Const {
+        scope = NULL
+        name = <C <U <ConstantNameMissing>>>
+      }
+      body = DefMethod {
+        name = <U bar>
+        params = NULL
+        body = NULL
+      }
+    }
+  ]
+}

@@ -11,6 +11,8 @@ skip_files=(
   "call_kw_nil_args"
   "call_block_param_and_forwarding"
   "constants_invalid"
+  "class_missing_name"
+  "module_missing_name"
 )
 
 mismatched_parse_tree_files=()

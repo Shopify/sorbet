@@ -2014,7 +2014,21 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
             auto classNode = down_cast<pm_class_node>(node);
 
-            auto name = translate(classNode->constant_path);
+            unique_ptr<parser::Node> name;
+
+            // If the constant_path is not an expected node type, then the class definition is malformed so we replace
+            // it with ConstantNameMissing and then continue. The constant_path node will be discarded.
+            if (classNode->constant_path == nullptr ||
+                (!PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_READ_NODE) &&
+                 !PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                auto nameLoc = translateLoc(classNode->class_keyword_loc);
+                auto expr =
+                    MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), core::Names::Constants::ConstantNameMissing());
+                name = make_node_with_expr<parser::Const>(move(expr), nameLoc, nullptr,
+                                                          core::Names::Constants::ConstantNameMissing());
+            } else {
+                name = translate(classNode->constant_path);
+            }
             auto declLoc = translateLoc(classNode->class_keyword_loc).join(name->loc);
             auto superclass = translate(classNode->superclass);
             auto body = this->enterClassContext().translate(classNode->body);
@@ -2925,7 +2939,21 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
             auto moduleNode = down_cast<pm_module_node>(node);
 
-            auto name = translate(moduleNode->constant_path);
+            unique_ptr<parser::Node> name;
+
+            // If the constant_path is not an expected node type, then the module definition is malformed so we replace
+            // it with ConstantNameMissing and then continue. The constant_path node will be discarded.
+            if (moduleNode->constant_path == nullptr ||
+                (!PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_READ_NODE) &&
+                 !PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                auto nameLoc = translateLoc(moduleNode->module_keyword_loc);
+                auto expr =
+                    MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), core::Names::Constants::ConstantNameMissing());
+                name = make_node_with_expr<parser::Const>(move(expr), nameLoc, nullptr,
+                                                          core::Names::Constants::ConstantNameMissing());
+            } else {
+                name = translate(moduleNode->constant_path);
+            }
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name->loc);
             auto body = this->enterModuleContext().translate(moduleNode->body);
 
