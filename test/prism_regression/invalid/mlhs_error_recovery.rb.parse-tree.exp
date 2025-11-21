@@ -1,0 +1,71 @@
+👋 Hey there! Heads up that this is not a release build of sorbet.
+Release builds are faster and more well-supported by the Sorbet team.
+Check out the README to learn how to build Sorbet in release mode.
+To forcibly silence this error, either pass --silence-dev-message,
+or set SORBET_SILENCE_DEV_MESSAGE=1 in your shell environment.
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ','; expected a `]` to close the array https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                           ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected `,` in parameters https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                          ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ','; expected a `)` to close the parameters https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                           ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ',', ignoring it https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                           ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ')', expecting end-of-input https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                                             ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ')', ignoring it https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                                             ^
+Errors: 6
+DefMethod {
+  name = <U test_before_variable>
+  params = Params {
+    params = [
+      Param {
+        name = <U arg>
+      }
+      Param {
+        name = <U arg1>
+      }
+    ]
+  }
+  body = Begin {
+    stmts = [
+      Const {
+        scope = NULL
+        name = <C <U <ErrorNode>>>
+      }
+      Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U arg1>
+          }
+          LVarLhs {
+            name = <U arg2>
+          }
+          LVarLhs {
+            name = <U arg3>
+          }
+        ]
+      }
+      Const {
+        scope = NULL
+        name = <C <U <ErrorNode>>>
+      }
+      LVar {
+        name = <U arg>
+      }
+    ]
+  }
+}

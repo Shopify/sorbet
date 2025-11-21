@@ -1,0 +1,66 @@
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ','; expected a `]` to close the array https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                           ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected `,` in parameters https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                          ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ','; expected a `)` to close the parameters https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                           ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ',', ignoring it https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                           ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ')', expecting end-of-input https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                                             ^
+
+test/prism_regression/invalid/mlhs_error_recovery.rb:3: unexpected ')', ignoring it https://srb.help/2001
+     3 |def test_before_variable(arg, arg1,, arg1, arg2, arg3)
+                                                             ^
+Errors: 6
+ClassDef{
+  kind = class
+  name = EmptyTree
+  symbol = <C <U <root>>>
+  ancestors = [ConstantLit{
+      symbol = (class ::<todo sym>)
+      orig = nullptr
+    }]
+  rhs = [
+    MethodDef{
+      flags = {}
+      name = <U test_before_variable><<U <todo method>>>
+      params = [UnresolvedIdent{
+          kind = Local
+          name = <U arg>
+        }, UnresolvedIdent{
+          kind = Local
+          name = <U arg1>
+        }, BlockParam{ expr = UnresolvedIdent{
+          kind = Local
+          name = <U <blk>>
+        } }]
+      rhs = InsSeq{
+        stats = [
+          UnresolvedConstantLit{
+            cnst = <C <U <ErrorNode>>>
+            scope = EmptyTree
+          }
+          EmptyTree
+          UnresolvedConstantLit{
+            cnst = <C <U <ErrorNode>>>
+            scope = EmptyTree
+          }
+        ],
+        expr = UnresolvedIdent{
+          kind = Local
+          name = <U arg>
+        }
+      }
+    }
+  ]
+}

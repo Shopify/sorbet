@@ -2161,6 +2161,11 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::EmptyElse *else_) { result = MK::EmptyTree(); },
+            [&](parser::Mlhs *mlhs) {
+                // Mlhs appearing as a standalone statement is a result of error recovery
+                // (e.g., malformed parameter list). Treat it as empty to avoid crashes.
+                result = MK::EmptyTree();
+            },
             [&](parser::ResolvedConst *resolvedConst) {
                 result = make_expression<ConstantLit>(resolvedConst->loc, move(resolvedConst->symbol));
             },
