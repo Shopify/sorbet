@@ -1086,13 +1086,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto andAndLoc = core::LocOffsets{left->loc.endPos(), right->loc.beginPos()};
                 auto magicSend = MK::Send2(location, MK::Magic(location.copyWithZeroLength()), core::Names::andAnd(),
                                            andAndLoc, move(lhsExpr), move(rhsExpr));
-                return make_node_with_expr<parser::And>(move(magicSend), location, move(left), move(right));
+                return expr_only(move(magicSend));
             }
 
             if (isa_reference(lhsExpr)) {
                 auto cond = MK::cpRef(lhsExpr);
                 auto if_ = MK::If(location, move(cond), move(rhsExpr), move(lhsExpr));
-                return make_node_with_expr<parser::And>(move(if_), location, move(left), move(right));
+                return expr_only(move(if_));
             }
 
             // For non-reference expressions, create a temporary variable so we don't evaluate the LHS twice.
@@ -1133,7 +1133,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto cond = MK::Local(condLoc, tempLocalName);
             auto if_ = MK::If(location, move(cond), move(thenp), move(elsep));
             auto wrapped = MK::InsSeq1(location, move(temp), move(if_));
-            return make_node_with_expr<parser::And>(move(wrapped), location, move(left), move(right));
+            return expr_only(move(wrapped));
         }
         case PM_ARGUMENTS_NODE: { // A list of arguments in one of several places:
             // 1. The arguments to a method call, e.g the `1, 2, 3` in `f(1, 2, 3)`.
