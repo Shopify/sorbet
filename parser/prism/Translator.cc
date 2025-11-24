@@ -2097,9 +2097,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto nameExpr = name->takeDesugaredExpr();
             auto classDef = MK::Class(location, declLoc, move(nameExpr), move(ancestors), move(bodyExprs));
-
-            return make_node_with_expr<parser::Class>(move(classDef), location, declLoc, move(name), move(superclass),
-                                                      move(body));
+            return expr_only(move(classDef));
         }
         case PM_CLASS_VARIABLE_AND_WRITE_NODE: { // And-assignment to a class variable, e.g. `@@a &&= 1`
             return translateVariableAssignment<pm_class_variable_and_write_node, parser::AndAsgn, parser::CVarLhs>(
@@ -2963,8 +2961,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto nameExpr = name->takeDesugaredExpr();
             auto moduleDef = MK::Module(location, declLoc, move(nameExpr), move(bodyExprs));
-
-            return make_node_with_expr<parser::Module>(move(moduleDef), location, declLoc, move(name), move(body));
+            return expr_only(move(moduleDef));
         }
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
             auto multiTargetNode = down_cast<pm_multi_target_node>(node);
