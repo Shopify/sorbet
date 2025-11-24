@@ -3371,7 +3371,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto unescaped = &strNode->unescaped;
             auto content = ctx.state.enterNameUTF8(parser.extractString(unescaped));
 
-            return make_node_with_expr<parser::String>(MK::String(location, content), location, content);
+            return expr_only(MK::String(location, content));
         }
         case PM_SUPER_NODE: { // A `super` call with explicit args, like `super()`, `super(a, b)`
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
