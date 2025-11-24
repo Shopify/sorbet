@@ -3123,13 +3123,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto orOrLoc = core::LocOffsets{left->loc.endPos(), right->loc.beginPos()};
                 auto magicSend = MK::Send2(location, MK::Magic(location.copyWithZeroLength()), core::Names::orOr(),
                                            orOrLoc, move(lhsExpr), move(rhsExpr));
-                return make_node_with_expr<parser::Or>(move(magicSend), location, move(left), move(right));
+                return expr_only(move(magicSend));
             }
 
             if (isa_reference(lhsExpr)) {
                 auto cond = MK::cpRef(lhsExpr);
                 auto if_ = MK::If(location, move(cond), move(lhsExpr), move(rhsExpr));
-                return make_node_with_expr<parser::Or>(move(if_), location, move(left), move(right));
+                return expr_only(move(if_));
             }
 
             // For non-reference expressions, create a temporary variable so we don't evaluate the LHS twice.
@@ -3144,7 +3144,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto thenp = MK::Local(lhsLoc, tempLocalName);
             auto if_ = MK::If(location, move(cond), move(thenp), move(rhsExpr));
             auto wrapped = MK::InsSeq1(location, move(tempAssign), move(if_));
-            return make_node_with_expr<parser::Or>(move(wrapped), location, move(left), move(right));
+            return expr_only(move(wrapped));
         }
         case PM_PARAMETERS_NODE: { // The parameters declared at the top of a PM_DEF_NODE
             unreachable("PM_PARAMETERS_NODE is handled separately in translateParametersNode.");
