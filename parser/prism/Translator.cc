@@ -2345,7 +2345,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     auto expr = MK::Send1(loc, MK::Magic(loc), core::Names::definedInstanceVar(),
                                           location.copyWithZeroLength(), move(sym));
 
-                    return make_node_with_expr<parser::Defined>(move(expr), location.join(loc), move(arg));
+                    return expr_only(move(expr));
                 }
 
                 // Desugar `defined?(@@cvar)` to `::Magic.defined_instance_var(:@@cvar)`
@@ -2358,7 +2358,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     auto expr = MK::Send1(loc, MK::Magic(loc), core::Names::definedClassVar(),
                                           location.copyWithZeroLength(), move(sym));
 
-                    return make_node_with_expr<parser::Defined>(move(expr), location.join(loc), move(arg));
+                    return expr_only(move(expr));
                 }
 
                 // Desugar `defined?(A::B::C)` to `::Magic.defined_p("A", "B", "C")`
@@ -2395,14 +2395,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     absl::c_reverse(args);
                     auto expr = MK::Send(arg->loc, MK::Magic(arg->loc), core::Names::defined_p(),
                                          location.copyWithZeroLength(), args.size(), move(args));
-                    return make_node_with_expr<parser::Defined>(move(expr), location.join(arg->loc), move(arg));
+                    return expr_only(move(expr));
                 }
                 default: {
                     // All other cases desugar to `::Magic.defined?()` with 0 arguments
                     ast::Send::ARGS_store args;
                     auto expr = MK::Send(arg->loc, MK::Magic(arg->loc), core::Names::defined_p(),
                                          location.copyWithZeroLength(), args.size(), move(args));
-                    return make_node_with_expr<parser::Defined>(move(expr), location.join(arg->loc), move(arg));
+                    return expr_only(move(expr));
                 }
             }
         }
