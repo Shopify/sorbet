@@ -98,22 +98,9 @@ bool Parser::isTUntyped(pm_node_t *node) const {
     }
 
     pm_call_node_t *call = down_cast<pm_call_node_t>(node);
-    if (!call->receiver || PM_NODE_TYPE_P(call->receiver, PM_CONSTANT_PATH_NODE)) {
-        return false;
-    }
-
-    pm_constant_path_node_t *receiver = down_cast<pm_constant_path_node_t>(call->receiver);
-    if (receiver->parent != nullptr) {
-        return false; // Should be root-anchored ::T
-    }
-
     auto methodName = resolveConstant(call->name);
-    if (methodName != "untyped"sv) {
-        return false;
-    }
 
-    auto receiverName = resolveConstant(receiver->name);
-    return receiverName == "T"sv;
+    return methodName == "untyped"sv && isT(call->receiver);
 }
 
 bool Parser::isT(pm_node_t *node) const {

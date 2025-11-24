@@ -53,7 +53,7 @@ private:
     pm_node_t *rewriteClass(pm_node_t *node);
     std::unique_ptr<std::vector<pm_node_t *>> signaturesForNode(pm_node_t *node);
     CommentsPrism commentsForNode(pm_node_t *node);
-    void insertTypeParams(parser::Node *node, std::unique_ptr<parser::Node> *body);
+    void insertTypeParams(pm_node_t *node, pm_node_t **body);
     pm_node_t *replaceSyntheticTypeAlias(pm_node_t *node);
     pm_node_t *createStatementsWithSignatures(pm_node_t *originalNode,
                                               std::unique_ptr<std::vector<pm_node_t *>> signatures);

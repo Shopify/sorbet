@@ -5,6 +5,7 @@
 #include "rbs/TypeParamsToParserNodes.h"
 #include "rbs/TypeToParserNode.h"
 #include "rbs/prism/MethodTypeToParserNodePrism.h"
+#include "rbs/prism/TypeParamsToParserNodesPrism.h"
 #include "rbs/prism/TypeToParserNodePrism.h"
 #include "rbs/rbs_common.h"
 
@@ -138,26 +139,26 @@ pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *m
 //     return typeTranslator.toParserNode(rbsType, declaration);
 // }
 
-// parser::NodeVec SignatureTranslatorPrism::translateTypeParams(const RBSDeclaration &declaration) {
-//     rbs_string_t rbsString = makeRBSString(declaration.string);
-//     const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDeclaration &declaration) {
+    rbs_string_t rbsString = makeRBSString(declaration.string);
+    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
 
-//     Parser parser(rbsString, encoding);
-//     rbs_node_list_t *rbsTypeParams = parser.parseTypeParams();
+    Parser rbsParser(rbsString, encoding);
+    rbs_node_list_t *rbsTypeParams = rbsParser.parseTypeParams();
 
-//     if (parser.hasError()) {
-//         rbs_range_t tokenRange = parser.getError()->token.range;
-//         core::LocOffsets offset = declaration.typeLocFromRange(tokenRange);
+    if (rbsParser.hasError()) {
+        rbs_range_t tokenRange = rbsParser.getError()->token.range;
+        core::LocOffsets offset = declaration.typeLocFromRange(tokenRange);
 
-//         if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
-//             e.setHeader("Failed to parse RBS type parameters ({})", parser.getError()->message);
-//         }
+        if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
+            e.setHeader("Failed to parse RBS type parameters ({})", rbsParser.getError()->message);
+        }
 
-//         return parser::NodeVec();
-//     }
+        return vector<pm_node_t *>();
+    }
 
-//     auto typeParamsToParserNode = TypeParamsToParserNode(ctx, move(parser));
-//     return typeParamsToParserNode.typeParams(rbsTypeParams, declaration);
-// }
+    auto typeParamsToParserNode = TypeParamsToParserNodePrism(ctx, move(rbsParser), *parser);
+    return typeParamsToParserNode.typeParams(rbsTypeParams, declaration);
+}
 
 } // namespace sorbet::rbs

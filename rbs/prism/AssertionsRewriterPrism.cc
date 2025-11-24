@@ -136,48 +136,204 @@ extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &pa
     return typeParams;
 }
 
-// bool sameConstantPrism(core::MutableContext ctx, unique_ptr<parser::Node> &a, unique_ptr<parser::Node> &b) {
-//     auto aConst = parser::cast_node<parser::Const>(a.get());
-//     auto bConst = parser::cast_node<parser::Const>(b.get());
+/**
+ * Check if two Prism nodes refer to the same constant.
+ *
+ * Recursively compares constant names and their scopes.
+ * Handles both PM_CONSTANT_READ_NODE (e.g., `G2`) and PM_CONSTANT_PATH_NODE (e.g., `T::Array`).
+ */
+bool sameConstant(parser::Prism::Parser &parser, pm_node_t *a, pm_node_t *b) {
+    if (a == nullptr || b == nullptr) {
+        return false;
+    }
 
-//     if (aConst == nullptr || bConst == nullptr) {
-//         return false;
-//     }
+    pm_node_type aType = PM_NODE_TYPE(a);
+    pm_node_type bType = PM_NODE_TYPE(b);
 
-//     if (aConst->name != bConst->name) {
-//         return false;
-//     }
+    if (!((aType == PM_CONSTANT_READ_NODE || aType == PM_CONSTANT_PATH_NODE) &&
+          (bType == PM_CONSTANT_READ_NODE || bType == PM_CONSTANT_PATH_NODE))) {
+        return false;
+    }
 
-//     if ((aConst->scope == nullptr && bConst->scope != nullptr) ||
-//         (aConst->scope != nullptr && bConst->scope == nullptr)) {
-//         return false;
-//     }
+    // Case 1: Both are PM_CONSTANT_READ_NODE (simple constants like `G2`)
+    if (aType == PM_CONSTANT_READ_NODE && bType == PM_CONSTANT_READ_NODE) {
+        auto *aConst = down_cast<pm_constant_read_node_t>(a);
+        auto *bConst = down_cast<pm_constant_read_node_t>(b);
+        return aConst->name == bConst->name;
+    }
 
-//     return (aConst->scope == nullptr && bConst->scope == nullptr) ||
-//            sameConstantPrism(ctx, aConst->scope, bConst->scope);
-// }
+    // Case 2: Both are PM_CONSTANT_PATH_NODE (scoped constants like `T::Array`)
+    if (aType == PM_CONSTANT_PATH_NODE && bType == PM_CONSTANT_PATH_NODE) {
+        auto *aPath = down_cast<pm_constant_path_node_t>(a);
+        auto *bPath = down_cast<pm_constant_path_node_t>(b);
 
-// void maybeSupplyGenericTypeArgumentsPrism(core::MutableContext ctx, unique_ptr<parser::Node> *node,
-//                                           unique_ptr<parser::Node> *type) {
-//     // We only rewrite `.new` calls
-//     auto newSend = parser::cast_node<parser::Send>(node->get());
-//     if (newSend == nullptr || newSend->method != core::Names::new_()) {
-//         return;
-//     }
+        if (aPath->name != bPath->name) {
+            return false;
+        }
 
-//     // We only rewrite when casted to a generic type
-//     auto bracketSend = parser::cast_node<parser::Send>(type->get());
-//     if (bracketSend == nullptr || bracketSend->method != core::Names::syntheticSquareBrackets()) {
-//         return;
-//     }
+        if ((aPath->parent == nullptr && bPath->parent != nullptr) ||
+            (aPath->parent != nullptr && bPath->parent == nullptr)) {
+            return false;
+        }
 
-//     // We only rewrite when the generic type is the same as the instantiated one
-//     if (!sameConstantPrism(ctx, newSend->receiver, bracketSend->receiver)) {
-//         return;
-//     }
+        return (aPath->parent == nullptr && bPath->parent == nullptr) ||
+               sameConstant(parser, aPath->parent, bPath->parent);
+    }
 
-//     newSend->receiver = type->get()->deepCopy();
-// }
+    return false;
+}
+
+/**
+ * Deep copy a Prism node that appears in generic type instantiations.
+ *
+ * This handles only the node types that appear in generic type parameters like `G1[Integer]`.
+ * Prism nodes don't have built-in copy functions, but we need to duplicate nodes when
+ * they're used in multiple places in the AST (e.g., as both the receiver of .new() and
+ * the type argument to T.let()).
+ *
+ * Only supports node types that actually appear in generic type expressions.
+ * Will ENFORCE if an unsupported node type is encountered.
+ */
+pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *node) {
+    if (node == nullptr) {
+        return nullptr;
+    }
+
+    Factory prism(parser);
+
+    switch (PM_NODE_TYPE(node)) {
+        // Examples:
+        //   - G1[Integer] -> <syntheticSquareBrackets> call
+        //   - G2[T.any(Integer, String)] -> T.any() call
+        //   - Pair[T.type_parameter(:X)] -> T.type_parameter() call
+        case PM_CALL_NODE: {
+            auto *original = down_cast<pm_call_node_t>(node);
+            auto *copy = prism.allocateNode<pm_call_node_t>();
+
+            *copy = (pm_call_node_t){.base = original->base,
+                                     .receiver = deepCopyGenericTypeNode(parser, original->receiver),
+                                     .call_operator_loc = original->call_operator_loc,
+                                     .name = original->name,
+                                     .message_loc = original->message_loc,
+                                     .opening_loc = original->opening_loc,
+                                     .arguments = down_cast<pm_arguments_node_t>(
+                                         deepCopyGenericTypeNode(parser, up_cast(original->arguments))),
+                                     .closing_loc = original->closing_loc,
+                                     .block = deepCopyGenericTypeNode(parser, original->block)};
+
+            return up_cast(copy);
+        }
+
+        case PM_ARGUMENTS_NODE: {
+            auto *original = down_cast<pm_arguments_node_t>(node);
+            auto *copy = prism.allocateNode<pm_arguments_node_t>();
+
+            size_t argCount = original->arguments.size;
+            pm_node_t **copiedNodes = nullptr;
+
+            if (argCount > 0) {
+                copiedNodes = (pm_node_t **)prism.calloc(argCount, sizeof(pm_node_t *));
+                for (size_t i = 0; i < argCount; i++) {
+                    copiedNodes[i] = deepCopyGenericTypeNode(parser, original->arguments.nodes[i]);
+                }
+            }
+
+            *copy = (pm_arguments_node_t){
+                .base = original->base,
+                .arguments = (pm_node_list_t){.size = argCount, .capacity = argCount, .nodes = copiedNodes}};
+
+            return up_cast(copy);
+        }
+
+        // Examples:
+        //   - G1[Integer] -> Integer
+        //   - G1[String] -> String
+        //   - G1[Numeric] -> Numeric
+        case PM_CONSTANT_READ_NODE: {
+            auto *original = down_cast<pm_constant_read_node_t>(node);
+            auto *copy = prism.allocateNode<pm_constant_read_node_t>();
+
+            *copy = (pm_constant_read_node_t){.base = original->base, .name = original->name};
+
+            return up_cast(copy);
+        }
+
+        // Examples:
+        //   - Array[String] -> T::Array
+        //   - G1[Foo::Bar] -> Foo::Bar
+        //   - G1[MyModule::MyClass] -> MyModule::MyClass
+        case PM_CONSTANT_PATH_NODE: {
+            auto *original = down_cast<pm_constant_path_node_t>(node);
+            auto *copy = prism.allocateNode<pm_constant_path_node_t>();
+
+            *copy = (pm_constant_path_node_t){.base = original->base,
+                                              .parent = deepCopyGenericTypeNode(parser, original->parent),
+                                              .name = original->name,
+                                              .delimiter_loc = original->delimiter_loc,
+                                              .name_loc = original->name_loc};
+
+            return up_cast(copy);
+        }
+
+        // Examples:
+        //   - Pair[X] where X is a type parameter -> T.type_parameter(:X)
+        //   - The :X symbol needs to be copied with proper string allocation
+        case PM_SYMBOL_NODE: {
+            auto *original = down_cast<pm_symbol_node_t>(node);
+            auto symbolStr = parser.extractString(&original->unescaped);
+            auto loc = parser.translateLocation(original->base.location);
+            return prism.Symbol(loc, symbolStr);
+        }
+
+        default:
+            unreachable("deepCopyGenericTypeNode: unhandled node type {} - this node type appears in generic type "
+                        "instantiations but is not yet supported",
+                        PM_NODE_TYPE(node));
+    }
+}
+
+/**
+ * If `node` is a `.new` call and `type` is a generic type instantiation of the same class,
+ * replace the receiver of `.new` with the generic type.
+ *
+ * For example: `G1.new #: G1[Integer]` becomes `G1[Integer].new`.
+ */
+void maybeSupplyGenericTypeArguments(core::MutableContext ctx, parser::Prism::Parser &parser, pm_node_t **node,
+                                     pm_node_t **type) {
+    // We only rewrite `.new` calls
+    if (!PM_NODE_TYPE_P(*node, PM_CALL_NODE)) {
+        return;
+    }
+
+    auto *newCall = down_cast<pm_call_node_t>(*node);
+    auto methodName = parser.resolveConstant(newCall->name);
+
+    if (methodName != "new"sv) {
+        return;
+    }
+
+    // We only rewrite when casted to a generic type (syntheticSquareBrackets)
+    if (!PM_NODE_TYPE_P(*type, PM_CALL_NODE)) {
+        return;
+    }
+
+    auto *bracketCall = down_cast<pm_call_node_t>(*type);
+    auto bracketMethodName = parser.resolveConstant(bracketCall->name);
+
+    if (bracketMethodName != "<syntheticSquareBrackets>"sv) {
+        return;
+    }
+
+    // We only rewrite when the generic type is the same as the instantiated one
+    if (!sameConstant(parser, newCall->receiver, bracketCall->receiver)) {
+        return;
+    }
+
+    // We need to create a deep copy of the type node because it will be used in two places:
+    // 1. As the receiver of .new()
+    // 2. As the type argument to T.let()
+    newCall->receiver = deepCopyGenericTypeNode(parser, *type);
+}
 
 } // namespace
 
@@ -298,6 +454,7 @@ optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(pm_nod
 
     return nullopt;
 }
+
 /**
  * Replace the given node with a cast node.
  *
@@ -317,8 +474,7 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     auto type = pair->first;
     auto kind = pair->second;
 
-    // TODO: maybeSupplyGenericTypeArgumentsPrism needs to be updated for Prism
-    // maybeSupplyGenericTypeArgumentsPrism(ctx, &node, &type);
+    maybeSupplyGenericTypeArguments(ctx, parser, &node, &type);
 
     // Use the type node's location for all assertion constructs.
     // The type node's location points to where the type appears in the comment (e.g., "String"
@@ -402,17 +558,11 @@ void AssertionsRewriterPrism::rewriteNodes(pm_node_list_t &nodes) {
 void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_t &nodes) {
     if (auto inlineComment = commentForNode(node)) {
         if (nodes.size > 1) {
+            auto nodeSpan = absl::MakeSpan(nodes.nodes, nodes.size);
             // Get location spanning from first to last node
-            auto loc = translateLocation(nodes.nodes[0]->location)
-                           .join(translateLocation(nodes.nodes[nodes.size - 1]->location));
+            auto loc = translateLocation(nodeSpan.front()->location).join(translateLocation(nodeSpan.back()->location));
 
-            // Create a vector of the nodes for the array
-            std::vector<pm_node_t *> nodeVec;
-            for (size_t i = 0; i < nodes.size; i++) {
-                nodeVec.push_back(nodes.nodes[i]);
-            }
-
-            // Create array node
+            std::vector<pm_node_t *> nodeVec(nodeSpan.begin(), nodeSpan.end());
             auto arr = prism.Array(loc, nodeVec);
             arr = rewriteNode(arr);
 
@@ -712,14 +862,16 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
                 // parameters from the method signature.
                 return node;
             }
-            if (parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
-                // For safe navigation setter calls (e.g., `obj&.foo = val`), the cast should be applied to the receiver
-                // and the argument, but not to the call node itself
+            if (parser.isSafeNavigationCall(node)) {
                 call->receiver = maybeInsertCast(call->receiver);
+                call->receiver = rewriteNode(call->receiver);
+
+                node = maybeInsertCast(node);
             } else {
+                // Normal call - matches whitequark's Send handling
+                call->receiver = rewriteNode(call->receiver);
                 node = maybeInsertCast(node);
             }
-            call->receiver = rewriteNode(call->receiver);
             if (call->arguments) {
                 rewriteNodes(call->arguments->arguments);
             }
