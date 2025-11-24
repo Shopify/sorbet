@@ -30,6 +30,8 @@ public:
     pm_node_t *translateAttrSignature(const pm_call_node_t *call, const RBSDeclaration &declaration,
                                       const std::vector<Comment> &annotations);
 
+    std::vector<pm_node_t *> translateTypeParams(const RBSDeclaration &declaration);
+
 private:
     core::MutableContext ctx;
     parser::Prism::Parser *parser; // For Prism node creation

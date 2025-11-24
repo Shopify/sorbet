@@ -284,41 +284,39 @@ void insertHelpers(pm_node_t **body, vector<pm_node_t *> &helpers) {
 
 } // namespace
 
-// TODO(Prism migration): type params insertion not required for signature translation.
-// void SigsRewriterPrism::insertTypeParams(parser::Node *node, unique_ptr<parser::Node> *body) {
-//     ENFORCE(parser::isa_node<parser::Class>(node) || parser::isa_node<parser::Module>(node) ||
-//                 parser::isa_node<parser::SClass>(node),
-//             "Unimplemented node type: {}", node->nodeName());
+void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t **body) {
+    ENFORCE(PM_NODE_TYPE_P(node, PM_CLASS_NODE) || PM_NODE_TYPE_P(node, PM_MODULE_NODE) ||
+                PM_NODE_TYPE_P(node, PM_SINGLETON_CLASS_NODE),
+            "Unimplemented node type");
 
-//     // NOTE: Prism migration ongoing; insertTypeParams still operates on parser nodes.
-//     auto comments = commentsForNode((pm_node_t *)nullptr);
-//     if (comments.signatures.empty()) {
-//         return;
-//     }
+    auto comments = commentsForNode(node);
+    if (comments.signatures.empty()) {
+        return;
+    }
 
-//     if (comments.signatures.size() > 1) {
-//         if (auto e = ctx.beginIndexerError(comments.signatures[0].commentLoc(),
-//                                            core::errors::Rewriter::RBSMultipleGenericSignatures)) {
-//             e.setHeader("Generic classes and modules can only have one RBS generic signature");
-//             return;
-//         }
-//     }
+    if (comments.signatures.size() > 1) {
+        if (auto e = ctx.beginIndexerError(comments.signatures[0].commentLoc(),
+                                           core::errors::Rewriter::RBSMultipleGenericSignatures)) {
+            e.setHeader("Generic classes and modules can only have one RBS generic signature");
+            return;
+        }
+    }
 
-//     auto signature = comments.signatures[0];
-//     auto typeParamsTranslator = SignatureTranslator(ctx);
-//     auto typeParams = typeParamsTranslator.translateTypeParams(signature);
+    auto signature = comments.signatures[0];
+    auto typeParamsTranslator = SignatureTranslatorPrism(ctx, parser);
+    auto typeParams = typeParamsTranslator.translateTypeParams(signature);
 
-//     if (typeParams.empty()) {
-//         return;
-//     }
+    if (typeParams.empty()) {
+        return;
+    }
 
-//     auto begin = parser::cast_node<parser::Begin>(body->get());
-//     ENFORCE(begin != nullptr);
+    ENFORCE(*body != nullptr && PM_NODE_TYPE_P(*body, PM_STATEMENTS_NODE), "Body must be a statements node");
+    auto *stmts = down_cast<pm_statements_node_t>(*body);
 
-//     for (auto &typeParam : typeParams) {
-//         begin->stmts.emplace_back(move(typeParam));
-//     }
-// }
+    for (auto *typeParam : typeParams) {
+        pm_node_list_append(&stmts->body, typeParam);
+    }
+}
 
 CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
     auto comments = CommentsPrism{};
@@ -555,7 +553,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
                 insertHelpers(&klass->body, helpers);
             }
 
-            // TODO: insertTypeParams(klass, &klass->body);
+            insertTypeParams(node, &klass->body);
             break;
         }
         case PM_MODULE_NODE: {
@@ -569,7 +567,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
                 insertHelpers(&module->body, helpers);
             }
 
-            // TODO: insertTypeParams(module, &module->body);
+            insertTypeParams(node, &module->body);
             break;
         }
         case PM_SINGLETON_CLASS_NODE: {
@@ -583,7 +581,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
                 insertHelpers(&sclass->body, helpers);
             }
 
-            // TODO: insertTypeParams(sclass, &sclass->body);
+            insertTypeParams(node, &sclass->body);
             break;
         }
         default:
