@@ -2465,7 +2465,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
 
-            return make_node_with_expr<parser::Float>(MK::Float(location, val), location, move(valueString));
+            return expr_only(MK::Float(location, val));
         }
         case PM_FLIP_FLOP_NODE: { // A flip-flop pattern, like the `flip..flop` in `if flip..flop`
             auto flipFlopNode = down_cast<pm_flip_flop_node>(node);
