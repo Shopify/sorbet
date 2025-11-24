@@ -3447,7 +3447,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto [content, location] = translateSymbol(symNode);
 
-            return make_node_with_expr<parser::Symbol>(MK::Symbol(location, content), location, content);
+            return expr_only(MK::Symbol(location, content));
         }
         case PM_TRUE_NODE: { // The `true` keyword
             return expr_only(MK::True(location));
