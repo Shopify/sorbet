@@ -2739,7 +2739,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 }
             }
 
-            return make_node_with_expr<parser::Integer>(MK::Int(location, val), location, move(valueString));
+            return expr_only(MK::Int(location, val));
         }
         case PM_INTERPOLATED_MATCH_LAST_LINE_NODE: { // An interpolated regex literal in a conditional...
             // ...that implicitly checks against the last read line by an IO object, e.g. `if /wat #{123}/`
