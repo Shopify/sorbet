@@ -1201,8 +1201,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_BLOCK_LOCAL_VARIABLE_NODE: { // A named block local variable, like `baz` in `|bar; baz|`
             auto blockLocalNode = down_cast<pm_block_local_variable_node>(node);
             auto sorbetName = translateConstantName(blockLocalNode->name);
-            return make_node_with_expr<parser::Shadowarg>(MK::ShadowArg(location, MK::Local(location, sorbetName)),
-                                                          location, sorbetName);
+            auto expr = MK::ShadowArg(location, MK::Local(location, sorbetName));
+            return expr_only(move(expr));
         }
         case PM_BLOCK_PARAMETER_NODE: { // A block parameter declared at the top of a method, e.g. `def m(&block)`
             unreachable("PM_BLOCK_PARAMETER_NODE is handled separately in `Translator::translateParametersNode()`.");
