@@ -2403,7 +2403,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             unreachable("PM_ENSURE_NODE is handled separately as part of PM_BEGIN_NODE, see its docs for details.");
         }
         case PM_FALSE_NODE: { // The `false` keyword
-            return make_node_with_expr<parser::False>(MK::False(location), location);
+            return expr_only(MK::False(location));
         }
         case PM_FLOAT_NODE: { // A floating point number literal, e.g. `1.23`
             auto floatNode = down_cast<pm_float_node>(node);
@@ -3422,7 +3422,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return make_node_with_expr<parser::Symbol>(MK::Symbol(location, content), location, content);
         }
         case PM_TRUE_NODE: { // The `true` keyword
-            return make_node_with_expr<parser::True>(MK::True(location), location);
+            return expr_only(MK::True(location));
         }
         case PM_UNDEF_NODE: { // The `undef` keyword, like `undef :method_to_undef
             auto undefNode = down_cast<pm_undef_node>(node);
