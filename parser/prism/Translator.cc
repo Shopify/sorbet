@@ -1141,7 +1141,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto locZeroLen = location.copyWithZeroLength();
             auto expr = MK::Send1(location, move(recv), core::Names::regexBackref(), locZeroLen, move(arg));
 
-            return make_node_with_expr<parser::Backref>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_BEGIN_NODE: { // A `begin ... end` block
             auto beginNode = down_cast<pm_begin_node>(node);
