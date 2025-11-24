@@ -2606,7 +2606,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = translateConstantName(globalVarReadNode->name);
             auto expr = ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Global, name);
 
-            return make_node_with_expr<parser::GVar>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_GLOBAL_VARIABLE_TARGET_NODE: { // Target of an indirect write to a global variable
             // ... like `$target1, $target2 = 1, 2`, `rescue => $target`, etc.
@@ -2614,7 +2614,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = translateConstantName(globalVariableTargetNode->name);
             auto expr = ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Global, name);
 
-            return make_node_with_expr<parser::GVarLhs>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_GLOBAL_VARIABLE_WRITE_NODE: { // Regular assignment to a global variable, e.g. `$g = 1`
             return translateAssignment<pm_global_variable_write_node, parser::GVarLhs>(node);
@@ -2739,7 +2739,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto expr =
                 ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Instance, name);
 
-            return make_node_with_expr<parser::IVar>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_INSTANCE_VARIABLE_TARGET_NODE: { // Target of an indirect write to an instance variable
             // ... like `@target1, @target2 = 1, 2`, `rescue => @target`, etc.
@@ -2748,7 +2748,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto expr =
                 ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Instance, name);
 
-            return make_node_with_expr<parser::IVarLhs>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_INSTANCE_VARIABLE_WRITE_NODE: { // Regular assignment to an instance variable, e.g. `@iv = 1`
             return translateAssignment<pm_instance_variable_write_node, parser::IVarLhs>(node);
