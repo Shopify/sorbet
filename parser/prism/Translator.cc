@@ -2672,7 +2672,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto expr =
                 ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Instance, name);
 
-            return make_node_with_expr<parser::IVar>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_INSTANCE_VARIABLE_TARGET_NODE: { // Target of an indirect write to an instance variable
             // ... like `@target1, @target2 = 1, 2`, `rescue => @target`, etc.
@@ -2681,7 +2681,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto expr =
                 ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Instance, name);
 
-            return make_node_with_expr<parser::IVarLhs>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_INSTANCE_VARIABLE_WRITE_NODE: { // Regular assignment to an instance variable, e.g. `@iv = 1`
             return translateAssignment<pm_instance_variable_write_node, parser::IVarLhs>(node);
