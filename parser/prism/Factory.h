@@ -79,6 +79,7 @@ public:
     pm_node_t *TUnsafe(core::LocOffsets loc, pm_node_t *value) const;
     pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value) const;
     pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type) const;
+    pm_node_t *TSelfType(core::LocOffsets loc) const;
     pm_node_t *TTypeAlias(core::LocOffsets loc, pm_node_t *type) const;
     pm_node_t *T_Array(core::LocOffsets loc) const;
     pm_node_t *T_Class(core::LocOffsets loc) const;
