@@ -2904,7 +2904,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto name = translateConstantName(localVarReadNode->name);
             ast::ExpressionPtr expr = MK::Local(location, name);
 
-            return make_node_with_expr<parser::LVar>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_LOCAL_VARIABLE_TARGET_NODE: { // Target of an indirect write to a local variable
             // ... like `target1, target2 = 1, 2`, `rescue => target`, etc.
@@ -2912,7 +2912,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto name = translateConstantName(localVarTargetNode->name);
             auto expr = MK::Local(location, name);
 
-            return make_node_with_expr<parser::LVarLhs>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_LOCAL_VARIABLE_WRITE_NODE: { // Regular assignment to a local variable, e.g. `local = 1`
             return translateAssignment<pm_local_variable_write_node, parser::LVarLhs>(node);
