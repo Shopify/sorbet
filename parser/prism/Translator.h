@@ -104,6 +104,13 @@ private:
     ast::ExpressionPtr desugarSymbolProc(pm_symbol_node *symbol);
 
     NodeVec translateArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
+    template <typename StoreType>
+    StoreType desugarArguments(pm_arguments_node *node, pm_node *blockArgumentNode = nullptr);
+
+    // Helper for Break/Next/Return nodes that take optional arguments
+    template <typename NodeType>
+    ast::ExpressionPtr desugarBreakNextReturn(core::LocOffsets location, pm_arguments_node *argsNode);
+
     parser::NodeVec translateKeyValuePairs(pm_node_list_t elements);
 
     // translateKeyValuePairs + desugarHash in one
