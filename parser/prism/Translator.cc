@@ -2617,7 +2617,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             core::NameRef sorbetName = core::Names::restargs();
             auto expr = MK::RestParam(restLoc, MK::Local(restLoc, sorbetName));
 
-            return make_node_with_expr<parser::RestParam>(move(expr), restLoc, sorbetName, restLoc);
+            return expr_only(move(expr));
         }
         case PM_INDEX_AND_WRITE_NODE: { // And-assignment to an index, e.g. `a[i] &&= false`
             return translateIndexAssignment<pm_index_and_write_node, parser::AndAsgn>(node, location);
