@@ -1229,27 +1229,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_BREAK_NODE: { // A `break` statement, e.g. `break`, `break 1, 2, 3`
             auto breakNode = down_cast<pm_break_node>(node);
-
-            auto arguments = translateArguments(breakNode->arguments);
-
-            if (arguments.empty()) {
-                auto expr = MK::Break(location, MK::EmptyTree());
-                return make_node_with_expr<parser::Break>(move(expr), location, move(arguments));
-            }
-
-            enforceHasExpr(arguments);
-
-            ExpressionPtr breakArgs;
-            if (arguments.size() == 1) {
-                auto &first = arguments[0];
-                breakArgs = takeDesugaredExprOrEmptyTree(first);
-            } else {
-                auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
-                auto arrayLocation = parser.translateLocation(breakNode->arguments->base.location);
-                breakArgs = MK::Array(arrayLocation, std::move(args));
-            }
-            auto expr = MK::Break(location, std::move(breakArgs));
-            return make_node_with_expr<parser::Break>(move(expr), location, move(arguments));
+            auto arguments = desugarBreakNextReturn(breakNode->arguments);
+            auto expr = MK::Break(location, move(arguments));
+            return expr_only(move(expr));
         }
         case PM_CALL_AND_WRITE_NODE: { // And-assignment to a method call, e.g. `a.b &&= false`
             return translateSendAssignment<pm_call_and_write_node, parser::AndAsgn>(node, location);
@@ -2999,27 +2981,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_NEXT_NODE: { // A `next` statement, e.g. `next`, `next 1, 2, 3`
             auto nextNode = down_cast<pm_next_node>(node);
-
-            auto arguments = translateArguments(nextNode->arguments);
-
-            if (arguments.empty()) {
-                auto expr = MK::Next(location, MK::EmptyTree());
-                return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
-            }
-
-            enforceHasExpr(arguments);
-
-            ExpressionPtr nextArgs;
-            if (arguments.size() == 1) {
-                auto &first = arguments[0];
-                nextArgs = takeDesugaredExprOrEmptyTree(first);
-            } else {
-                auto args = nodeVecToStore<ast::Array::ENTRY_store>(arguments);
-                auto arrayLocation = parser.translateLocation(nextNode->arguments->base.location);
-                nextArgs = MK::Array(arrayLocation, std::move(args));
-            }
-            auto expr = MK::Next(location, move(nextArgs));
-            return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
+            auto arguments = desugarBreakNextReturn(nextNode->arguments);
+            auto expr = MK::Next(location, move(arguments));
+            return expr_only(move(expr));
         }
         case PM_NIL_NODE: { // The `nil` keyword
             return expr_only(MK::Nil(location));
@@ -3267,27 +3231,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_RETURN_NODE: { // A `return` statement, like `return 1, 2, 3`
             auto returnNode = down_cast<pm_return_node>(node);
-
-            auto returnValues = translateArguments(returnNode->arguments);
-
-            if (returnValues.empty()) {
-                auto expr = MK::Return(location, MK::EmptyTree());
-                return make_node_with_expr<parser::Return>(move(expr), location, move(returnValues));
-            }
-
-            enforceHasExpr(returnValues);
-
-            ExpressionPtr returnArgs;
-            if (returnValues.size() == 1) {
-                auto &first = returnValues[0];
-                returnArgs = takeDesugaredExprOrEmptyTree(first);
-            } else {
-                auto args = nodeVecToStore<ast::Array::ENTRY_store>(std::move(returnValues));
-                auto arrayLocation = parser.translateLocation(returnNode->arguments->base.location);
-                returnArgs = MK::Array(arrayLocation, std::move(args));
-            }
-            auto expr = MK::Return(location, std::move(returnArgs));
-            return make_node_with_expr<parser::Return>(move(expr), location, std::move(returnValues));
+            auto arguments = desugarBreakNextReturn(returnNode->arguments);
+            auto expr = MK::Return(location, move(arguments));
+            return expr_only(move(expr));
         }
         case PM_RETRY_NODE: { // The `retry` keyword
             auto expr = ast::make_expression<ast::Retry>(location);
@@ -4328,6 +4274,61 @@ NodeVec Translator::translateArguments(pm_arguments_node *argsNode, pm_node *blo
     }
 
     return results;
+}
+
+// Similar to translateArguments, but returns the desugared expressions directly as a
+// store type (e.g., ast::Send::ARGS_store or ast::Array::ENTRY_store) instead of a NodeVec of parser nodes.
+template <typename StoreType>
+StoreType Translator::desugarArguments(pm_arguments_node *argsNode, pm_node *blockArgumentNode) {
+    static_assert(std::is_same_v<StoreType, ast::Send::ARGS_store> ||
+                      std::is_same_v<StoreType, ast::Array::ENTRY_store>,
+                  "desugarArguments can only be used with ast::Send::ARGS_store or ast::Array::ENTRY_store");
+
+    StoreType results;
+
+    absl::Span<pm_node *> prismArgs;
+
+    if (argsNode != nullptr) {
+        prismArgs = absl::MakeSpan(argsNode->arguments.nodes, argsNode->arguments.size);
+    }
+
+    results.reserve(prismArgs.size() + (blockArgumentNode == nullptr ? 0 : 1));
+
+    for (auto *prismArg : prismArgs) {
+        auto node = translate(prismArg);
+        results.emplace_back(node ? node->takeDesugaredExpr() : ast::MK::EmptyTree());
+    }
+    if (blockArgumentNode != nullptr) {
+        auto node = translate(blockArgumentNode);
+        results.emplace_back(node ? node->takeDesugaredExpr() : ast::MK::EmptyTree());
+    }
+
+    return results;
+}
+
+// Helper function for Break/Next/Return nodes, which all have the same structure:
+// - If no arguments, create node with EmptyTree
+// - If one argument, create node with that argument
+// - If multiple arguments, create node with an Array of arguments
+ast::ExpressionPtr Translator::desugarBreakNextReturn(pm_arguments_node *argsNode) {
+    auto argCount = argsNode == nullptr ? 0 : argsNode->arguments.size;
+
+    if (argCount == 0) {
+        return MK::EmptyTree();
+    }
+
+    if (argCount == 1) {
+        auto firstArg = translate(argsNode->arguments.nodes[0]);
+        enforceHasExpr(firstArg);
+        return firstArg->takeDesugaredExpr();
+    }
+
+    auto arguments = desugarArguments<ast::Array::ENTRY_store>(argsNode);
+
+    ENFORCE(arguments.size() == argCount);
+
+    auto arrayExpr = MK::Array(location, move(arguments));
+    return arrayExpr;
 }
 
 ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> prismElements,
