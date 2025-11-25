@@ -3235,7 +3235,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             }
 
             auto expr = MK::RestParam(location, MK::Local(nameLoc, sorbetName));
-            return make_node_with_expr<parser::RestParam>(move(expr), location, sorbetName, nameLoc);
+            return expr_only(move(expr));
         }
         case PM_RETURN_NODE: { // A `return` statement, like `return 1, 2, 3`
             auto returnNode = down_cast<pm_return_node>(node);
