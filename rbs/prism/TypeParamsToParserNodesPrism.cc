@@ -11,7 +11,7 @@ using namespace std;
 namespace sorbet::rbs {
 
 vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_t *rbsTypeParams,
-                                                             const RBSDeclaration &declaration) {
+                                                            const RBSDeclaration &declaration) {
     vector<pm_node_t *> result;
 
     for (rbs_node_list_node_t *list_node = rbsTypeParams->head; list_node != nullptr; list_node = list_node->next) {
@@ -69,11 +69,11 @@ vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_
                 pairs.push_back(prism.AssocNode(loc, key, value));
             }
 
-            auto body = prism.Hash(loc, pairs);
+            auto body = prism.Hash(loc, absl::MakeSpan(pairs));
             block = prism.Block(loc, body);
         }
 
-        auto typeSend = prism.Send(loc, prism.SorbetPrivateStatic(loc), "type_member"sv, args, block);
+        auto typeSend = prism.Send(loc, prism.SorbetPrivateStatic(loc), "type_member"sv, absl::MakeSpan(args), block);
 
         auto assign = prism.ConstantWriteNode(loc, prism.addConstantToPool(nameConstant.show(ctx.state)), typeSend);
         result.push_back(assign);

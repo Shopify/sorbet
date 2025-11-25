@@ -843,7 +843,7 @@ pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *original
     body.push_back(originalNode);
 
     auto loc = parser.translateLocation(originalNode->location);
-    return prism.StatementsNode(loc, body);
+    return prism.StatementsNode(loc, absl::MakeSpan(body));
 }
 
 } // namespace sorbet::rbs

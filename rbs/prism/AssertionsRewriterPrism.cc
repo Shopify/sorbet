@@ -562,8 +562,7 @@ void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_
             // Get location spanning from first to last node
             auto loc = translateLocation(nodeSpan.front()->location).join(translateLocation(nodeSpan.back()->location));
 
-            std::vector<pm_node_t *> nodeVec(nodeSpan.begin(), nodeSpan.end());
-            auto arr = prism.Array(loc, nodeVec);
+            auto arr = prism.Array(loc, nodeSpan);
             arr = rewriteNode(arr);
 
             // Replace nodes list with single array element
