@@ -3352,18 +3352,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return expr_only(move(sClassDef));
         }
         case PM_SOURCE_ENCODING_NODE: { // The `__ENCODING__` keyword
-            return make_node_with_expr<parser::EncodingLiteral>(
-                MK::Send0(location, MK::Magic(location), core::Names::getEncoding(), location.copyWithZeroLength()),
-                location);
+            auto expr =
+                MK::Send0(location, MK::Magic(location), core::Names::getEncoding(), location.copyWithZeroLength());
+            return expr_only(move(expr));
         }
         case PM_SOURCE_FILE_NODE: { // The `__FILE__` keyword
-            return make_node_with_expr<parser::FileLiteral>(MK::String(location, core::Names::currentFile()), location);
+            auto expr = MK::String(location, core::Names::currentFile());
+            return expr_only(move(expr));
         }
         case PM_SOURCE_LINE_NODE: { // The `__LINE__` keyword
             auto details = ctx.locAt(location).toDetails(ctx);
             ENFORCE(details.first.line == details.second.line, "position corrupted");
 
-            return make_node_with_expr<parser::LineLiteral>(MK::Int(location, details.first.line), location);
+            auto expr = MK::Int(location, details.first.line);
+            return expr_only(move(expr));
         }
         case PM_SPLAT_NODE: { // A splat, like `*a` in an array literal or method call
             auto splatNode = down_cast<pm_splat_node>(node);
