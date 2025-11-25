@@ -3043,7 +3043,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_node_with_expr<parser::Next>(move(expr), location, move(arguments));
         }
         case PM_NIL_NODE: { // The `nil` keyword
-            return make_node_with_expr<parser::Nil>(MK::Nil(location), location);
+            return expr_only(MK::Nil(location));
         }
         case PM_NO_KEYWORDS_PARAMETER_NODE: { // `**nil`, such as in `def foo(**nil)` or `h in { k: v, **nil}`
             unreachable("PM_NO_KEYWORDS_PARAMETER_NODE is handled separately in `PM_HASH_PATTERN_NODE` and "
