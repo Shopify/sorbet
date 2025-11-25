@@ -3188,7 +3188,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto send = MK::Send1(location, move(kernel), rationalName, location.copyWithZeroLength(),
                                   MK::String(location, valueName));
 
-            return make_node_with_expr<parser::Rational>(move(send), location, value);
+            return expr_only(move(send));
         }
         case PM_REDO_NODE: { // The `redo` keyword
             return make_unsupported_node<parser::Redo>(location);
