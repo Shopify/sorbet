@@ -3060,7 +3060,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto name = ctx.state.enterNameUTF8(to_string(number));
             auto expr = ast::make_expression<ast::UnresolvedIdent>(location, ast::UnresolvedIdent::Kind::Global, name);
 
-            return make_node_with_expr<parser::NthRef>(move(expr), location, number);
+            return expr_only(move(expr));
         }
         case PM_OPTIONAL_KEYWORD_PARAMETER_NODE: { // An optional keyword parameter, like `def foo(a: 1)`
             auto optionalKeywordParamNode = down_cast<pm_optional_keyword_parameter_node>(node);
