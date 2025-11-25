@@ -3175,15 +3175,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_REQUIRED_KEYWORD_PARAMETER_NODE: { // A required keyword parameter, like `def foo(a:)`
             auto requiredKeywordParamNode = down_cast<pm_required_keyword_parameter_node>(node);
             auto name = translateConstantName(requiredKeywordParamNode->name);
+            auto expr = MK::KeywordArg(location, name);
 
-            return make_node_with_expr<parser::Kwarg>(MK::KeywordArg(location, name), location, name);
+            return expr_only(move(expr));
         }
         case PM_REQUIRED_PARAMETER_NODE: { // A required positional parameter, like `def foo(a)`
             auto requiredParamNode = down_cast<pm_required_parameter_node>(node);
             auto name = translateConstantName(requiredParamNode->name);
             auto expr = MK::Local(location, name);
 
-            return make_node_with_expr<parser::Param>(move(expr), location, name);
+            return expr_only(move(expr));
         }
         case PM_RESCUE_MODIFIER_NODE: {
             auto rescueModifierNode = down_cast<pm_rescue_modifier_node>(node);
