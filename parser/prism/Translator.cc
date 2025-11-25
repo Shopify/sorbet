@@ -3262,7 +3262,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return make_node_with_expr<parser::Return>(move(expr), location, std::move(returnValues));
         }
         case PM_RETRY_NODE: { // The `retry` keyword
-            return make_node_with_expr<parser::Retry>(ast::make_expression<ast::Retry>(location), location);
+            auto expr = ast::make_expression<ast::Retry>(location);
+            return expr_only(move(expr));
         }
         case PM_SELF_NODE: { // The `self` keyword
             return make_node_with_expr<parser::Self>(MK::Self(location), location);
