@@ -2886,9 +2886,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 kwrestLoc = location;
             }
 
-            return make_node_with_expr<parser::Kwrestarg>(
-                MK::RestParam(kwrestLoc, MK::KeywordArg(kwrestLoc, sorbetName)), kwrestLoc, sorbetName);
+            auto expr = MK::RestParam(kwrestLoc, MK::KeywordArg(kwrestLoc, sorbetName));
+            return expr_only(move(expr));
         }
+
         case PM_LAMBDA_NODE: { // lambda literals, like `-> { 123 }`
             auto lambdaNode = down_cast<pm_lambda_node>(node);
 
