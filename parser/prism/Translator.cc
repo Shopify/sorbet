@@ -4283,7 +4283,7 @@ ast::ExpressionPtr Translator::desugarBreakNextReturn(core::LocOffsets location,
         return ast::make_expression<NodeType>(location, MK::EmptyTree());
     }
 
-    auto arguments = desugarArguments<ast::Array::ENTRY_store>(argsNode);
+    auto arguments = nodeListToStore<ast::Array::ENTRY_store>(argsNode->arguments);
 
     ENFORCE(arguments.size() == argCount);
 
