@@ -4336,7 +4336,7 @@ ast::ExpressionPtr Translator::desugarBreakNextReturn(pm_arguments_node *argsNod
         return firstArg->takeDesugaredExpr();
     }
 
-    auto arguments = desugarArguments<ast::Array::ENTRY_store>(argsNode);
+    auto arguments = nodeListToStore<ast::Array::ENTRY_store>(argsNode->arguments);
 
     ENFORCE(arguments.size() == argCount);
 
