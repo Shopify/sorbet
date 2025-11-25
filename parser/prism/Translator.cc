@@ -3348,7 +3348,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return expr_only(move(expr));
         }
         case PM_SELF_NODE: { // The `self` keyword
-            return make_node_with_expr<parser::Self>(MK::Self(location), location);
+            auto expr = MK::Self(location);
+            return expr_only(move(expr));
         }
         case PM_SHAREABLE_CONSTANT_NODE: {
             // Sorbet doesn't handle `shareable_constant_value` yet (https://bugs.ruby-lang.org/issues/17273).
