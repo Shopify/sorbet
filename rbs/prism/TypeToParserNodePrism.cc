@@ -127,7 +127,7 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
         }
 
         string methodName = core::Names::syntheticSquareBrackets().show(ctx.state);
-        return prism.Send(loc, typeConstant, methodName.c_str(), args);
+        return prism.Send(loc, typeConstant, methodName.c_str(), absl::MakeSpan(args));
     }
 
     return typeConstant;
@@ -146,7 +146,7 @@ pm_node_t *TypeToParserNodePrism::unionType(const rbs_types_union_t *node, core:
         auto innerType = toPrismNode(list_node->node, declaration);
         args.push_back(innerType);
     }
-    return prism.TAny(loc, args);
+    return prism.TAny(loc, absl::MakeSpan(args));
 }
 
 pm_node_t *TypeToParserNodePrism::intersectionType(const rbs_types_intersection_t *node, core::LocOffsets loc,
@@ -156,7 +156,7 @@ pm_node_t *TypeToParserNodePrism::intersectionType(const rbs_types_intersection_
         auto innerType = toPrismNode(list_node->node, declaration);
         args.push_back(innerType);
     }
-    return prism.TAll(loc, args);
+    return prism.TAll(loc, absl::MakeSpan(args));
 }
 
 pm_node_t *TypeToParserNodePrism::optionalType(const rbs_types_optional_t *node, core::LocOffsets loc,
@@ -201,7 +201,7 @@ pm_node_t *TypeToParserNodePrism::functionType(const rbs_types_function_t *node,
     }
 
     rbs_node_t *returnValue = node->return_type;
-    pm_node_t *argsHash = pairs.empty() ? nullptr : prism.KeywordHash(loc, pairs);
+    pm_node_t *argsHash = pairs.empty() ? nullptr : prism.KeywordHash(loc, absl::MakeSpan(pairs));
 
     if (returnValue->type == RBS_TYPES_BASES_VOID) {
         return prism.TProcVoid(loc, argsHash);
@@ -263,7 +263,7 @@ pm_node_t *TypeToParserNodePrism::tupleType(const rbs_types_tuple_t *node, core:
         typesStore.push_back(innerType);
     }
 
-    return prism.Array(loc, typesStore);
+    return prism.Array(loc, absl::MakeSpan(typesStore));
 }
 
 pm_node_t *TypeToParserNodePrism::recordType(const rbs_types_record_t *node, core::LocOffsets loc,

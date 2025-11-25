@@ -169,7 +169,7 @@ pm_node_t *handleAnnotations(core::MutableContext ctx, const pm_node_t *node, pm
 
             vector<pm_node_t *> pairs;
             pairs.push_back(pair);
-            auto hash = prism.KeywordHash(annotation.typeLoc, pairs);
+            auto hash = prism.KeywordHash(annotation.typeLoc, absl::MakeSpan(pairs));
 
             sigBuilder = prism.Send1(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state), hash);
         }
@@ -542,7 +542,7 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call
 
         vector<pm_node_t *> hashElements;
         hashElements.push_back(assoc);
-        pm_node_t *hash = prism.KeywordHash(prismParser.translateLocation(call->base.location), hashElements);
+        pm_node_t *hash = prism.KeywordHash(prismParser.translateLocation(call->base.location), absl::MakeSpan(hashElements));
         sigBuilder = prism.Send1(prismParser.translateLocation(call->base.location), sigBuilder, "params"sv, hash);
     }
 
@@ -566,7 +566,7 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call
     pm_node_t *block = prism.Block(commentLoc, sigBuilder);
 
     // Create sig call with block
-    pm_node_t *sigCall = prism.Send(fullTypeLoc, staticReceiver, "sig"sv, sigArgs, block);
+    pm_node_t *sigCall = prism.Send(fullTypeLoc, staticReceiver, "sig"sv, absl::MakeSpan(sigArgs), block);
 
     return sigCall;
 }
@@ -740,7 +740,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
             typeParamSymbols.push_back(symbolNode);
         }
 
-        pm_node_t *typeParamsCall = prism.Send(fullTypeLoc, sigReceiver, "type_parameters"sv, typeParamSymbols);
+        pm_node_t *typeParamsCall = prism.Send(fullTypeLoc, sigReceiver, "type_parameters"sv, absl::MakeSpan(typeParamSymbols));
         ENFORCE(typeParamsCall, "Failed to create type parameters call");
 
         sigReceiver = typeParamsCall;
@@ -750,7 +750,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     if (sigParams.size() > 0) {
         // Wrap pairs in KeywordHashNode for keyword arguments
         core::LocOffsets hashLoc = fullTypeLoc;
-        pm_node_t *paramsHash = prism.KeywordHash(hashLoc, sigParams);
+        pm_node_t *paramsHash = prism.KeywordHash(hashLoc, absl::MakeSpan(sigParams));
 
         // Create .params() method call with keyword hash
         pm_node_t *paramsCall = prism.Send1(fullTypeLoc, sigReceiver, "params"sv, paramsHash);
@@ -799,7 +799,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
         }
     }
 
-    pm_node_t *call = prism.Send(fullTypeLoc, receiver, "sig"sv, sig_args, block);
+    pm_node_t *call = prism.Send(fullTypeLoc, receiver, "sig"sv, absl::MakeSpan(sig_args), block);
 
     // Debug print important locations to diagnose substr crashes
     // debugPrintLocation("sig.call.base", call->base.location);
