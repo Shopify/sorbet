@@ -100,11 +100,15 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
 
 pm_node_t *TypeToParserNodePrism::aliasType(const rbs_types_alias_t *node, core::LocOffsets loc,
                                             const RBSDeclaration &declaration) {
+    pm_node_t *parent = namespaceConst(node->name->rbs_namespace, declaration, loc);
     auto nameView = parser.resolveConstant(node->name->name);
     auto nameStr = "type " + string(nameView);
 
-    // addConstantToPool copies the string, so it's safe to pass a temporary
-    return prism.ConstantReadNode(nameStr, loc);
+    if (parent != nullptr || (node->name->rbs_namespace && node->name->rbs_namespace->absolute)) {
+        return prism.ConstantPathNode(loc, parent, nameStr);
+    } else {
+        return prism.ConstantReadNode(nameStr, loc);
+    }
 }
 
 pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instance_t *node, core::LocOffsets loc,
@@ -305,7 +309,7 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
         case RBS_TYPES_BASES_NIL:
             return prism.ConstantReadNode("NilClass"sv, nodeLoc);
         case RBS_TYPES_BASES_SELF:
-            return prism.ConstantReadNode("T.self_type"sv, nodeLoc);
+            return prism.TSelfType(nodeLoc);
         case RBS_TYPES_BASES_TOP:
             return prism.ConstantReadNode("T.anything"sv, nodeLoc);
         case RBS_TYPES_BASES_VOID:

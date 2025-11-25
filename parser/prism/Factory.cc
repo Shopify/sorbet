@@ -399,9 +399,12 @@ pm_node_t *Factory::TBindSelf(core::LocOffsets loc, pm_node_t *type) const {
     return Send2(loc, T(loc), "bind"sv, Self(loc), type);
 }
 
+pm_node_t *Factory::TSelfType(core::LocOffsets loc) const {
+    return Send0(loc, T(loc), "self_type"sv);
+}
+
 pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
-
     pm_node_t *send = Send0(loc, T(loc), "type_alias"sv);
 
     pm_statements_node_t *stmts = allocateNode<pm_statements_node_t>();
