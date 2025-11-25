@@ -3083,13 +3083,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto stmtsNode = parensNode->body;
 
             if (stmtsNode == nullptr) {
-                return make_node_with_expr<parser::Begin>(MK::Nil(location), location, NodeVec{});
+                return expr_only(MK::Nil(location));
             }
 
             if (PM_NODE_TYPE_P(stmtsNode, PM_STATEMENTS_NODE)) {
                 auto inlineIfSingle = false;
                 // Override the begin node location to be the parentheses location instead of the statements location
-                return translateStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle, location);
+                auto statements = desugarStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle, location);
+                return expr_only(move(statements));
             } else {
                 return translate(stmtsNode);
             }
