@@ -3526,8 +3526,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_MISSING_NODE: {
             ast::ExpressionPtr expr =
                 MK::UnresolvedConstant(location, MK::EmptyTree(), core::Names::Constants::ErrorNode());
-            return make_node_with_expr<parser::Const>(move(expr), location, nullptr,
-                                                      core::Names::Constants::ErrorNode());
+            return expr_only(move(expr));
         }
     }
 }
