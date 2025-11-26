@@ -181,6 +181,32 @@ pm_node_t *Factory::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_
     return up_cast(symbolNode);
 }
 
+pm_node_t *Factory::String(core::LocOffsets nameLoc, string_view name) const {
+    ENFORCE(!name.empty(), "Name is empty");
+
+    size_t nameSize = name.size();
+
+    PrismUniquePtr<uint8_t> stable{reinterpret_cast<uint8_t *>(this->calloc(nameSize, sizeof(uint8_t))), prismFree};
+    memcpy(stable.get(), name.data(), nameSize);
+
+    pm_string_node_t *stringNode = allocateNode<pm_string_node_t>();
+    ENFORCE(stringNode, "Failed to allocate string node");
+
+    pm_location_t location = parser.convertLocOffsets(nameLoc.copyWithZeroLength());
+
+    pm_string_t unescapedString;
+    // Mark string as owned so it'll be freed when the node is destroyed
+    pm_string_owned_init(&unescapedString, stable.release(), nameSize);
+
+    *stringNode = (pm_string_node_t){.base = initializeBaseNode(PM_STRING_NODE, location),
+                                     .opening_loc = location,
+                                     .content_loc = location,
+                                     .closing_loc = location,
+                                     .unescaped = unescapedString};
+
+    return up_cast(stringNode);
+}
+
 pm_node_t *Factory::AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *value) const {
     ENFORCE(key && value, "Key or value is null");
 
@@ -398,6 +424,14 @@ pm_node_t *Factory::TSelfType(core::LocOffsets loc) const {
     return Send0(loc, T(loc), "self_type"sv);
 }
 
+pm_node_t *Factory::TAnything(core::LocOffsets loc) const {
+    return Send0(loc, T(loc), "anything"sv);
+}
+
+pm_node_t *Factory::TAttachedClass(core::LocOffsets loc) const {
+    return Send0(loc, T(loc), "attached_class"sv);
+}
+
 pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
     pm_node_t *send = Send0(loc, T(loc), "type_alias"sv);
@@ -440,6 +474,10 @@ pm_node_t *Factory::Block(core::LocOffsets loc, pm_node_t *body) const {
 
 pm_node_t *Factory::T_Array(core::LocOffsets loc) const {
     return ConstantPathNode(loc, T(loc), "Array"sv);
+}
+
+pm_node_t *Factory::T_Boolean(core::LocOffsets loc) const {
+    return ConstantPathNode(loc, T(loc), "Boolean"sv);
 }
 
 pm_node_t *Factory::T_Class(core::LocOffsets loc) const {

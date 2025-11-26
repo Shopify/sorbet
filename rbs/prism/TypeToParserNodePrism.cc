@@ -38,7 +38,6 @@ pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNames
             string_view nameString{nameStr.data(), nameStr.size()};
 
             if (parent != nullptr || isAbsolute) {
-                // Create constant path node for scoped access (A::B or ::A)
                 parent = prism.ConstantPathNode(loc, parent, nameString);
             } else {
                 parent = prism.ConstantReadNode(nameString, loc);
@@ -135,8 +134,8 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
 
 pm_node_t *TypeToParserNodePrism::classSingletonType(const rbs_types_class_singleton_t *node, core::LocOffsets loc,
                                                      const RBSDeclaration &declaration) {
-    // Simplified - should create T.class_of call
-    return prism.ConstantReadNode("T.class_of"sv, loc);
+    auto innerType = typeNameType(node->name, false, declaration);
+    return prism.Send1(loc, prism.T(loc), "class_of"sv, innerType);
 }
 
 pm_node_t *TypeToParserNodePrism::unionType(const rbs_types_union_t *node, core::LocOffsets loc,
@@ -213,7 +212,34 @@ pm_node_t *TypeToParserNodePrism::functionType(const rbs_types_function_t *node,
 
 pm_node_t *TypeToParserNodePrism::procType(const rbs_types_proc_t *node, core::LocOffsets loc,
                                            const RBSDeclaration &declaration) {
-    return functionType((rbs_types_function_t *)node->type, loc, declaration);
+    pm_node_t *function = prism.TUntyped(loc);
+
+    rbs_node_t *functionTypeNode = node->type;
+    switch (functionTypeNode->type) {
+        case RBS_TYPES_FUNCTION: {
+            function = functionType((rbs_types_function_t *)functionTypeNode, loc, declaration);
+            break;
+        }
+        case RBS_TYPES_UNTYPED_FUNCTION: {
+            return function;
+        }
+        default: {
+            auto errLoc = declaration.typeLocFromRange(functionTypeNode->location->rg);
+            if (auto e = ctx.beginIndexerError(errLoc, core::errors::Internal::InternalError)) {
+                e.setHeader("Unexpected node type `{}` in proc type, expected `{}` or `{}`",
+                            rbs_node_type_name(functionTypeNode), "Function", "UntypedFunction");
+            }
+            return function;
+        }
+    }
+
+    rbs_node_t *selfNode = node->self_type;
+    if (selfNode != nullptr) {
+        auto selfType = toPrismNode(selfNode, declaration);
+        function = prism.Send1(loc, function, "bind"sv, selfType);
+    }
+
+    return function;
 }
 
 pm_node_t *TypeToParserNodePrism::blockType(const rbs_types_block_t *node, core::LocOffsets loc,
@@ -268,7 +294,50 @@ pm_node_t *TypeToParserNodePrism::tupleType(const rbs_types_tuple_t *node, core:
 
 pm_node_t *TypeToParserNodePrism::recordType(const rbs_types_record_t *node, core::LocOffsets loc,
                                              const RBSDeclaration &declaration) {
-    return prism.ConstantReadNode("Hash"sv, loc);
+    vector<pm_node_t *> pairs;
+
+    for (rbs_hash_node_t *hash_node = node->all_fields->head; hash_node != nullptr; hash_node = hash_node->next) {
+        pm_node_t *key = nullptr;
+
+        switch (hash_node->key->type) {
+            case RBS_AST_SYMBOL: {
+                rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *)hash_node->key;
+                auto keyStr = parser.resolveConstant(keyNode);
+                string keyString(keyStr);
+                key = prism.Symbol(loc, keyString);
+                break;
+            }
+            case RBS_AST_STRING: {
+                rbs_ast_string_t *keyNode = (rbs_ast_string_t *)hash_node->key;
+                string_view keyStr(reinterpret_cast<const char *>(keyNode->string.start));
+                string keyString(keyStr);
+                key = prism.String(loc, keyString);
+                break;
+            }
+            default: {
+                if (auto e = ctx.beginIndexerError(loc, core::errors::Internal::InternalError)) {
+                    e.setHeader("Unexpected node type `{}` in record key type, expected `{}`",
+                                rbs_node_type_name(hash_node->key), "Symbol");
+                }
+                continue;
+            }
+        }
+
+        if (hash_node->value->type != RBS_TYPES_RECORD_FIELD_TYPE) {
+            if (auto e = ctx.beginIndexerError(loc, core::errors::Internal::InternalError)) {
+                e.setHeader("Unexpected node type `{}` in record value type, expected `{}`",
+                            rbs_node_type_name(hash_node->value), "RecordFieldtype");
+            }
+            continue;
+        }
+
+        rbs_types_record_field_type_t *valueNode = (rbs_types_record_field_type_t *)hash_node->value;
+        auto innerType = toPrismNode(valueNode->type, declaration);
+        pm_node_t *pairNode = prism.AssocNode(loc, key, innerType);
+        pairs.push_back(pairNode);
+    }
+
+    return prism.Hash(loc, absl::MakeSpan(pairs));
 }
 
 pm_node_t *TypeToParserNodePrism::variableType(const rbs_types_variable_t *node, core::LocOffsets loc) {
@@ -290,7 +359,7 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
         case RBS_TYPES_BASES_ANY:
             return prism.TUntyped(nodeLoc);
         case RBS_TYPES_BASES_BOOL:
-            return prism.ConstantReadNode("T::Boolean"sv, nodeLoc);
+            return prism.T_Boolean(nodeLoc);
         case RBS_TYPES_BASES_BOTTOM: {
             pm_node_t *t_const = prism.T(nodeLoc);
             if (!t_const) {
@@ -305,13 +374,13 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
             return prism.TUntyped(nodeLoc);
         }
         case RBS_TYPES_BASES_INSTANCE:
-            return prism.ConstantReadNode("T.attached_class"sv, nodeLoc);
+            return prism.TAttachedClass(nodeLoc);
         case RBS_TYPES_BASES_NIL:
             return prism.ConstantReadNode("NilClass"sv, nodeLoc);
         case RBS_TYPES_BASES_SELF:
             return prism.TSelfType(nodeLoc);
         case RBS_TYPES_BASES_TOP:
-            return prism.ConstantReadNode("T.anything"sv, nodeLoc);
+            return prism.TAnything(nodeLoc);
         case RBS_TYPES_BASES_VOID:
             return voidType((rbs_types_bases_void_t *)node, nodeLoc);
         case RBS_TYPES_BLOCK:

@@ -37,10 +37,9 @@ public:
     pm_node_t *SingleArgumentNode(pm_node_t *arg) const;
     pm_node_t *Self(core::LocOffsets loc) const;
     pm_node_t *True(core::LocOffsets loc) const;
-
-    // Symbol and hash node creators
     pm_node_t *Symbol(core::LocOffsets nameLoc, std::string_view name) const;
     pm_node_t *SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId) const;
+    pm_node_t *String(core::LocOffsets nameLoc, std::string_view name) const;
     pm_node_t *AssocNode(core::LocOffsets loc, pm_node_t *key, pm_node_t *value) const;
     pm_node_t *Hash(core::LocOffsets loc, const absl::Span<pm_node_t *> pairs) const;
     pm_node_t *KeywordHash(core::LocOffsets loc, const absl::Span<pm_node_t *> pairs) const;
@@ -82,8 +81,11 @@ public:
     pm_node_t *TAbsurd(core::LocOffsets loc, pm_node_t *value) const;
     pm_node_t *TBindSelf(core::LocOffsets loc, pm_node_t *type) const;
     pm_node_t *TSelfType(core::LocOffsets loc) const;
+    pm_node_t *TAnything(core::LocOffsets loc) const;
+    pm_node_t *TAttachedClass(core::LocOffsets loc) const;
     pm_node_t *TTypeAlias(core::LocOffsets loc, pm_node_t *type) const;
     pm_node_t *T_Array(core::LocOffsets loc) const;
+    pm_node_t *T_Boolean(core::LocOffsets loc) const;
     pm_node_t *T_Class(core::LocOffsets loc) const;
     pm_node_t *T_Enumerable(core::LocOffsets loc) const;
     pm_node_t *T_Enumerator(core::LocOffsets loc) const;
