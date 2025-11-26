@@ -25,7 +25,8 @@ class ExprOnly final : public Node {
     ast::ExpressionPtr desugaredExpr;
 
 public:
-    ExprOnly(ast::ExpressionPtr desugaredExpr) : Node(desugaredExpr.loc()), desugaredExpr(std::move(desugaredExpr)) {
+    ExprOnly(ast::ExpressionPtr desugaredExpr, core::LocOffsets loc)
+        : Node(loc), desugaredExpr(std::move(desugaredExpr)) {
         ENFORCE(this->desugaredExpr != nullptr, "Can't create NodeWithExpr with a null desugaredExpr.");
     }
     virtual ~ExprOnly() = default;
@@ -75,7 +76,11 @@ public:
 };
 
 unique_ptr<parser::Node> expr_only(ast::ExpressionPtr expr) {
-    return make_unique<ExprOnly>(move(expr));
+    return make_unique<ExprOnly>(move(expr), expr.loc());
+}
+
+unique_ptr<parser::Node> expr_only(ast::ExpressionPtr expr, core::LocOffsets loc) {
+    return make_unique<ExprOnly>(move(expr), loc);
 }
 
 void enforceHasExpr(const std::unique_ptr<parser::Node> &node) {
@@ -2379,7 +2384,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto inlineIfSingle = false;
             auto statements = desugarStatements(stmtsNode, inlineIfSingle, location);
-            return expr_only(move(statements));
+            return expr_only(move(statements), location);
         }
         case PM_EMBEDDED_VARIABLE_NODE: {
             auto embeddedVariableNode = down_cast<pm_embedded_variable_node>(node);
@@ -3050,9 +3055,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (PM_NODE_TYPE_P(stmtsNode, PM_STATEMENTS_NODE)) {
                 auto inlineIfSingle = false;
-                // Override the begin node location to be the parentheses location instead of the statements location
-                auto statements = desugarStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle, location);
-                return expr_only(move(statements));
+                auto statements = desugarStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle);
+                // Use inner location if it exists, otherwise fall back to parentheses location.
+                // Inner location matches legacy parser for || desugaring; parens location is needed
+                // when inner content has no valid location (e.g., unsupported nodes).
+                auto loc = statements.loc().exists() ? statements.loc() : location;
+                return expr_only(move(statements), loc);
             } else {
                 return translate(stmtsNode);
             }
@@ -3231,7 +3239,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 if (auto e = ctx.beginIndexerError(receiver->loc, core::errors::Desugar::InvalidSingletonDef)) {
                     e.setHeader("`{}` is only supported for `{}`", "class << EXPRESSION", "class << self");
                 }
-                return expr_only(MK::EmptyTree());
+                return expr_only(MK::EmptyTree(), location);
             }
 
             auto bodyExprs = desugarScopeBodyToRHSStore(classNode->body, body);
@@ -3290,7 +3298,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_STATEMENTS_NODE: { // A sequence of statements, such a in a `begin` block, `()`, etc.
             auto statementsNode = down_cast<pm_statements_node>(node);
             auto expr = desugarStatements(statementsNode);
-            return expr_only(move(expr));
+            return expr_only(move(expr), location);
         }
         case PM_STRING_NODE: { // A string literal, e.g. `"foo"`
             auto strNode = down_cast<pm_string_node>(node);
