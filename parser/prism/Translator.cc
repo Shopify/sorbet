@@ -4344,7 +4344,9 @@ ast::ExpressionPtr Translator::desugarBreakNextReturn(pm_arguments_node *argsNod
 
     ENFORCE(arguments.size() == argCount);
 
-    auto arrayExpr = MK::Array(location, move(arguments));
+    // Exclude the "return", "break", or "next" keywords from the array location
+    auto arrayLoc = arguments.front().loc().join(arguments.back().loc());
+    auto arrayExpr = MK::Array(arrayLoc, move(arguments));
     return arrayExpr;
 }
 
