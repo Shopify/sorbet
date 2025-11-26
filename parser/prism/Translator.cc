@@ -1987,8 +1987,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 auto expr = MK::Send(location, MK::Magic(locZeroLen), core::Names::caseWhen(), locZeroLen, args.size(),
                                      move(args));
 
-                return make_node_with_expr<Case>(move(expr), location, move(predicate), move(whenNodes),
-                                                 move(elseClause));
+                return expr_only(move(expr));
             }
 
             core::NameRef tempName;
@@ -2060,8 +2059,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
             }
 
-            return make_node_with_expr<Case>(move(resultExpr), location, move(predicate), move(whenNodes),
-                                             move(elseClause));
+            return expr_only(move(resultExpr));
         }
         case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
             auto classNode = down_cast<pm_class_node>(node);
