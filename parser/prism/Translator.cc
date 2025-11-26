@@ -4300,7 +4300,9 @@ ast::ExpressionPtr Translator::desugarBreakNextReturn(core::LocOffsets location,
         return ast::make_expression<NodeType>(location, move(arguments[0]));
     }
 
-    auto arrayExpr = MK::Array(location, move(arguments));
+    // Exclude the "return", "break", or "next" keywords from the array location
+    auto arrayLoc = arguments.front().loc().join(arguments.back().loc());
+    auto arrayExpr = MK::Array(arrayLoc, move(arguments));
     return ast::make_expression<NodeType>(location, move(arrayExpr));
 }
 
