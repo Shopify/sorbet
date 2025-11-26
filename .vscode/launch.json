@@ -53,8 +53,13 @@
             "request": "launch",
             "name": "Debug Sorbet pipeline in LLDB",
             "program": "${workspaceFolder}/bazel-bin/main/sorbet",
-            "args": ["--parser=prism", "${input:file_path}"],
-            "preLaunchTask": "Build with Prism",
+            "args": [
+                "--parser=prism",
+                "--stop-after=parser",
+                "--max-threads=1",
+                "/Users/alex/src/github.com/Shopify/services-db",
+            ],
+            "preLaunchTask": "Build",
             "stopOnEntry": false,
             "sourceMap": {
                 "": "${workspaceFolder}",
