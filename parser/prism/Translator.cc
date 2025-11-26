@@ -3183,9 +3183,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_RESCUE_MODIFIER_NODE: {
             auto rescueModifierNode = down_cast<pm_rescue_modifier_node>(node);
+            auto keywordLoc = translateLoc(rescueModifierNode->keyword_loc);
+
+            // Create a RescueCase with empty exceptions and a <rescueTemp> variable
+            ast::RescueCase::EXCEPTION_store exceptions;
+            auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
+
             auto body = translate(rescueModifierNode->expression);
             auto rescue = translate(rescueModifierNode->rescue_expression);
-            auto keywordLoc = translateLoc(rescueModifierNode->keyword_loc);
 
             auto resbodyLoc = core::LocOffsets{keywordLoc.beginPos(), location.endPos()};
 
@@ -3193,10 +3198,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto bodyExpr = body->takeDesugaredExpr();
             auto rescueExpr = rescue->takeDesugaredExpr();
-
-            // Create a RescueCase with empty exceptions and a <rescueTemp> variable
-            ast::RescueCase::EXCEPTION_store exceptions;
-            auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
 
             auto rescueCaseLoc =
                 translateLoc(rescueModifierNode->keyword_loc.start, rescueModifierNode->base.location.end);
