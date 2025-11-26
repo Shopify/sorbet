@@ -3413,7 +3413,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             enforceHasExpr(predicate, statements);
 
             auto cond = predicate->takeDesugaredExpr();
-            auto body = statements ? statements->takeDesugaredExpr() : MK::EmptyTree();
+            auto body = takeDesugaredExprOrEmptyTree(statements);
 
             ast::ExpressionPtr expr;
             if (beginModifier) {
@@ -3448,7 +3448,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             enforceHasExpr(predicate, statements);
 
             auto cond = predicate->takeDesugaredExpr();
-            auto body = statements ? statements->takeDesugaredExpr() : MK::EmptyTree();
+            auto body = takeDesugaredExprOrEmptyTree(statements);
 
             ast::ExpressionPtr expr;
             if (beginModifier) {
@@ -4317,11 +4317,11 @@ StoreType Translator::desugarArguments(pm_arguments_node *argsNode, pm_node *blo
 
     for (auto *prismArg : prismArgs) {
         auto node = translate(prismArg);
-        results.emplace_back(node ? node->takeDesugaredExpr() : ast::MK::EmptyTree());
+        results.emplace_back(takeDesugaredExprOrEmptyTree(node));
     }
     if (blockArgumentNode != nullptr) {
         auto node = translate(blockArgumentNode);
-        results.emplace_back(node ? node->takeDesugaredExpr() : ast::MK::EmptyTree());
+        results.emplace_back(takeDesugaredExprOrEmptyTree(node));
     }
 
     return results;
@@ -5100,7 +5100,7 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
             ast::InsSeq::STATS_store stats;
             stats.emplace_back(move(assignExpr));
 
-            auto bodyExpr = rescueBody != nullptr ? rescueBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+            auto bodyExpr = takeDesugaredExprOrEmptyTree(rescueBody);
             rescueBodyExpr = ast::MK::InsSeq(varLoc, move(stats), move(bodyExpr));
         } else {
             // For bare rescue clauses with no variable, create a <rescueTemp> variable
@@ -5112,7 +5112,7 @@ unique_ptr<parser::Node> Translator::translateRescue(pm_begin_node *parentBeginN
                                        : rescueKeywordLoc;
             varExpr = ast::MK::Local(syntheticVarLoc, rescueTemp);
 
-            rescueBodyExpr = rescueBody != nullptr ? rescueBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+            rescueBodyExpr = takeDesugaredExprOrEmptyTree(rescueBody);
         }
 
         auto rescueCaseExpr =
@@ -5268,7 +5268,7 @@ NodeVec Translator::translateEnsure(pm_begin_node *beginNode) {
             auto rescue = ast::cast_tree<ast::Rescue>(bodyExpr);
             ENFORCE(rescue != nullptr, "translatedRescue should be a Rescue node");
 
-            rescue->ensure = ensureBody != nullptr ? ensureBody->takeDesugaredExpr() : ast::MK::EmptyTree();
+            rescue->ensure = takeDesugaredExprOrEmptyTree(ensureBody);
 
             translatedEnsure =
                 make_node_with_expr<parser::Ensure>(move(bodyExpr), loc, move(translatedRescue), move(ensureBody));
@@ -5387,7 +5387,7 @@ ast::ExpressionPtr Translator::desugarStatements(pm_statements_node *stmtsNode, 
     // For a single statement, do not create a `Begin` node and just return the statement, if that's enabled.
     if (inlineIfSingle && stmtsNode->body.size == 1) {
         auto node = translate(stmtsNode->body.nodes[0]);
-        return node ? node->takeDesugaredExpr() : ast::MK::EmptyTree();
+        return takeDesugaredExprOrEmptyTree(node);
     }
 
     core::LocOffsets beginNodeLoc;
