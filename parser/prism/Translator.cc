@@ -1091,12 +1091,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return expr_only(move(expr));
         }
         case PM_ASSOC_NODE: { // A key-value pair in a Hash literal, e.g. the `a: 1` in `{ a: 1 }
-            auto assocNode = down_cast<pm_assoc_node>(node);
-
-            auto key = translate(assocNode->key);
-            auto value = translate(assocNode->value);
-
-            return make_unique<parser::Pair>(location, move(key), move(value));
+            unreachable("PM_ASSOC_NODE is handled separately in `Translator::translateKeyValuePairs2()`.");
         }
         case PM_ASSOC_SPLAT_NODE: { // A Hash splat, e.g. `**h` in `f(a: 1, **h)` and `{ k: v, **h }`
             unreachable("PM_ASSOC_SPLAT_NODE is handled separately in `Translator::translateKeyValuePairs()` and "
