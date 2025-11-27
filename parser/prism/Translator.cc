@@ -2577,11 +2577,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_IF_NODE: { // An `if` statement or modifier, like `if cond; ...; end` or `a.b if cond`
             auto ifNode = down_cast<pm_if_node>(node);
 
-            auto predicate = translate(ifNode->predicate);
-            auto ifTrue = translate(up_cast(ifNode->statements));
-            auto ifFalse = translate(ifNode->subsequent);
+            auto predicateExpr = desugar(ifNode->predicate);
+            auto thenExpr = desugarStatements(ifNode->statements);
+            auto elseExpr = desugarNullable(ifNode->subsequent);
 
-            return translateIfNode(location, move(predicate), move(ifTrue), move(ifFalse));
+            auto expr = MK::If(location, move(predicateExpr), move(thenExpr), move(elseExpr));
+            return expr_only(move(expr));
         }
         case PM_IMAGINARY_NODE: { // An imaginary number literal, like `1.0i`, `+1.0i`, or `-1.0i`
             auto imaginaryNode = down_cast<pm_imaginary_node>(node);
@@ -3368,12 +3369,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_UNLESS_NODE: { // An `unless` branch, either in a statement or modifier form.
             auto unlessNode = down_cast<pm_unless_node>(node);
 
-            auto predicate = translate(unlessNode->predicate);
-            // These are flipped relative to `PM_IF_NODE`
-            auto ifFalse = translate(up_cast(unlessNode->statements));
-            auto ifTrue = translate(up_cast(unlessNode->else_clause));
+            auto predicateExpr = desugar(unlessNode->predicate);
+            // For `unless`, then/else are swapped: `statements` is the else branch, `else_clause` is the then branch
+            auto elseExpr = desugarStatements(unlessNode->statements);
+            ExpressionPtr thenExpr = desugarNullable(up_cast(unlessNode->else_clause));
 
-            return translateIfNode(location, move(predicate), move(ifTrue), move(ifFalse));
+            auto expr = MK::If(location, move(predicateExpr), move(thenExpr), move(elseExpr));
+            return expr_only(move(expr));
         }
         case PM_UNTIL_NODE: { // A `until` loop, like `until stop_condition; ...; end`
             auto untilNode = down_cast<pm_until_node>(node);
@@ -5187,19 +5189,6 @@ ast::ExpressionPtr Translator::desugarStatements(pm_statements_node *stmtsNode, 
 
     auto instructionSequence = MK::InsSeq(beginNodeLoc, move(statements), move(finalExpr));
     return instructionSequence;
-}
-
-// Helper function for creating if nodes with optional desugaring
-unique_ptr<parser::Node> Translator::translateIfNode(core::LocOffsets location, unique_ptr<parser::Node> predicate,
-                                                     unique_ptr<parser::Node> ifTrue,
-                                                     unique_ptr<parser::Node> ifFalse) {
-    enforceHasExpr(predicate, ifTrue, ifFalse);
-
-    auto condExpr = predicate->takeDesugaredExpr();
-    auto thenExpr = takeDesugaredExprOrEmptyTree(ifTrue);
-    auto elseExpr = takeDesugaredExprOrEmptyTree(ifFalse);
-    auto ifNode = MK::If(location, move(condExpr), move(thenExpr), move(elseExpr));
-    return make_node_with_expr<parser::If>(move(ifNode), location, move(predicate), move(ifTrue), move(ifFalse));
 }
 
 // Handles any one of the Prism nodes that models any kind of constant or constant path.
