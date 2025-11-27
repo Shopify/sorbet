@@ -5204,7 +5204,16 @@ unique_ptr<parser::Node> Translator::translateStatements(pm_statements_node *stm
         // Cover the locations spanned from the first to the last statements.
         // This can be different from the `stmtsNode->base.location`,
         // because of the special case (handled by `startLoc()` and `endLoc()`).
-        beginNodeLoc = translateLoc(startLoc(prismStatements.front()), endLoc(prismStatements.back()));
+        auto start = startLoc(prismStatements.front());
+        auto end = endLoc(prismStatements.back());
+
+        // TODO: Crash without it
+        if (start <= end) {
+            beginNodeLoc = translateLoc(start, end);
+        } else {
+            // Fallback to the statements node's own location if ordering is invalid
+            beginNodeLoc = translateLoc(stmtsNode->base.location);
+        }
     } else {
         beginNodeLoc = translateLoc(stmtsNode->base.location);
     }

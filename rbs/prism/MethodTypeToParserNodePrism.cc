@@ -552,21 +552,19 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call
 
     // Create sig call arguments
     vector<pm_node_t *> sigArgs;
-    sigArgs.push_back(prism.TSigWithoutRuntime(firstLineTypeLoc));
-
     auto finalAnnotation =
         absl::c_find_if(annotations, [](const Comment &annotation) { return annotation.string == "final"; });
     if (finalAnnotation != annotations.end()) {
         sigArgs.push_back(prism.Symbol(finalAnnotation->typeLoc, "final"sv));
     }
 
-    pm_node_t *staticReceiver = prism.SorbetPrivateStatic(fullTypeLoc);
+    pm_node_t *sigReceiver = prism.TSigWithoutRuntime(firstLineTypeLoc);
 
     // Create block node with sigBuilder as body
     pm_node_t *block = prism.Block(commentLoc, sigBuilder);
 
     // Create sig call with block
-    pm_node_t *sigCall = prism.Send(fullTypeLoc, staticReceiver, "sig"sv, absl::MakeSpan(sigArgs), block);
+    pm_node_t *sigCall = prism.Send(fullTypeLoc, sigReceiver, "sig"sv, absl::MakeSpan(sigArgs), block);
 
     return sigCall;
 }
@@ -639,11 +637,8 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     auto firstLineTypeLoc = declaration.firstLineTypeLoc();
     auto commentLoc = declaration.commentLoc();
 
-    // Create receiver: Sorbet::Private::Static
-    pm_node_t *receiver = prism.SorbetPrivateStatic(fullTypeLoc);
-
-    // Create argument: T::Sig::WithoutRuntime
-    pm_node_t *t_sig_arg = prism.TSigWithoutRuntime(fullTypeLoc);
+    // Create receiver: T::Sig::WithoutRuntime
+    pm_node_t *receiver = prism.TSigWithoutRuntime(firstLineTypeLoc);
 
     // Create sig parameter pairs for .params() call (keyword arguments)
     vector<pm_node_t *> sigParams;
@@ -788,9 +783,9 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
 
     pm_node_t *block = prism.Block(fullTypeLoc, blockBody);
 
-    vector<pm_node_t *> sig_args = {t_sig_arg};
+    vector<pm_node_t *> sig_args;
 
-    // Check for @final annotation and add :final as second argument if present
+    // Check for @final annotation and add :final as argument if present
     auto final = absl::c_find_if(annotations, [](const Comment &annotation) { return annotation.string == "final"; });
     if (final != annotations.end()) {
         pm_node_t *finalSymbol = prism.Symbol(final->typeLoc, core::Names::final_().show(ctx.state));
