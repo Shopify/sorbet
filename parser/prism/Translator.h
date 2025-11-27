@@ -126,8 +126,13 @@ private:
     std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
                                                          std::unique_ptr<parser::Node> sendNode);
 
-    NodeVec translateEnsure(pm_begin_node *beginNode);
-    std::unique_ptr<parser::Node> translateRescue(pm_begin_node *parentBeginNode);
+    ast::ExpressionPtr desugarBegin(pm_begin_node *beginNode);
+    ast::Rescue::RESCUE_CASE_store desugarRescueCases(pm_rescue_node *firstRescueNode);
+    uint32_t rescueCaseEndPos(const pm_rescue_node &rescueNode);
+
+    // Helper to desugar statements from a clause node (rescue/ensure/else), returning EmptyTree if null or empty.
+    template <typename ClauseNode> ast::ExpressionPtr desugarClauseStatements(ClauseNode *clause);
+
     std::unique_ptr<parser::Node> translateStatements(pm_statements_node *stmtsNode, bool inlineIfSingle = true,
                                                       core::LocOffsets overrideLocation = core::LocOffsets::none());
     ast::ExpressionPtr desugarStatements(pm_statements_node *stmtsNode, bool inlineIfSingle = true,
@@ -212,11 +217,6 @@ private:
     void patternTranslateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
 
     std::string_view sliceLocation(pm_location_t loc) const;
-
-    // Helper function for creating if nodes with optional desugaring
-    std::unique_ptr<parser::Node> translateIfNode(core::LocOffsets location, std::unique_ptr<parser::Node> predicate,
-                                                  std::unique_ptr<parser::Node> ifTrue,
-                                                  std::unique_ptr<parser::Node> ifFalse);
 
     std::pair<core::NameRef, core::LocOffsets> translateSymbol(pm_symbol_node *symbol);
 
