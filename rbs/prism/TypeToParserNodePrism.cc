@@ -65,6 +65,8 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
                 return prism.T_Array(loc);
             } else if (nameConstant == core::Names::Constants::Class()) {
                 return prism.T_Class(loc);
+            } else if (nameConstant == core::Names::Constants::Module()) {
+                return prism.T_Module(loc);
             } else if (nameConstant == core::Names::Constants::Enumerable()) {
                 return prism.T_Enumerable(loc);
             } else if (nameConstant == core::Names::Constants::Enumerator()) {

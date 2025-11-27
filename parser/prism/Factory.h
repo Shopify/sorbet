@@ -87,6 +87,7 @@ public:
     pm_node_t *T_Array(core::LocOffsets loc) const;
     pm_node_t *T_Boolean(core::LocOffsets loc) const;
     pm_node_t *T_Class(core::LocOffsets loc) const;
+    pm_node_t *T_Module(core::LocOffsets loc) const;
     pm_node_t *T_Enumerable(core::LocOffsets loc) const;
     pm_node_t *T_Enumerator(core::LocOffsets loc) const;
     pm_node_t *T_Hash(core::LocOffsets loc) const;

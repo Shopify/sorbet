@@ -484,6 +484,10 @@ pm_node_t *Factory::T_Class(core::LocOffsets loc) const {
     return ConstantPathNode(loc, T(loc), "Class"sv);
 }
 
+pm_node_t *Factory::T_Module(core::LocOffsets loc) const {
+    return ConstantPathNode(loc, T(loc), "Module"sv);
+}
+
 pm_node_t *Factory::T_Enumerable(core::LocOffsets loc) const {
     return ConstantPathNode(loc, T(loc), "Enumerable"sv);
 }
