@@ -23,7 +23,7 @@ rbs_string_t makeRBSString(const string &str) {
 } // namespace
 
 pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::LocOffsets, core::NameRef>> typeParams,
-                                                             const rbs::RBSDeclaration &assertion) {
+                                                            const rbs::RBSDeclaration &assertion) {
     rbs_string_t rbsString = makeRBSString(assertion.string);
     const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
 
@@ -118,26 +118,6 @@ pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *m
     auto methodTypeToParserNodePrism = MethodTypeToParserNodePrism(ctx, move(parser), *this->parser);
     return methodTypeToParserNodePrism.methodSignature(methodDef, rbsMethodType, declaration, annotations);
 }
-
-// unique_ptr<parser::Node> SignatureTranslatorPrism::translateType(const RBSDeclaration &declaration) {
-//     rbs_string_t rbsString = makeRBSString(declaration.string);
-//     const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
-
-//     Parser parser(rbsString, encoding);
-//     rbs_node_t *rbsType = parser.parseType();
-
-//     if (parser.hasError()) {
-//         core::LocOffsets offset = declaration.typeLocFromRange(parser.getError()->token.range);
-//         if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
-//             e.setHeader("Failed to parse RBS type ({})", parser.getError()->message);
-//         }
-
-//         return nullptr;
-//     }
-
-//     auto typeTranslator = TypeToParserNode(ctx, vector<pair<core::LocOffsets, core::NameRef>>(), parser);
-//     return typeTranslator.toParserNode(rbsType, declaration);
-// }
 
 vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDeclaration &declaration) {
     rbs_string_t rbsString = makeRBSString(declaration.string);

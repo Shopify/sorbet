@@ -499,7 +499,7 @@ vector<MethodParamInfo> getMethodArgs(pm_def_node_t *def) {
 pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call, const rbs_node_t *type,
                                                       const RBSDeclaration &declaration,
                                                       const vector<Comment> &annotations) {
-    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
+    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>{};
     auto fullTypeLoc = declaration.fullTypeLoc();
     auto firstLineTypeLoc = declaration.firstLineTypeLoc();
     auto commentLoc = declaration.commentLoc();
