@@ -23,7 +23,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
     <emptyTree>
   end
 
-  ::Sorbet::Private::Static.sig(::T::Sig::WithoutRuntime) do ||
+  ::T::Sig::WithoutRuntime.sig() do ||
     <self>.type_parameters(:X).params(:x, ::<root>::<C T>.type_parameter(:X)).returns(<emptyTree>::<C G17>.<syntheticSquareBrackets>(::<root>::<C T>.type_parameter(:X), ::<root>::<C T>.type_parameter(:X)))
   end
 
