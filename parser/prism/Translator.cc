@@ -474,10 +474,8 @@ ast::Send *asTLet(ExpressionPtr &arg) {
     return send;
 }
 
-// Had to widen the type from `parser::Assign` to `parser::Node` to handle `make_node_with_expr` correctly.
-// TODO: narrow the type back after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
 template <typename PrismAssignmentNode, typename SorbetLHSNode>
-unique_ptr<parser::Node> Translator::translateAssignment(pm_node_t *untypedNode) {
+ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
     auto location = translateLoc(untypedNode->location);
     auto rhs = translate(node->value);
@@ -504,8 +502,7 @@ unique_ptr<parser::Node> Translator::translateAssignment(pm_node_t *untypedNode)
 
     enforceHasExpr(lhs, rhs);
 
-    auto exp = MK::Assign(location, lhs->takeDesugaredExpr(), rhs->takeDesugaredExpr());
-    return make_node_with_expr<parser::Assign>(move(exp), location, move(lhs), move(rhs));
+    return MK::Assign(location, lhs->takeDesugaredExpr(), rhs->takeDesugaredExpr());
 }
 
 // widen the type from `parser::OpAsgn` to `parser::Node` to handle `make_node_with_expr` correctly.
@@ -2101,7 +2098,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return expr_only(move(expr));
         }
         case PM_CLASS_VARIABLE_WRITE_NODE: { // Regular assignment to a class variable, e.g. `@@a = 1`
-            return translateAssignment<pm_class_variable_write_node, parser::CVarLhs>(node);
+            return expr_only(desugarAssignment<pm_class_variable_write_node, parser::CVarLhs>(node));
         }
         case PM_CONSTANT_PATH_AND_WRITE_NODE: { // And-assignment to a constant path, e.g. `A::B &&= false`
             return translateConstantPathAssignment<pm_constant_path_and_write_node, parser::AndAsgn>(node, location);
@@ -2126,7 +2123,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return translateConst<pm_constant_path_target_node, parser::ConstLhs>(constantPathTargetNode);
         }
         case PM_CONSTANT_PATH_WRITE_NODE: { // Regular assignment to a constant path, e.g. `A::B = 1`
-            return translateAssignment<pm_constant_path_write_node, void>(node);
+            return expr_only(desugarAssignment<pm_constant_path_write_node, void>(node));
         }
         case PM_CONSTANT_TARGET_NODE: { // Target of an indirect write to a constant
             // ... like `TARGET1, TARGET2 = 1, 2`, `rescue => TARGET`, etc.
@@ -2147,7 +2144,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return translateConst<pm_constant_read_node, parser::Const>(constantReadNode);
         }
         case PM_CONSTANT_WRITE_NODE: { // Regular assignment to a constant, e.g. `Foo = 1`
-            return translateAssignment<pm_constant_write_node, parser::ConstLhs>(node);
+            return expr_only(desugarAssignment<pm_constant_write_node, parser::ConstLhs>(node));
         }
         case PM_DEF_NODE: { // Method definitions, like `def m; ...; end` and `def m = 123`
             auto defNode = down_cast<pm_def_node>(node);
@@ -2511,7 +2508,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return expr_only(move(expr));
         }
         case PM_GLOBAL_VARIABLE_WRITE_NODE: { // Regular assignment to a global variable, e.g. `$g = 1`
-            return translateAssignment<pm_global_variable_write_node, parser::GVarLhs>(node);
+            return expr_only(desugarAssignment<pm_global_variable_write_node, parser::GVarLhs>(node));
         }
         case PM_HASH_NODE: { // A hash literal, like `{ a: 1, b: 2 }`
             auto hashNode = down_cast<pm_hash_node>(node);
@@ -2641,7 +2638,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return expr_only(move(expr));
         }
         case PM_INSTANCE_VARIABLE_WRITE_NODE: { // Regular assignment to an instance variable, e.g. `@iv = 1`
-            return translateAssignment<pm_instance_variable_write_node, parser::IVarLhs>(node);
+            return expr_only(desugarAssignment<pm_instance_variable_write_node, parser::IVarLhs>(node));
         }
         case PM_INTEGER_NODE: { // An integer literal, e.g., `123`, `0xcafe`, `0b1010`, etc.
             auto intNode = down_cast<pm_integer_node>(node);
@@ -2847,7 +2844,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             return expr_only(move(expr));
         }
         case PM_LOCAL_VARIABLE_WRITE_NODE: { // Regular assignment to a local variable, e.g. `local = 1`
-            return translateAssignment<pm_local_variable_write_node, parser::LVarLhs>(node);
+            return expr_only(desugarAssignment<pm_local_variable_write_node, parser::LVarLhs>(node));
         }
         case PM_MATCH_LAST_LINE_NODE: { // A regex literal in a conditional...
             // ...that implicitly checks against the last read line by an IO object, e.g. `if /wat/`
