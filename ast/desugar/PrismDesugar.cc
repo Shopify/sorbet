@@ -38,23 +38,29 @@ ExpressionPtr node2TreeImplBody(parser::Node *what) {
     ENFORCE(what != nullptr);
 
     auto nodeWithExpr = parser::NodeWithExpr::cast_node<parser::NodeWithExpr>(what);
-    ENFORCE(nodeWithExpr != nullptr);
 
-    if (parser::NodeWithExpr::isa_node<parser::Splat>(nodeWithExpr->wrappedNode.get())) {
-        // Special case for Splats in method calls where we want zero-length locations
-        // The `parser::Send` case makes a fake parser::Array with locZeroLen to hide callWithSplat
-        // methods from hover.`
-        auto splat = parser::NodeWithExpr::cast_node<parser::Splat>(nodeWithExpr->wrappedNode.get());
+    if (nodeWithExpr != nullptr) {
+        if (parser::NodeWithExpr::isa_node<parser::Splat>(nodeWithExpr->wrappedNode.get())) {
+            // Special case for Splats in method calls where we want zero-length locations
+            // The `parser::Send` case makes a fake parser::Array with locZeroLen to hide callWithSplat
+            // methods from hover.`
+            auto splat = parser::NodeWithExpr::cast_node<parser::Splat>(nodeWithExpr->wrappedNode.get());
 
-        if (!splat->var->hasDesugaredExpr()) {
-            throw parser::Prism::PrismFallback{};
+            if (!splat->var->hasDesugaredExpr()) {
+                throw parser::Prism::PrismFallback{};
+            }
+
+            return MK::Splat(what->loc, splat->var->takeDesugaredExpr());
         }
 
-        return MK::Splat(what->loc, splat->var->takeDesugaredExpr());
+        auto expr = nodeWithExpr->takeDesugaredExpr();
+        ENFORCE(expr != nullptr, "NodeWithExpr has no cached desugared expr");
+        return expr;
     }
 
-    auto expr = nodeWithExpr->takeDesugaredExpr();
-    ENFORCE(expr != nullptr, "NodeWithExpr has no cached desugared expr");
+    ENFORCE(what->hasDesugaredExpr(), "Node has no desugared expression");
+    auto expr = what->takeDesugaredExpr();
+    ENFORCE(expr != nullptr, "Node has null desugared expr");
     return expr;
 }
 
