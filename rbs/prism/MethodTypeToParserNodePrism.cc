@@ -28,7 +28,6 @@ namespace {
 // Forward declarations
 // core::LocOffsets translateLocation(pm_location_t location);
 
-/* TODO: Implement when needed
 core::LocOffsets adjustNameLoc(const RBSDeclaration &declaration, rbs_node_t *node) {
     auto range = node->location->rg;
 
@@ -40,7 +39,6 @@ core::LocOffsets adjustNameLoc(const RBSDeclaration &declaration, rbs_node_t *no
 
     return declaration.typeLocFromRange(range);
 }
-*/
 
 bool isSelfOrKernel(pm_node_t *node, const parser::Prism::Parser *prismParser) {
     if (PM_NODE_TYPE_P(node, PM_SELF_NODE)) {
@@ -363,7 +361,7 @@ void collectArgs(const RBSDeclaration &declaration, rbs_node_list_t *field, vect
 
     for (rbs_node_list_node_t *list_node = field->head; list_node != nullptr; list_node = list_node->next) {
         auto loc = declaration.typeLocFromRange(list_node->node->location->rg);
-        auto nameLoc = loc;
+        auto nameLoc = adjustNameLoc(declaration, list_node->node);
 
         ENFORCE(list_node->node->type == RBS_TYPES_FUNCTION_PARAM,
                 "Unexpected node type `{}` in function parameter, expected `{}`", rbs_node_type_name(list_node->node),
@@ -624,16 +622,18 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     collectArgs(declaration, functionType->trailing_positionals, args, RBSArg::Kind::Positional);
     if (functionType->rest_positionals) {
         auto loc = declaration.typeLocFromRange(functionType->rest_positionals->location->rg);
+        auto nameLoc = adjustNameLoc(declaration, functionType->rest_positionals);
         auto *param = (rbs_types_function_param_t *)functionType->rest_positionals;
-        auto arg = RBSArg{loc, loc, param->name, param->type, RBSArg::Kind::RestPositional};
+        auto arg = RBSArg{loc, nameLoc, param->name, param->type, RBSArg::Kind::RestPositional};
         args.emplace_back(arg);
     }
     collectKeywords(declaration, functionType->required_keywords, args, RBSArg::Kind::Keyword);
     collectKeywords(declaration, functionType->optional_keywords, args, RBSArg::Kind::OptionalKeyword);
     if (functionType->rest_keywords) {
         auto loc = declaration.typeLocFromRange(functionType->rest_keywords->location->rg);
+        auto nameLoc = adjustNameLoc(declaration, functionType->rest_keywords);
         auto *param = (rbs_types_function_param_t *)functionType->rest_keywords;
-        auto arg = RBSArg{loc, loc, param->name, param->type, RBSArg::Kind::RestKeyword};
+        auto arg = RBSArg{loc, nameLoc, param->name, param->type, RBSArg::Kind::RestKeyword};
         args.emplace_back(arg);
     }
     auto *rbsBlock = node.block;
