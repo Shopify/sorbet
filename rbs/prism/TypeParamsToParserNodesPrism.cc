@@ -73,9 +73,9 @@ vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_
             block = prism.Block(loc, body);
         }
 
-        auto typeSend = prism.Send(loc, prism.SorbetPrivateStatic(loc), "type_member"sv, absl::MakeSpan(args), block);
+        auto typeCall = prism.Call(loc, prism.SorbetPrivateStatic(loc), "type_member"sv, absl::MakeSpan(args), block);
 
-        auto assign = prism.ConstantWriteNode(loc, prism.addConstantToPool(nameConstant.show(ctx.state)), typeSend);
+        auto assign = prism.ConstantWriteNode(loc, prism.addConstantToPool(nameConstant.show(ctx.state)), typeCall);
         result.push_back(assign);
     }
 

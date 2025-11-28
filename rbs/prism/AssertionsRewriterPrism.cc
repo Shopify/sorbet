@@ -340,7 +340,7 @@ void maybeSupplyGenericTypeArguments(core::MutableContext ctx, parser::Prism::Pa
 /**
  * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
  *
- * Returns `true` if the block is a `sig` send, `false` otherwise.
+ * Returns `true` if the block is a `sig` call, `false` otherwise.
  */
 bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
     if (!call || !PM_NODE_TYPE_P(call, PM_CALL_NODE)) {
@@ -867,7 +867,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
 
                 node = maybeInsertCast(node);
             } else {
-                // Normal call - matches whitequark's Send handling
+                // Normal call - matches Whitequark's Send handling
                 call->receiver = rewriteNode(call->receiver);
                 node = maybeInsertCast(node);
             }

@@ -45,16 +45,16 @@ public:
     pm_node_t *KeywordHash(core::LocOffsets loc, const absl::Span<pm_node_t *> pairs) const;
 
     // Low-level method call creation
-    pm_call_node_t *createSendNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
+    pm_call_node_t *createCallNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
                                    pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
                                    pm_node_t *block = nullptr) const;
 
     // High-level method call builders (similar to ast::MK)
-    pm_node_t *Send(core::LocOffsets loc, pm_node_t *receiver, std::string_view method,
+    pm_node_t *Call(core::LocOffsets loc, pm_node_t *receiver, std::string_view method,
                     const absl::Span<pm_node_t *> args, pm_node_t *block = nullptr) const;
-    pm_node_t *Send0(core::LocOffsets loc, pm_node_t *receiver, std::string_view method) const;
-    pm_node_t *Send1(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1) const;
-    pm_node_t *Send2(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1,
+    pm_node_t *Call0(core::LocOffsets loc, pm_node_t *receiver, std::string_view method) const;
+    pm_node_t *Call1(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1) const;
+    pm_node_t *Call2(core::LocOffsets loc, pm_node_t *receiver, std::string_view method, pm_node_t *arg1,
                      pm_node_t *arg2) const;
 
     // Utility functions

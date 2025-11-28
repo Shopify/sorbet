@@ -97,8 +97,8 @@ optional<uint32_t> CommentsAssociatorPrism::locateTargetLine(pm_node_t *node) {
             break;
         }
         case PM_CALL_NODE: {
-            auto *send = down_cast<pm_call_node_t>(node);
-            result = locateTargetLine(send->receiver);
+            auto *call = down_cast<pm_call_node_t>(node);
+            result = locateTargetLine(call->receiver);
             break;
         }
         default: {
@@ -540,8 +540,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsUntilLine(beginLine);
 
             associateAssertionCommentsToNode(node);
-            // TODO: In Prism, block and call are separate nodes (unlike Whitequark where block contained send)
-            // The call will be handled separately by the call handler
+
             walkNode(block->body);
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), blockLoc.endPos()).line;
             consumeCommentsBetweenLines(beginLine, endLine, "block");
@@ -610,7 +609,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 if (call->arguments != nullptr) {
                     walkNodes(call->arguments->arguments);
                 }
-                consumeCommentsInsideNode(node, "send");
+                consumeCommentsInsideNode(node, "call");
             } else if (parser.isAttrAccessorCall(node)) {
                 associateSignatureCommentsToNode(node);
                 associateAssertionCommentsToNode(node);
@@ -618,15 +617,15 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 if (call->arguments != nullptr) {
                     walkNodes(call->arguments->arguments);
                 }
-                consumeCommentsInsideNode(node, "send");
+                consumeCommentsInsideNode(node, "call");
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
                        parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
                 associateAssertionCommentsToNode(call->arguments->arguments.nodes[0]);
                 walkNode(call->arguments->arguments.nodes[0]);
-                consumeCommentsInsideNode(node, "csend");
+                consumeCommentsInsideNode(node, "safe navigation call");
             } else if (parser.resolveConstant(call->name) == "[]=" || parser.isSetterCall(node)) {
-                // This is an assign through a send, either: `foo[key]=(y)` or `foo.x=(y)`
+                // This is an assign through a call, either: `foo[key]=(y)` or `foo.x=(y)`
                 //
                 // Note: the parser groups the args on the right hand side of the assignment into an array node:
                 //  * for `foo.x = 1, 2` the args are `[1, 2]`
@@ -639,7 +638,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                     }
                 }
                 walkNode(call->receiver);
-                consumeCommentsInsideNode(node, "send");
+                consumeCommentsInsideNode(node, "call");
             } else {
                 associateAssertionCommentsToNode(node);
                 walkNode(call->receiver);

@@ -139,7 +139,7 @@ pm_constant_id_t Factory::addConstantToPool(string_view name) const {
     return id;
 }
 
-pm_call_node_t *Factory::createSendNode(pm_node_t *receiver, pm_constant_id_t methodId, pm_node_t *arguments,
+pm_call_node_t *Factory::createCallNode(pm_node_t *receiver, pm_constant_id_t methodId, pm_node_t *arguments,
                                         pm_location_t messageLoc, pm_location_t fullLoc, pm_location_t tinyLoc,
                                         pm_node_t *block) const {
     pm_call_node_t *call = allocateNode<pm_call_node_t>();
@@ -271,17 +271,17 @@ pm_node_t *Factory::Symbol(core::LocOffsets nameLoc, string_view name) const {
     return SymbolFromConstant(nameLoc, nameId);
 }
 
-pm_node_t *Factory::Send0(core::LocOffsets loc, pm_node_t *receiver, string_view method) const {
+pm_node_t *Factory::Call0(core::LocOffsets loc, pm_node_t *receiver, string_view method) const {
     ENFORCE(receiver && !method.empty(), "Receiver or method is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, methodId, nullptr, tinyLoc, fullLoc, tinyLoc));
+    return up_cast(createCallNode(receiver, methodId, nullptr, tinyLoc, fullLoc, tinyLoc));
 }
 
-pm_node_t *Factory::Send1(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1) const {
+pm_node_t *Factory::Call1(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1) const {
     ENFORCE(receiver && !method.empty() && arg1, "Receiver or method or argument is null");
 
     pm_constant_id_t methodId = addConstantToPool(method);
@@ -290,10 +290,10 @@ pm_node_t *Factory::Send1(core::LocOffsets loc, pm_node_t *receiver, string_view
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, methodId, arguments, tinyLoc, fullLoc, tinyLoc));
+    return up_cast(createCallNode(receiver, methodId, arguments, tinyLoc, fullLoc, tinyLoc));
 }
 
-pm_node_t *Factory::Send(core::LocOffsets loc, pm_node_t *receiver, string_view method,
+pm_node_t *Factory::Call(core::LocOffsets loc, pm_node_t *receiver, string_view method,
                          const absl::Span<pm_node_t *> args, pm_node_t *block) const {
     ENFORCE(receiver && !method.empty(), "Receiver or method is null");
 
@@ -307,7 +307,7 @@ pm_node_t *Factory::Send(core::LocOffsets loc, pm_node_t *receiver, string_view 
     pm_location_t fullLoc = parser.convertLocOffsets(loc);
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
 
-    return up_cast(createSendNode(receiver, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc, block));
+    return up_cast(createCallNode(receiver, methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc, block));
 }
 
 pm_node_t *Factory::T(core::LocOffsets loc) const {
@@ -320,12 +320,12 @@ pm_node_t *Factory::THelpers(core::LocOffsets loc) const {
 }
 
 pm_node_t *Factory::TUntyped(core::LocOffsets loc) const {
-    return Send0(loc, T(loc), "untyped"sv);
+    return Call0(loc, T(loc), "untyped"sv);
 }
 
 pm_node_t *Factory::TNilable(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "TNilable: type parameter is required");
-    return Send1(loc, T(loc), "nilable"sv, type);
+    return Call1(loc, T(loc), "nilable"sv, type);
 }
 
 pm_node_t *Factory::TAny(core::LocOffsets loc, const absl::Span<pm_node_t *> args) const {
@@ -336,7 +336,7 @@ pm_node_t *Factory::TAny(core::LocOffsets loc, const absl::Span<pm_node_t *> arg
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
     pm_arguments_node_t *arguments = createArgumentsNode(args, fullLoc);
 
-    return up_cast(createSendNode(T(loc), methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
+    return up_cast(createCallNode(T(loc), methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *Factory::TAll(core::LocOffsets loc, const absl::Span<pm_node_t *> args) const {
@@ -347,13 +347,13 @@ pm_node_t *Factory::TAll(core::LocOffsets loc, const absl::Span<pm_node_t *> arg
     pm_location_t tinyLoc = parser.convertLocOffsets(loc.copyWithZeroLength());
     pm_arguments_node_t *arguments = createArgumentsNode(args, fullLoc);
 
-    return up_cast(createSendNode(T(loc), methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
+    return up_cast(createCallNode(T(loc), methodId, up_cast(arguments), tinyLoc, fullLoc, tinyLoc));
 }
 
 pm_node_t *Factory::TTypeParameter(core::LocOffsets loc, pm_node_t *name) const {
     ENFORCE(name, "Name is null");
 
-    return Send1(loc, T(loc), "type_parameter"sv, name);
+    return Call1(loc, T(loc), "type_parameter"sv, name);
 }
 
 pm_node_t *Factory::TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *returnType) const {
@@ -361,87 +361,87 @@ pm_node_t *Factory::TProc(core::LocOffsets loc, pm_node_t *args, pm_node_t *retu
 
     pm_node_t *builder = T(loc);
 
-    builder = Send0(loc, builder, "proc"sv);
+    builder = Call0(loc, builder, "proc"sv);
 
     if (args != nullptr) {
-        builder = Send1(loc, builder, "params"sv, args);
+        builder = Call1(loc, builder, "params"sv, args);
     }
 
-    return Send1(loc, builder, "returns"sv, returnType);
+    return Call1(loc, builder, "returns"sv, returnType);
 }
 
 pm_node_t *Factory::TProcVoid(core::LocOffsets loc, pm_node_t *args) const {
     pm_node_t *builder = T(loc);
 
-    builder = Send0(loc, builder, "proc"sv);
+    builder = Call0(loc, builder, "proc"sv);
 
     if (args != nullptr) {
-        builder = Send1(loc, builder, "params"sv, args);
+        builder = Call1(loc, builder, "params"sv, args);
     }
 
-    return Send0(loc, builder, "void"sv);
+    return Call0(loc, builder, "void"sv);
 }
 
-pm_node_t *Factory::Send2(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1,
+pm_node_t *Factory::Call2(core::LocOffsets loc, pm_node_t *receiver, string_view method, pm_node_t *arg1,
                           pm_node_t *arg2) const {
     ENFORCE(receiver && !method.empty() && arg1 && arg2, "Receiver or method or arguments are null");
 
     pm_node_t *args[] = {arg1, arg2};
-    return Send(loc, receiver, method, args);
+    return Call(loc, receiver, method, args);
 }
 
 pm_node_t *Factory::TLet(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) const {
     ENFORCE(value && type, "Value or type is null");
-    return Send2(loc, T(loc), "let"sv, value, type);
+    return Call2(loc, T(loc), "let"sv, value, type);
 }
 
 pm_node_t *Factory::TCast(core::LocOffsets loc, pm_node_t *value, pm_node_t *type) const {
     ENFORCE(value && type, "Value or type is null");
-    return Send2(loc, T(loc), "cast"sv, value, type);
+    return Call2(loc, T(loc), "cast"sv, value, type);
 }
 
 pm_node_t *Factory::TMust(core::LocOffsets loc, pm_node_t *value) const {
     ENFORCE(value, "Value is null");
-    return Send1(loc, T(loc), "must"sv, value);
+    return Call1(loc, T(loc), "must"sv, value);
 }
 
 pm_node_t *Factory::TUnsafe(core::LocOffsets loc, pm_node_t *value) const {
     ENFORCE(value, "Value is null");
-    return Send1(loc, T(loc), "unsafe"sv, value);
+    return Call1(loc, T(loc), "unsafe"sv, value);
 }
 
 pm_node_t *Factory::TAbsurd(core::LocOffsets loc, pm_node_t *value) const {
     ENFORCE(value, "Value is null");
-    return Send1(loc, T(loc), "absurd"sv, value);
+    return Call1(loc, T(loc), "absurd"sv, value);
 }
 pm_node_t *Factory::TBindSelf(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
 
-    return Send2(loc, T(loc), "bind"sv, Self(loc), type);
+    return Call2(loc, T(loc), "bind"sv, Self(loc), type);
 }
 
 pm_node_t *Factory::TSelfType(core::LocOffsets loc) const {
-    return Send0(loc, T(loc), "self_type"sv);
+    return Call0(loc, T(loc), "self_type"sv);
 }
 
 pm_node_t *Factory::TAnything(core::LocOffsets loc) const {
-    return Send0(loc, T(loc), "anything"sv);
+    return Call0(loc, T(loc), "anything"sv);
 }
 
 pm_node_t *Factory::TAttachedClass(core::LocOffsets loc) const {
-    return Send0(loc, T(loc), "attached_class"sv);
+    return Call0(loc, T(loc), "attached_class"sv);
 }
 
 pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) const {
     ENFORCE(type, "Type is null");
-    pm_node_t *send = Send0(loc, T(loc), "type_alias"sv);
+    pm_node_t *typeAliasCall = Call0(loc, T(loc), "type_alias"sv);
 
     pm_node_t *block = Block(loc, StatementsNode(loc, absl::Span<pm_node_t *>{&type, 1}));
 
-    auto *call = down_cast<pm_call_node_t>(send);
+    auto *call = down_cast<pm_call_node_t>(typeAliasCall);
     call->block = block;
 
-    return send;
+    return typeAliasCall;
 }
 
 pm_node_t *Factory::Array(core::LocOffsets loc, const absl::Span<pm_node_t *> elements) const {
