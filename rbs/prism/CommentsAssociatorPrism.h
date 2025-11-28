@@ -27,8 +27,8 @@ struct CommentNodePrism {
 };
 
 struct CommentMapPrismNode {
-    std::map<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
-    std::map<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
+    std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
+    std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
 };
 
 class CommentsAssociatorPrism {
@@ -49,8 +49,8 @@ private:
     parser::Prism::Factory prism;
     std::vector<core::LocOffsets> commentLocations;
     std::map<int, CommentNodePrism> commentByLine;
-    std::map<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
-    std::map<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
+    std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
+    std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
     std::vector<std::pair<bool, core::LocOffsets>> contextAllowingTypeAlias;
     int lastLine;
 
