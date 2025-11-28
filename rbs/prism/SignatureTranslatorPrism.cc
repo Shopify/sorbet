@@ -25,7 +25,7 @@ rbs_string_t makeRBSString(const string &str) {
 pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::LocOffsets, core::NameRef>> typeParams,
                                                             const rbs::RBSDeclaration &assertion) {
     rbs_string_t rbsString = makeRBSString(assertion.string);
-    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
     Parser parser(rbsString, encoding);
     rbs_node_t *rbsType = parser.parseType();
@@ -44,7 +44,7 @@ pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::Lo
 
 pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declaration) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
     Parser parser(rbsString, encoding);
     rbs_node_t *rbsType = parser.parseType();
@@ -67,7 +67,7 @@ pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t
                                                             const RBSDeclaration &declaration,
                                                             const vector<Comment> &annotations) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
     Parser parser(rbsString, encoding);
     rbs_node_t *rbsType = parser.parseType();
@@ -99,7 +99,7 @@ pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *m
                                                               const RBSDeclaration &declaration,
                                                               const vector<Comment> &annotations) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
     Parser parser(rbsString, encoding);
     rbs_method_type_t *rbsMethodType = parser.parseMethodType();
@@ -121,7 +121,7 @@ pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *m
 
 vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDeclaration &declaration) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = &rbs_encodings[RBS_ENCODING_UTF_8];
+    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
     Parser rbsParser(rbsString, encoding);
     rbs_node_list_t *rbsTypeParams = rbsParser.parseTypeParams();
