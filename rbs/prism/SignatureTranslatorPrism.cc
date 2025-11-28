@@ -65,7 +65,7 @@ pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declara
 
 pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
                                                             const RBSDeclaration &declaration,
-                                                            const vector<Comment> &annotations) {
+                                                            absl::Span<const Comment> annotations) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
     const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
@@ -97,7 +97,7 @@ pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t
 
 pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *methodDef,
                                                               const RBSDeclaration &declaration,
-                                                              const vector<Comment> &annotations) {
+                                                              absl::Span<const Comment> annotations) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
     const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 

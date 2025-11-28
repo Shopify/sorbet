@@ -78,7 +78,7 @@ pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser
  *
  * It doesn't insert them into the body of the class/module/etc.
  */
-vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Comment> &annotations,
+vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Comment> annotations,
                                    parser::Prism::Parser &parser) {
     Factory prism(parser);
     vector<pm_node_t *> helpers;
