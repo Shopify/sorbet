@@ -326,7 +326,7 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
     if (commentsByNode != nullptr && node != nullptr) {
         if (auto it = commentsByNode->find(node); it != commentsByNode->end()) {
             auto &nodes = it->second;
-            auto declaration_comments = vector<Comment>();
+            auto declaration_comments = vector<Comment>{};
 
             for (auto &commentNode : nodes) {
                 if (absl::StartsWith(commentNode.string, "# @")) {

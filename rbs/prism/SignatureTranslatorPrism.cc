@@ -134,7 +134,7 @@ vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDecla
             e.setHeader("Failed to parse RBS type parameters ({})", rbsParser.getError()->message);
         }
 
-        return vector<pm_node_t *>();
+        return vector<pm_node_t *>{};
     }
 
     auto typeParamsToParserNode = TypeParamsToParserNodePrism(ctx, move(rbsParser), *parser);

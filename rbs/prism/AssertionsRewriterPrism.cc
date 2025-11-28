@@ -75,7 +75,7 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
  */
 vector<pair<core::LocOffsets, core::NameRef>>
 extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &parser, pm_node_t *block) {
-    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>();
+    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>{};
 
     // Do we have a block?
     if (!block || !PM_NODE_TYPE_P(block, PM_BLOCK_NODE)) {
