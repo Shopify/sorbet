@@ -14,6 +14,16 @@ extern "C" {
 #include "parser/ParseResult.h"
 
 namespace sorbet::parser::Prism {
+class Parser;
+} // namespace sorbet::parser::Prism
+
+namespace sorbet::rbs {
+struct CommentNodePrism;
+pm_node_t *createSyntheticPlaceholder(sorbet::parser::Prism::Parser &parser, const CommentNodePrism &comment,
+                                      pm_constant_id_t marker);
+} // namespace sorbet::rbs
+
+namespace sorbet::parser::Prism {
 
 class ParseResult;
 
@@ -28,6 +38,14 @@ public:
     pm_error_level_t level;
 };
 
+struct SimpleParseResult {
+    std::vector<ParseError> parseErrors;
+    std::vector<core::LocOffsets> commentLocations;
+
+    SimpleParseResult(std::vector<ParseError> parseErrors, std::vector<core::LocOffsets> commentLocations)
+        : parseErrors(std::move(parseErrors)), commentLocations(std::move(commentLocations)) {}
+};
+
 class Parser final {
     // The version of Ruby syntax that we're parsing with Prism. This determines what syntax is supported or not.
     static constexpr std::string_view ParsedRubyVersion = "3.3.0";
@@ -37,6 +55,10 @@ class Parser final {
 
     friend class ParseResult;
     friend struct NodeDeleter;
+    friend class Factory;
+    friend pm_node_t *sorbet::rbs::createSyntheticPlaceholder(Parser &parser,
+                                                              const sorbet::rbs::CommentNodePrism &comment,
+                                                              pm_constant_id_t marker);
 
 public:
     Parser(std::string_view sourceCode) : parser{}, options{} {
@@ -58,11 +80,22 @@ public:
     static parser::ParseResult run(core::MutableContext ctx, bool directlyDesugar = true,
                                    bool preserveConcreteSyntax = false);
 
-    ParseResult parse(bool collectComments = false);
+    ParseResult parseWithoutTranslation(bool collectComments = false);
     core::LocOffsets translateLocation(pm_location_t location) const;
     core::LocOffsets translateLocation(const uint8_t *start, const uint8_t *end) const;
     std::string_view resolveConstant(pm_constant_id_t constantId) const;
     std::string_view extractString(pm_string_t *string) const;
+    std::string prettyPrint(pm_node_t *node) const;
+
+    pm_location_t getZeroWidthLocation() const;
+    pm_location_t convertLocOffsets(core::LocOffsets loc) const;
+
+    bool isTUntyped(pm_node_t *node) const;
+    bool isT(pm_node_t *node) const;
+    bool isSetterCall(pm_node_t *node) const;
+    bool isSafeNavigationCall(pm_node_t *node) const;
+    bool isVisibilityCall(pm_node_t *node) const;
+    bool isAttrAccessorCall(pm_node_t *node) const;
 
 private:
     std::vector<ParseError> collectErrors();
@@ -87,6 +120,7 @@ class ParseResult final {
     const std::vector<ParseError> parseErrors;
     std::vector<core::LocOffsets> commentLocations;
 
+public:
     ParseResult(Parser &parser, pm_node_t *node, std::vector<ParseError> parseErrors,
                 std::vector<core::LocOffsets> commentLocations)
         : parser{parser}, node{node, NodeDeleter{parser}}, parseErrors{parseErrors}, commentLocations{
@@ -99,6 +133,18 @@ class ParseResult final {
 
     pm_node_t *getRawNodePointer() const {
         return node.get();
+    }
+
+    const std::vector<core::LocOffsets> &getCommentLocations() const {
+        return commentLocations;
+    }
+
+    const std::vector<ParseError> &getParseErrors() const {
+        return parseErrors;
+    }
+
+    const Parser &getParser() const {
+        return parser;
     }
 };
 
