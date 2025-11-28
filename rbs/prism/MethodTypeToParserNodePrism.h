@@ -31,7 +31,7 @@ public:
      * `sig { void }`.
      */
     pm_node_t *methodSignature(const pm_node_t *methodDef, const rbs_method_type_t *methodType,
-                               const RBSDeclaration &declaration, const std::vector<Comment> &annotations);
+                               const RBSDeclaration &declaration, absl::Span<const Comment> annotations);
 
     /**
      * Convert an RBS attribute type comment to a Sorbet signature.
@@ -40,7 +40,7 @@ public:
      * `sig { returns(Integer) }`.
      */
     pm_node_t *attrSignature(const pm_call_node_t *call, const rbs_node_t *type, const RBSDeclaration &declaration,
-                             const std::vector<Comment> &annotations);
+                             absl::Span<const Comment> annotations);
 
 private:
     // RBS-specific node creators (thin wrappers around PMK)
