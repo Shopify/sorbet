@@ -147,7 +147,7 @@ void ensureAbstractMethodRaises(core::MutableContext ctx, const pm_node_t *node,
 }
 
 pm_node_t *handleAnnotations(core::MutableContext ctx, const pm_node_t *node, pm_node_t *sigBuilder,
-                             const vector<Comment> &annotations, const parser::Prism::Parser *prismParser,
+                             absl::Span<const Comment> annotations, const parser::Prism::Parser *prismParser,
                              const parser::Prism::Factory &prism) {
     for (auto &annotation : annotations) {
         if (annotation.string == "final") {
@@ -498,7 +498,7 @@ vector<MethodParamInfo> getMethodArgs(pm_def_node_t *def) {
 
 pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call, const rbs_node_t *type,
                                                       const RBSDeclaration &declaration,
-                                                      const vector<Comment> &annotations) {
+                                                      absl::Span<const Comment> annotations) {
     auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>{};
     auto fullTypeLoc = declaration.fullTypeLoc();
     auto firstLineTypeLoc = declaration.firstLineTypeLoc();
@@ -579,7 +579,7 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call
 
 pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodDef, const rbs_method_type_t *methodType,
                                                         const RBSDeclaration &declaration,
-                                                        const vector<Comment> &annotations) {
+                                                        absl::Span<const Comment> annotations) {
     // fmt::print("DEBUG: MethodTypeToParserNodePrism::methodSignature called\n");
 
     // Parse the RBS method type and create appropriate signature nodes
