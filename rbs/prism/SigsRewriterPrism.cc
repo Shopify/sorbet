@@ -86,22 +86,22 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
     for (auto &annotation : annotations) {
         pm_node_t *helperNode = nullptr;
 
-        // TODO: Should send0 use core::NameRef?
+        // TODO: Should call0 use core::NameRef?
         if (annotation.string == "abstract") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
-            helperNode = prism.Send0(annotation.typeLoc, self, "abstract!"sv);
+            helperNode = prism.Call0(annotation.typeLoc, self, "abstract!"sv);
         } else if (annotation.string == "interface") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
-            helperNode = prism.Send0(annotation.typeLoc, self, "interface!"sv);
+            helperNode = prism.Call0(annotation.typeLoc, self, "interface!"sv);
         } else if (annotation.string == "final") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
             if (self) {
-                helperNode = prism.Send0(annotation.typeLoc, self, "final!"sv);
+                helperNode = prism.Call0(annotation.typeLoc, self, "final!"sv);
             }
         } else if (annotation.string == "sealed") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
             if (self) {
-                helperNode = prism.Send0(annotation.typeLoc, self, "sealed!"sv);
+                helperNode = prism.Call0(annotation.typeLoc, self, "sealed!"sv);
             }
         } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
             if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
@@ -116,9 +116,9 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
 
                     // Create self.requires_ancestor call
                     pm_node_t *self = prism.Self(annotation.typeLoc);
-                    pm_node_t *send = prism.Send0(annotation.typeLoc, self, "requires_ancestor"sv);
+                    pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
 
-                    if (send && self) {
+                    if (callNode && self) {
                         // Create block with the statements as body
                         pm_block_node_t *block = prism.allocateNode<pm_block_node_t>();
                         if (block) {
@@ -131,9 +131,9 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Commen
                                                        .closing_loc = parser.getZeroWidthLocation()};
 
                             // Attach block to the call
-                            auto *call = down_cast<pm_call_node_t>(send);
+                            auto *call = down_cast<pm_call_node_t>(callNode);
                             call->block = up_cast(block);
-                            helperNode = send;
+                            helperNode = callNode;
                         }
                     }
                 }
@@ -262,7 +262,7 @@ void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc, const par
         return;
     }
 
-    pm_node_t *extendCall = prism.Send1(loc, selfNode, "extend"sv, tHelpers);
+    pm_node_t *extendCall = prism.Call1(loc, selfNode, "extend"sv, tHelpers);
     if (!extendCall) {
         return;
     }

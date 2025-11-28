@@ -128,7 +128,7 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
         }
 
         string methodName = core::Names::syntheticSquareBrackets().show(ctx.state);
-        return prism.Send(loc, typeConstant, methodName.c_str(), absl::MakeSpan(args));
+        return prism.Call(loc, typeConstant, methodName.c_str(), absl::MakeSpan(args));
     }
 
     return typeConstant;
@@ -137,7 +137,7 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
 pm_node_t *TypeToParserNodePrism::classSingletonType(const rbs_types_class_singleton_t *node, core::LocOffsets loc,
                                                      const RBSDeclaration &declaration) {
     auto innerType = typeNameType(node->name, false, declaration);
-    return prism.Send1(loc, prism.T(loc), "class_of"sv, innerType);
+    return prism.Call1(loc, prism.T(loc), "class_of"sv, innerType);
 }
 
 pm_node_t *TypeToParserNodePrism::unionType(const rbs_types_union_t *node, core::LocOffsets loc,
@@ -238,7 +238,7 @@ pm_node_t *TypeToParserNodePrism::procType(const rbs_types_proc_t *node, core::L
     rbs_node_t *selfNode = node->self_type;
     if (selfNode != nullptr) {
         auto selfType = toPrismNode(selfNode, declaration);
-        function = prism.Send1(loc, function, "bind"sv, selfType);
+        function = prism.Call1(loc, function, "bind"sv, selfType);
     }
 
     return function;
@@ -272,7 +272,7 @@ pm_node_t *TypeToParserNodePrism::blockType(const rbs_types_block_t *node, core:
     if (selfNode != nullptr) {
         auto selfLoc = declaration.typeLocFromRange(selfNode->location->rg);
         auto selfType = toPrismNode(selfNode, declaration);
-        function = prism.Send1(selfLoc, function, "bind"sv, selfType);
+        function = prism.Call1(selfLoc, function, "bind"sv, selfType);
     }
 
     if (!node->required) {
@@ -367,7 +367,7 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
             if (!t_const) {
                 return nullptr;
             }
-            return prism.Send0(nodeLoc, t_const, "noreturn"sv);
+            return prism.Call0(nodeLoc, t_const, "noreturn"sv);
         }
         case RBS_TYPES_BASES_CLASS: {
             if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSUnsupported)) {
