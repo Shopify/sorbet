@@ -1,6 +1,8 @@
 #ifndef SORBET_RBS_COMMON_H
 #define SORBET_RBS_COMMON_H
 
+#include <type_traits>
+
 extern "C" {
 #include "include/rbs.h"
 }
@@ -13,6 +15,34 @@ extern "C" {
 #define NULL_LOC_RANGE_P(rg) ((rg).start == -1)
 
 namespace sorbet::rbs {
+
+// Helper template to map RBS node types to their type enum values
+template <typename Type> struct RBSNodeTypeHelper {};
+
+#define DEF_RBS_TYPE_HELPER(rbs_struct_type, type_enum)         \
+    template <> struct RBSNodeTypeHelper<rbs_struct_type> {     \
+        static constexpr enum rbs_node_type TypeID = type_enum; \
+    }
+
+DEF_RBS_TYPE_HELPER(rbs_ast_symbol_t, RBS_AST_SYMBOL);
+DEF_RBS_TYPE_HELPER(rbs_ast_type_param_t, RBS_AST_TYPE_PARAM);
+DEF_RBS_TYPE_HELPER(rbs_types_function_t, RBS_TYPES_FUNCTION);
+DEF_RBS_TYPE_HELPER(rbs_types_function_param_t, RBS_TYPES_FUNCTION_PARAM);
+
+#undef DEF_RBS_TYPE_HELPER
+
+// Safe down_cast for RBS nodes (from rbs_node_t to specific types)
+// In debug builds, checks the node type before casting
+template <typename RBSNode> RBSNode *rbs_down_cast(rbs_node_t *anyNode) {
+    static_assert(std::is_same_v<decltype(RBSNode::base), rbs_node_t>,
+                  "The `rbs_down_cast` function should only be called on RBS node pointers.");
+    ENFORCE(anyNode != nullptr, "Failed to cast an RBS node. Expected type {}, but got null",
+            (int)RBSNodeTypeHelper<RBSNode>::TypeID);
+    ENFORCE(anyNode->type == RBSNodeTypeHelper<RBSNode>::TypeID,
+            "Failed to cast an RBS node. Expected type {}, but got type {}", (int)RBSNodeTypeHelper<RBSNode>::TypeID,
+            (int)anyNode->type);
+    return reinterpret_cast<RBSNode *>(anyNode);
+}
 
 /**
  * A single RBS type comment found on a method definition or accessor.

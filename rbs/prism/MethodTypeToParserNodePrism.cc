@@ -367,7 +367,7 @@ void collectArgs(const RBSDeclaration &declaration, rbs_node_list_t *field, vect
                 "Unexpected node type `{}` in function parameter, expected `{}`", rbs_node_type_name(list_node->node),
                 "FunctionParam");
 
-        auto *param = (rbs_types_function_param_t *)list_node->node;
+        auto *param = rbs_down_cast<rbs_types_function_param_t>(list_node->node);
         auto arg = RBSArg{loc, nameLoc, param->name, param->type, kind};
         args.emplace_back(arg);
     }
@@ -389,8 +389,8 @@ void collectKeywords(const RBSDeclaration &declaration, rbs_hash_t *field, vecto
 
         auto nameLoc = declaration.typeLocFromRange(hash_node->key->location->rg);
         auto loc = nameLoc.join(declaration.typeLocFromRange(hash_node->value->location->rg));
-        rbs_ast_symbol_t *keyNode = (rbs_ast_symbol_t *)hash_node->key;
-        rbs_types_function_param_t *valueNode = (rbs_types_function_param_t *)hash_node->value;
+        rbs_ast_symbol_t *keyNode = rbs_down_cast<rbs_ast_symbol_t>(hash_node->key);
+        rbs_types_function_param_t *valueNode = rbs_down_cast<rbs_types_function_param_t>(hash_node->value);
         auto arg = RBSArg{loc, nameLoc, keyNode, valueNode->type, kind};
         args.emplace_back(arg);
     }
@@ -594,7 +594,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
                 "Unexpected node type `{}` in type parameter list, expected `{}`", rbs_node_type_name(list_node->node),
                 "TypeParam");
 
-        auto node = (rbs_ast_type_param_t *)list_node->node;
+        auto node = rbs_down_cast<rbs_ast_type_param_t>(list_node->node);
         auto str = parser.resolveConstant(node->name);
         typeParams.emplace_back(loc, ctx.state.enterNameUTF8(str));
     }
@@ -609,7 +609,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
         return nullptr;
     }
 
-    auto *functionType = (rbs_types_function_t *)node.type;
+    auto *functionType = rbs_down_cast<rbs_types_function_t>(node.type);
 
     (void)methodDef; // Suppress unused warning for now
 
@@ -623,7 +623,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     if (functionType->rest_positionals) {
         auto loc = declaration.typeLocFromRange(functionType->rest_positionals->location->rg);
         auto nameLoc = adjustNameLoc(declaration, functionType->rest_positionals);
-        auto *param = (rbs_types_function_param_t *)functionType->rest_positionals;
+        auto *param = rbs_down_cast<rbs_types_function_param_t>(functionType->rest_positionals);
         auto arg = RBSArg{loc, nameLoc, param->name, param->type, RBSArg::Kind::RestPositional};
         args.emplace_back(arg);
     }
@@ -632,7 +632,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     if (functionType->rest_keywords) {
         auto loc = declaration.typeLocFromRange(functionType->rest_keywords->location->rg);
         auto nameLoc = adjustNameLoc(declaration, functionType->rest_keywords);
-        auto *param = (rbs_types_function_param_t *)functionType->rest_keywords;
+        auto *param = rbs_down_cast<rbs_types_function_param_t>(functionType->rest_keywords);
         auto arg = RBSArg{loc, nameLoc, param->name, param->type, RBSArg::Kind::RestKeyword};
         args.emplace_back(arg);
     }
