@@ -395,12 +395,12 @@ core::LocOffsets AssertionsRewriterPrism::translateLocation(pm_location_t locati
  * Returns `nullopt` if no comment is found or if the comment was already consumed.
  */
 optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(pm_node_t *node) {
-    if (prismCommentsByNode == nullptr || node == nullptr) {
+    if (commentsByNode == nullptr || node == nullptr) {
         return nullopt;
     }
 
-    auto it = prismCommentsByNode->find(node);
-    if (it == prismCommentsByNode->end()) {
+    auto it = commentsByNode->find(node);
+    if (it == commentsByNode->end()) {
         return nullopt;
     }
 
