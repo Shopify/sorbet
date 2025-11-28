@@ -8,6 +8,10 @@ extern "C" {
 #include "core/LocOffsets.h"
 #include "rbs/Parser.h"
 
+// Macro to check if an RBS location range is null (unset)
+// From ext/rbs_extension/legacy_location.c in the RBS repository
+#define NULL_LOC_RANGE_P(rg) ((rg).start == -1)
+
 namespace sorbet::rbs {
 
 /**

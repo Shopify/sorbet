@@ -32,7 +32,7 @@ core::LocOffsets adjustNameLoc(const RBSDeclaration &declaration, rbs_node_t *no
     auto range = node->location->rg;
 
     auto nameRange = node->location->children->entries[0].rg;
-    if (nameRange.start != -1 && nameRange.end != -1) {
+    if (!NULL_LOC_RANGE_P(nameRange)) {
         range.start.char_pos = nameRange.start;
         range.end.char_pos = nameRange.end;
     }
