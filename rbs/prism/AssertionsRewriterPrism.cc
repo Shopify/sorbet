@@ -51,7 +51,7 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
     vector<Comment> comments;
     comments.push_back(comment.comment);
     auto declaration = RBSDeclaration(comments);
-    auto type = signatureTranslatorPrism.translateAssertionType(typeParams, declaration);
+    auto type = signatureTranslatorPrism.translateAssertionType(absl::MakeSpan(typeParams), declaration);
 
     if (type == nullptr) {
         // We couldn't parse the type, we produced an error, we don't return anything

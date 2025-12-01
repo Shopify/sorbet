@@ -22,8 +22,9 @@ rbs_string_t makeRBSString(const string &str) {
 
 } // namespace
 
-pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::LocOffsets, core::NameRef>> typeParams,
-                                                            const rbs::RBSDeclaration &assertion) {
+pm_node_t *
+SignatureTranslatorPrism::translateAssertionType(absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams,
+                                                 const rbs::RBSDeclaration &assertion) {
     rbs_string_t rbsString = makeRBSString(assertion.string);
     const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 

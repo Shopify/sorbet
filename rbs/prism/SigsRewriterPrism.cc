@@ -461,7 +461,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     }}};
 
     auto signatureTranslator = rbs::SignatureTranslatorPrism(ctx, parser);
-    vector<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
+    absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
     auto type = signatureTranslator.translateAssertionType(typeParams, typeDeclaration);
 
     if (type == nullptr) {

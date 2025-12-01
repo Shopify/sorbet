@@ -22,7 +22,7 @@ public:
     pm_node_t *translateMethodSignature(const pm_node_t *methodDef, const RBSDeclaration &declaration,
                                         absl::Span<const Comment> annotations);
 
-    pm_node_t *translateAssertionType(std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams,
+    pm_node_t *translateAssertionType(absl::Span<std::pair<core::LocOffsets, core::NameRef>> typeParams,
                                       const RBSDeclaration &declaration);
 
     pm_node_t *translateType(const RBSDeclaration &declaration);
