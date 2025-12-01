@@ -60,10 +60,13 @@ pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) con
 }
 
 pm_node_t *Factory::ConstantReadNode(pm_constant_id_t constantId, core::LocOffsets loc) const {
+    return ConstantReadNode(constantId, parser.convertLocOffsets(loc));
+}
+
+pm_node_t *Factory::ConstantReadNode(pm_constant_id_t constantId, pm_location_t loc) const {
     pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
 
-    pm_location_t pmLoc = parser.convertLocOffsets(loc);
-    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE, pmLoc), .name = constantId};
+    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE, loc), .name = constantId};
 
     return up_cast(node);
 }

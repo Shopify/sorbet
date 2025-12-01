@@ -228,11 +228,8 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         //   - G1[Numeric] -> Numeric
         case PM_CONSTANT_READ_NODE: {
             auto *original = down_cast<pm_constant_read_node_t>(node);
-            auto *copy = prism.allocateNode<pm_constant_read_node_t>();
 
-            *copy = (pm_constant_read_node_t){.base = original->base, .name = original->name};
-
-            return up_cast(copy);
+            return prism.ConstantReadNode(original->name, original->base.location);
         }
 
         // Examples:

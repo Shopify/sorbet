@@ -32,6 +32,7 @@ public:
     // Basic node creators
     pm_node_t *ConstantReadNode(std::string_view name, core::LocOffsets loc) const;
     pm_node_t *ConstantReadNode(pm_constant_id_t constantId, core::LocOffsets loc) const;
+    pm_node_t *ConstantReadNode(pm_constant_id_t constantId, pm_location_t loc) const;
     pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value) const;
     pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, std::string_view name) const;
     pm_node_t *SingleArgumentNode(pm_node_t *arg) const;
