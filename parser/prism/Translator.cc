@@ -1001,6 +1001,7 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
 ast::ExpressionPtr Translator::desugar(pm_node_t *node, bool preserveConcreteSyntax) {
     auto legacyNode = translate(node, preserveConcreteSyntax);
 
+    ENFORCE(legacyNode != nullptr);
     enforceHasExpr(legacyNode);
 
     return legacyNode->takeDesugaredExpr();
