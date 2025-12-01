@@ -128,7 +128,7 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
  *
  * This is useful for cases where we want to insert helpers into the body of a class/module/etc.
  */
-[[maybe_unused]] pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &parser) {
+pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &parser) {
     Factory prism(const_cast<parser::Prism::Parser &>(parser));
 
     if (body == nullptr) {
