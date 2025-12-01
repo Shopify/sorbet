@@ -105,15 +105,9 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
             }
         } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
             if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
-                // Create statements node with the type
-                pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
+                auto statementsList = std::array{type};
+                auto *stmts = prism.StatementsNode(annotation.typeLoc, absl::MakeSpan(statementsList));
                 if (stmts) {
-                    *stmts =
-                        (pm_statements_node_t){.base = prism.initializeBaseNode(
-                                                   PM_STATEMENTS_NODE, parser.convertLocOffsets(annotation.typeLoc)),
-                                               .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
-                    pm_node_list_append(&stmts->body, type);
-
                     // Create self.requires_ancestor call
                     pm_node_t *self = prism.Self(annotation.typeLoc);
                     pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
@@ -126,7 +120,7 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
                                                            PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
                                                        .locals = {.size = 0, .capacity = 0, .ids = nullptr},
                                                        .parameters = nullptr,
-                                                       .body = up_cast(stmts),
+                                                       .body = stmts,
                                                        .opening_loc = parser.getZeroWidthLocation(),
                                                        .closing_loc = parser.getZeroWidthLocation()};
 
@@ -157,38 +151,15 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
     Factory prism(const_cast<parser::Prism::Parser &>(parser));
 
     if (body == nullptr) {
-        // Create empty statements node
-        pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
-        if (!stmts) {
-            return nullptr;
-        }
-        *stmts =
-            (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(loc)),
-                                   .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
-        return up_cast(stmts);
+        return prism.StatementsNode(loc, absl::Span<pm_node_t *>{});
     }
 
     if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE)) {
         return body; // Already wrapped
     }
 
-    // Wrap single node in statements
-    pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
-    if (!stmts) {
-        return nullptr;
-    }
-
-    pm_node_t **nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
-    if (!nodes) {
-        free(stmts);
-        return nullptr;
-    }
-    nodes[0] = body;
-
-    *stmts = (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, body->location),
-                                    .body = {.size = 1, .capacity = 1, .nodes = nodes}};
-
-    return up_cast(stmts);
+    auto statementsList = std::array{body};
+    return prism.StatementsNode(loc, absl::MakeSpan(statementsList));
 }
 
 /**
