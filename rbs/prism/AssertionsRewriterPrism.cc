@@ -36,15 +36,9 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
-        pm_nil_node_t *nil = prism.allocateNode<pm_nil_node_t>();
-        *nil = (pm_nil_node_t){
-            .base = prism.initializeBaseNode(PM_NIL_NODE, parser.convertLocOffsets(comment.comment.typeLoc)),
-        };
-        nil->base.location = parser.convertLocOffsets(comment.comment.typeLoc);
-        return pair<pm_node_t *, InlineCommentPrism::Kind>{
-            up_cast(nil),
-            comment.kind,
-        };
+        pm_node_t *nil = prism.Nil(comment.comment.typeLoc);
+
+        return pair{nil, comment.kind};
     }
 
     auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, parser);

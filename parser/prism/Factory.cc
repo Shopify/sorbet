@@ -129,6 +129,14 @@ pm_node_t *Factory::True(core::LocOffsets loc) const {
     return up_cast(trueNode);
 }
 
+pm_node_t *Factory::Nil(core::LocOffsets loc) const {
+    ENFORCE(loc.exists(), "Nil: location is required");
+
+    pm_nil_node_t *nilNode = allocateNode<pm_nil_node_t>();
+    *nilNode = (pm_nil_node_t){.base = initializeBaseNode(PM_NIL_NODE, parser.convertLocOffsets(loc))};
+    return up_cast(nilNode);
+}
+
 pm_constant_id_t Factory::addConstantToPool(string_view name) const {
     pm_parser_t *prismParser = parser.getRawParserPointer();
     size_t nameLen = name.size();
