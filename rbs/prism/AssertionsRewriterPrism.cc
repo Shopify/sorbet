@@ -115,8 +115,7 @@ extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &pa
     }
 
     // Collect the type parameters from the arguments
-    if (call->arguments) {
-        auto *args = call->arguments;
+    if (auto *args = call->arguments) {
         for (size_t i = 0; i < args->arguments.size; i++) {
             pm_node_t *arg = args->arguments.nodes[i];
             if (!PM_NODE_TYPE_P(arg, PM_SYMBOL_NODE)) {
