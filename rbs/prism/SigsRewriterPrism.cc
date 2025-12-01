@@ -107,28 +107,27 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
             if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
                 auto statementsList = std::array{type};
                 auto *stmts = prism.StatementsNode(annotation.typeLoc, absl::MakeSpan(statementsList));
-                if (stmts) {
-                    // Create self.requires_ancestor call
-                    pm_node_t *self = prism.Self(annotation.typeLoc);
-                    pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
 
-                    if (callNode && self) {
-                        // Create block with the statements as body
-                        pm_block_node_t *block = prism.allocateNode<pm_block_node_t>();
-                        if (block) {
-                            *block = (pm_block_node_t){.base = prism.initializeBaseNode(
-                                                           PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
-                                                       .locals = {.size = 0, .capacity = 0, .ids = nullptr},
-                                                       .parameters = nullptr,
-                                                       .body = stmts,
-                                                       .opening_loc = parser.getZeroWidthLocation(),
-                                                       .closing_loc = parser.getZeroWidthLocation()};
+                // Create self.requires_ancestor call
+                pm_node_t *self = prism.Self(annotation.typeLoc);
+                pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
 
-                            // Attach block to the call
-                            auto *call = down_cast<pm_call_node_t>(callNode);
-                            call->block = up_cast(block);
-                            helperNode = callNode;
-                        }
+                if (callNode && self) {
+                    // Create block with the statements as body
+                    pm_block_node_t *block = prism.allocateNode<pm_block_node_t>();
+                    if (block) {
+                        *block = (pm_block_node_t){.base = prism.initializeBaseNode(
+                                                       PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
+                                                   .locals = {.size = 0, .capacity = 0, .ids = nullptr},
+                                                   .parameters = nullptr,
+                                                   .body = stmts,
+                                                   .opening_loc = parser.getZeroWidthLocation(),
+                                                   .closing_loc = parser.getZeroWidthLocation()};
+
+                        // Attach block to the call
+                        auto *call = down_cast<pm_call_node_t>(callNode);
+                        call->block = up_cast(block);
+                        helperNode = callNode;
                     }
                 }
             }
