@@ -217,23 +217,9 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
 
         case PM_ARGUMENTS_NODE: {
             auto *original = down_cast<pm_arguments_node_t>(node);
-            auto *copy = prism.allocateNode<pm_arguments_node_t>();
+            auto originalArgs = absl::MakeSpan(original->arguments.nodes, original->arguments.size);
 
-            size_t argCount = original->arguments.size;
-            pm_node_t **copiedNodes = nullptr;
-
-            if (argCount > 0) {
-                copiedNodes = (pm_node_t **)prism.calloc(argCount, sizeof(pm_node_t *));
-                for (size_t i = 0; i < argCount; i++) {
-                    copiedNodes[i] = deepCopyGenericTypeNode(parser, original->arguments.nodes[i]);
-                }
-            }
-
-            *copy = (pm_arguments_node_t){
-                .base = original->base,
-                .arguments = (pm_node_list_t){.size = argCount, .capacity = argCount, .nodes = copiedNodes}};
-
-            return up_cast(copy);
+            return up_cast(prism.createArgumentsNode(originalArgs, original->base.location));
         }
 
         // Examples:

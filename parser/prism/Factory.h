@@ -49,6 +49,7 @@ public:
     pm_call_node_t *createCallNode(pm_node_t *receiver, pm_constant_id_t method_id, pm_node_t *arguments,
                                    pm_location_t message_loc, pm_location_t full_loc, pm_location_t tiny_loc,
                                    pm_node_t *block = nullptr) const;
+    pm_arguments_node_t *createArgumentsNode(const absl::Span<pm_node_t *> args, pm_location_t loc) const;
 
     // High-level method call builders (similar to ast::MK)
     pm_node_t *Call(core::LocOffsets loc, pm_node_t *receiver, std::string_view method,
@@ -108,7 +109,6 @@ public:
 
 private:
     pm_node_list_t copyNodesToList(const absl::Span<pm_node_t *> nodes) const;
-    pm_arguments_node_t *createArgumentsNode(const absl::Span<pm_node_t *> args, pm_location_t loc) const;
 };
 
 } // namespace sorbet::parser::Prism
