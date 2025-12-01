@@ -1007,6 +1007,18 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node, bool preserveConcreteSyn
     return legacyNode->takeDesugaredExpr();
 }
 
+ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node, bool preserveConcreteSyntax) {
+    auto legacyNode = translate(node, preserveConcreteSyntax);
+
+    if (legacyNode == nullptr) {
+        return MK::EmptyTree();
+    }
+
+    enforceHasExpr(legacyNode);
+
+    return legacyNode->takeDesugaredExpr();
+}
+
 unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveConcreteSyntax) {
     if (node == nullptr)
         return nullptr;
@@ -2525,13 +2537,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_IF_NODE: { // An `if` statement or modifier, like `if cond; ...; end` or `a.b if cond`
             auto ifNode = down_cast<pm_if_node>(node);
 
-            auto predicatePreExpr = translate(ifNode->predicate);
+            auto predicateExpr = desugar(ifNode->predicate);
             auto thenExpr = desugarStatements(ifNode->statements);
-            auto elsePreExpr = translate(ifNode->subsequent);
-
-            enforceHasExpr(predicatePreExpr, elsePreExpr);
-            auto predicateExpr = predicatePreExpr->takeDesugaredExpr();
-            auto elseExpr = takeDesugaredExprOrEmptyTree(elsePreExpr);
+            auto elseExpr = desugarNullable(ifNode->subsequent);
 
             auto expr = MK::If(location, move(predicateExpr), move(thenExpr), move(elseExpr));
             return expr_only(move(expr));
@@ -3353,16 +3361,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_UNLESS_NODE: { // An `unless` branch, either in a statement or modifier form.
             auto unlessNode = down_cast<pm_unless_node>(node);
 
-            auto predicatePreExpr = translate(unlessNode->predicate);
+            auto predicateExpr = desugar(unlessNode->predicate);
             // For `unless`, then/else are swapped: `statements` is the else branch, `else_clause` is the then branch
             auto elseExpr = desugarStatements(unlessNode->statements);
-            ExpressionPtr thenExpr = MK::EmptyTree();
-            if (unlessNode->else_clause) {
-                thenExpr = desugarStatements(unlessNode->else_clause->statements);
-            }
-
-            enforceHasExpr(predicatePreExpr);
-            auto predicateExpr = predicatePreExpr->takeDesugaredExpr();
+            ExpressionPtr thenExpr = desugarNullable(up_cast(unlessNode->else_clause));
 
             auto expr = MK::If(location, move(predicateExpr), move(thenExpr), move(elseExpr));
             return expr_only(move(expr));
