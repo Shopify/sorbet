@@ -13,6 +13,7 @@ namespace sorbet::rbs {
 vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_t *rbsTypeParams,
                                                             const RBSDeclaration &declaration) {
     vector<pm_node_t *> result;
+    result.reserve(rbsTypeParams->length);
 
     for (rbs_node_list_node_t *list_node = rbsTypeParams->head; list_node != nullptr; list_node = list_node->next) {
         ENFORCE(list_node->node->type == RBS_AST_TYPE_PARAM,
