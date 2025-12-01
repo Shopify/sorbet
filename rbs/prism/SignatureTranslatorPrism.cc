@@ -59,7 +59,7 @@ pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declara
         return nullptr;
     }
 
-    vector<pair<core::LocOffsets, core::NameRef>> emptyTypeParams;
+    absl::Span<pair<core::LocOffsets, core::NameRef>> emptyTypeParams;
     auto typeTranslator = TypeToParserNodePrism(ctx, emptyTypeParams, move(parser), *this->parser);
     return typeTranslator.toPrismNode(rbsType, declaration);
 }
