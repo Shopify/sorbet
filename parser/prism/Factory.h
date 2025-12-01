@@ -35,6 +35,7 @@ public:
     pm_node_t *ConstantReadNode(pm_constant_id_t constantId, pm_location_t loc) const;
     pm_node_t *ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nameId, pm_node_t *value) const;
     pm_node_t *ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, std::string_view name) const;
+    pm_node_t *ConstantPathNode(pm_location_t loc, pm_node_t *parent, pm_constant_id_t nameId) const;
     pm_node_t *SingleArgumentNode(pm_node_t *arg) const;
     pm_node_t *Self(core::LocOffsets loc) const;
     pm_node_t *Nil(core::LocOffsets loc) const;

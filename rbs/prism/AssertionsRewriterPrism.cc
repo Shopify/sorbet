@@ -238,15 +238,8 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         //   - G1[MyModule::MyClass] -> MyModule::MyClass
         case PM_CONSTANT_PATH_NODE: {
             auto *original = down_cast<pm_constant_path_node_t>(node);
-            auto *copy = prism.allocateNode<pm_constant_path_node_t>();
 
-            *copy = (pm_constant_path_node_t){.base = original->base,
-                                              .parent = deepCopyGenericTypeNode(parser, original->parent),
-                                              .name = original->name,
-                                              .delimiter_loc = original->delimiter_loc,
-                                              .name_loc = original->name_loc};
-
-            return up_cast(copy);
+            return prism.ConstantPathNode(original->base.location, original->parent, original->name);
         }
 
         // Examples:

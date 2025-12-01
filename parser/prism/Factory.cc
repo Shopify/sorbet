@@ -90,15 +90,18 @@ pm_node_t *Factory::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nam
 
 pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, string_view name) const {
     pm_constant_id_t nameId = addConstantToPool(name);
+    pm_location_t pmLoc = parser.convertLocOffsets(loc);
+    return ConstantPathNode(pmLoc, parent, nameId);
+}
+
+pm_node_t *Factory::ConstantPathNode(pm_location_t loc, pm_node_t *parent, pm_constant_id_t nameId) const {
     pm_constant_path_node_t *node = allocateNode<pm_constant_path_node_t>();
 
-    pm_location_t pmLoc = parser.convertLocOffsets(loc);
-
-    *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE, pmLoc),
+    *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE, loc),
                                       .parent = parent,
                                       .name = nameId,
-                                      .delimiter_loc = pmLoc,
-                                      .name_loc = pmLoc};
+                                      .delimiter_loc = loc,
+                                      .name_loc = loc};
 
     return up_cast(node);
 }
