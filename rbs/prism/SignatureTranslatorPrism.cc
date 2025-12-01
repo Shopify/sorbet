@@ -22,8 +22,9 @@ rbs_string_t makeRBSString(const string &str) {
 
 } // namespace
 
-pm_node_t *SignatureTranslatorPrism::translateAssertionType(vector<pair<core::LocOffsets, core::NameRef>> typeParams,
-                                                            const rbs::RBSDeclaration &assertion) {
+pm_node_t *
+SignatureTranslatorPrism::translateAssertionType(absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams,
+                                                 const rbs::RBSDeclaration &assertion) {
     rbs_string_t rbsString = makeRBSString(assertion.string);
     const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
@@ -58,14 +59,14 @@ pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declara
         return nullptr;
     }
 
-    vector<pair<core::LocOffsets, core::NameRef>> emptyTypeParams;
+    absl::Span<pair<core::LocOffsets, core::NameRef>> emptyTypeParams;
     auto typeTranslator = TypeToParserNodePrism(ctx, emptyTypeParams, move(parser), *this->parser);
     return typeTranslator.toPrismNode(rbsType, declaration);
 }
 
 pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
                                                             const RBSDeclaration &declaration,
-                                                            const vector<Comment> &annotations) {
+                                                            absl::Span<const Comment> annotations) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
     const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 
@@ -97,7 +98,7 @@ pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t
 
 pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *methodDef,
                                                               const RBSDeclaration &declaration,
-                                                              const vector<Comment> &annotations) {
+                                                              absl::Span<const Comment> annotations) {
     rbs_string_t rbsString = makeRBSString(declaration.string);
     const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
 

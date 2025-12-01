@@ -78,7 +78,7 @@ pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser
  *
  * It doesn't insert them into the body of the class/module/etc.
  */
-vector<pm_node_t *> extractHelpers(core::MutableContext ctx, const vector<Comment> &annotations,
+vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Comment> annotations,
                                    parser::Prism::Parser &parser) {
     Factory prism(parser);
     vector<pm_node_t *> helpers;
@@ -461,7 +461,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     }}};
 
     auto signatureTranslator = rbs::SignatureTranslatorPrism(ctx, parser);
-    vector<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
+    absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
     auto type = signatureTranslator.translateAssertionType(typeParams, typeDeclaration);
 
     if (type == nullptr) {

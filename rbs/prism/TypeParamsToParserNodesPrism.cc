@@ -48,7 +48,7 @@ vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_
         pm_node_t *block = nullptr;
         if (defaultType || upperBound || lowerBound) {
             auto typeTranslator =
-                TypeToParserNodePrism(ctx, vector<pair<core::LocOffsets, core::NameRef>>{}, parser, prismParser);
+                TypeToParserNodePrism(ctx, absl::Span<pair<core::LocOffsets, core::NameRef>>{}, parser, prismParser);
             vector<pm_node_t *> pairs;
 
             if (defaultType) {

@@ -20,15 +20,15 @@ public:
     SignatureTranslatorPrism(core::MutableContext ctx, parser::Prism::Parser &parser) : ctx(ctx), parser(&parser){};
 
     pm_node_t *translateMethodSignature(const pm_node_t *methodDef, const RBSDeclaration &declaration,
-                                        const std::vector<Comment> &annotations);
+                                        absl::Span<const Comment> annotations);
 
-    pm_node_t *translateAssertionType(std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams,
+    pm_node_t *translateAssertionType(absl::Span<std::pair<core::LocOffsets, core::NameRef>> typeParams,
                                       const RBSDeclaration &declaration);
 
     pm_node_t *translateType(const RBSDeclaration &declaration);
 
     pm_node_t *translateAttrSignature(const pm_call_node_t *call, const RBSDeclaration &declaration,
-                                      const std::vector<Comment> &annotations);
+                                      absl::Span<const Comment> annotations);
 
     std::vector<pm_node_t *> translateTypeParams(const RBSDeclaration &declaration);
 
