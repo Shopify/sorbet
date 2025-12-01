@@ -266,10 +266,8 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             pm_node_t *placeholder = createSyntheticPlaceholder(parser, it->second, RBS_SYNTHETIC_BIND_MARKER);
 
             // Register comment for later processing by AssertionsRewriter
-            vector<CommentNodePrism> comments;
-            comments.emplace_back(it->second);
+            assertionsForNode[placeholder] = vector<CommentNodePrism>{it->second};
             it = commentByLine.erase(it);
-            assertionsForNode[placeholder] = move(comments);
 
             // Insert placeholder into statement list
             insertNodeAtIndex(nodes, placeholder, index);
@@ -307,9 +305,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             pm_node_t *placeholder = createSyntheticPlaceholder(parser, it->second, RBS_SYNTHETIC_TYPE_ALIAS_MARKER);
 
             // Register comment for later processing by SigsRewriter
-            vector<CommentNodePrism> comments;
-            comments.emplace_back(it->second);
-            signaturesForNode[placeholder] = move(comments);
+            signaturesForNode[placeholder] = vector<CommentNodePrism>{it->second};
 
             continuationFor = placeholder;
 

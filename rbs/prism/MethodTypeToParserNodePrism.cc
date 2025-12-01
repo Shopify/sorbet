@@ -164,8 +164,7 @@ pm_node_t *handleAnnotations(core::MutableContext ctx, const pm_node_t *node, pm
             auto value = prism.True(annotation.typeLoc);
             auto pair = prism.AssocNode(annotation.typeLoc, key, value);
 
-            vector<pm_node_t *> pairs;
-            pairs.push_back(pair);
+            vector<pm_node_t *> pairs = {pair};
             auto hash = prism.KeywordHash(annotation.typeLoc, absl::MakeSpan(pairs));
 
             sigBuilder = prism.Call1(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state), hash);
@@ -174,8 +173,7 @@ pm_node_t *handleAnnotations(core::MutableContext ctx, const pm_node_t *node, pm
             auto value = prism.Symbol(annotation.typeLoc, core::Names::visibility().show(ctx.state));
             auto pair = prism.AssocNode(annotation.typeLoc, key, value);
 
-            vector<pm_node_t *> pairs;
-            pairs.push_back(pair);
+            vector<pm_node_t *> pairs = {pair};
             auto hash = prism.KeywordHash(annotation.typeLoc, absl::MakeSpan(pairs));
 
             sigBuilder = prism.Call1(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state), hash);
@@ -547,8 +545,7 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(const pm_call_node_t *call
         pm_node_t *paramType = typeTranslator.toPrismNode(type, declaration);
         pm_node_t *assoc = prism.AssocNode(prismParser.translateLocation(call->base.location), keyNode, paramType);
 
-        vector<pm_node_t *> hashElements;
-        hashElements.push_back(assoc);
+        auto hashElements = std::array{assoc};
         pm_node_t *hash =
             prism.KeywordHash(prismParser.translateLocation(call->base.location), absl::MakeSpan(hashElements));
         sigBuilder = prism.Call1(prismParser.translateLocation(call->base.location), sigBuilder, "params"sv, hash);

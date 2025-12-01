@@ -48,9 +48,7 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
     }
 
     auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, parser);
-    vector<Comment> comments;
-    comments.push_back(comment.comment);
-    auto declaration = RBSDeclaration(comments);
+    auto declaration = RBSDeclaration(vector<Comment>{comment.comment});
     auto type = signatureTranslatorPrism.translateAssertionType(absl::MakeSpan(typeParams), declaration);
 
     if (type == nullptr) {
