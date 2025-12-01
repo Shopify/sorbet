@@ -95,14 +95,10 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
             helperNode = prism.Call0(annotation.typeLoc, self, "interface!"sv);
         } else if (annotation.string == "final") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
-            if (self) {
-                helperNode = prism.Call0(annotation.typeLoc, self, "final!"sv);
-            }
+            helperNode = prism.Call0(annotation.typeLoc, self, "final!"sv);
         } else if (annotation.string == "sealed") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
-            if (self) {
-                helperNode = prism.Call0(annotation.typeLoc, self, "sealed!"sv);
-            }
+            helperNode = prism.Call0(annotation.typeLoc, self, "sealed!"sv);
         } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
             if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
                 auto statementsList = std::array{type};
@@ -112,17 +108,16 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
                 pm_node_t *self = prism.Self(annotation.typeLoc);
                 pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
 
-                if (callNode && self) {
-                    auto *call = down_cast<pm_call_node_t>(callNode);
-                    call->block = prism.Block(annotation.typeLoc, stmts);
-                    helperNode = callNode;
-                }
+                auto *call = down_cast<pm_call_node_t>(callNode);
+                call->block = prism.Block(annotation.typeLoc, stmts);
+
+                helperNode = callNode;
             }
         }
 
-        if (helperNode) {
-            helpers.push_back(helperNode);
-        }
+        ENFORCE(helperNode != nullptr);
+
+        helpers.push_back(helperNode);
     }
 
     return helpers;
