@@ -788,9 +788,7 @@ pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *original
     body.reserve(signatures->size() + 1);
 
     for (auto *sigCall : *signatures) {
-        if (sigCall) {
-            body.push_back(sigCall);
-        }
+        body.push_back(sigCall);
     }
     body.push_back(originalNode);
 
