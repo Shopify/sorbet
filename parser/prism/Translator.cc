@@ -1827,7 +1827,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
                             case PM_NUMBERED_PARAMETERS_NODE: { // The params in a PM_BLOCK_NODE with numbered params
                                 // Like the implicit `|_1, _2, _3|` in `foo { _3 }`
-                                auto numberedParamsNode = down_cast<pm_numbered_parameters_node>(blockNode->parameters);
 
                                 // Use a 0-length loc just after the `do` or `{` token, as if you had written:
                                 //     do|_1, _2| ... end`
@@ -1835,8 +1834,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                 //     {|_1, _2| ... }`
                                 //      ^
 
-                                blockParamsStore = translateNumberedParametersNode(
-                                    numberedParamsNode, down_cast<pm_statements_node>(blockNode->body));
+                                blockParamsStore = translateNumberedParametersNode(blockNode);
 
                                 break;
                             }
@@ -4420,9 +4418,12 @@ Translator::findNumberedParamsUsageLocs(core::LocOffsets loc, pm_statements_node
     return result;
 }
 
-ast::MethodDef::PARAMS_store
-Translator::translateNumberedParametersNode(pm_numbered_parameters_node *numberedParamsNode,
-                                            pm_statements_node_t *statements) {
+// Desugaring numbered parameters requires access to the whole block node (not just its parameters node),
+// because we need to walk through its body to find the locations of the usages of the numbered parameters.
+ast::MethodDef::PARAMS_store Translator::translateNumberedParametersNode(pm_block_node *blockNode) {
+    auto numberedParamsNode = down_cast<pm_numbered_parameters_node>(blockNode->parameters);
+    auto statements = down_cast<pm_statements_node>(blockNode->body);
+
     auto location = translateLoc(numberedParamsNode->base.location);
 
     auto paramCount = numberedParamsNode->maximum;
