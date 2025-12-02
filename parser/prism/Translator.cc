@@ -75,11 +75,11 @@ public:
     }
 };
 
-unique_ptr<parser::Node> expr_only(ast::ExpressionPtr expr) {
+unique_ptr<ExprOnly> expr_only(ast::ExpressionPtr expr) {
     return make_unique<ExprOnly>(move(expr), expr.loc());
 }
 
-unique_ptr<parser::Node> expr_only(ast::ExpressionPtr expr, core::LocOffsets loc) {
+unique_ptr<ExprOnly> expr_only(ast::ExpressionPtr expr, core::LocOffsets loc) {
     return make_unique<ExprOnly>(move(expr), loc);
 }
 
