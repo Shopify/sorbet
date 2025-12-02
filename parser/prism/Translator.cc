@@ -1763,7 +1763,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             ast::ExpressionPtr blockPassArg;
             core::LocOffsets blockPassLoc;
             bool blockPassArgIsSymbol = false;
-            bool supportedBlock = false;
             if (prismBlock != nullptr) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) { // a literal block with `{ ... }` or `do ... end`
 
@@ -1845,10 +1844,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                             }
                         }
 
-                        supportedBlock = true;
-
                     } else {
-                        supportedBlock = true;
                     }
                 } else {
                     ENFORCE(PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)); // the `&b` in `a.map(&b)`
@@ -1862,25 +1858,21 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         blockPassArgIsSymbol = PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
 
                         if (blockPassArgIsSymbol) {
-                            supportedBlock = true;
                         } else {
                             auto blockPassArgNode = translate(bp->expression);
 
                             enforceHasExpr(blockPassArgNode);
 
                             blockPassArg = blockPassArgNode->takeDesugaredExpr();
-                            supportedBlock = true;
                         }
                     } else {
                         // Replace an anonymous block pass like `f(&)` with a local variable
                         // reference, like `f(&<&>)`.
                         blockPassArg = MK::Local(blockPassLoc.copyEndWithZeroLength(), core::Names::ampersand());
-                        supportedBlock = true;
                     }
                 }
             } else {
                 // There is no block, so we support direct desugaring of this method call.
-                supportedBlock = true;
             }
 
             if (hasFwdArgs) { // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &b)`.
@@ -1889,11 +1881,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                 blockPassArg = MK::Local(sendWithBlockLoc, core::Names::fwdBlock());
                 blockPassLoc = sendLoc.copyEndWithZeroLength();
-                supportedBlock = true;
             }
 
             auto supportedCallType = true;
-            supportedCallType &= supportedBlock;
 
             // TODO: Direct desugaring support for conditional sends is not implemented yet.
             supportedCallType &= !PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
