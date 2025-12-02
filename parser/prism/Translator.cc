@@ -1959,12 +1959,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 blockPassLoc = sendLoc.copyEndWithZeroLength();
             }
 
-            auto supportedCallType = true;
-
-            // TODO: Direct desugaring support for conditional sends is not implemented yet.
-            supportedCallType &= !PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
-
-            if (!supportedCallType) {
+            if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
+                // TODO: Direct desugaring support for conditional sends is not implemented yet.
                 throw PrismFallback{};
             }
 
