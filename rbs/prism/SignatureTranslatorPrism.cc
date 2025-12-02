@@ -14,14 +14,6 @@ using namespace sorbet::parser::Prism;
 
 namespace sorbet::rbs {
 
-namespace {
-
-rbs_string_t makeRBSString(const string &str) {
-    return rbs_string_new(str.data(), str.data() + str.size());
-}
-
-} // namespace
-
 pm_node_t *
 SignatureTranslatorPrism::translateAssertionType(absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams,
                                                  const rbs::RBSDeclaration &assertion) {

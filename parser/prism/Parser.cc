@@ -112,15 +112,11 @@ bool Parser::isT(pm_node_t *node) const {
         return false;
     }
 
-    // T
-    if (PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE)) {
+    if (PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE)) { // T
         auto *constNode = down_cast<pm_constant_read_node_t>(node);
         auto name = resolveConstant(constNode->name);
         return name == "T";
-    }
-
-    // ::T
-    if (PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE)) {
+    } else if (PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE)) { // ::T
         auto *pathNode = down_cast<pm_constant_path_node_t>(node);
         auto name = resolveConstant(pathNode->name);
         return name == "T" && pathNode->parent == nullptr;

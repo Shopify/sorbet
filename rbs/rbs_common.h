@@ -16,6 +16,14 @@ extern "C" {
 
 namespace sorbet::rbs {
 
+/**
+ * Creates an rbs_string_t from a std::string_view.
+ *
+ * The returned rbs_string_t contains pointers into str's buffer, so str_view must outlive
+ * the rbs_string_t and any objects that use it.
+ */
+rbs_string_t makeRBSString(const std::string_view str);
+
 // Helper template to map RBS node types to their type enum values
 template <typename Type> struct RBSNodeTypeHelper {};
 
