@@ -1811,9 +1811,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                 //     {|_1, _2| ... }`
                                 //      ^
 
-                                translateNumberedParametersNode(numberedParamsNode,
-                                                                down_cast<pm_statements_node>(blockNode->body),
-                                                                &blockParamsStore);
+                                blockParamsStore = translateNumberedParametersNode(
+                                    numberedParamsNode, down_cast<pm_statements_node>(blockNode->body));
 
                                 break;
                             }
@@ -4398,11 +4397,9 @@ Translator::findNumberedParamsUsageLocs(core::LocOffsets loc, pm_statements_node
     return result;
 }
 
-// Translate the given numbered parameters into a `NodeVec` of legacy parser nodes.
-// If a paramsStore pointer is provided, we'll also directly desugar params into that store.
-void Translator::translateNumberedParametersNode(pm_numbered_parameters_node *numberedParamsNode,
-                                                 pm_statements_node_t *statements,
-                                                 ast::MethodDef::PARAMS_store *paramsStore) {
+ast::MethodDef::PARAMS_store
+Translator::translateNumberedParametersNode(pm_numbered_parameters_node *numberedParamsNode,
+                                            pm_statements_node_t *statements) {
     auto location = translateLoc(numberedParamsNode->base.location);
 
     auto paramCount = numberedParamsNode->maximum;
@@ -4413,6 +4410,7 @@ void Translator::translateNumberedParametersNode(pm_numbered_parameters_node *nu
     auto numberedParamsUsageLocs = findNumberedParamsUsageLocs(location, statements, paramCount);
     ENFORCE(paramCount <= numberedParamsUsageLocs.size());
 
+    ast::MethodDef::PARAMS_store result;
     for (auto i = 1; i <= paramCount; i++) {
         // Numbered parameters are implicit, so they don't have a real location in the body.
         // However, we need somewhere for the error messages to point to, so we use the
@@ -4420,10 +4418,10 @@ void Translator::translateNumberedParametersNode(pm_numbered_parameters_node *nu
         auto usageLoc = numberedParamsUsageLocs[i - 1];
         auto name = ctx.state.enterNameUTF8("_" + to_string(i));
 
-        if (paramsStore) {
-            paramsStore->emplace_back(MK::Local(usageLoc, name));
-        }
+        result.emplace_back(MK::Local(usageLoc, name));
     }
+
+    return result;
 }
 
 // Desugar a Symbol block pass argument (like the `&foo` in `m(&:foo)`) into a block literal.
