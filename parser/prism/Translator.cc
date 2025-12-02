@@ -1753,19 +1753,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         // Remove the kwargsHash from the arguments Span, so it's not revisited by the `for` loop below.
                         prismArgs.remove_suffix(1);
 
-                        kwargsHashHasExpr = absl::c_all_of(kwargsHash->pairs, [](auto &node) {
-                            // Only support kwarg Hashes that only contain pairs for now.
-                            // TODO: Add support for Kwsplat and ForwardedKwrestArg
+                        // for (auto &node : kwargsHash->pairs) {
+                        //     // Only support kwarg Hashes that only contain pairs for now.
 
-                            auto pair = parser::NodeWithExpr::cast_node<parser::Pair>(node.get());
-                            if (pair == nullptr) {
-                                return false;
-                            }
-
-                            enforceHasExpr(pair->key, pair->value);
-
-                            return true;
-                        });
+                        //     if (auto pair = parser::NodeWithExpr::cast_node<parser::Pair>(node.get())) {
+                        //         enforceHasExpr(pair->key, pair->value);
+                        //         continue;
+                        //     } else { // TODO: Add support for Kwsplat and ForwardedKwrestArg
+                        //         enforceHasExpr(node);
+                        //     }
+                        // };
                     }
                 }
 
