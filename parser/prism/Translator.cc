@@ -1833,8 +1833,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                                           make_move_iterator(sorbetShadowParams.begin()),
                                                           make_move_iterator(sorbetShadowParams.end()));
 
-                                    std::tie(blockParamsStore, blockStatsStore) =
-                                        desugarParametersNode(params->params, true);
+                                    std::tie(blockParamsStore, blockStatsStore) = desugarParametersNode(params->params);
 
                                     blockParameters = move(params);
                                 }
@@ -2594,7 +2593,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             ast::MethodDef::PARAMS_store paramsStore;
             ast::InsSeq::STATS_store statsStore;
             if (params != nullptr) {
-                std::tie(paramsStore, statsStore) = desugarParametersNode(params->params, true);
+                std::tie(paramsStore, statsStore) = desugarParametersNode(params->params);
             }
 
             auto methodBody = takeDesugaredExprOrEmptyTree(body);
@@ -4332,12 +4331,7 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
     return {make_unique<parser::Params>(location, move(params)), enclosingBlockParamName};
 }
 
-tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store>
-Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) {
-    if (!attemptToDesugarParams) {
-        throw PrismFallback{};
-    }
-
+tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store> Translator::desugarParametersNode(NodeVec &params) {
     auto supportedParams = absl::c_all_of(params, [](auto &param) {
         return param->hasDesugaredExpr() ||
                // These other block types don't have their own dedicated desugared
