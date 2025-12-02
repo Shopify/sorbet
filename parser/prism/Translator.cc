@@ -2616,16 +2616,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             // Method defs are complex, and we're building support for different kinds of arguments bit by
             // bit. This bool is true when this particular method def is supported by our desugar logic.
             enforceHasExpr(receiver, body);
-            auto attemptToDesugarParams = true;
 
             ast::MethodDef::PARAMS_store paramsStore;
             ast::InsSeq::STATS_store statsStore;
             bool didDesugarParams = false; // ...and by impliciation, everything else (see `attemptToDesugarParams`)
             if (params != nullptr) {
-                std::tie(paramsStore, statsStore, didDesugarParams) =
-                    desugarParametersNode(params->params, attemptToDesugarParams);
+                std::tie(paramsStore, statsStore, didDesugarParams) = desugarParametersNode(params->params, true);
             } else {
-                didDesugarParams = attemptToDesugarParams;
+                didDesugarParams = true;
             }
 
             if (!didDesugarParams) {
