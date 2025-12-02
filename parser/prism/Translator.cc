@@ -1898,8 +1898,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                             pm_node_type_to_str(PM_NODE_TYPE(blockNode->parameters)));
                             }
                         }
-
-                    } else {
                     }
                 } else {
                     ENFORCE(PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)); // the `&b` in `a.map(&b)`
@@ -1912,8 +1910,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     if (bp->expression) {
                         blockPassArgIsSymbol = PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
 
-                        if (blockPassArgIsSymbol) {
-                        } else {
+                        if (!blockPassArgIsSymbol) {
                             auto blockPassArgNode = translate(bp->expression);
 
                             enforceHasExpr(blockPassArgNode);
@@ -1926,8 +1923,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         blockPassArg = MK::Local(blockPassLoc.copyEndWithZeroLength(), core::Names::ampersand());
                     }
                 }
-            } else {
-                // There is no block, so we support direct desugaring of this method call.
             }
 
             if (hasFwdArgs) { // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &b)`.
