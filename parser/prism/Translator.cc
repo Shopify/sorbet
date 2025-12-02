@@ -1774,7 +1774,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                     enforceHasExpr(blockBody);
 
-                    auto attemptToDesugarBlockParams = supportedCallType;
                     bool didDesugarBlockParams = false;
 
                     if (blockNode->parameters != nullptr) {
@@ -1806,7 +1805,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                                           make_move_iterator(sorbetShadowParams.end()));
 
                                     std::tie(blockParamsStore, blockStatsStore, didDesugarBlockParams) =
-                                        desugarParametersNode(params->params, attemptToDesugarBlockParams);
+                                        desugarParametersNode(params->params, true);
 
                                     blockParameters = move(params);
                                 }
