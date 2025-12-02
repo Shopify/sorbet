@@ -86,8 +86,7 @@ private:
     template <typename SorbetNode, typename... TArgs>
     std::unique_ptr<parser::Node> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const;
 
-    template <typename SorbetNode, typename... TArgs>
-    std::unique_ptr<parser::Node> make_unsupported_node(TArgs &&...args) const;
+    std::unique_ptr<ExprOnly> make_unsupported_node(core::LocOffsets loc, std::string_view nodeName) const;
 
     core::LocOffsets translateLoc(pm_location_t loc) const;
     core::LocOffsets translateLoc(const uint8_t *start, const uint8_t *end) const;
