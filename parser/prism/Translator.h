@@ -17,6 +17,8 @@ namespace sorbet::parser::Prism {
 // Used by the desugar*OpAssign functions to determine the appropriate desugaring strategy.
 enum class OpAssignKind { And, Or, Operator };
 
+class ExprOnly;
+
 class Translator final {
     const Parser &parser;
     // This context holds a reference to the GlobalState allocated up the call stack, which is why we don't allow
@@ -163,7 +165,7 @@ private:
                                                            std::unique_ptr<parser::Node> rhs);
 
     template <typename PrismLhsNode, typename SorbetLHSNode, bool checkForDynamicConstAssign = false>
-    std::unique_ptr<parser::Node> translateConst(PrismLhsNode *node);
+    std::unique_ptr<ExprOnly> translateConst(PrismLhsNode *node);
     core::NameRef translateConstantName(pm_constant_id_t constantId);
 
     // Generates a unique name for a `parser::Node`.
