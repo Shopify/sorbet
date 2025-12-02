@@ -1518,9 +1518,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto arrayNode = down_cast<pm_array_node>(node);
 
             auto prismElements = absl::MakeSpan(arrayNode->elements.nodes, arrayNode->elements.size);
-            auto elements = nodeListToStore<ast::Array::ENTRY_store>(arrayNode->elements);
 
-            auto expr = desugarArray(location, prismElements, move(elements));
+            auto expr = desugarArray(location, prismElements);
             return expr_only(move(expr));
         }
         case PM_ASSOC_NODE: { // A key-value pair in a Hash literal, e.g. the `a: 1` in `{ a: 1 }
@@ -1936,21 +1935,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 // The `callWithSplat` implementation (in C++) will unpack a tuple type and call into the normal
                 // call mechanism.
 
-                ast::Array::ENTRY_store argExprs;
-                argExprs.reserve(prismArgs.size());
-                for (auto &arg : args) {
-                    if (parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get())) {
-                        continue; // Skip anonymous splats (like `f(*)`), which are handled separately in `PM_CALL_NODE`
-                    } else if (parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get())) {
-                        continue; // Skip forwarded args (like `f(...)`), which are handled separately in `PM_CALL_NODE`
-                    }
-
-                    auto expr = arg->takeDesugaredExpr();
-                    ENFORCE(expr != nullptr);
-                    argExprs.emplace_back(move(expr));
-                }
-                auto argsEmpty = argExprs.empty();
-                auto argsArrayExpr = desugarArray(sendLoc0, prismArgs, move(argExprs));
+                auto argsArrayExpr = desugarArray(sendLoc0, prismArgs);
 
                 if (hasFwdRestArg) { // f(*)
                     auto loc = sendWithBlockLoc;
@@ -1970,6 +1955,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                     argsArrayExpr = move(argsConcat);
                 } else if (hasFwdArgs) { // f(...)
+                    auto argsEmpty = absl::c_all_of(args, [](const auto &arg) {
+                        return parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(arg.get()) ||
+                               parser::NodeWithExpr::isa_node<parser::ForwardedArgs>(arg.get());
+                    });
+
                     auto loc = sendWithBlockLoc;
 
                     // `argsArrayExpr.concat(::Magic.<splat>(<fwd-args>)).concat([::<Magic>.<to-hash-dup>(<fwd-kwargs>)])`
@@ -4620,8 +4610,7 @@ ast::ExpressionPtr Translator::desugarBreakNextReturn(pm_arguments_node *argsNod
     return arrayExpr;
 }
 
-ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> prismElements,
-                                            ast::Array::ENTRY_store elements) {
+ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> elements) {
     auto locZeroLen = location.copyWithZeroLength();
     auto calledFromCallNode = location.empty();
 
@@ -4629,16 +4618,12 @@ ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Spa
     elems.reserve(elements.size());
 
     ExpressionPtr lastMerge;
-    ENFORCE(elements.size() <= prismElements.size());
-    for (int prismIndex = 0, sorbetIndex = 0; prismIndex < prismElements.size() && sorbetIndex < elements.size();
-         prismIndex++, sorbetIndex++) {
-        auto *node = prismElements[prismIndex];
-        auto &stat = elements[sorbetIndex];
+    for (auto *element : elements) {
+        auto expr = desugar(element);
 
-        if (PM_NODE_TYPE_P(node, PM_SPLAT_NODE)) {
-            auto isAnonymousSplat = down_cast<pm_splat_node>(node)->expression == nullptr;
+        if (PM_NODE_TYPE_P(element, PM_SPLAT_NODE)) {
+            auto isAnonymousSplat = down_cast<pm_splat_node>(element)->expression == nullptr;
             if (calledFromCallNode && isAnonymousSplat) {
-                prismIndex++;
                 continue; // Skip anonymous splats (like `f(*)`), which are handled separately in `PM_CALL_NODE`
             }
 
@@ -4647,7 +4632,7 @@ ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Spa
             // The Splat was already desugared to Send{Magic.splat(arg)} with the splat's own location.
             // But for array literals, we want the splat to have the array's location to match
             // the legacy parser's behavior (important for error messages and hover).
-            auto var = move(stat);
+            auto var = move(expr);
 
             // The parser::Send case makes a fake parser::Array with locZeroLen to hide callWithSplat
             // methods from hover. Using the array's loc means that we will get a zero-length loc for
@@ -4681,7 +4666,7 @@ ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Spa
                 lastMerge = MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen, move(var));
             }
         } else {
-            elems.emplace_back(move(stat));
+            elems.emplace_back(move(expr));
         }
     };
 
