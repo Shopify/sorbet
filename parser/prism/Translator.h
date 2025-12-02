@@ -102,8 +102,7 @@ private:
     std::array<core::LocOffsets, 9> findNumberedParamsUsageLocs(core::LocOffsets loc, pm_statements_node *statements,
                                                                 uint8_t maxParamNumber);
 
-    ast::MethodDef::PARAMS_store translateNumberedParametersNode(pm_numbered_parameters_node *numberedParamsNode,
-                                                                 pm_statements_node_t *statements);
+    ast::MethodDef::PARAMS_store translateNumberedParametersNode(pm_block_node *blockNode);
 
     ast::ExpressionPtr desugarSymbolProc(pm_symbol_node *symbol);
 
