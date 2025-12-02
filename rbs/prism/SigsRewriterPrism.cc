@@ -95,54 +95,29 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
             helperNode = prism.Call0(annotation.typeLoc, self, "interface!"sv);
         } else if (annotation.string == "final") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
-            if (self) {
-                helperNode = prism.Call0(annotation.typeLoc, self, "final!"sv);
-            }
+            helperNode = prism.Call0(annotation.typeLoc, self, "final!"sv);
         } else if (annotation.string == "sealed") {
             pm_node_t *self = prism.Self(annotation.typeLoc);
-            if (self) {
-                helperNode = prism.Call0(annotation.typeLoc, self, "sealed!"sv);
-            }
+            helperNode = prism.Call0(annotation.typeLoc, self, "sealed!"sv);
         } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
             if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
-                // Create statements node with the type
-                pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
-                if (stmts) {
-                    *stmts =
-                        (pm_statements_node_t){.base = prism.initializeBaseNode(
-                                                   PM_STATEMENTS_NODE, parser.convertLocOffsets(annotation.typeLoc)),
-                                               .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
-                    pm_node_list_append(&stmts->body, type);
+                auto statementsList = std::array{type};
+                auto *stmts = prism.StatementsNode(annotation.typeLoc, absl::MakeSpan(statementsList));
 
-                    // Create self.requires_ancestor call
-                    pm_node_t *self = prism.Self(annotation.typeLoc);
-                    pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
+                // Create self.requires_ancestor call
+                pm_node_t *self = prism.Self(annotation.typeLoc);
+                pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
 
-                    if (callNode && self) {
-                        // Create block with the statements as body
-                        pm_block_node_t *block = prism.allocateNode<pm_block_node_t>();
-                        if (block) {
-                            *block = (pm_block_node_t){.base = prism.initializeBaseNode(
-                                                           PM_BLOCK_NODE, parser.convertLocOffsets(annotation.typeLoc)),
-                                                       .locals = {.size = 0, .capacity = 0, .ids = nullptr},
-                                                       .parameters = nullptr,
-                                                       .body = up_cast(stmts),
-                                                       .opening_loc = parser.getZeroWidthLocation(),
-                                                       .closing_loc = parser.getZeroWidthLocation()};
+                auto *call = down_cast<pm_call_node_t>(callNode);
+                call->block = prism.Block(annotation.typeLoc, stmts);
 
-                            // Attach block to the call
-                            auto *call = down_cast<pm_call_node_t>(callNode);
-                            call->block = up_cast(block);
-                            helperNode = callNode;
-                        }
-                    }
-                }
+                helperNode = callNode;
             }
         }
 
-        if (helperNode) {
-            helpers.push_back(helperNode);
-        }
+        ENFORCE(helperNode != nullptr);
+
+        helpers.push_back(helperNode);
     }
 
     return helpers;
@@ -153,42 +128,19 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
  *
  * This is useful for cases where we want to insert helpers into the body of a class/module/etc.
  */
-[[maybe_unused]] pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &parser) {
+pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &parser) {
     Factory prism(const_cast<parser::Prism::Parser &>(parser));
 
     if (body == nullptr) {
-        // Create empty statements node
-        pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
-        if (!stmts) {
-            return nullptr;
-        }
-        *stmts =
-            (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, parser.convertLocOffsets(loc)),
-                                   .body = {.size = 0, .capacity = 0, .nodes = nullptr}};
-        return up_cast(stmts);
+        return prism.StatementsNode(loc, absl::Span<pm_node_t *>{});
     }
 
     if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE)) {
         return body; // Already wrapped
     }
 
-    // Wrap single node in statements
-    pm_statements_node_t *stmts = prism.allocateNode<pm_statements_node_t>();
-    if (!stmts) {
-        return nullptr;
-    }
-
-    pm_node_t **nodes = (pm_node_t **)calloc(1, sizeof(pm_node_t *));
-    if (!nodes) {
-        free(stmts);
-        return nullptr;
-    }
-    nodes[0] = body;
-
-    *stmts = (pm_statements_node_t){.base = prism.initializeBaseNode(PM_STATEMENTS_NODE, body->location),
-                                    .body = {.size = 1, .capacity = 1, .nodes = nodes}};
-
-    return up_cast(stmts);
+    auto statementsList = std::array{body};
+    return prism.StatementsNode(loc, absl::MakeSpan(statementsList));
 }
 
 /**
@@ -836,9 +788,7 @@ pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *original
     body.reserve(signatures->size() + 1);
 
     for (auto *sigCall : *signatures) {
-        if (sigCall) {
-            body.push_back(sigCall);
-        }
+        body.push_back(sigCall);
     }
     body.push_back(originalNode);
 

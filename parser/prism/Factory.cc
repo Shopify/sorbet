@@ -60,10 +60,13 @@ pm_node_t *Factory::ConstantReadNode(string_view name, core::LocOffsets loc) con
 }
 
 pm_node_t *Factory::ConstantReadNode(pm_constant_id_t constantId, core::LocOffsets loc) const {
+    return ConstantReadNode(constantId, parser.convertLocOffsets(loc));
+}
+
+pm_node_t *Factory::ConstantReadNode(pm_constant_id_t constantId, pm_location_t loc) const {
     pm_constant_read_node_t *node = allocateNode<pm_constant_read_node_t>();
 
-    pm_location_t pmLoc = parser.convertLocOffsets(loc);
-    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE, pmLoc), .name = constantId};
+    *node = (pm_constant_read_node_t){.base = initializeBaseNode(PM_CONSTANT_READ_NODE, loc), .name = constantId};
 
     return up_cast(node);
 }
@@ -87,15 +90,18 @@ pm_node_t *Factory::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nam
 
 pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, string_view name) const {
     pm_constant_id_t nameId = addConstantToPool(name);
+    pm_location_t pmLoc = parser.convertLocOffsets(loc);
+    return ConstantPathNode(pmLoc, parent, nameId);
+}
+
+pm_node_t *Factory::ConstantPathNode(pm_location_t loc, pm_node_t *parent, pm_constant_id_t nameId) const {
     pm_constant_path_node_t *node = allocateNode<pm_constant_path_node_t>();
 
-    pm_location_t pmLoc = parser.convertLocOffsets(loc);
-
-    *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE, pmLoc),
+    *node = (pm_constant_path_node_t){.base = initializeBaseNode(PM_CONSTANT_PATH_NODE, loc),
                                       .parent = parent,
                                       .name = nameId,
-                                      .delimiter_loc = pmLoc,
-                                      .name_loc = pmLoc};
+                                      .delimiter_loc = loc,
+                                      .name_loc = loc};
 
     return up_cast(node);
 }
@@ -127,6 +133,14 @@ pm_node_t *Factory::True(core::LocOffsets loc) const {
     *trueNode = (pm_true_node_t){.base = initializeBaseNode(PM_TRUE_NODE, parser.convertLocOffsets(loc))};
 
     return up_cast(trueNode);
+}
+
+pm_node_t *Factory::Nil(core::LocOffsets loc) const {
+    ENFORCE(loc.exists(), "Nil: location is required");
+
+    pm_nil_node_t *nilNode = allocateNode<pm_nil_node_t>();
+    *nilNode = (pm_nil_node_t){.base = initializeBaseNode(PM_NIL_NODE, parser.convertLocOffsets(loc))};
+    return up_cast(nilNode);
 }
 
 pm_constant_id_t Factory::addConstantToPool(string_view name) const {

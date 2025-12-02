@@ -651,15 +651,15 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     vector<pm_node_t *> sigParams;
     sigParams.reserve(args.size());
 
-    // Create type converter for RBS types to Prism nodes
-    auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
-
     // Collect Ruby method parameter names once (mirror WQ)
     vector<MethodParamInfo> methodArgs;
     if (PM_NODE_TYPE_P((pm_node_t *)methodDef, PM_DEF_NODE)) {
         auto def = down_cast<pm_def_node_t>((pm_node_t *)methodDef);
         methodArgs = getMethodArgs(def);
     }
+
+    // Create type converter for RBS types to Prism nodes
+    auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
 
     size_t paramIndex = 0;
     for (const auto &arg : args) {

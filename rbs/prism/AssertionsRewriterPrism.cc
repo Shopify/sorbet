@@ -36,15 +36,9 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
-        pm_nil_node_t *nil = prism.allocateNode<pm_nil_node_t>();
-        *nil = (pm_nil_node_t){
-            .base = prism.initializeBaseNode(PM_NIL_NODE, parser.convertLocOffsets(comment.comment.typeLoc)),
-        };
-        nil->base.location = parser.convertLocOffsets(comment.comment.typeLoc);
-        return pair<pm_node_t *, InlineCommentPrism::Kind>{
-            up_cast(nil),
-            comment.kind,
-        };
+        pm_node_t *nil = prism.Nil(comment.comment.typeLoc);
+
+        return pair{nil, comment.kind};
     }
 
     auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, parser);
@@ -115,8 +109,7 @@ extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &pa
     }
 
     // Collect the type parameters from the arguments
-    if (call->arguments) {
-        auto *args = call->arguments;
+    if (auto *args = call->arguments) {
         for (size_t i = 0; i < args->arguments.size; i++) {
             pm_node_t *arg = args->arguments.nodes[i];
             if (!PM_NODE_TYPE_P(arg, PM_SYMBOL_NODE)) {
@@ -224,23 +217,14 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
 
         case PM_ARGUMENTS_NODE: {
             auto *original = down_cast<pm_arguments_node_t>(node);
-            auto *copy = prism.allocateNode<pm_arguments_node_t>();
 
-            size_t argCount = original->arguments.size;
-            pm_node_t **copiedNodes = nullptr;
-
-            if (argCount > 0) {
-                copiedNodes = (pm_node_t **)prism.calloc(argCount, sizeof(pm_node_t *));
-                for (size_t i = 0; i < argCount; i++) {
-                    copiedNodes[i] = deepCopyGenericTypeNode(parser, original->arguments.nodes[i]);
-                }
+            std::vector<pm_node_t *> copiedArgs;
+            copiedArgs.reserve(original->arguments.size);
+            for (size_t i = 0; i < original->arguments.size; i++) {
+                copiedArgs.push_back(deepCopyGenericTypeNode(parser, original->arguments.nodes[i]));
             }
 
-            *copy = (pm_arguments_node_t){
-                .base = original->base,
-                .arguments = (pm_node_list_t){.size = argCount, .capacity = argCount, .nodes = copiedNodes}};
-
-            return up_cast(copy);
+            return up_cast(prism.createArgumentsNode(absl::MakeSpan(copiedArgs), original->base.location));
         }
 
         // Examples:
@@ -249,11 +233,8 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         //   - G1[Numeric] -> Numeric
         case PM_CONSTANT_READ_NODE: {
             auto *original = down_cast<pm_constant_read_node_t>(node);
-            auto *copy = prism.allocateNode<pm_constant_read_node_t>();
 
-            *copy = (pm_constant_read_node_t){.base = original->base, .name = original->name};
-
-            return up_cast(copy);
+            return prism.ConstantReadNode(original->name, original->base.location);
         }
 
         // Examples:
@@ -262,15 +243,9 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         //   - G1[MyModule::MyClass] -> MyModule::MyClass
         case PM_CONSTANT_PATH_NODE: {
             auto *original = down_cast<pm_constant_path_node_t>(node);
-            auto *copy = prism.allocateNode<pm_constant_path_node_t>();
 
-            *copy = (pm_constant_path_node_t){.base = original->base,
-                                              .parent = deepCopyGenericTypeNode(parser, original->parent),
-                                              .name = original->name,
-                                              .delimiter_loc = original->delimiter_loc,
-                                              .name_loc = original->name_loc};
-
-            return up_cast(copy);
+            return prism.ConstantPathNode(original->base.location, deepCopyGenericTypeNode(parser, original->parent),
+                                          original->name);
         }
 
         // Examples:
