@@ -96,8 +96,7 @@ private:
     std::pair<std::unique_ptr<parser::Params>, core::NameRef /* enclosingBlockParamName */>
     translateParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location);
 
-    std::tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store>
-    desugarParametersNode(NodeVec &params, bool attemptToDesugarParams);
+    std::tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store> desugarParametersNode(NodeVec &params);
 
     core::LocOffsets findItParamUsageLoc(pm_statements_node *statements);
 
