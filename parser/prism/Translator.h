@@ -97,6 +97,9 @@ private:
     std::pair<std::unique_ptr<parser::Params>, core::NameRef /* enclosingBlockParamName */>
     translateParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location);
 
+    std::tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store, core::NameRef /* enclosingBlockParamName */>
+    desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location);
+
     std::tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store> desugarParametersNode(NodeVec &params);
 
     std::array<core::LocOffsets, 9> findNumberedParamsUsageLocs(core::LocOffsets loc, pm_statements_node *statements,
@@ -125,9 +128,6 @@ private:
 
     ast::ExpressionPtr desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> prismElements,
                                     ast::Array::ENTRY_store elements);
-
-    std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
-                                                         std::unique_ptr<parser::Node> sendNode);
 
     ast::ExpressionPtr desugarBegin(pm_begin_node *beginNode);
     ast::Rescue::RESCUE_CASE_store desugarRescueCases(pm_rescue_node *firstRescueNode);
