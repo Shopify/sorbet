@@ -25,7 +25,8 @@ class ExprOnly final : public Node {
     ast::ExpressionPtr desugaredExpr;
 
 public:
-    ExprOnly(ast::ExpressionPtr desugaredExpr) : Node(desugaredExpr.loc()), desugaredExpr(std::move(desugaredExpr)) {
+    ExprOnly(ast::ExpressionPtr desugaredExpr, core::LocOffsets loc)
+        : Node(loc), desugaredExpr(std::move(desugaredExpr)) {
         ENFORCE(this->desugaredExpr != nullptr, "Can't create NodeWithExpr with a null desugaredExpr.");
     }
     virtual ~ExprOnly() = default;
@@ -75,7 +76,11 @@ public:
 };
 
 unique_ptr<parser::Node> expr_only(ast::ExpressionPtr expr) {
-    return make_unique<ExprOnly>(move(expr));
+    return make_unique<ExprOnly>(move(expr), expr.loc());
+}
+
+unique_ptr<parser::Node> expr_only(ast::ExpressionPtr expr, core::LocOffsets loc) {
+    return make_unique<ExprOnly>(move(expr), loc);
 }
 
 void enforceHasExpr(const std::unique_ptr<parser::Node> &node) {
@@ -2214,7 +2219,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             if (defNode->body != nullptr) {
                 if (PM_NODE_TYPE_P(defNode->body, PM_BEGIN_NODE)) {
                     auto beginNode = down_cast<pm_begin_node>(defNode->body);
-                    auto statements = this->translateEnsure(beginNode);
+                    auto statements = methodContext.translateEnsure(beginNode);
 
                     // Prism uses a PM_BEGIN_NODE to model the body of a method that has a top level rescue/ensure, e.g.
                     //
@@ -2380,7 +2385,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto inlineIfSingle = false;
             auto statements = desugarStatements(stmtsNode, inlineIfSingle, location);
-            return expr_only(move(statements));
+            return expr_only(move(statements), location);
         }
         case PM_EMBEDDED_VARIABLE_NODE: {
             auto embeddedVariableNode = down_cast<pm_embedded_variable_node>(node);
@@ -3052,9 +3057,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             if (PM_NODE_TYPE_P(stmtsNode, PM_STATEMENTS_NODE)) {
                 auto inlineIfSingle = false;
-                // Override the begin node location to be the parentheses location instead of the statements location
-                auto statements = desugarStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle, location);
-                return expr_only(move(statements));
+                auto statements = desugarStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle);
+                // Use inner location if it exists, otherwise fall back to parentheses location.
+                // Inner location matches legacy parser for || desugaring; parens location is needed
+                // when inner content has no valid location (e.g., unsupported nodes).
+                auto loc = statements.loc().exists() ? statements.loc() : location;
+                return expr_only(move(statements), loc);
             } else {
                 return translate(stmtsNode);
             }
@@ -3152,9 +3160,14 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         }
         case PM_RESCUE_MODIFIER_NODE: {
             auto rescueModifierNode = down_cast<pm_rescue_modifier_node>(node);
+            auto keywordLoc = translateLoc(rescueModifierNode->keyword_loc);
+
+            // Create a RescueCase with empty exceptions and a <rescueTemp> variable
+            ast::RescueCase::EXCEPTION_store exceptions;
+            auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
+
             auto body = translate(rescueModifierNode->expression);
             auto rescue = translate(rescueModifierNode->rescue_expression);
-            auto keywordLoc = translateLoc(rescueModifierNode->keyword_loc);
 
             auto resbodyLoc = core::LocOffsets{keywordLoc.beginPos(), location.endPos()};
 
@@ -3162,10 +3175,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             auto bodyExpr = body->takeDesugaredExpr();
             auto rescueExpr = rescue->takeDesugaredExpr();
-
-            // Create a RescueCase with empty exceptions and a <rescueTemp> variable
-            ast::RescueCase::EXCEPTION_store exceptions;
-            auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
 
             auto rescueCaseLoc =
                 translateLoc(rescueModifierNode->keyword_loc.start, rescueModifierNode->base.location.end);
@@ -3234,7 +3243,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 if (auto e = ctx.beginIndexerError(receiver->loc, core::errors::Desugar::InvalidSingletonDef)) {
                     e.setHeader("`{}` is only supported for `{}`", "class << EXPRESSION", "class << self");
                 }
-                return expr_only(MK::EmptyTree());
+                return expr_only(MK::EmptyTree(), location);
             }
 
             auto bodyExprs = desugarScopeBodyToRHSStore(classNode->body, body);
@@ -3293,7 +3302,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_STATEMENTS_NODE: { // A sequence of statements, such a in a `begin` block, `()`, etc.
             auto statementsNode = down_cast<pm_statements_node>(node);
             auto expr = desugarStatements(statementsNode);
-            return expr_only(move(expr));
+            return expr_only(move(expr), location);
         }
         case PM_STRING_NODE: { // A string literal, e.g. `"foo"`
             auto strNode = down_cast<pm_string_node>(node);
@@ -4292,7 +4301,9 @@ ast::ExpressionPtr Translator::desugarBreakNextReturn(pm_arguments_node *argsNod
 
     ENFORCE(arguments.size() == argCount);
 
-    auto arrayExpr = MK::Array(location, move(arguments));
+    // Exclude the "return", "break", or "next" keywords from the array location
+    auto arrayLoc = arguments.front().loc().join(arguments.back().loc());
+    auto arrayExpr = MK::Array(arrayLoc, move(arguments));
     return arrayExpr;
 }
 
@@ -5513,7 +5524,9 @@ unique_ptr<parser::Node> Translator::translateRegexp(core::LocOffsets location, 
     auto source = parser.extractString(&content);
 
     auto stringContent = source.empty() ? core::Names::empty() : ctx.state.enterNameUTF8(source);
-    auto pattern = MK::String(location, stringContent);
+    // Use full location for empty regexps, to match original parser.
+    auto patternLoc = contentLoc.empty() ? location : contentLoc;
+    auto pattern = MK::String(patternLoc, stringContent);
 
     auto options = translateRegexpOptions(closingLoc);
     auto optsExpr = options->takeDesugaredExpr();
