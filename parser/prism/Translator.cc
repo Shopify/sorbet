@@ -1809,7 +1809,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             };
 
             enforceHasExpr(receiver);
-            auto supportedCallType = true;
 
             unique_ptr<parser::Node> blockBody;       // e.g. `123` in `foo { |x| 123 }`
             unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
@@ -1946,7 +1945,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         } else {
                             auto blockPassArgNode = translate(bp->expression);
 
-                            if (supportedCallType) {
+                            if (true) {
                                 enforceHasExpr(blockPassArgNode);
 
                                 blockPassArg = blockPassArgNode->takeDesugaredExpr();
@@ -1976,6 +1975,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 supportedBlock = true;
             }
 
+            auto supportedCallType = true;
             supportedCallType &= supportedBlock;
 
             if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
