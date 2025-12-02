@@ -1829,8 +1829,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
                     enforceHasExpr(blockBody);
 
-                    bool didDesugarBlockParams = false;
-
                     if (blockNode->parameters != nullptr) {
                         switch (PM_NODE_TYPE(blockNode->parameters)) {
                             case PM_BLOCK_PARAMETERS_NODE: { // The params declared at the top of a PM_BLOCK_NODE
@@ -1846,7 +1844,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                     // TODO: future follow up, ensure we add the block local variables ("shadowargs"),
                                     // if any.
                                     blockParameters = make_unique<parser::Params>(paramsLoc, NodeVec{});
-                                    didDesugarBlockParams = true;
                                 } else {
                                     unique_ptr<parser::Params> params;
                                     std::tie(params, std::ignore) =
@@ -1859,8 +1856,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                                           make_move_iterator(sorbetShadowParams.begin()),
                                                           make_move_iterator(sorbetShadowParams.end()));
 
+                                    bool didDesugarBlockParams;
                                     std::tie(blockParamsStore, blockStatsStore, didDesugarBlockParams) =
                                         desugarParametersNode(params->params, true);
+
+                                    if (!didDesugarBlockParams) {
+                                        throw PrismFallback{};
+                                    }
 
                                     blockParameters = move(params);
                                 }
@@ -1883,8 +1885,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                 auto params = translateNumberedParametersNode(
                                     numberedParamsNode, down_cast<pm_statements_node>(blockNode->body),
                                     &blockParamsStore);
-
-                                didDesugarBlockParams = true;
 
                                 blockParameters = make_unique<parser::NumParams>(numParamsLoc, move(params));
 
@@ -1909,8 +1909,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                 auto it = MK::Local(itUsageLoc, name);
                                 auto itDecl = make_node_with_expr<parser::LVar>(move(it), itUsageLoc, name);
 
-                                didDesugarBlockParams = true;
-
                                 // Single 'it' parameter - use the original name (not a unique one)
                                 // Unlike numbered parameters, 'it' uses the actual name "it" so that
                                 // local variables named 'it' in the same scope can shadow it
@@ -1927,7 +1925,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                             }
                         }
 
-                        supportedBlock = didDesugarBlockParams;
+                        supportedBlock = true;
 
                     } else {
                         supportedBlock = true;
