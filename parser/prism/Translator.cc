@@ -1866,14 +1866,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         } else {
                             auto blockPassArgNode = translate(bp->expression);
 
-                            if (true) {
-                                enforceHasExpr(blockPassArgNode);
+                            enforceHasExpr(blockPassArgNode);
 
-                                blockPassArg = blockPassArgNode->takeDesugaredExpr();
-                                supportedBlock = true;
-                            } else {
-                                supportedBlock = false;
-                            }
+                            blockPassArg = blockPassArgNode->takeDesugaredExpr();
+                            supportedBlock = true;
                         }
                     } else {
                         // Replace an anonymous block pass like `f(&)` with a local variable
