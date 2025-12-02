@@ -142,8 +142,8 @@ private:
     std::unique_ptr<parser::Mlhs> translateMultiTargetLhs(PrismNode *node, core::LocOffsets location);
 
     template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
-    std::unique_ptr<parser::Node> translateAnyOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
-                                                           std::unique_ptr<parser::Node> lhs);
+    std::unique_ptr<ExprOnly> translateAnyOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
+                                                       std::unique_ptr<ExprOnly> lhs);
 
     // Translate operator assignment targeting an indexed expression (e.g., `a[0] += 1`).
     template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
@@ -151,8 +151,8 @@ private:
 
     // Translate AndAsgn/OrAsgn operator assignments (e.g., `x &&= y`, `x ||= y`).
     template <typename SorbetAssignmentNode>
-    std::unique_ptr<parser::Node> translateAndOrAssignment(core::LocOffsets location, std::unique_ptr<parser::Node> lhs,
-                                                           std::unique_ptr<parser::Node> rhs);
+    std::unique_ptr<ExprOnly> translateAndOrAssignment(core::LocOffsets location, std::unique_ptr<ExprOnly> lhs,
+                                                       std::unique_ptr<ExprOnly> rhs);
 
     template <typename PrismLhsNode, bool checkForDynamicConstAssign = false>
     ast::ExpressionPtr translateConst(pm_node_t *node);
@@ -178,9 +178,8 @@ private:
 
     // Translate OpAsgn operator assignments
     template <typename SorbetAssignmentNode, typename PrismAssignmentNode>
-    std::unique_ptr<parser::Node> translateOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
-                                                        std::unique_ptr<parser::Node> lhs,
-                                                        std::unique_ptr<parser::Node> rhs);
+    std::unique_ptr<ExprOnly> translateOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
+                                                    std::unique_ptr<ExprOnly> lhs, std::unique_ptr<ExprOnly> rhs);
 
     // ========================================================================
     // Direct Desugaring Functions for Op-Assignment Nodes
