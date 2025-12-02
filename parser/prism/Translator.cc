@@ -1654,7 +1654,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 // Model this as an Integer in the parse tree, but desugar to a method call like `42.~()`
                 auto sendNode =
                     MK::Send0(sendLoc, move(integerExpr), core::Names::tilde(), sendLoc.copyEndWithZeroLength());
-                return make_node_with_expr<parser::Integer>(move(sendNode), sendLoc, move(valueString));
+                return expr_only(move(sendNode));
             }
 
             if (constantNameString == "[]" || constantNameString == "[]=") {
@@ -2007,18 +2007,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     flattenKwargs(kwargsHash, kwargElements);
                     ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, 0, kwargElements);
 
-                    // Add the kwargs Hash back into parse tree, so that it's correct, too.
-                    // This doesn't effect the desugared expression.
-                    args.emplace_back(move(kwargsHash));
-
                     kwargsExpr = MK::Array(sendWithBlockLoc, move(kwargElements));
                 } else {
                     kwargsExpr = MK::Nil(sendWithBlockLoc);
-                }
-
-                if (prismBlock && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
-                    // Add the parser node back into the wq tree, to pass the parser tests.
-                    args.emplace_back(move(blockPassNode));
                 }
 
                 auto numPosArgs = 4;
@@ -2045,8 +2036,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     auto sendExpr =
                         MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithSplatAndBlockPass(),
                                  messageLoc, numPosArgs, move(magicSendArgs), flags);
-                    return make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver), name,
-                                                             messageLoc, move(args));
+                    return expr_only(move(sendExpr));
                 }
 
                 if (prismBlock != nullptr) {
@@ -2084,22 +2074,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 // E.g. `foo(*splat)` or `foo(*splat) { |x| puts(x) }`
                 auto sendExpr = MK::Send(sendWithBlockLoc, MK::Magic(sendWithBlockLoc), core::Names::callWithSplat(),
                                          messageLoc, numPosArgs, move(magicSendArgs), flags);
-                auto sendNode = make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver),
-                                                                  name, messageLoc, move(args));
-
-                if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                    // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child,
-                    // but the legacy parser inverts this, with a parent "Block" with a child "Send".
-                    //
-                    // Note: The legacy parser doesn't treat block pass arguments this way.
-                    //       It just puts them at the end of the arguments list,
-                    //       which is why we checked for `PM_BLOCK_NODE` specifically here.
-
-                    return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), blockLoc, move(sendNode),
-                                                              move(blockParameters), move(blockBody));
-                }
-
-                return sendNode;
+                return expr_only(move(sendExpr));
             }
 
             // Grab a copy of the argument count, before we concat in the kwargs key/value pairs. // huh?
@@ -2130,23 +2105,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 if (kwargsHash) {
                     flattenKwargs(kwargsHash, magicSendArgs);
                     ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, numPosArgs, magicSendArgs);
-
-                    // Add the kwargs Hash back into parse tree, so that it's correct, too.
-                    // This doesn't effect the desugared expression.
-                    args.emplace_back(move(kwargsHash));
-                }
-
-                if (prismBlock && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
-                    // Add the parser node back into the wq tree, to pass the parser tests.
-
-                    args.emplace_back(move(blockPassNode));
                 }
 
                 auto sendExpr = MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(),
                                          messageLoc, numPosArgs, move(magicSendArgs), flags);
 
-                return make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver), name,
-                                                         messageLoc, move(args));
+                return expr_only(move(sendExpr));
             }
 
             ast::Send::ARGS_store sendArgs{};
@@ -2160,10 +2124,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             if (kwargsHash) {
                 flattenKwargs(kwargsHash, sendArgs);
                 ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, numPosArgs, sendArgs);
-
-                // Add the kwargs Hash back into parse tree, so that it's correct, too.
-                // This doesn't effect the desugared expression.
-                args.emplace_back(move(kwargsHash));
             }
 
             if (prismBlock != nullptr) {
@@ -2198,22 +2158,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto expr =
                 MK::Send(sendWithBlockLoc, move(receiverExpr), name, messageLoc, numPosArgs, move(sendArgs), flags);
 
-            sendNode =
-                make_node_with_expr<parser::Send>(move(expr), sendLoc, move(receiver), name, messageLoc, move(args));
-
-            if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child,
-                // but the legacy parser inverts this, with a parent "Block" with a child "Send".
-                //
-                // Note: The legacy parser doesn't treat block pass arguments this way.
-                //       It just puts them at the end of the arguments list,
-                //       which is why we checked for `PM_BLOCK_NODE` specifically here.
-
-                return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), blockLoc, move(sendNode),
-                                                          move(blockParameters), move(blockBody));
-            }
-
-            return sendNode;
+            return expr_only(move(expr));
         }
         case PM_CALL_OPERATOR_WRITE_NODE: { // Compound assignment to a method call, e.g. `a.b += 1`
             return expr_only(desugarSendOpAssign<pm_call_operator_write_node, OpAssignKind::Operator>(node), location);
