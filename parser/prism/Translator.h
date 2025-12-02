@@ -13,6 +13,8 @@ extern "C" {
 
 namespace sorbet::parser::Prism {
 
+class ExprOnly;
+
 // Enum to specify the type of compound assignment operation.
 // Used by the desugar*OpAssign functions to determine the appropriate desugaring strategy.
 enum class OpAssignKind { And, Or, Operator };
