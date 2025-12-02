@@ -4670,22 +4670,20 @@ ast::ExpressionPtr Translator::desugarArray(core::LocOffsets location, absl::Spa
         }
     };
 
-    ExpressionPtr res;
     if (elems.empty()) {
         if (lastMerge != nullptr) {
-            res = move(lastMerge);
+            return lastMerge;
         } else {
             // Empty array
-            res = MK::Array(location, move(elems));
+            return MK::Array(location, move(elems));
         }
     } else {
-        res = MK::Array(location, move(elems));
+        auto res = MK::Array(location, move(elems));
         if (lastMerge != nullptr) {
-            res = MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen, move(res));
+            return MK::Send1(location, move(lastMerge), core::Names::concat(), locZeroLen, move(res));
         }
+        return res;
     }
-
-    return res;
 }
 
 // Translates the given Prism elements into a `NodeVec` of legacy parser nodes.
