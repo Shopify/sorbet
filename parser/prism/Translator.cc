@@ -1623,7 +1623,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::BlockPass>(location, move(expr));
         }
         case PM_BLOCK_NODE: { // An explicit block passed to a method call, i.e. `{ ... }` or `do ... end`
-            unreachable("PM_BLOCK_NODE has special handling in translateCallWithBlock, see its docs for details.");
+            unreachable("PM_BLOCK_NODE has special handling in PM_CALL_NODE, see it for details.");
         }
         case PM_BLOCK_LOCAL_VARIABLE_NODE: { // A named block local variable, like `baz` in `|bar; baz|`
             auto blockLocalNode = down_cast<pm_block_local_variable_node>(node);
@@ -1635,24 +1635,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             unreachable("PM_BLOCK_PARAMETER_NODE is handled separately in `Translator::translateParametersNode()`.");
         }
         case PM_BLOCK_PARAMETERS_NODE: { // The parameters declared at the top of a PM_BLOCK_NODE
-            // Like the `|x|` in `foo { |x| ... } `
-            auto paramsNode = down_cast<pm_block_parameters_node>(node);
-
-            if (paramsNode->parameters == nullptr) {
-                // TODO: future follow up, ensure we add the block local variables ("shadowargs"), if any.
-                return make_unique<parser::Params>(location, NodeVec{});
-            }
-
-            unique_ptr<parser::Params> params;
-            std::tie(params, std::ignore) = translateParametersNode(paramsNode->parameters, location);
-
-            // Sorbet's legacy parser inserts locals ("Shadowargs") at the end of the block's Params node,
-            // after all other parameters.
-            auto sorbetShadowParams = translateMulti(paramsNode->locals);
-            params->params.insert(params->params.end(), make_move_iterator(sorbetShadowParams.begin()),
-                                  make_move_iterator(sorbetShadowParams.end()));
-
-            return params;
+            unreachable("PM_BLOCK_PARAMETERS_NODE is handled separately in `PM_CALL_NODE`.");
         }
         case PM_BREAK_NODE: { // A `break` statement, e.g. `break`, `break 1, 2, 3`
             auto breakNode = down_cast<pm_break_node>(node);
@@ -2867,7 +2850,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto blockArgumentNode = forwardingSuperNode->block;
 
             if (blockArgumentNode != nullptr) { // always a PM_BLOCK_NODE
-                return translateCallWithBlock(up_cast(blockArgumentNode), move(translatedNode));
+                throw PrismFallback{};          // TODO: Not supported yet
             }
 
             return translatedNode;
@@ -3198,7 +3181,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto sendNode =
                 make_unique<parser::Send>(sendLoc, move(receiver), core::Names::lambda(), operatorLoc, NodeVec{});
 
-            return translateCallWithBlock(node, move(sendNode));
+            throw PrismFallback{}; // TODO: Not supported yet
         }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a local variable, e.g. `local &&= false`
             return expr_only(desugarVariableOpAssign<pm_local_variable_and_write_node, OpAssignKind::And,
@@ -3683,9 +3666,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
 
             if (blockArgumentNode != nullptr && PM_NODE_TYPE_P(blockArgumentNode, PM_BLOCK_NODE)) {
-                returnValues = translateArguments(superNode->arguments);
-                auto superNode = make_unique<parser::Super>(location, move(returnValues));
-                return translateCallWithBlock(blockArgumentNode, move(superNode));
+                throw PrismFallback{}; // TODO: Not supported yet
             }
 
             returnValues = translateArguments(superNode->arguments, blockArgumentNode);
@@ -5145,97 +5126,6 @@ ast::ExpressionPtr Translator::desugarKeyValuePairs(core::LocOffsets loc, pm_nod
     } else {
         return MK::InsSeq(loc, move(updateStmts), MK::Local(loc, acc));
     }
-}
-
-// Prism models a call with an explicit block argument as a `pm_call_node` that contains a `pm_block_node`.
-// Sorbet's legacy parser models this the other way around, as a parent `Block` with a child `Send`.
-// Lambda literals also have a similar reverse structure between the 2 parsers.
-//
-// This function translates between the two, creating a `Block`node for the given `pm_block_node *`
-// or `pm_lambda_node *`, and wrapping it around the given `Send` node.
-unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
-                                                            unique_ptr<parser::Node> sendNode) {
-    pm_node_t *prismParametersNode;
-    pm_node_t *prismBodyNode;
-    core::LocOffsets blockLoc;
-    if (PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_BLOCK_NODE)) {
-        auto prismBlockNode = down_cast<pm_block_node>(prismBlockOrLambdaNode);
-        prismParametersNode = prismBlockNode->parameters;
-        prismBodyNode = prismBlockNode->body;
-        blockLoc = translateLoc(prismBlockOrLambdaNode->location);
-    } else {
-        ENFORCE(PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_LAMBDA_NODE))
-        auto prismLambdaNode = down_cast<pm_lambda_node>(prismBlockOrLambdaNode);
-        prismParametersNode = prismLambdaNode->parameters;
-        prismBodyNode = prismLambdaNode->body;
-        blockLoc = translateLoc(prismLambdaNode->opening_loc.start, prismLambdaNode->closing_loc.end);
-    }
-
-    unique_ptr<parser::Node> parametersNode;
-    if (prismParametersNode != nullptr) {
-        if (PM_NODE_TYPE_P(prismParametersNode, PM_NUMBERED_PARAMETERS_NODE)) {
-            core::LocOffsets numParamsLoc;
-            if (PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_BLOCK_NODE)) {
-                auto prismBlockNode = down_cast<pm_block_node>(prismBlockOrLambdaNode);
-
-                // Use a 0-length loc just after the `do` or `{` token, as if you had written:
-                //     do|_1, _2| ... end`
-                //       ^
-                //     {|_1, _2| ... }`
-                //      ^
-                numParamsLoc = translateLoc(prismBlockNode->opening_loc.end, prismBlockNode->opening_loc.end);
-            } else {
-                ENFORCE(PM_NODE_TYPE_P(prismBlockOrLambdaNode, PM_LAMBDA_NODE));
-                auto prismLambdaNode = down_cast<pm_lambda_node>(prismBlockOrLambdaNode);
-
-                // Use a 0-length loc just after the `->` token, as if you had written:
-                //     ->(_1, _2) { ... }
-                //       ^
-                numParamsLoc = translateLoc(prismLambdaNode->operator_loc.end, prismLambdaNode->operator_loc.end);
-            }
-
-            auto numberedParamsNode = down_cast<pm_numbered_parameters_node>(prismParametersNode);
-
-            auto params = translateNumberedParametersNode(numberedParamsNode,
-                                                          down_cast<pm_statements_node>(prismBodyNode), nullptr);
-            parametersNode = make_unique<parser::NumParams>(numParamsLoc, move(params));
-        } else {
-            parametersNode = translate(prismParametersNode);
-        }
-    }
-
-    auto body = this->enterBlockContext().translate(prismBodyNode);
-
-    // Modify send node's endLoc to be position before first space
-    // This fixes location for cases like:
-    //   Module.new do
-    //     #: (Integer) -> void
-    //     def bar(x); end
-    //   end
-    // Where we want the send node to only cover "Module.new", not the entire block.
-    // This mirrors how WQ stores send location and is needed for RBS rewriting.
-    if (sendNode->loc.exists()) {
-        auto source = ctx.file.data(ctx).source();
-        auto beginPos = sendNode->loc.beginPos();
-        auto endPos = sendNode->loc.endPos();
-
-        // Find block keyword (do or {) within the send node bounds
-        auto doPos = source.find(" do", beginPos);
-        auto bracePos = source.find("{", beginPos);
-
-        auto blockPos = std::string_view::npos;
-        if (doPos != std::string_view::npos && doPos < endPos) {
-            blockPos = doPos;
-        } else if (bracePos != std::string_view::npos && bracePos < endPos) {
-            blockPos = bracePos;
-        }
-
-        if (blockPos != std::string_view::npos) {
-            sendNode->loc = core::LocOffsets{beginPos, static_cast<uint32_t>(blockPos)};
-        }
-    }
-
-    return make_unique<parser::Block>(blockLoc, move(sendNode), move(parametersNode), move(body));
 }
 
 // Helper to desugar statements from a clause node (rescue/ensure/else), returning EmptyTree if null or empty.
