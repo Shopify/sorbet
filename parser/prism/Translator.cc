@@ -1939,18 +1939,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     flattenKwargs(kwargsHash, kwargElements);
                     ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, 0, kwargElements);
 
-                    // Add the kwargs Hash back into parse tree, so that it's correct, too.
-                    // This doesn't effect the desugared expression.
-                    args.emplace_back(move(kwargsHash));
-
                     kwargsExpr = MK::Array(sendWithBlockLoc, move(kwargElements));
                 } else {
                     kwargsExpr = MK::Nil(sendWithBlockLoc);
-                }
-
-                if (prismBlock && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
-                    // Add the parser node back into the wq tree, to pass the parser tests.
-                    args.emplace_back(move(blockPassNode));
                 }
 
                 auto numPosArgs = 4;
@@ -2052,16 +2043,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 if (kwargsHash) {
                     flattenKwargs(kwargsHash, magicSendArgs);
                     ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, numPosArgs, magicSendArgs);
-
-                    // Add the kwargs Hash back into parse tree, so that it's correct, too.
-                    // This doesn't effect the desugared expression.
-                    args.emplace_back(move(kwargsHash));
-                }
-
-                if (prismBlock && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)) {
-                    // Add the parser node back into the wq tree, to pass the parser tests.
-
-                    args.emplace_back(move(blockPassNode));
                 }
 
                 auto sendExpr = MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(),
@@ -2081,10 +2062,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             if (kwargsHash) {
                 flattenKwargs(kwargsHash, sendArgs);
                 ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, numPosArgs, sendArgs);
-
-                // Add the kwargs Hash back into parse tree, so that it's correct, too.
-                // This doesn't effect the desugared expression.
-                args.emplace_back(move(kwargsHash));
             }
 
             if (prismBlock != nullptr) {
