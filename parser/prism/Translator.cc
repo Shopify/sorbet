@@ -1956,7 +1956,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                      !blockPassArgIsSymbol) ||
                     hasFwdArgs) {
                     // Special handling for non-Symbol block pass args, like `a.map(&block)`
-                    // Symbol procs like `a.map(:to_s)` are rewritten into literal block arguments,
+                    // Symbol procs like `a.map(&:to_s)` are rewritten into literal block arguments,
                     // and handled separately below.
 
                     // Desugar a call with a splat, and any other expression as a block pass argument.
@@ -2020,7 +2020,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE) && !blockPassArgIsSymbol) {
                 // Special handling for non-Symbol block pass args, like `a.map(&block)`
-                // Symbol procs like `a.map(:to_s)` are rewritten into literal block arguments,
+                // Symbol procs like `a.map(&:to_s)` are rewritten into literal block arguments,
                 // and handled separately below.
 
                 // Desugar a call without a splat, and any other expression as a block pass argument.
