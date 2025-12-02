@@ -123,6 +123,7 @@ private:
 
     // translateKeyValuePairs + desugarHash in one
     ast::ExpressionPtr desugarKeyValuePairs(core::LocOffsets loc, pm_node_list_t elements);
+    template <typename Container> void flattenKwargs(pm_keyword_hash_node *kwargsHash, Container &destination);
 
     ast::ExpressionPtr desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> prismElements);
     ast::ExpressionPtr desugarHash(core::LocOffsets loc, NodeVec &kvPairs);
