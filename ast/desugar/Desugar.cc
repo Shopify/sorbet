@@ -914,7 +914,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     } else {
                         if (auto lit = cast_tree<Literal>(blockPassArg); lit && lit->isSymbol()) {
                             // Desugar a call without a splat and a Symbol block pass argument.
-                            // E.g. `a.map(:to_s)`
+                            // E.g. `a.map(&:to_s)`
 
                             auto desugaredBlockLiteral = symbol2Proc(dctx, move(blockPassArg));
                             args.emplace_back(move(desugaredBlockLiteral));
