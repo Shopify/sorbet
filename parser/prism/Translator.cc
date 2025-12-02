@@ -2579,11 +2579,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             }
 
             if (!didDesugarParams) {
-                if (isSingletonMethod) {
-                    return make_unique<parser::DefS>(location, declLoc, move(receiver), name, move(params), move(body));
-                } else {
-                    return make_unique<parser::DefMethod>(location, declLoc, name, move(params), move(body));
-                }
+                throw PrismFallback{};
             }
 
             auto methodBody = takeDesugaredExprOrEmptyTree(body);
