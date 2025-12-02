@@ -1692,6 +1692,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                 }
 
                                 if (PM_NODE_TYPE_P(node, PM_ASSOC_SPLAT_NODE)) { // A `**h` or `**` kwarg splat
+                                    // TODO: Add support for PM_ASSOC_SPLAT_NODE below
+                                    //       (formerly Kwsplat and ForwardedKwrestArg)
                                     return true;
                                 };
 
@@ -1703,16 +1705,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                         // Remove the kwargsHash from the arguments Span, so it's not revisited by the `for` loop below.
                         prismArgs.remove_suffix(1);
-
-                        // // Only support kwarg Hashes that only contain pairs for now.
-                        // // TODO: Add support for Kwsplat and ForwardedKwrestArg
-                        // for (auto &node : kwargsHash->pairs) {
-                        //     if (auto pair = parser::NodeWithExpr::cast_node<parser::Pair>(node.get())) {
-                        //         enforceHasExpr(pair->key, pair->value);
-                        //     } else {
-                        //         throw PrismFallback{};
-                        //     }
-                        // }
                     }
                 }
 
