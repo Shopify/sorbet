@@ -1738,8 +1738,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             enforceHasExpr(receiver);
 
-            unique_ptr<parser::Node> blockBody;       // e.g. `123` in `foo { |x| 123 }`
-            unique_ptr<parser::Node> blockParameters; // e.g. `|x|` in `foo { |x| 123 }`
+            unique_ptr<parser::Node> blockBody; // e.g. `123` in `foo { |x| 123 }`
             ast::MethodDef::PARAMS_store blockParamsStore;
             ast::InsSeq::STATS_store blockStatsStore;
             unique_ptr<parser::Node> blockPassNode;
@@ -1769,22 +1768,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
                                     // TODO: future follow up, ensure we add the block local variables ("shadowargs"),
                                     // if any.
-                                    blockParameters = make_unique<parser::Params>(paramsLoc, NodeVec{});
                                 } else {
-                                    unique_ptr<parser::Params> params;
-                                    std::tie(params, std::ignore) =
-                                        translateParametersNode(paramsNode->parameters, paramsLoc);
+                                    auto blockLocalVariables =
+                                        absl::MakeSpan(paramsNode->locals.nodes, paramsNode->locals.size);
 
-                                    // Sorbet's legacy parser inserts locals ("Shadowargs") at the end of the block's
-                                    // Params node, after all other parameters.
-                                    auto sorbetShadowParams = translateMulti(paramsNode->locals);
-                                    params->params.insert(params->params.end(),
-                                                          make_move_iterator(sorbetShadowParams.begin()),
-                                                          make_move_iterator(sorbetShadowParams.end()));
-
-                                    std::tie(blockParamsStore, blockStatsStore) = desugarParametersNode(params->params);
-
-                                    blockParameters = move(params);
+                                    std::tie(blockParamsStore, blockStatsStore, std::ignore) =
+                                        desugarParametersNode(paramsNode->parameters, paramsLoc, blockLocalVariables);
                                 }
 
                                 break;
@@ -1799,14 +1788,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                                 //       ^
                                 //     {|_1, _2| ... }`
                                 //      ^
-                                auto numParamsLoc =
-                                    translateLoc(blockNode->opening_loc.end, blockNode->opening_loc.end);
 
                                 auto params = translateNumberedParametersNode(
                                     numberedParamsNode, down_cast<pm_statements_node>(blockNode->body),
                                     &blockParamsStore);
-
-                                blockParameters = make_unique<parser::NumParams>(numParamsLoc, move(params));
 
                                 break;
                             }
@@ -2045,22 +2030,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 // E.g. `foo(*splat)` or `foo(*splat) { |x| puts(x) }`
                 auto sendExpr = MK::Send(sendWithBlockLoc, MK::Magic(sendWithBlockLoc), core::Names::callWithSplat(),
                                          messageLoc, numPosArgs, move(magicSendArgs), flags);
-                auto sendNode = make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver),
-                                                                  name, messageLoc, move(args));
 
-                if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                    // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child,
-                    // but the legacy parser inverts this, with a parent "Block" with a child "Send".
-                    //
-                    // Note: The legacy parser doesn't treat block pass arguments this way.
-                    //       It just puts them at the end of the arguments list,
-                    //       which is why we checked for `PM_BLOCK_NODE` specifically here.
-
-                    return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), blockLoc, move(sendNode),
-                                                              move(blockParameters), move(blockBody));
-                }
-
-                return sendNode;
+                return expr_only(move(sendExpr));
             }
 
             // Grab a copy of the argument count, before we concat in the kwargs key/value pairs. // huh?
@@ -2159,22 +2130,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto expr =
                 MK::Send(sendWithBlockLoc, move(receiverExpr), name, messageLoc, numPosArgs, move(sendArgs), flags);
 
-            sendNode =
-                make_node_with_expr<parser::Send>(move(expr), sendLoc, move(receiver), name, messageLoc, move(args));
-
-            if (prismBlock != nullptr && PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) {
-                // In Prism, this is modeled by a `pm_call_node` with a `pm_block_node` as a child,
-                // but the legacy parser inverts this, with a parent "Block" with a child "Send".
-                //
-                // Note: The legacy parser doesn't treat block pass arguments this way.
-                //       It just puts them at the end of the arguments list,
-                //       which is why we checked for `PM_BLOCK_NODE` specifically here.
-
-                return make_node_with_expr<parser::Block>(sendNode->takeDesugaredExpr(), blockLoc, move(sendNode),
-                                                          move(blockParameters), move(blockBody));
-            }
-
-            return sendNode;
+            return expr_only(move(expr));
         }
         case PM_CALL_OPERATOR_WRITE_NODE: { // Compound assignment to a method call, e.g. `a.b += 1`
             return expr_only(desugarSendOpAssign<pm_call_operator_write_node, OpAssignKind::Operator>(node), location);
@@ -4317,7 +4273,8 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
 }
 
 tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store, core::NameRef /* enclosingBlockParamName */>
-Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location) {
+Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location,
+                                  absl::Span<pm_node_t *> blockLocalVariables) {
     if (paramsNode == nullptr) {
         return make_tuple(ast::MethodDef::PARAMS_store{}, ast::InsSeq::STATS_store{}, core::Names::blkArg());
     }
