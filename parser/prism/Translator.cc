@@ -1860,13 +1860,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                                           make_move_iterator(sorbetShadowParams.begin()),
                                                           make_move_iterator(sorbetShadowParams.end()));
 
-                                    bool didDesugarBlockParams;
-                                    std::tie(blockParamsStore, blockStatsStore, didDesugarBlockParams) =
+                                    std::tie(blockParamsStore, blockStatsStore, std::ignore) =
                                         desugarParametersNode(params->params, true);
-
-                                    if (!didDesugarBlockParams) {
-                                        throw PrismFallback{};
-                                    }
 
                                     blockParameters = move(params);
                                 }
@@ -2644,11 +2639,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             ast::MethodDef::PARAMS_store paramsStore;
             ast::InsSeq::STATS_store statsStore;
             if (params != nullptr) {
-                bool didDesugarParams = false;
-                std::tie(paramsStore, statsStore, didDesugarParams) = desugarParametersNode(params->params, true);
-                if (!didDesugarParams) {
-                    throw PrismFallback{};
-                }
+                std::tie(paramsStore, statsStore, std::ignore) = desugarParametersNode(params->params, true);
             }
 
             auto methodBody = takeDesugaredExprOrEmptyTree(body);
@@ -4428,7 +4419,7 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
 tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store, bool /* didDesugarParams */>
 Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) {
     if (!attemptToDesugarParams) {
-        return make_tuple(ast::MethodDef::PARAMS_store{}, ast::InsSeq::STATS_store{}, false);
+        throw PrismFallback{};
     }
 
     auto supportedParams = absl::c_all_of(params, [](auto &param) {
@@ -4443,7 +4434,7 @@ Translator::desugarParametersNode(NodeVec &params, bool attemptToDesugarParams) 
     });
 
     if (!supportedParams) {
-        return make_tuple(ast::MethodDef::PARAMS_store{}, ast::InsSeq::STATS_store{}, false);
+        throw PrismFallback{};
     }
 
     ast::MethodDef::PARAMS_store paramsStore;
