@@ -2724,12 +2724,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
         case PM_FOR_NODE: { // `for x in a; ...; end`
             auto forNode = down_cast<pm_for_node>(node);
 
-            auto variable = translate(forNode->index);
-            auto collection = translate(forNode->collection);
-            auto body = translateStatements(forNode->statements);
-
-            enforceHasExpr(variable, collection, body);
-
             // Desugar `for x in collection; body; end` into `collection.each { |x| body }`
             bool canProvideNiceDesugar = true;
             auto *mlhs = PM_NODE_TYPE_P(forNode->index, PM_MULTI_TARGET_NODE)
@@ -2750,8 +2744,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 canProvideNiceDesugar = PM_NODE_TYPE_P(forNode->index, PM_LOCAL_VARIABLE_TARGET_NODE);
             }
 
-            auto bodyExpr = takeDesugaredExprOrEmptyTree(body);
-            auto collectionExpr = collection->takeDesugaredExpr();
+            auto bodyExpr = desugarStatements(forNode->statements);
+            auto collectionExpr = desugar(forNode->collection);
             auto locZeroLen = location.copyWithZeroLength();
             ast::MethodDef::PARAMS_store params;
 
@@ -2765,7 +2759,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                         params.emplace_back(desugar(c));
                     }
                 } else {
-                    params.emplace_back(variable->takeDesugaredExpr());
+                    params.emplace_back(desugar(forNode->index));
                 }
             } else {
                 // Complex case: `for @x in a; body; end` -> `a.each { || @x = <temp>; body }`
@@ -2779,7 +2773,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     masgnExpr = desugarMlhs(location, mlhs, move(tempLocal));
                 } else {
                     // Single variable: simple assignment
-                    masgnExpr = MK::Assign(location, variable->takeDesugaredExpr(), move(tempLocal));
+                    masgnExpr = MK::Assign(location, desugar(forNode->index), move(tempLocal));
                 }
 
                 bodyExpr = MK::InsSeq1(location, move(masgnExpr), move(bodyExpr));
@@ -2788,7 +2782,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto block = MK::Block(location, move(bodyExpr), move(params));
             auto expr = MK::Send0Block(location, move(collectionExpr), core::Names::each(), locZeroLen, move(block));
 
-            return make_node_with_expr<parser::For>(move(expr), location, move(variable), move(collection), move(body));
+            return expr_only(move(expr));
         }
         case PM_FORWARDING_ARGUMENTS_NODE: { // The `...` argument in a method call, like `foo(...)`
             return make_unique<parser::ForwardedArgs>(location);
