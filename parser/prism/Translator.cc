@@ -2297,15 +2297,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto callTargetNode = down_cast<pm_call_target_node>(node);
 
             auto receiver = translate(callTargetNode->receiver);
-            auto name = translateConstantName(callTargetNode->name);
-            auto messageLoc = translateLoc(callTargetNode->message_loc);
+            [[maybe_unused]] auto name = translateConstantName(callTargetNode->name);
+            [[maybe_unused]] auto messageLoc = translateLoc(callTargetNode->message_loc);
 
             if (PM_NODE_FLAG_P(callTargetNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
                 // Handle conditional send, e.g. `self&.target1, self&.target2 = 1, 2`
                 // It's not valid Ruby, but the parser needs to support it for the diagnostics to work
-                return make_unique<parser::CSend>(location, move(receiver), name, messageLoc, NodeVec{});
-            } else { // Regular send, e.g. `self.target1, self.target2 = 1, 2`
-                return make_unique<parser::Send>(location, move(receiver), name, messageLoc, NodeVec{});
+
+                throw PrismFallback{}; // TODO: Not implemented yet
+            } else {                   // Regular send, e.g. `self.target1, self.target2 = 1, 2`
+                throw PrismFallback{}; // TODO: Not implemented yet
             }
         }
         case PM_CASE_MATCH_NODE: { // A pattern-matching `case` statement that only uses `in` (and not `when`)
