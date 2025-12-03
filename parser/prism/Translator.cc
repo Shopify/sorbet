@@ -101,7 +101,7 @@ static void collectPatternMatchingVars(ast::InsSeq::STATS_store &vars, parser::N
 
 // Allocates a new `NodeWithExpr` with a pre-computed `ExpressionPtr` AST.
 template <typename SorbetNode, typename... TArgs>
-unique_ptr<NodeWithExpr> Translator::make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) const {
+static unique_ptr<NodeWithExpr> make_node_with_expr(ast::ExpressionPtr desugaredExpr, TArgs &&...args) {
     auto whiteQuarkNode = make_unique<SorbetNode>(std::forward<TArgs>(args)...);
     return make_unique<NodeWithExpr>(move(whiteQuarkNode), move(desugaredExpr));
 }
