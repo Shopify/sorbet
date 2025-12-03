@@ -258,7 +258,8 @@ private:
     sorbet::ast::ExpressionPtr desugarDString(core::LocOffsets loc, pm_node_list prismNodeList);
 
     // Multi-assignment desugaring
-    ast::ExpressionPtr desugarMlhs(core::LocOffsets loc, parser::Mlhs *lhs, ast::ExpressionPtr rhs);
+    template <typename PrismNode>
+    ast::ExpressionPtr desugarMlhs(core::LocOffsets loc, PrismNode *lhs, ast::ExpressionPtr rhs);
 
     // Extracts the desugared expressions out of a "scope" (class/sclass/module) body.
     ast::ClassDef::RHS_store desugarScopeBodyToRHSStore(pm_node *prismBodyNode,
