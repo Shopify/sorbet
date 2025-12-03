@@ -127,7 +127,6 @@ private:
 
     ast::ExpressionPtr desugarArray(core::LocOffsets location, absl::Span<pm_node_t *> prismElements,
                                     ast::Array::ENTRY_store elements);
-    ast::ExpressionPtr desugarHash(core::LocOffsets loc, NodeVec &kvPairs);
 
     std::unique_ptr<parser::Node> translateCallWithBlock(pm_node_t *prismBlockOrLambdaNode,
                                                          std::unique_ptr<parser::Node> sendNode);
