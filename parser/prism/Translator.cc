@@ -98,7 +98,7 @@ void enforceHasExpr(const std::unique_ptr<NodeWithExpr> &node) {
     }
 }
 
-void enforceHasExpr(const parser::NodeVec &nodes) {
+void enforceNodeVecHasExpr(const parser::NodeVec &nodes) {
     for (const auto &node : nodes) {
         enforceHasExpr(node);
     }
@@ -3910,7 +3910,7 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
 
             unique_ptr<parser::Node> arrayPattern = nullptr;
 
-            enforceHasExpr(sorbetElements);
+            enforceNodeVecHasExpr(sorbetElements);
 
             // When the pattern ends with an implicit rest node, we need to return an `ArrayPatternWithTail` instead
             if (prismRestNode != nullptr && PM_NODE_TYPE_P(prismRestNode, PM_IMPLICIT_REST_NODE)) {
@@ -3982,7 +3982,7 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
                     make_node_with_expr<parser::MatchRest>(MK::Nil(splatLoc), splatLoc, move(expr)));
             }
 
-            enforceHasExpr(sorbetElements);
+            enforceNodeVecHasExpr(sorbetElements);
 
             // FindPattern is a structural pattern with no simple desugared expression
             return make_node_with_expr<parser::FindPattern>(MK::Nil(location), location, move(sorbetElements));
@@ -4037,7 +4037,7 @@ unique_ptr<parser::Node> Translator::patternTranslate(pm_node_t *node) {
 
             unique_ptr<parser::Node> hashPattern = nullptr;
 
-            enforceHasExpr(sorbetElements);
+            enforceNodeVecHasExpr(sorbetElements);
 
             // HashPattern is a structural pattern with no direct desugared expression
             hashPattern =
