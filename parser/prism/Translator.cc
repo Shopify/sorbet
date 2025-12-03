@@ -1827,17 +1827,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                                     blockParameters = make_unique<parser::Params>(paramsLoc, NodeVec{});
                                 } else {
                                     unique_ptr<parser::Params> params;
-                                    std::tie(params, std::ignore) =
-                                        translateParametersNode(paramsNode->parameters, paramsLoc);
+                                    auto blockLocalVariables =
+                                        absl::MakeSpan(paramsNode->locals.nodes, paramsNode->locals.size);
 
-                                    // Sorbet's legacy parser inserts locals ("Shadowargs") at the end of the block's
-                                    // Params node, after all other parameters.
-                                    auto sorbetShadowParams = translateMulti(paramsNode->locals);
-                                    params->params.insert(params->params.end(),
-                                                          make_move_iterator(sorbetShadowParams.begin()),
-                                                          make_move_iterator(sorbetShadowParams.end()));
-
-                                    std::tie(blockParamsStore, blockStatsStore) = desugarParametersNode(params->params);
+                                    std::tie(blockParamsStore, blockStatsStore, std::ignore) =
+                                        desugarParametersNode(paramsNode->parameters, paramsLoc, blockLocalVariables);
 
                                     blockParameters = move(params);
                                 }
@@ -4328,9 +4322,20 @@ Translator::translateParametersNode(pm_parameters_node *paramsNode, core::LocOff
 }
 
 tuple<ast::MethodDef::PARAMS_store, ast::InsSeq::STATS_store, core::NameRef /* enclosingBlockParamName */>
-Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location) {
+Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffsets location,
+                                  absl::Span<pm_node_t *> blockLocalVariables) {
     if (paramsNode == nullptr) {
-        return make_tuple(ast::MethodDef::PARAMS_store{}, ast::InsSeq::STATS_store{}, core::Names::blkArg());
+        auto paramsStore = ast::MethodDef::PARAMS_store{};
+
+        // Add in the block-local variables, if any.
+        paramsStore.reserve(blockLocalVariables.size());
+        for (auto *node : blockLocalVariables) {
+            ENFORCE(PM_NODE_TYPE_P(node, PM_BLOCK_LOCAL_VARIABLE_NODE));
+            // TODO: move `PM_BLOCK_LOCAL_VARIABLE_NODE` case logic to here
+            paramsStore.emplace_back(desugar(node));
+        }
+
+        return {move(paramsStore), ast::InsSeq::STATS_store{}, core::Names::blkArg()};
     }
 
     auto requireds = absl::MakeSpan(paramsNode->requireds.nodes, paramsNode->requireds.size);
@@ -4345,7 +4350,7 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
     auto blockSize = paramsNode->block == nullptr ? 0 : 1;
 
     params.reserve(requireds.size() + optionals.size() + restSize + posts.size() + keywords.size() + kwrestSize +
-                   blockSize);
+                   blockSize + blockLocalVariables.size());
 
     for (auto &n : requireds) {
         if (PM_NODE_TYPE_P(n, PM_MULTI_TARGET_NODE)) {
@@ -4474,6 +4479,12 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
         } else {
             paramsStore.emplace_back(param->takeDesugaredExpr());
         }
+    }
+
+    // Add in the block-local variables, if any.
+    for (auto *node : blockLocalVariables) {
+        ENFORCE(PM_NODE_TYPE_P(node, PM_BLOCK_LOCAL_VARIABLE_NODE));
+        paramsStore.emplace_back(desugar(node));
     }
 
     return make_tuple(move(paramsStore), move(statsStore), enclosingBlockParamName);
