@@ -541,7 +541,7 @@ void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_
             // Replace nodes list with single array element
             prism.free(nodes.nodes);
 
-            pm_node_t **buffer = static_cast<pm_node_t **>(prism.calloc(1, sizeof(pm_node_t *)));
+            pm_node_t **buffer = prism.calloc<pm_node_t *>(1);
             buffer[0] = arr;
             nodes = (pm_node_list){.size = 1, .capacity = 1, .nodes = buffer};
         }
