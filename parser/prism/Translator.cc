@@ -533,9 +533,9 @@ ast::Send *asTLet(ExpressionPtr &arg) {
 // TODO: narrow the type back after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
 // The location is the location of the whole Prism assignment node.
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
-unique_ptr<parser::Node> Translator::translateAnyOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
-                                                              unique_ptr<parser::Node> lhs) {
-    auto rhs = translate(node->value);
+unique_ptr<ExprOnly> Translator::translateAnyOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
+                                                          ast::ExpressionPtr lhs) {
+    auto rhs = desugar(node->value);
 
     if constexpr (is_same_v<SorbetAssignmentNode, parser::AndAsgn>) {
         return translateAndOrAssignment<parser::AndAsgn>(location, move(lhs), move(rhs));
@@ -552,63 +552,50 @@ unique_ptr<parser::Node> Translator::translateAnyOpAssignment(PrismAssignmentNod
 
 // The location is the location of the whole Prism assignment node.
 template <typename PrismAssignmentNode, typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateIndexAssignment(pm_node_t *untypedNode, core::LocOffsets location) {
+unique_ptr<ExprOnly> Translator::translateIndexAssignment(pm_node_t *untypedNode, core::LocOffsets location) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
-
-    // Handle operator assignment to an indexed expression, like `a[0] += 1`
-    auto openingLoc = translateLoc(node->opening_loc);
-    auto lBracketLoc = core::LocOffsets{openingLoc.beginLoc, openingLoc.endLoc - 1};
-
-    auto receiver = translate(node->receiver);
-    auto args = translateArguments(node->arguments, up_cast(node->block));
 
     // The LHS location includes the receiver and the `[]`, but not the `=` or rhs.
     // self.example[k] = v
     // ^^^^^^^^^^^^^^^
     auto lhsLoc = translateLoc(node->receiver->location.start, node->closing_loc.end);
 
-    enforceHasExpr(receiver, args);
+    auto receiver = desugar(node->receiver);
 
-    auto receiverExpr = receiver->takeDesugaredExpr();
-    auto args2 = nodeVecToStore<ast::Send::ARGS_store>(args);
+    // Handle operator assignment to an indexed expression, like `a[0] += 1`
+    auto openingLoc = translateLoc(node->opening_loc);
+    auto lBracketLoc = core::LocOffsets{openingLoc.beginLoc, openingLoc.endLoc - 1};
+
+    auto args = desugarArguments<ast::Send::ARGS_store>(node->arguments, up_cast(node->block));
 
     // Desugar `x[i] = y, z` to `x.[]=(i, y, z)`
-    auto send =
-        MK::Send(lhsLoc, move(receiverExpr), core::Names::squareBrackets(), lBracketLoc, args.size(), move(args2));
-    auto lhs = make_node_with_expr<parser::Send>(move(send), lhsLoc, move(receiver), core::Names::squareBrackets(),
-                                                 lBracketLoc, move(args));
+    auto lhs = MK::Send(lhsLoc, move(receiver), core::Names::squareBrackets(), lBracketLoc, args.size(), move(args));
 
     return translateAnyOpAssignment<PrismAssignmentNode, SorbetAssignmentNode, void>(node, location, move(lhs));
 }
 
 // The location is the location of the whole Prism assignment node.
 template <typename SorbetAssignmentNode>
-unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets location, unique_ptr<parser::Node> lhs,
-                                                              unique_ptr<parser::Node> rhs) {
+unique_ptr<ExprOnly> Translator::translateAndOrAssignment(core::LocOffsets location, ast::ExpressionPtr lhs,
+                                                          ast::ExpressionPtr rhs) {
     const auto isOrAsgn = is_same_v<SorbetAssignmentNode, parser::OrAsgn>;
     const auto isAndAsgn = is_same_v<SorbetAssignmentNode, parser::AndAsgn>;
     static_assert(isOrAsgn || isAndAsgn);
-
-    enforceHasExpr(lhs, rhs);
-
-    auto lhsExpr = lhs->takeDesugaredExpr();
-    auto rhsExpr = rhs->takeDesugaredExpr();
 
     if (preserveConcreteSyntax) {
         auto magicName = isAndAsgn ? core::Names::andAsgn() : core::Names::orAsgn();
         auto locZeroLen = location.copyWithZeroLength();
 
         // Desugar `x &&= y` to `<Magic>.&&=(x, y)` (likewise for `||=`)
-        auto magicSend =
-            MK::Send2(location, MK::Magic(locZeroLen), magicName, locZeroLen, move(lhsExpr), move(rhsExpr));
-        return make_node_with_expr<SorbetAssignmentNode>(move(magicSend), location, move(lhs), move(rhs));
+        auto magicSend = MK::Send2(location, MK::Magic(locZeroLen), magicName, locZeroLen, move(lhs), move(rhs));
+        return expr_only(move(magicSend));
     }
 
-    if (auto s = ast::cast_tree<ast::Send>(lhsExpr)) {
+    if (auto s = ast::cast_tree<ast::Send>(lhs)) {
         auto sendLoc = s->loc;
         auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(s);
         auto numPosAssgnArgs = numPosArgs + 1;
-        assgnArgs.emplace_back(move(rhsExpr));
+        assgnArgs.emplace_back(move(rhs));
         auto cond =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
         auto tempResult = nextUniqueDesugarName(s->fun);
@@ -625,17 +612,21 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
             if_ = MK::If(sendLoc, MK::Local(sendLoc, tempResult), move(elsep), move(body));
         }
         auto wrapped = MK::InsSeq(location, move(stats), move(if_));
-        return make_node_with_expr<SorbetAssignmentNode>(move(wrapped), location, move(lhs), move(rhs));
+        return expr_only(move(wrapped));
     }
 
-    if (isa_reference(lhsExpr)) {
-        auto lhsCopy = MK::cpRef(lhsExpr);
-        auto cond = MK::cpRef(lhsExpr);
+    if (isa_reference(lhs)) {
+        auto lhsCopy = MK::cpRef(lhs);
+        auto cond = MK::cpRef(lhs);
 
         // Check for T.let handling for instance and class variables in ||= assignments
-        auto lhsIsIvar = parser::NodeWithExpr::isa_node<parser::IVarLhs>(lhs.get());
-        auto lhsIsCvar = parser::NodeWithExpr::isa_node<parser::CVarLhs>(lhs.get());
-        auto rhsIsTLet = asTLet(rhsExpr);
+        auto lhsIdentifier = ast::cast_tree<ast::UnresolvedIdent>(lhs);
+        auto rhsIdentifier = ast::cast_tree<ast::UnresolvedIdent>(rhs);
+        ENFORCE(lhsIdentifier);
+        ENFORCE(rhsIdentifier);
+        auto lhsIsIvar = lhsIdentifier->kind == ast::UnresolvedIdent::Kind::Instance;
+        auto lhsIsCvar = lhsIdentifier->kind == ast::UnresolvedIdent::Kind::Class;
+        auto rhsIsTLet = asTLet(rhs);
 
         ExpressionPtr assignExpr;
         if (isOrAsgn && (lhsIsIvar || lhsIsCvar) && rhsIsTLet) {
@@ -644,17 +635,17 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
             auto originalValue = rhsIsTLet->getPosArg(0).deepCopy();
 
             // Replace the first argument of T.let with the LHS variable
-            rhsIsTLet->getPosArg(0) = MK::cpRef(lhsExpr);
+            rhsIsTLet->getPosArg(0) = MK::cpRef(lhs);
 
             // Generate pattern: { @z = T.let(@z, ...); <temp> = <original_value>; @z = <temp> }
-            auto decl = MK::Assign(location, MK::cpRef(lhsExpr), move(rhsExpr));
+            auto decl = MK::Assign(location, MK::cpRef(lhs), move(rhs));
 
             // Create a temporary variable and assign the original value to it
             core::NameRef tempName = nextUniqueDesugarName(core::Names::statTemp());
             auto tempAssign = MK::Assign(location, tempName, move(originalValue));
 
             // Final assignment from temp to LHS
-            auto finalAssign = MK::Assign(location, MK::cpRef(lhsExpr), MK::Local(location, tempName));
+            auto finalAssign = MK::Assign(location, MK::cpRef(lhs), MK::Local(location, tempName));
 
             ast::InsSeq::STATS_store stats;
             stats.emplace_back(move(decl));
@@ -662,7 +653,7 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
 
             assignExpr = MK::InsSeq(location, move(stats), move(finalAssign));
         } else {
-            assignExpr = MK::Assign(location, MK::cpRef(lhsExpr), move(rhsExpr));
+            assignExpr = MK::Assign(location, MK::cpRef(lhs), move(rhs));
         }
 
         ExpressionPtr if_;
@@ -674,19 +665,19 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
             if_ = MK::If(location, move(cond), move(lhsCopy), move(assignExpr));
         }
 
-        return make_node_with_expr<SorbetAssignmentNode>(move(if_), location, move(lhs), move(rhs));
+        return expr_only(move(if_));
     }
 
-    if (ast::isa_tree<ast::UnresolvedConstantLit>(lhsExpr)) {
+    if (ast::isa_tree<ast::UnresolvedConstantLit>(lhs)) {
         if (auto e = ctx.beginIndexerError(location, core::errors::Desugar::NoConstantReassignment)) {
             e.setHeader("Constant reassignment is not supported");
         }
         ExpressionPtr res = MK::EmptyTree();
-        return make_node_with_expr<SorbetAssignmentNode>(move(res), location, move(lhs), move(rhs));
+        return expr_only(move(res));
     }
 
-    if (ast::isa_tree<ast::InsSeq>(lhsExpr)) {
-        auto i = ast::cast_tree<ast::InsSeq>(lhsExpr);
+    if (ast::isa_tree<ast::InsSeq>(lhs)) {
+        auto i = ast::cast_tree<ast::InsSeq>(lhs);
         auto ifExpr = ast::cast_tree<ast::If>(i->expr);
         if (!ifExpr) {
             Exception::raise("Unexpected left-hand side of op=: please file an issue");
@@ -698,7 +689,7 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
         auto sendLoc = s->loc;
         auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(s);
         auto numPosAssgnArgs = numPosArgs + 1;
-        assgnArgs.emplace_back(move(rhsExpr));
+        assgnArgs.emplace_back(move(rhs));
         auto cond =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
         auto tempResult = nextUniqueDesugarName(s->fun);
@@ -708,10 +699,10 @@ unique_ptr<parser::Node> Translator::translateAndOrAssignment(core::LocOffsets l
         auto elsep = MK::Local(sendLoc, tempResult);
         auto iff = MK::If(sendLoc, MK::Local(sendLoc, tempResult), move(body), move(elsep));
         auto wrapped = MK::InsSeq(location, move(stats), move(iff));
-        return make_node_with_expr<SorbetAssignmentNode>(move(wrapped), location, move(lhs), move(rhs));
+        return expr_only(move(wrapped));
     }
 
-    Exception::raise("the LHS has been desugared to something we haven't expected: {}", lhsExpr.toString(ctx));
+    Exception::raise("the LHS has been desugared to something we haven't expected: {}", lhs.toString(ctx));
 }
 
 Translator::OpAsgnScaffolding Translator::copyArgsForOpAsgn(ast::Send *s) {
@@ -751,26 +742,21 @@ Translator::OpAsgnScaffolding Translator::copyArgsForOpAsgn(ast::Send *s) {
 
 // The location is the location of the whole Prism assignment node.
 template <typename SorbetAssignmentNode, typename PrismAssignmentNode>
-unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
-                                                           unique_ptr<parser::Node> lhs, unique_ptr<parser::Node> rhs) {
+unique_ptr<ExprOnly> Translator::translateOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
+                                                       ast::ExpressionPtr lhs, ast::ExpressionPtr rhs) {
     // `OpAsgn` assign needs more information about the specific operator here, so it gets special handling here.
     auto opLoc = translateLoc(node->binary_operator_loc);
     auto op = translateConstantName(node->binary_operator);
-    enforceHasExpr(lhs, rhs);
-
-    auto lhsExpr = lhs->takeDesugaredExpr();
-    auto rhsExpr = rhs->takeDesugaredExpr();
 
     if (preserveConcreteSyntax) {
         auto magicName = core::Names::opAsgn();
         auto locZeroLen = location.copyWithZeroLength();
-        auto magicSend =
-            MK::Send2(location, MK::Magic(locZeroLen), magicName, locZeroLen, move(lhsExpr), move(rhsExpr));
-        return make_node_with_expr<parser::OpAsgn>(move(magicSend), location, move(lhs), op, opLoc, move(rhs));
+        auto magicSend = MK::Send2(location, MK::Magic(locZeroLen), magicName, locZeroLen, move(lhs), move(rhs));
+        return expr_only(move(magicSend));
     }
 
-    if (ast::isa_tree<ast::Send>(lhsExpr)) {
-        auto s = ast::cast_tree<ast::Send>(lhsExpr);
+    if (ast::isa_tree<ast::Send>(lhs)) {
+        auto s = ast::cast_tree<ast::Send>(lhs);
         auto sendLoc = s->loc;
         auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(s);
 
@@ -778,8 +764,8 @@ unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *
         auto prevValue =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
 
-        // Apply the operation: prevValue op rhsExpr
-        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhsExpr));
+        // Apply the operation: prevValue op rhs
+        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhs));
 
         // Add the new value to the assignment arguments
         assgnArgs.emplace_back(move(newValue));
@@ -790,25 +776,25 @@ unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *
                             numPosAssgnArgs, move(assgnArgs), s->flags);
 
         auto wrapped = MK::InsSeq(location, move(stats), move(res));
-        return make_node_with_expr<SorbetAssignmentNode>(move(wrapped), location, move(lhs), op, opLoc, move(rhs));
+        return expr_only(move(wrapped));
     }
 
-    if (isa_reference(lhsExpr)) {
-        auto lhsCopy = MK::cpRef(lhsExpr);
-        auto callOp = MK::Send1(location, move(lhsExpr), op, opLoc, move(rhsExpr));
+    if (isa_reference(lhs)) {
+        auto lhsCopy = MK::cpRef(lhs);
+        auto callOp = MK::Send1(location, move(lhs), op, opLoc, move(rhs));
         auto assign = MK::Assign(location, move(lhsCopy), move(callOp));
-        return make_node_with_expr<SorbetAssignmentNode>(move(assign), location, move(lhs), op, opLoc, move(rhs));
+        return expr_only(move(assign));
     }
 
-    if (ast::isa_tree<ast::UnresolvedConstantLit>(lhsExpr)) {
+    if (ast::isa_tree<ast::UnresolvedConstantLit>(lhs)) {
         if (auto e = ctx.beginIndexerError(location, core::errors::Desugar::NoConstantReassignment)) {
             e.setHeader("Constant reassignment is not supported");
         }
         ExpressionPtr res = MK::EmptyTree();
-        return make_node_with_expr<SorbetAssignmentNode>(move(res), location, move(lhs), op, opLoc, move(rhs));
+        return expr_only(move(res));
     }
 
-    if (auto i = ast::cast_tree<ast::InsSeq>(lhsExpr)) {
+    if (auto i = ast::cast_tree<ast::InsSeq>(lhs)) {
         // if this is an InsSeq, then is probably the result of a safe send (i.e. an expression of the form
         // x&.y on the LHS) which means it'll take the rough shape:
         //   { $temp = x; if $temp == nil then nil else $temp.y }
@@ -829,7 +815,7 @@ unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *
         auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(s);
         auto prevValue =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
-        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhsExpr));
+        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhs));
         auto numPosAssgnArgs = numPosArgs + 1;
         assgnArgs.emplace_back(move(newValue));
 
@@ -837,10 +823,10 @@ unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *
                             numPosAssgnArgs, move(assgnArgs), s->flags);
         auto wrapped = MK::InsSeq(location, move(stats), move(res));
         ifExpr->elsep = move(wrapped);
-        return make_node_with_expr<SorbetAssignmentNode>(move(lhsExpr), location, move(lhs), op, opLoc, move(rhs));
+        return expr_only(move(lhs));
     }
 
-    auto s = fmt::format("the LHS has been desugared to something we haven't expected: {}", lhsExpr.toString(ctx));
+    auto s = fmt::format("the LHS has been desugared to something we haven't expected: {}", lhs.toString(ctx));
     Exception::raise(s);
 }
 
@@ -848,18 +834,18 @@ unique_ptr<parser::Node> Translator::translateOpAssignment(PrismAssignmentNode *
 // For `x &&= y`: `if x then x = y else x end`
 // For `x ||= y`: `if x then x else x = y end`
 template <OpAssignKind Kind>
-ast::ExpressionPtr Translator::desugarAndOrReference(core::LocOffsets location, ast::ExpressionPtr lhsExpr,
-                                                     ast::ExpressionPtr rhsExpr, bool isIvarOrCvar) {
+ast::ExpressionPtr Translator::desugarAndOrReference(core::LocOffsets location, ast::ExpressionPtr lhs,
+                                                     ast::ExpressionPtr rhs, bool isIvarOrCvar) {
     static_assert(Kind == OpAssignKind::And || Kind == OpAssignKind::Or,
                   "desugarAndOrReference only handles And and Or assignments");
 
     constexpr bool isOrAsgn = (Kind == OpAssignKind::Or);
 
-    auto lhsCopy = MK::cpRef(lhsExpr);
-    auto cond = MK::cpRef(lhsExpr);
+    auto lhsCopy = MK::cpRef(lhs);
+    auto cond = MK::cpRef(lhs);
 
     // Check for T.let handling for instance and class variables in ||= assignments
-    auto rhsIsTLet = asTLet(rhsExpr);
+    auto rhsIsTLet = asTLet(rhs);
 
     ExpressionPtr assignExpr;
     if constexpr (isOrAsgn) {
@@ -869,17 +855,17 @@ ast::ExpressionPtr Translator::desugarAndOrReference(core::LocOffsets location, 
             auto originalValue = rhsIsTLet->getPosArg(0).deepCopy();
 
             // Replace the first argument of T.let with the LHS variable
-            rhsIsTLet->getPosArg(0) = MK::cpRef(lhsExpr);
+            rhsIsTLet->getPosArg(0) = MK::cpRef(lhs);
 
             // Generate pattern: { @z = T.let(@z, ...); <temp> = <original_value>; @z = <temp> }
-            auto decl = MK::Assign(location, MK::cpRef(lhsExpr), move(rhsExpr));
+            auto decl = MK::Assign(location, MK::cpRef(lhs), move(rhs));
 
             // Create a temporary variable and assign the original value to it
             core::NameRef tempName = nextUniqueDesugarName(core::Names::statTemp());
             auto tempAssign = MK::Assign(location, tempName, move(originalValue));
 
             // Final assignment from temp to LHS
-            auto finalAssign = MK::Assign(location, MK::cpRef(lhsExpr), MK::Local(location, tempName));
+            auto finalAssign = MK::Assign(location, MK::cpRef(lhs), MK::Local(location, tempName));
 
             ast::InsSeq::STATS_store stats;
             stats.emplace_back(move(decl));
@@ -887,10 +873,10 @@ ast::ExpressionPtr Translator::desugarAndOrReference(core::LocOffsets location, 
 
             assignExpr = MK::InsSeq(location, move(stats), move(finalAssign));
         } else {
-            assignExpr = MK::Assign(location, MK::cpRef(lhsExpr), move(rhsExpr));
+            assignExpr = MK::Assign(location, MK::cpRef(lhs), move(rhs));
         }
     } else {
-        assignExpr = MK::Assign(location, MK::cpRef(lhsExpr), move(rhsExpr));
+        assignExpr = MK::Assign(location, MK::cpRef(lhs), move(rhs));
     }
 
     if constexpr (Kind == OpAssignKind::And) {
@@ -904,11 +890,10 @@ ast::ExpressionPtr Translator::desugarAndOrReference(core::LocOffsets location, 
 
 // Desugar operator assignment (+=, -=, etc.) for a simple reference LHS.
 // For `x += y`: `x = x + y`
-ast::ExpressionPtr Translator::desugarOpReference(core::LocOffsets location, ast::ExpressionPtr lhsExpr,
-                                                  core::NameRef op, core::LocOffsets opLoc,
-                                                  ast::ExpressionPtr rhsExpr) {
-    auto lhsCopy = MK::cpRef(lhsExpr);
-    auto callOp = MK::Send1(location, move(lhsExpr), op, opLoc, move(rhsExpr));
+ast::ExpressionPtr Translator::desugarOpReference(core::LocOffsets location, ast::ExpressionPtr lhs, core::NameRef op,
+                                                  core::LocOffsets opLoc, ast::ExpressionPtr rhs) {
+    auto lhsCopy = MK::cpRef(lhs);
+    auto callOp = MK::Send1(location, move(lhs), op, opLoc, move(rhs));
     return MK::Assign(location, move(lhsCopy), move(callOp));
 }
 
@@ -917,14 +902,14 @@ ast::ExpressionPtr Translator::desugarOpReference(core::LocOffsets location, ast
 // For `recv.method ||= val`: `{ tmp = recv; result = tmp.method; if result then result else tmp.method= val }`
 // For `recv.method += val`:  `{ tmp = recv; tmp.method= tmp.method + val }`
 template <OpAssignKind Kind>
-ast::ExpressionPtr Translator::desugarOpAssignSend(core::LocOffsets location, ast::Send *s, ast::ExpressionPtr rhsExpr,
+ast::ExpressionPtr Translator::desugarOpAssignSend(core::LocOffsets location, ast::Send *s, ast::ExpressionPtr rhs,
                                                    core::NameRef op, core::LocOffsets opLoc) {
     auto sendLoc = s->loc;
     auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(s);
 
     if constexpr (Kind == OpAssignKind::And || Kind == OpAssignKind::Or) {
         auto numPosAssgnArgs = numPosArgs + 1;
-        assgnArgs.emplace_back(move(rhsExpr));
+        assgnArgs.emplace_back(move(rhs));
         auto cond =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
         auto tempResult = nextUniqueDesugarName(s->fun);
@@ -947,8 +932,8 @@ ast::ExpressionPtr Translator::desugarOpAssignSend(core::LocOffsets location, as
         auto prevValue =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
 
-        // Apply the operation: prevValue op rhsExpr
-        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhsExpr));
+        // Apply the operation: prevValue op rhs
+        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhs));
 
         // Add the new value to the assignment arguments
         assgnArgs.emplace_back(move(newValue));
@@ -967,8 +952,7 @@ ast::ExpressionPtr Translator::desugarOpAssignSend(core::LocOffsets location, as
 // We need to modify the else branch to perform the assignment.
 template <OpAssignKind Kind>
 ast::ExpressionPtr Translator::desugarOpAssignCSend(core::LocOffsets location, ast::InsSeq *insSeq,
-                                                    ast::ExpressionPtr rhsExpr, core::NameRef op,
-                                                    core::LocOffsets opLoc) {
+                                                    ast::ExpressionPtr rhs, core::NameRef op, core::LocOffsets opLoc) {
     auto ifExpr = ast::cast_tree<ast::If>(insSeq->expr);
     if (!ifExpr) {
         Exception::raise("Unexpected left-hand side of op=: please file an issue");
@@ -983,7 +967,7 @@ ast::ExpressionPtr Translator::desugarOpAssignCSend(core::LocOffsets location, a
 
     if constexpr (Kind == OpAssignKind::And || Kind == OpAssignKind::Or) {
         auto numPosAssgnArgs = numPosArgs + 1;
-        assgnArgs.emplace_back(move(rhsExpr));
+        assgnArgs.emplace_back(move(rhs));
         auto cond =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
         auto tempResult = nextUniqueDesugarName(s->fun);
@@ -998,7 +982,7 @@ ast::ExpressionPtr Translator::desugarOpAssignCSend(core::LocOffsets location, a
         // OpAssignKind::Operator
         auto prevValue =
             MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs, move(readArgs), s->flags);
-        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhsExpr));
+        auto newValue = MK::Send1(sendLoc, move(prevValue), op, opLoc, move(rhs));
         auto numPosAssgnArgs = numPosArgs + 1;
         assgnArgs.emplace_back(move(newValue));
 
@@ -1013,33 +997,33 @@ ast::ExpressionPtr Translator::desugarOpAssignCSend(core::LocOffsets location, a
 // Core dispatcher for compound assignment desugaring.
 // Routes to the appropriate handler based on the LHS expression type.
 template <OpAssignKind Kind>
-ast::ExpressionPtr Translator::desugarAnyOpAssign(core::LocOffsets location, ast::ExpressionPtr lhsExpr,
-                                                  ast::ExpressionPtr rhsExpr, core::NameRef op, core::LocOffsets opLoc,
+ast::ExpressionPtr Translator::desugarAnyOpAssign(core::LocOffsets location, ast::ExpressionPtr lhs,
+                                                  ast::ExpressionPtr rhs, core::NameRef op, core::LocOffsets opLoc,
                                                   bool isIvarOrCvar) {
-    if (auto s = ast::cast_tree<ast::Send>(lhsExpr)) {
-        return desugarOpAssignSend<Kind>(location, s, move(rhsExpr), op, opLoc);
+    if (auto s = ast::cast_tree<ast::Send>(lhs)) {
+        return desugarOpAssignSend<Kind>(location, s, move(rhs), op, opLoc);
     }
 
-    if (isa_reference(lhsExpr)) {
+    if (isa_reference(lhs)) {
         if constexpr (Kind == OpAssignKind::And || Kind == OpAssignKind::Or) {
-            return desugarAndOrReference<Kind>(location, move(lhsExpr), move(rhsExpr), isIvarOrCvar);
+            return desugarAndOrReference<Kind>(location, move(lhs), move(rhs), isIvarOrCvar);
         } else {
-            return desugarOpReference(location, move(lhsExpr), op, opLoc, move(rhsExpr));
+            return desugarOpReference(location, move(lhs), op, opLoc, move(rhs));
         }
     }
 
-    if (ast::isa_tree<ast::UnresolvedConstantLit>(lhsExpr)) {
+    if (ast::isa_tree<ast::UnresolvedConstantLit>(lhs)) {
         if (auto e = ctx.beginIndexerError(location, core::errors::Desugar::NoConstantReassignment)) {
             e.setHeader("Constant reassignment is not supported");
         }
         return MK::EmptyTree();
     }
 
-    if (auto insSeq = ast::cast_tree<ast::InsSeq>(lhsExpr)) {
-        return desugarOpAssignCSend<Kind>(location, insSeq, move(rhsExpr), op, opLoc);
+    if (auto insSeq = ast::cast_tree<ast::InsSeq>(lhs)) {
+        return desugarOpAssignCSend<Kind>(location, insSeq, move(rhs), op, opLoc);
     }
 
-    Exception::raise("the LHS has been desugared to something we haven't expected: {}", lhsExpr.toString(ctx));
+    Exception::raise("the LHS has been desugared to something we haven't expected: {}", lhs.toString(ctx));
 }
 
 // Maps UnresolvedIdent::Kind to whether it's an ivar or cvar (for T.let special handling)
@@ -1059,17 +1043,17 @@ ast::ExpressionPtr Translator::desugarVariableOpAssign(pm_node_t *untypedNode) {
     auto nameLoc = translateLoc(node->name_loc);
     auto name = translateConstantName(node->name);
 
-    auto lhsExpr = ast::make_expression<ast::UnresolvedIdent>(nameLoc, IdentKind, name);
-    auto rhsExpr = desugar(node->value);
+    auto lhs = ast::make_expression<ast::UnresolvedIdent>(nameLoc, IdentKind, name);
+    auto rhs = desugar(node->value);
 
     constexpr bool isIvarOrCvar = isIvarOrCvarKind(IdentKind);
 
     if constexpr (Kind == OpAssignKind::Operator) {
         auto opLoc = translateLoc(node->binary_operator_loc);
         auto op = translateConstantName(node->binary_operator);
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), op, opLoc, isIvarOrCvar);
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), op, opLoc, isIvarOrCvar);
     } else {
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), core::NameRef::noName(),
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), core::NameRef::noName(),
                                         core::LocOffsets::none(), isIvarOrCvar);
     }
 }
@@ -1089,27 +1073,27 @@ ast::ExpressionPtr Translator::desugarConstantOpAssign(pm_node_t *untypedNode) {
 
     // Handle dynamic constant assignment (inside method def) by using a fake local variable
     if (this->isInMethodDef()) {
-        auto lhsExpr = MK::Local(nameLoc, core::Names::dynamicConstAssign());
-        auto rhsExpr = desugar(node->value);
+        auto lhs = MK::Local(nameLoc, core::Names::dynamicConstAssign());
+        auto rhs = desugar(node->value);
 
         if constexpr (Kind == OpAssignKind::Operator) {
             auto opLoc = translateLoc(node->binary_operator_loc);
             auto op = translateConstantName(node->binary_operator);
-            return desugarOpReference(location, move(lhsExpr), op, opLoc, move(rhsExpr));
+            return desugarOpReference(location, move(lhs), op, opLoc, move(rhs));
         } else {
-            return desugarAndOrReference<Kind>(location, move(lhsExpr), move(rhsExpr), false);
+            return desugarAndOrReference<Kind>(location, move(lhs), move(rhs), false);
         }
     }
 
-    auto lhsExpr = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), name);
-    auto rhsExpr = desugar(node->value);
+    auto lhs = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), name);
+    auto rhs = desugar(node->value);
 
     if constexpr (Kind == OpAssignKind::Operator) {
         auto opLoc = translateLoc(node->binary_operator_loc);
         auto op = translateConstantName(node->binary_operator);
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), op, opLoc, false);
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), op, opLoc, false);
     } else {
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), core::NameRef::noName(),
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), core::NameRef::noName(),
                                         core::LocOffsets::none(), false);
     }
 }
@@ -1138,15 +1122,15 @@ ast::ExpressionPtr Translator::desugarConstantPathOpAssign(pm_node_t *untypedNod
         scope = desugar(target->parent);
     }
 
-    auto lhsExpr = MK::UnresolvedConstant(nameLoc, move(scope), name);
-    auto rhsExpr = desugar(node->value);
+    auto lhs = MK::UnresolvedConstant(nameLoc, move(scope), name);
+    auto rhs = desugar(node->value);
 
     if constexpr (Kind == OpAssignKind::Operator) {
         auto opLoc = translateLoc(node->binary_operator_loc);
         auto op = translateConstantName(node->binary_operator);
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), op, opLoc, false);
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), op, opLoc, false);
     } else {
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), core::NameRef::noName(),
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), core::NameRef::noName(),
                                         core::LocOffsets::none(), false);
     }
 }
@@ -1172,16 +1156,16 @@ ast::ExpressionPtr Translator::desugarIndexOpAssign(pm_node_t *untypedNode) {
     auto lhsLoc = translateLoc(node->receiver->location.start, node->closing_loc.end);
 
     // Create the LHS Send expression: recv[]
-    auto lhsExpr = MK::Send(lhsLoc, move(receiverExpr), core::Names::squareBrackets(), lBracketLoc, argsStore.size(),
-                            move(argsStore));
-    auto rhsExpr = desugar(node->value);
+    auto lhs = MK::Send(lhsLoc, move(receiverExpr), core::Names::squareBrackets(), lBracketLoc, argsStore.size(),
+                        move(argsStore));
+    auto rhs = desugar(node->value);
 
     if constexpr (Kind == OpAssignKind::Operator) {
         auto opLoc = translateLoc(node->binary_operator_loc);
         auto op = translateConstantName(node->binary_operator);
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), op, opLoc, false);
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), op, opLoc, false);
     } else {
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), core::NameRef::noName(),
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), core::NameRef::noName(),
                                         core::LocOffsets::none(), false);
     }
 }
@@ -1223,15 +1207,15 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
         auto innerSend =
             MK::Send(location, MK::Local(zeroLengthRecvLoc, tempRecv), name, messageLoc, 0, ast::Send::ARGS_store{});
 
-        auto rhsExpr = desugar(node->value);
+        auto rhs = desugar(node->value);
 
         ast::ExpressionPtr assignmentExpr;
         if constexpr (Kind == OpAssignKind::Operator) {
             auto opLoc = translateLoc(node->binary_operator_loc);
             auto op = translateConstantName(node->binary_operator);
-            assignmentExpr = desugarAnyOpAssign<Kind>(location, move(innerSend), move(rhsExpr), op, opLoc, false);
+            assignmentExpr = desugarAnyOpAssign<Kind>(location, move(innerSend), move(rhs), op, opLoc, false);
         } else {
-            assignmentExpr = desugarAnyOpAssign<Kind>(location, move(innerSend), move(rhsExpr), core::NameRef::noName(),
+            assignmentExpr = desugarAnyOpAssign<Kind>(location, move(innerSend), move(rhs), core::NameRef::noName(),
                                                       core::LocOffsets::none(), false);
         }
 
@@ -1246,15 +1230,15 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
     ast::Send::Flags flags;
     flags.isPrivateOk = PM_NODE_FLAG_P(untypedNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
 
-    auto lhsExpr = MK::Send(lhsLoc, move(receiverExpr), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
-    auto rhsExpr = desugar(node->value);
+    auto lhs = MK::Send(lhsLoc, move(receiverExpr), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
+    auto rhs = desugar(node->value);
 
     if constexpr (Kind == OpAssignKind::Operator) {
         auto opLoc = translateLoc(node->binary_operator_loc);
         auto op = translateConstantName(node->binary_operator);
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), op, opLoc, false);
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), op, opLoc, false);
     } else {
-        return desugarAnyOpAssign<Kind>(location, move(lhsExpr), move(rhsExpr), core::NameRef::noName(),
+        return desugarAnyOpAssign<Kind>(location, move(lhs), move(rhs), core::NameRef::noName(),
                                         core::LocOffsets::none(), false);
     }
 }
@@ -1272,9 +1256,9 @@ template <typename PrismAssignmentNode, ast::UnresolvedIdent::Kind IdentKind>
 ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
     auto location = translateLoc(untypedNode->location);
-    auto rhsExpr = desugar(node->value);
+    auto rhs = desugar(node->value);
 
-    ast::ExpressionPtr lhsExpr;
+    ast::ExpressionPtr lhs;
     if constexpr (is_same_v<PrismAssignmentNode, pm_constant_write_node>) {
         // Handle regular assignment to a "plain" constant, like `A = 1`
         auto nameLoc = translateLoc(node->name_loc);
@@ -1282,11 +1266,11 @@ ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
         // Check for dynamic constant assignment (constant assigned inside a method)
         if (this->isInMethodDef()) {
             // Substitute a fake local variable assignment so parsing can continue
-            lhsExpr = MK::Local(nameLoc, core::Names::dynamicConstAssign());
+            lhs = MK::Local(nameLoc, core::Names::dynamicConstAssign());
         } else {
             auto name = translateConstantName(node->name);
             auto constantName = ctx.state.enterNameConstant(name);
-            lhsExpr = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), constantName);
+            lhs = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), constantName);
         }
     } else if constexpr (is_same_v<PrismAssignmentNode, pm_constant_path_write_node>) {
         // Handle regular assignment to a constant path, like `A::B::C = 1` or `::C = 1`
@@ -1295,7 +1279,7 @@ ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
 
         // Check for dynamic constant assignment (constant assigned inside a method)
         if (this->isInMethodDef()) {
-            lhsExpr = MK::Local(pathLoc, core::Names::dynamicConstAssign());
+            lhs = MK::Local(pathLoc, core::Names::dynamicConstAssign());
         } else {
             ast::ExpressionPtr scope;
             if (target->parent == nullptr) {
@@ -1307,16 +1291,16 @@ ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
             }
             auto name = translateConstantName(target->name);
             auto constantName = ctx.state.enterNameConstant(name);
-            lhsExpr = MK::UnresolvedConstant(pathLoc, move(scope), constantName);
+            lhs = MK::UnresolvedConstant(pathLoc, move(scope), constantName);
         }
     } else {
         // Handle regular assignment to local, instance, class, or global variable
         auto name = translateConstantName(node->name);
         auto nameLoc = translateLoc(node->name_loc);
-        lhsExpr = ast::make_expression<ast::UnresolvedIdent>(nameLoc, IdentKind, name);
+        lhs = ast::make_expression<ast::UnresolvedIdent>(nameLoc, IdentKind, name);
     }
 
-    return MK::Assign(location, move(lhsExpr), move(rhsExpr));
+    return MK::Assign(location, move(lhs), move(rhs));
 }
 
 template <typename PrismNode>
@@ -1449,19 +1433,19 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             enforceHasExpr(left, right);
 
-            auto lhsExpr = left->takeDesugaredExpr();
-            auto rhsExpr = right->takeDesugaredExpr();
+            auto lhs = left->takeDesugaredExpr();
+            auto rhs = right->takeDesugaredExpr();
 
             if (preserveConcreteSyntax) {
                 auto andAndLoc = core::LocOffsets{left->loc.endPos(), right->loc.beginPos()};
                 auto magicSend = MK::Send2(location, MK::Magic(location.copyWithZeroLength()), core::Names::andAnd(),
-                                           andAndLoc, move(lhsExpr), move(rhsExpr));
+                                           andAndLoc, move(lhs), move(rhs));
                 return expr_only(move(magicSend));
             }
 
-            if (isa_reference(lhsExpr)) {
-                auto cond = MK::cpRef(lhsExpr);
-                auto if_ = MK::If(location, move(cond), move(rhsExpr), move(lhsExpr));
+            if (isa_reference(lhs)) {
+                auto cond = MK::cpRef(lhs);
+                auto if_ = MK::If(location, move(cond), move(rhs), move(lhs));
                 return expr_only(move(if_));
             }
 
@@ -1469,11 +1453,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             // E.g. `x = 1 && 2` becomes `x = (temp = 1; temp ? temp : 2)`
             core::NameRef tempLocalName = nextUniqueDesugarName(core::Names::andAnd());
 
-            bool checkAndAnd = ast::isa_tree<ast::Send>(lhsExpr) && ast::isa_tree<ast::Send>(rhsExpr);
+            bool checkAndAnd = ast::isa_tree<ast::Send>(lhs) && ast::isa_tree<ast::Send>(rhs);
             ExpressionPtr thenp;
             if (checkAndAnd) {
-                auto lhsSend = ast::cast_tree<ast::Send>(lhsExpr);
-                auto rhsSend = ast::cast_tree<ast::Send>(rhsExpr);
+                auto lhsSend = ast::cast_tree<ast::Send>(lhs);
+                auto rhsSend = ast::cast_tree<ast::Send>(rhs);
                 auto lhsSource = ctx.locAt(lhsSend->loc).source(ctx);
                 auto rhsRecvSource = ctx.locAt(rhsSend->recv.loc()).source(ctx);
                 if (lhsSource.has_value() && lhsSource == rhsRecvSource) {
@@ -1486,19 +1470,19 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                     rhsSend->insertPosArg(2, MK::Local(location.copyWithZeroLength(), tempLocalName));
                     rhsSend->recv = MK::Magic(location.copyWithZeroLength());
                     rhsSend->fun = core::Names::checkAndAnd();
-                    thenp = move(rhsExpr);
+                    thenp = move(rhs);
                 } else {
-                    thenp = move(rhsExpr);
+                    thenp = move(rhs);
                 }
             } else {
-                thenp = move(rhsExpr);
+                thenp = move(rhs);
             }
 
             auto lhsLoc = left->loc;
             auto rhsLoc = right->loc;
             auto condLoc =
                 lhsLoc.exists() && rhsLoc.exists() ? core::LocOffsets{lhsLoc.endPos(), rhsLoc.beginPos()} : lhsLoc;
-            auto temp = MK::Assign(location, tempLocalName, move(lhsExpr));
+            auto temp = MK::Assign(location, tempLocalName, move(lhs));
             auto elsep = MK::Local(lhsLoc, tempLocalName);
             auto cond = MK::Local(condLoc, tempLocalName);
             auto if_ = MK::If(location, move(cond), move(thenp), move(elsep));
@@ -3156,8 +3140,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             enforceHasExpr(rhsValue, multiLhsNode->exprs);
 
-            auto rhsExpr = rhsValue->takeDesugaredExpr();
-            auto expr = desugarMlhs(location, multiLhsNode.get(), move(rhsExpr));
+            auto rhs = rhsValue->takeDesugaredExpr();
+            auto expr = desugarMlhs(location, multiLhsNode.get(), move(rhs));
             return expr_only(move(expr));
         }
         case PM_NEXT_NODE: { // A `next` statement, e.g. `next`, `next 1, 2, 3`
@@ -3218,19 +3202,19 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
 
             enforceHasExpr(left, right);
 
-            auto lhsExpr = left->takeDesugaredExpr();
-            auto rhsExpr = right->takeDesugaredExpr();
+            auto lhs = left->takeDesugaredExpr();
+            auto rhs = right->takeDesugaredExpr();
 
             if (preserveConcreteSyntax) {
                 auto orOrLoc = core::LocOffsets{left->loc.endPos(), right->loc.beginPos()};
                 auto magicSend = MK::Send2(location, MK::Magic(location.copyWithZeroLength()), core::Names::orOr(),
-                                           orOrLoc, move(lhsExpr), move(rhsExpr));
+                                           orOrLoc, move(lhs), move(rhs));
                 return expr_only(move(magicSend));
             }
 
-            if (isa_reference(lhsExpr)) {
-                auto cond = MK::cpRef(lhsExpr);
-                auto if_ = MK::If(location, move(cond), move(lhsExpr), move(rhsExpr));
+            if (isa_reference(lhs)) {
+                auto cond = MK::cpRef(lhs);
+                auto if_ = MK::If(location, move(cond), move(lhs), move(rhs));
                 return expr_only(move(if_));
             }
 
@@ -3241,10 +3225,10 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
             auto rhsLoc = right->loc;
             auto condLoc =
                 lhsLoc.exists() && rhsLoc.exists() ? core::LocOffsets{lhsLoc.endPos(), rhsLoc.beginPos()} : lhsLoc;
-            auto tempAssign = MK::Assign(location, tempLocalName, move(lhsExpr));
+            auto tempAssign = MK::Assign(location, tempLocalName, move(lhs));
             auto cond = MK::Local(condLoc, tempLocalName);
             auto thenp = MK::Local(lhsLoc, tempLocalName);
-            auto if_ = MK::If(location, move(cond), move(thenp), move(rhsExpr));
+            auto if_ = MK::If(location, move(cond), move(thenp), move(rhs));
             auto wrapped = MK::InsSeq1(location, move(tempAssign), move(if_));
             return expr_only(move(wrapped));
         }
@@ -3540,10 +3524,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node, bool preserveCon
                 }
 
                 location = translateLoc(start, end);
-            }
-
-            if (blockArgumentNode != nullptr && PM_NODE_TYPE_P(blockArgumentNode, PM_BLOCK_NODE)) {
-                throw PrismFallback{}; // TODO: Not supported yet
             }
 
             throw PrismFallback{};
@@ -4401,29 +4381,6 @@ ast::ExpressionPtr Translator::desugarSymbolProc(pm_symbol_node *symbol) {
     return MK::Block1(loc, move(body), MK::RestParam(loc0, MK::Local(loc0, tempName)));
 }
 
-// The legacy Sorbet parser doesn't have a counterpart to PM_ARGUMENTS_NODE to wrap the array
-// of argument nodes. It just uses a NodeVec directly, which is what this function produces.
-NodeVec Translator::translateArguments(pm_arguments_node *argsNode, pm_node *blockArgumentNode) {
-    NodeVec results;
-
-    absl::Span<pm_node *> prismArgs;
-
-    if (argsNode != nullptr) {
-        prismArgs = absl::MakeSpan(argsNode->arguments.nodes, argsNode->arguments.size);
-    }
-
-    results.reserve(prismArgs.size() + (blockArgumentNode == nullptr ? 0 : 1));
-
-    translateMultiInto(results, prismArgs);
-    if (blockArgumentNode != nullptr) {
-        results.emplace_back(translate(blockArgumentNode));
-    }
-
-    return results;
-}
-
-// Similar to translateArguments, but returns the desugared expressions directly as a
-// store type (e.g., ast::Send::ARGS_store or ast::Array::ENTRY_store) instead of a NodeVec of parser nodes.
 template <typename StoreType>
 StoreType Translator::desugarArguments(pm_arguments_node *argsNode, pm_node *blockArgumentNode) {
     static_assert(std::is_same_v<StoreType, ast::Send::ARGS_store> ||
