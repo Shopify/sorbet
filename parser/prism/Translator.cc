@@ -1009,6 +1009,27 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
     return std::make_pair(sendLoc, blockLoc);
 }
 
+ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
+    auto legacyNode = translate(node);
+
+    ENFORCE(legacyNode != nullptr);
+    enforceHasExpr(legacyNode);
+
+    return legacyNode->takeDesugaredExpr();
+}
+
+ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
+    auto legacyNode = translate(node);
+
+    if (legacyNode == nullptr) {
+        return MK::EmptyTree();
+    }
+
+    enforceHasExpr(legacyNode);
+
+    return legacyNode->takeDesugaredExpr();
+}
+
 unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
