@@ -107,5 +107,7 @@ class ParseResult final {
     }
 };
 
+struct PrismFallback {};
+
 } // namespace sorbet::parser::Prism
 #endif // SORBET_PARSER_PRISM_PARSER_H
