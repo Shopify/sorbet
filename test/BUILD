@@ -302,6 +302,7 @@ pipeline_tests(
         exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
             "testdata/rbs/assertions_heredoc_modified.rb",
+            "testdata/rbs/signatures_types_modified.rb",
         ],
     ),
     "PosTests",
@@ -356,6 +357,7 @@ pipeline_tests(
             #   "Override the begin node location to be the parentheses location instead of the statements location"
             # However, undoing that override leads to issues with nested parentheses handling.
             "testdata/infer/control_flow/complex_implication_1.rb",
+            "testdata/rbs/signatures_types.rb",
         ],
     ),
     "PrismPosTests",
