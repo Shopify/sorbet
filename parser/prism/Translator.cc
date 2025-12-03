@@ -3190,11 +3190,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return expr_only(move(moduleDef));
         }
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
-            auto multiTargetNode = down_cast<pm_multi_target_node>(node);
-
-            auto lhsLoc = translateLoc(mlhsLocation(multiTargetNode));
-
-            return translateMultiTargetLhs(multiTargetNode, lhsLoc);
+            unreachable("PM_MULTI_TARGET_NODE is handled separately in `desugarMlhs()`.");
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
