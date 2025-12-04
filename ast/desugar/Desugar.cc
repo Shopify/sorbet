@@ -906,25 +906,25 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                         // E.g. `foo(*splat)` or `foo(*splat) { |x| puts(x) }`
                         result = MK::Send(loc, MK::Magic(loc), core::Names::callWithSplat(), send->methodLoc, 4,
                                           move(sendargs), flags);
+                        return;
+                    }
+                    if (auto lit = cast_tree<Literal>(blockPassArg); lit && lit->isSymbol()) {
+                        // Desugar a call with a splat and a Symbol block pass argument.
+                        // E.g. `foo(*splat, &:to_s)`
+
+                        auto desugaredBlockLiteral = symbol2Proc(dctx, move(blockPassArg));
+                        sendargs.emplace_back(move(desugaredBlockLiteral));
+                        flags.hasBlock = true;
+
+                        result = MK::Send(loc, MK::Magic(loc), core::Names::callWithSplat(), send->methodLoc, 4,
+                                          move(sendargs), flags);
                     } else {
-                        if (auto lit = cast_tree<Literal>(blockPassArg); lit && lit->isSymbol()) {
-                            // Desugar a call with a splat and a Symbol block pass argument.
-                            // E.g. `foo(*splat, &:to_s)`
+                        // Desugar a call with a splat, and any other expression as a block pass argument.
+                        // E.g. `foo(*splat, &block)`
 
-                            auto desugaredBlockLiteral = symbol2Proc(dctx, move(blockPassArg));
-                            sendargs.emplace_back(move(desugaredBlockLiteral));
-                            flags.hasBlock = true;
-
-                            result = MK::Send(loc, MK::Magic(loc), core::Names::callWithSplat(), send->methodLoc, 4,
-                                              move(sendargs), flags);
-                        } else {
-                            // Desugar a call with a splat, and any other expression as a block pass argument.
-                            // E.g. `foo(*splat, &block)`
-
-                            sendargs.emplace_back(move(blockPassArg));
-                            result = MK::Send(loc, MK::Magic(blockPassLoc), core::Names::callWithSplatAndBlockPass(),
-                                              send->methodLoc, 5, move(sendargs), flags);
-                        }
+                        sendargs.emplace_back(move(blockPassArg));
+                        result = MK::Send(loc, MK::Magic(blockPassLoc), core::Names::callWithSplatAndBlockPass(),
+                                          send->methodLoc, 5, move(sendargs), flags);
                     }
                 } else {
                     // Count the arguments before we concat in the Kwarg key/value pairs
@@ -949,36 +949,36 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                         // If there's a literal block argument, that's handled here, too.
                         // E.g. `a.each` or `a.each { |x| puts(x) }`
                         result = MK::Send(loc, move(rec), send->method, send->methodLoc, numPosArgs, move(args), flags);
+                        return;
+                    }
+
+                    if (auto lit = cast_tree<Literal>(blockPassArg); lit && lit->isSymbol()) {
+                        // Desugar a call without a splat and a Symbol block pass argument.
+                        // E.g. `a.map(:to_s)`
+
+                        auto desugaredBlockLiteral = symbol2Proc(dctx, move(blockPassArg));
+                        args.emplace_back(move(desugaredBlockLiteral));
+                        flags.hasBlock = true;
+
+                        result = MK::Send(loc, move(rec), send->method, send->methodLoc, numPosArgs, move(args), flags);
                     } else {
-                        if (auto lit = cast_tree<Literal>(blockPassArg); lit && lit->isSymbol()) {
-                            // Desugar a call without a splat and a Symbol block pass argument.
-                            // E.g. `a.map(:to_s)`
+                        // Desugar a call without a splat, and any other expression as a block pass argument.
+                        // E.g. `a.each(&block)`
 
-                            auto desugaredBlockLiteral = symbol2Proc(dctx, move(blockPassArg));
-                            args.emplace_back(move(desugaredBlockLiteral));
-                            flags.hasBlock = true;
+                        Send::ARGS_store sendargs;
+                        sendargs.reserve(3 + args.size());
+                        sendargs.emplace_back(move(rec));
+                        sendargs.emplace_back(move(methodName));
+                        sendargs.emplace_back(move(blockPassArg));
 
-                            result =
-                                MK::Send(loc, move(rec), send->method, send->methodLoc, numPosArgs, move(args), flags);
-                        } else {
-                            // Desugar a call without a splat, and any other expression as a block pass argument.
-                            // E.g. `a.each(&block)`
+                        numPosArgs += 3;
 
-                            Send::ARGS_store sendargs;
-                            sendargs.reserve(3 + args.size());
-                            sendargs.emplace_back(move(rec));
-                            sendargs.emplace_back(move(methodName));
-                            sendargs.emplace_back(move(blockPassArg));
-
-                            numPosArgs += 3;
-
-                            for (auto &arg : args) {
-                                sendargs.emplace_back(move(arg));
-                            }
-
-                            result = MK::Send(loc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(),
-                                              send->methodLoc, numPosArgs, move(sendargs), flags);
+                        for (auto &arg : args) {
+                            sendargs.emplace_back(move(arg));
                         }
+
+                        result = MK::Send(loc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(),
+                                          send->methodLoc, numPosArgs, move(sendargs), flags);
                     }
                 }
             },
