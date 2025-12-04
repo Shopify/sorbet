@@ -740,14 +740,12 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     //
                     // to:
                     //     def foo(&my_block)
-                    //       x = (my_block ? ::Kernel.block_given?() : false)
+                    //       x = !!my_block
                     //     end
-                    //
-                    // Later stages of the pipeline have special handling for this,
-                    // based on the nilability of the block (if specified)
 
-                    auto sendExpr = MK::Send0(loc, move(rec), core::Names::blockGiven_p(), send->methodLoc);
-                    result = MK::If(loc, MK::Local(loc, dctx.enclosingBlockParamName), move(sendExpr), MK::False(loc));
+                    auto notBlock =
+                        MK::Send0(loc, MK::Local(loc, dctx.enclosingBlockParamName), core::Names::bang(), locZeroLen);
+                    result = MK::Send0(loc, move(notBlock), core::Names::bang(), locZeroLen);
 
                     return;
                 }
