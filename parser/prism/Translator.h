@@ -136,9 +136,6 @@ private:
     std::unique_ptr<ExprOnly> translateRegexp(core::LocOffsets location, core::LocOffsets contentLoc,
                                               pm_string_t content, pm_location_t closingLoc);
 
-    template <typename PrismNode>
-    std::unique_ptr<parser::Mlhs> translateMultiTargetLhs(PrismNode *node, core::LocOffsets location);
-
     template <typename PrismAssignmentNode, typename SorbetAssignmentNode, typename SorbetLHSNode>
     ast::ExpressionPtr translateAnyOpAssignment(PrismAssignmentNode *node, core::LocOffsets location,
                                                 ast::ExpressionPtr lhs);
@@ -245,7 +242,11 @@ private:
     sorbet::ast::ExpressionPtr desugarDString(core::LocOffsets loc, pm_node_list prismNodeList);
 
     // Multi-assignment desugaring
-    ast::ExpressionPtr desugarMlhs(core::LocOffsets loc, parser::Mlhs *lhs, ast::ExpressionPtr rhs);
+    template <typename PrismNode>
+    ast::ExpressionPtr desugarMlhs(core::LocOffsets loc, PrismNode *lhs, ast::ExpressionPtr rhs);
+
+    std::pair<ast::ExpressionPtr, ast::ExpressionPtr> desugarMlhsParam(core::LocOffsets loc,
+                                                                       pm_multi_target_node *lhs);
 
     // Desugar a class, singleton class or module body.
     ast::ClassDef::RHS_store desugarClassOrModule(pm_node *prismBodyNode);

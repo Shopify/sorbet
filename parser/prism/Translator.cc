@@ -502,7 +502,10 @@ ast::ExpressionPtr Translator::desugarDString(core::LocOffsets loc, pm_node_list
 //
 // While calling `to_ary` doesn't return the correct value if we were to execute this code,
 // it returns the correct type from a static point of view.
-ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *lhs, ast::ExpressionPtr rhs) {
+template <typename PrismNode>
+ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs, ast::ExpressionPtr rhs) {
+    static_assert(is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>);
+
     ast::InsSeq::STATS_store stats;
 
     core::NameRef tempRhs = nextUniqueDesugarName(core::Names::assignTemp());
@@ -513,17 +516,24 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *l
     bool didSplat = false;
     auto zloc = loc.copyWithZeroLength();
 
-    for (auto &c : lhs->exprs) {
-        if (auto *splat = parser::NodeWithExpr::cast_node<parser::SplatLhs>(c.get())) {
+    auto lefts = absl::MakeSpan(lhs->lefts.nodes, lhs->lefts.size);
+    auto rights = absl::MakeSpan(lhs->rights.nodes, lhs->rights.size);
+    bool hasSplat = lhs->rest && PM_NODE_TYPE_P(lhs->rest, PM_SPLAT_NODE);
+    size_t totalSize = lefts.size() + (hasSplat ? 1 : 0) + rights.size();
+
+    auto processTarget = [this, &didSplat, &stats, &i, &after, &before, totalSize, loc, zloc,
+                          tempExpanded](pm_node_t *c) {
+        if (PM_NODE_TYPE_P(c, PM_SPLAT_NODE)) {
+            auto *splat = down_cast<pm_splat_node>(c);
             ENFORCE(!didSplat, "did splat already");
             didSplat = true;
 
-            ast::ExpressionPtr lh = splat->takeDesugaredExpr();
-
             int left = i;
-            int right = lhs->exprs.size() - left - 1;
+            int right = totalSize - left - 1;
 
-            if (!ast::isa_tree<ast::EmptyTree>(lh)) {
+            if (splat->expression) {
+                ast::ExpressionPtr lh = desugar(splat->expression);
+
                 if (right == 0) {
                     right = 1;
                 }
@@ -542,14 +552,16 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *l
                 ++before;
             }
 
-            auto zcloc = c->loc.copyWithZeroLength();
+            auto cloc = translateLoc(c->location);
+            auto zcloc = cloc.copyWithZeroLength();
             auto val =
                 MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
 
-            if (auto *mlhs = parser::NodeWithExpr::cast_node<parser::Mlhs>(c.get())) {
-                stats.emplace_back(desugarMlhs(mlhs->loc, mlhs, move(val)));
+            if (PM_NODE_TYPE_P(c, PM_MULTI_TARGET_NODE)) {
+                auto *mlhs = down_cast<pm_multi_target_node>(c);
+                stats.emplace_back(desugarMlhs(cloc, mlhs, move(val)));
             } else {
-                ast::ExpressionPtr lh = c->takeDesugaredExpr();
+                ast::ExpressionPtr lh = desugar(c);
                 if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
                     if (auto e =
                             ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
@@ -564,6 +576,16 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *l
 
             i++;
         }
+    };
+
+    for (auto *c : lefts) {
+        processTarget(c);
+    }
+    if (hasSplat) {
+        processTarget(lhs->rest);
+    }
+    for (auto *c : rights) {
+        processTarget(c);
     }
 
     auto expanded = MK::Send3(loc, MK::Magic(loc), core::Names::expandSplat(), zloc, MK::Local(loc, tempRhs),
@@ -574,6 +596,15 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, parser::Mlhs *l
     // Regardless of how we destructure an assignment, Ruby evaluates the expression to the entire right hand side,
     // not any individual component of the destructured assignment.
     return MK::InsSeq(loc, move(stats), MK::Local(loc, tempRhs));
+}
+
+std::pair</* param */ ast::ExpressionPtr, /* multi-assign statement */ ast::ExpressionPtr>
+Translator::desugarMlhsParam(core::LocOffsets loc, pm_multi_target_node *lhs) {
+    core::NameRef destructureParam = nextUniqueDesugarName(core::Names::destructureArg());
+    auto param = MK::Local(loc, destructureParam);
+    auto destructuringExpr = desugarMlhs(loc, lhs, MK::Local(loc, destructureParam));
+
+    return {move(param), move(destructuringExpr)};
 }
 
 // Helper to check if an ExpressionPtr represents a T.let call
@@ -2033,6 +2064,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         } else {
                             auto blockLoc = translateLoc(prismBlock->location);
                             auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
+
+                            if (!blockStatsStore.empty()) {
+                                blockBodyExpr = MK::InsSeq(blockLoc, move(blockStatsStore), move(blockBodyExpr));
+                            }
+
                             blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
                         }
 
@@ -2136,6 +2172,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     } else {
                         auto blockLoc = translateLoc(prismBlock->location);
                         auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
+
+                        if (!blockStatsStore.empty()) {
+                            blockBodyExpr = MK::InsSeq(blockLoc, move(blockStatsStore), move(blockBodyExpr));
+                        }
+
                         blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
                     }
 
@@ -2683,19 +2724,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_FOR_NODE: { // `for x in a; ...; end`
             auto forNode = down_cast<pm_for_node>(node);
 
-            auto variable = desugar(forNode->index);
+            auto *mlhs = PM_NODE_TYPE_P(forNode->index, PM_MULTI_TARGET_NODE)
+                             ? down_cast<pm_multi_target_node>(forNode->index)
+                             : nullptr;
+
             auto collection = desugar(forNode->collection);
             auto body = desugarStatements(forNode->statements);
 
             // Desugar `for x in collection; body; end` into `collection.each { |x| body }`
             bool canProvideNiceDesugar = true;
-            bool isMultiTarget = PM_NODE_TYPE_P(forNode->index, PM_MULTI_TARGET_NODE);
 
             // Check if the variable is a simple local variable or a multi-target with only local variables
-            if (isMultiTarget) {
+            if (mlhs) {
                 // Multi-target: check if all are local variables (no nested multi-targets or other complex targets)
-                auto multiTargetNode = down_cast<pm_multi_target_node>(forNode->index);
-                auto targets = absl::MakeSpan(multiTargetNode->lefts.nodes, multiTargetNode->lefts.size);
+                auto targets = absl::MakeSpan(mlhs->lefts.nodes, mlhs->lefts.size);
                 canProvideNiceDesugar = absl::c_all_of(
                     targets, [](pm_node_t *target) { return PM_NODE_TYPE_P(target, PM_LOCAL_VARIABLE_TARGET_NODE); });
             } else {
@@ -2708,15 +2750,13 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             if (canProvideNiceDesugar) {
                 // Simple case: `for x in a; body; end` -> `a.each { |x| body }`
-                if (isMultiTarget) {
-                    auto multiTargetNode = down_cast<pm_multi_target_node>(forNode->index);
-                    auto targets = absl::MakeSpan(multiTargetNode->lefts.nodes, multiTargetNode->lefts.size);
+                if (mlhs) {
+                    auto targets = absl::MakeSpan(mlhs->lefts.nodes, mlhs->lefts.size);
                     for (auto *target : targets) {
-                        auto targetNode = desugar(target);
-                        params.emplace_back(move(targetNode));
+                        params.emplace_back(desugar(target));
                     }
                 } else {
-                    params.emplace_back(move(variable));
+                    params.emplace_back(desugar(forNode->index));
                 }
             } else {
                 // Complex case: `for @x in a; body; end` -> `a.each { || @x = <temp>; body }`
@@ -2725,15 +2765,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
                 // Desugar the assignment
                 ExpressionPtr masgnExpr;
-                if (isMultiTarget) {
+                if (mlhs) {
                     // Multi-target: use desugarMlhs for complex expansion
-                    // TODO: simplify this once we have desugarMlhs that accepts a prism node
-                    auto mlhsNode = translate(forNode->index);
-                    auto *mlhs = parser::NodeWithExpr::cast_node<parser::Mlhs>(mlhsNode.get());
                     masgnExpr = desugarMlhs(location, mlhs, move(tempLocal));
                 } else {
                     // Single variable: simple assignment
-                    masgnExpr = MK::Assign(location, move(variable), move(tempLocal));
+                    masgnExpr = MK::Assign(location, desugar(forNode->index), move(tempLocal));
                 }
 
                 body = MK::InsSeq1(location, move(masgnExpr), move(body));
@@ -2748,8 +2785,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return make_unique<parser::ForwardedArgs>(location);
         }
         case PM_FORWARDING_PARAMETER_NODE: { // The `...` parameter in a method definition, like `def foo(...)`
-            // Desugared in desugarParametersNode().
-            return make_unique<parser::ForwardArg>(location);
+            unreachable("PM_FORWARDING_PARAMETER_NODE is handled separately in `desugarParametersNode()`.");
         }
         case PM_FORWARDING_SUPER_NODE: { // A `super` with no explicit arguments
             // It might have a literal block argument, though.
@@ -3178,28 +3214,18 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             return expr_only(move(moduleDef));
         }
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
-            auto multiTargetNode = down_cast<pm_multi_target_node>(node);
-
-            auto lhsLoc = translateLoc(mlhsLocation(multiTargetNode));
-
-            return translateMultiTargetLhs(multiTargetNode, lhsLoc);
+            unreachable("PM_MULTI_TARGET_NODE is handled separately in `desugarMlhs()`.");
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
-            auto lhsLoc = translateLoc(mlhsLocation(multiWriteNode));
-
-            auto multiLhsNode = translateMultiTargetLhs(multiWriteNode, lhsLoc);
-            auto rhsValue = translate(multiWriteNode->value);
+            auto rhsExpr = desugar(multiWriteNode->value);
 
             // Sorbet's legacy parser doesn't include the opening `(` (see `startLoc()` for details),
             // so we can't just use the entire Prism location for the Masgn node.
             location = translateLoc(startLoc(up_cast(multiWriteNode)), endLoc(multiWriteNode->value));
 
-            enforceHasExpr(rhsValue, multiLhsNode->exprs);
-
-            auto rhs = rhsValue->takeDesugaredExpr();
-            auto expr = desugarMlhs(location, multiLhsNode.get(), move(rhs));
+            auto expr = desugarMlhs(location, multiWriteNode, move(rhsExpr));
             return expr_only(move(expr));
         }
         case PM_NEXT_NODE: { // A `next` statement, e.g. `next`, `next 1, 2, 3`
@@ -4213,16 +4239,17 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
     auto keywords = absl::MakeSpan(paramsNode->keywords.nodes, paramsNode->keywords.size);
     auto posts = absl::MakeSpan(paramsNode->posts.nodes, paramsNode->posts.size);
 
-    parser::NodeVec params;
-
     auto restSize = paramsNode->rest == nullptr ? 0 : 1;
     auto kwrestSize = paramsNode->keyword_rest == nullptr ? 0 : 1;
     auto blockSize = paramsNode->block == nullptr ? 0 : 1;
 
-    params.reserve(requireds.size() + optionals.size() + restSize + posts.size() + keywords.size() + kwrestSize +
-                   blockSize + blockLocalVariables.size());
+    ast::MethodDef::PARAMS_store paramsStore;
+    ast::InsSeq::STATS_store statsStore;
 
-    for (auto &n : requireds) {
+    paramsStore.reserve(requireds.size() + optionals.size() + restSize + posts.size() + keywords.size() + kwrestSize +
+                        blockSize + blockLocalVariables.size());
+
+    auto desugarPositionalParam = [this, &paramsStore, &statsStore](auto *n) {
         if (PM_NODE_TYPE_P(n, PM_MULTI_TARGET_NODE)) {
             auto multiTargetNode = down_cast<pm_multi_target_node>(n);
 
@@ -4235,46 +4262,65 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
             // *except* in a block's parameter list.
             auto mlhsLoc = translateLoc(multiTargetNode->lparen_loc.start, multiTargetNode->rparen_loc.end);
 
-            auto multiLhsNode = translateMultiTargetLhs(multiTargetNode, mlhsLoc);
-
-            params.emplace_back(move(multiLhsNode));
+            auto [param, destructureExpr] = desugarMlhsParam(mlhsLoc, multiTargetNode);
+            paramsStore.emplace_back(move(param));
+            statsStore.emplace_back(move(destructureExpr));
         } else {
-            params.emplace_back(translate(n));
+            paramsStore.emplace_back(desugar(n));
         }
     }
 
-    translateMultiInto(params, optionals);
-
-    if (paramsNode->rest != nullptr) {
-        params.emplace_back(translate(paramsNode->rest));
+    for (auto *n : optionals) {
+        desugarPositionalParam(n);
     }
 
-    for (auto &prismNode : posts) {
+    if (paramsNode->rest != nullptr) {
+        paramsStore.emplace_back(desugar(paramsNode->rest));
+    }
+
+    for (auto *prismNode : posts) {
         // Valid Ruby can only have `**nil` once in the parameter list, which is modelled with a
         // `NoKeywordsParameterNode` in the `keyword_rest` field.
         // If invalid code tries to use more than one `**nil` (like `def foo(**nil, **nil)`),
         // Prism will report an error, but still place the excess `**nil` nodes in `posts` list (never the others like
         // `requireds` or `optionals`), which we need to skip here.
         if (!PM_NODE_TYPE_P(prismNode, PM_NO_KEYWORDS_PARAMETER_NODE)) {
-            params.emplace_back(translate(prismNode));
+            paramsStore.emplace_back(desugar(prismNode));
         }
     }
 
-    translateMultiInto(params, keywords);
+    for (auto *kwarg : keywords) {
+        paramsStore.emplace_back(desugar(kwarg));
+    }
 
     bool hasForwardingParameter = false;
     if (auto *prismKwRestNode = paramsNode->keyword_rest) {
+        auto loc = translateLoc(prismKwRestNode->location);
+
         switch (PM_NODE_TYPE(prismKwRestNode)) {
             case PM_KEYWORD_REST_PARAMETER_NODE: // `def foo(**kwargs)`
-                params.emplace_back(translate(prismKwRestNode));
+                paramsStore.emplace_back(desugar(prismKwRestNode));
+                // TODO: Inline `case PM_KEYWORD_REST_PARAMETER_NODE` logic here.
                 break;
             case PM_FORWARDING_PARAMETER_NODE: { // `def foo(...)`
                 hasForwardingParameter = true;
-                params.emplace_back(translate(prismKwRestNode));
+
+                // Desugar `def foo(m, n, ...)` into:
+                // `def foo(m, n, *<fwd-args>, **<fwd-kwargs>, &<fwd-block>)`
+
+                // add `*<fwd-args>`
+                paramsStore.emplace_back(MK::RestParam(loc, MK::Local(loc, core::Names::fwdArgs())));
+
+                // add `**<fwd-kwargs>`
+                paramsStore.emplace_back(MK::RestParam(loc, MK::KeywordArg(loc, core::Names::fwdKwargs())));
+
+                // add `&<fwd-block>`
+                paramsStore.emplace_back(MK::BlockParam(loc, MK::Local(loc, core::Names::fwdBlock())));
+
                 break;
             }
             case PM_NO_KEYWORDS_PARAMETER_NODE: { // `def foo(**nil)`
-                params.emplace_back(make_unique<parser::Kwnilarg>(translateLoc(prismKwRestNode->location)));
+                // TODO: implement logic for `**nil` args
                 break;
             }
             default:
@@ -4301,54 +4347,11 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
         }
 
         auto blockParamExpr = MK::BlockParam(blockParamLoc, MK::Local(blockParamLoc, enclosingBlockParamName));
-        auto blockParamNode =
-            make_node_with_expr<parser::BlockParam>(move(blockParamExpr), blockParamLoc, enclosingBlockParamName);
-
-        params.emplace_back(move(blockParamNode));
+        paramsStore.emplace_back(move(blockParamExpr));
     } else {
         // Desugaring a method def like `def foo(a, b)` should behave like `def foo(a, b, &<blk>)`,
         // so we set a synthetic name here for `yield` to use.
         enclosingBlockParamName = core::Names::blkArg();
-    }
-
-    for (auto &param : params) {
-        if (!(param->hasDesugaredExpr() ||
-              // These other block types don't have their own dedicated desugared
-              // representation, so they won't be directly translated.
-              // Instead, they have special desugar logic below.
-              parser::NodeWithExpr::isa_node<parser::Kwnilarg>(param.get()) ||         // `def f(**nil)`
-              parser::NodeWithExpr::isa_node<parser::ForwardArg>(param.get()) ||       // `def f(...)`
-              parser::NodeWithExpr::isa_node<parser::ForwardedRestArg>(param.get()) || // a splat like `def foo(*)`
-              parser::NodeWithExpr::isa_node<parser::Splat>(param.get()))) {           // a splat like `def foo(*a)`)
-            throw PrismFallback{};
-        }
-    };
-
-    ast::MethodDef::PARAMS_store paramsStore;
-    ast::InsSeq::STATS_store statsStore;
-
-    for (auto &param : params) {
-        auto loc = param->loc;
-
-        if (parser::NodeWithExpr::isa_node<parser::Mlhs>(param.get())) { // `def f((a, b))`
-            unreachable("Support for Mlhs is not implemented yet!");
-        } else if (parser::NodeWithExpr::isa_node<parser::Kwnilarg>(param.get())) { // `def foo(**nil)`
-            // TODO: implement logic for `**nil` args
-        } else if (parser::NodeWithExpr::isa_node<parser::ForwardArg>(param.get())) { // `def foo(...)`
-            // Desugar `def foo(m, n, ...)` into:
-            // `def foo(m, n, *<fwd-args>, **<fwd-kwargs>, &<fwd-block>)`
-
-            // add `*<fwd-args>`
-            paramsStore.emplace_back(MK::RestParam(loc, MK::Local(loc, core::Names::fwdArgs())));
-
-            // add `**<fwd-kwargs>`
-            paramsStore.emplace_back(MK::RestParam(loc, MK::KeywordArg(loc, core::Names::fwdKwargs())));
-
-            // add `&<fwd-block>`
-            paramsStore.emplace_back(MK::BlockParam(loc, MK::Local(loc, core::Names::fwdBlock())));
-        } else {
-            paramsStore.emplace_back(param->takeDesugaredExpr());
-        }
     }
 
     // Add in the block-local variables, if any.
@@ -5251,56 +5254,6 @@ unique_ptr<ExprOnly> Translator::translateRegexp(core::LocOffsets location, core
 
 string_view Translator::sliceLocation(pm_location_t loc) const {
     return cast_prism_string(loc.start, loc.end - loc.start);
-}
-
-// Creates a `parser::Mlhs` for either a `PM_MULTI_WRITE_NODE` or `PM_MULTI_TARGET_NODE`.
-template <typename PrismNode>
-unique_ptr<parser::Mlhs> Translator::translateMultiTargetLhs(PrismNode *node, core::LocOffsets location) {
-    static_assert(
-        is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
-        "Translator::translateMultiTarget can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
-
-    // Left-hand side of the assignment
-    auto prismLefts = absl::MakeSpan(node->lefts.nodes, node->lefts.size);
-    auto prismRights = absl::MakeSpan(node->rights.nodes, node->rights.size);
-    auto prismSplat = node->rest;
-
-    NodeVec sorbetLhs{};
-    sorbetLhs.reserve(prismLefts.size() + prismRights.size() + (prismSplat != nullptr ? 1 : 0));
-
-    translateMultiInto(sorbetLhs, prismLefts);
-
-    if (prismSplat != nullptr) {
-        switch (PM_NODE_TYPE(prismSplat)) {
-            case PM_SPLAT_NODE: {
-                // This requires separate handling from the `PM_SPLAT_NODE` because it
-                // has a different Sorbet node type, `parser::SplatLhs`
-                auto splatNode = down_cast<pm_splat_node>(prismSplat);
-                auto location = translateLoc(splatNode->base.location);
-                auto expression = splatNode->expression;
-
-                if (expression != nullptr && PM_NODE_TYPE_P(expression, PM_REQUIRED_PARAMETER_NODE)) {
-                    auto requiredParamNode = down_cast<pm_required_parameter_node>(expression);
-                    auto name = translateConstantName(requiredParamNode->name);
-                    sorbetLhs.emplace_back(
-                        make_unique<parser::RestParam>(location, name, translateLoc(requiredParamNode->base.location)));
-                } else {
-                    sorbetLhs.emplace_back(make_unique<parser::SplatLhs>(location, move(translate(expression))));
-                }
-
-                break;
-            }
-            case PM_IMPLICIT_REST_NODE:
-                // No-op, because Sorbet's parser infers this from just having an `Mlhs`.
-                break;
-            default:
-                unreachable("Unexpected rest node type. Expected only PM_SPLAT_NODE or PM_IMPLICIT_REST_NODE.");
-        }
-    }
-
-    translateMultiInto(sorbetLhs, prismRights);
-
-    return make_unique<parser::Mlhs>(location, move(sorbetLhs));
 }
 
 // Desugar a class, singleton class or module body.

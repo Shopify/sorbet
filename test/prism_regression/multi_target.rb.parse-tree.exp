@@ -390,5 +390,346 @@ Begin {
       }
       body = NULL
     }
+    DefMethod {
+      name = <U method_empty>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U method_single>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Send {
+        receiver = NULL
+        method = <U statement1>
+        args = [
+        ]
+      }
+    }
+    DefMethod {
+      name = <U method_multi>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Begin {
+        stmts = [
+          Send {
+            receiver = NULL
+            method = <U statement1>
+            args = [
+            ]
+          }
+          Send {
+            receiver = NULL
+            method = <U statement2>
+            args = [
+            ]
+          }
+        ]
+      }
+    }
+    DefS {
+      singleton = Self {
+      }
+      name = <U method_empty>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefS {
+      singleton = Self {
+      }
+      name = <U method_single>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Send {
+        receiver = NULL
+        method = <U statement1>
+        args = [
+        ]
+      }
+    }
+    DefS {
+      singleton = Self {
+      }
+      name = <U method_multi>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Begin {
+        stmts = [
+          Send {
+            receiver = NULL
+            method = <U statement1>
+            args = [
+            ]
+          }
+          Send {
+            receiver = NULL
+            method = <U statement2>
+            args = [
+            ]
+          }
+        ]
+      }
+    }
+    Block {
+      send = Send {
+        receiver = NULL
+        method = <U block_empty>
+        args = [
+        ]
+      }
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    Block {
+      send = Send {
+        receiver = NULL
+        method = <U block_single>
+        args = [
+        ]
+      }
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Send {
+        receiver = NULL
+        method = <U statement1>
+        args = [
+        ]
+      }
+    }
+    Block {
+      send = Send {
+        receiver = NULL
+        method = <U block_multi>
+        args = [
+        ]
+      }
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Begin {
+        stmts = [
+          Send {
+            receiver = NULL
+            method = <U statement1>
+            args = [
+            ]
+          }
+          Send {
+            receiver = NULL
+            method = <U statement2>
+            args = [
+            ]
+          }
+        ]
+      }
+    }
+    Block {
+      send = Send {
+        receiver = Const {
+          scope = NULL
+          name = <C <U Kernel>>
+        }
+        method = <U lambda>
+        args = [
+        ]
+      }
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    Block {
+      send = Send {
+        receiver = Const {
+          scope = NULL
+          name = <C <U Kernel>>
+        }
+        method = <U lambda>
+        args = [
+        ]
+      }
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Send {
+        receiver = NULL
+        method = <U statement1>
+        args = [
+        ]
+      }
+    }
+    Block {
+      send = Send {
+        receiver = Const {
+          scope = NULL
+          name = <C <U Kernel>>
+        }
+        method = <U lambda>
+        args = [
+        ]
+      }
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U x>
+              }
+              Param {
+                name = <U y>
+              }
+            ]
+          }
+        ]
+      }
+      body = Begin {
+        stmts = [
+          Send {
+            receiver = NULL
+            method = <U statement1>
+            args = [
+            ]
+          }
+          Send {
+            receiver = NULL
+            method = <U statement2>
+            args = [
+            ]
+          }
+        ]
+      }
+    }
   ]
 }
