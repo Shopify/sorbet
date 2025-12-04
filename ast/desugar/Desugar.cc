@@ -759,6 +759,9 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     //       x = !!my_block
                     //     end
 
+                    // TODO: Isn't `enclosingBlockParamName` guaranteed to exist? If it's not defined explicitly, it'll
+                    // at least be a `<blgArg>`
+
                     auto notBlock =
                         MK::Send0(loc, MK::Local(loc, dctx.enclosingBlockParamName), core::Names::bang(), locZeroLen);
                     result = MK::Send0(loc, move(notBlock), core::Names::bang(), locZeroLen);
