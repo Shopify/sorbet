@@ -70,6 +70,20 @@ string singleTest;
 constexpr string_view whitelistedTypedNoneTest = "missing_typed_sigil.rb"sv;
 constexpr string_view packageFileName = "__package.rb"sv;
 
+parser::ParseResult runPrismWithRBS(core::GlobalState &gs, core::FileRef file, core::MutableContext &ctx) {
+    parser::Prism::Parser prismParser{ctx.file.data(ctx).source()};
+    auto prismResult = prismParser.parseWithoutTranslation(true);
+
+    realmain::options::Printers print{};
+    auto *rewrittenNode = rbs::runPrismRBSRewrite(gs, file, prismResult.getRawNodePointer(),
+                                                  prismResult.getCommentLocations(), print, ctx, prismParser);
+
+    auto translatedTree = parser::Prism::Translator(prismParser, ctx, prismResult.getParseErrors(), false, false)
+                              .translate(rewrittenNode);
+
+    return {move(translatedTree), prismResult.getCommentLocations()};
+}
+
 class CFGCollectorAndTyper {
 public:
     vector<unique_ptr<cfg::CFG>> cfgs;
@@ -250,24 +264,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                     // The RBS rewriter produces plain Whitequark nodes and not `NodeWithExpr` which causes errors in
                     // `PrismDesugar.cc`. For now, disable direct desugaring, and fallback to `Desugar.cc`.
                     if (gs.cacheSensitiveOptions.rbsEnabled) {
-                        realmain::options::Printers print{};
-                        auto source = ctx.file.data(ctx).source();
-                        parser::Prism::Parser prismParser{source};
-
-                        bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
-
-                        auto prismParseResult = prismParser.parseWithoutTranslation(collectComments);
-
-                        pm_node_t *rewrittenNode =
-                            rbs::runPrismRBSRewrite(gs, file, prismParseResult.getRawNodePointer(),
-                                                    prismParseResult.getCommentLocations(), print, ctx, prismParser);
-
-                        auto translatedTree =
-                            parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false, false)
-                                .translate(rewrittenNode);
-
-                        parseResult = parser::ParseResult{move(translatedTree), prismParseResult.getCommentLocations()};
-
+                        parseResult = runPrismWithRBS(gs, file, ctx);
                         directlyDesugaredTree = nullptr;
                     } else {
                         parseResult = parser::Prism::Parser::run(ctx, false);
@@ -785,23 +782,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             }
             case realmain::options::Parser::PRISM: {
                 if (gs->cacheSensitiveOptions.rbsEnabled) {
-                    realmain::options::Printers print{};
-                    auto source = ctx.file.data(ctx).source();
-                    parser::Prism::Parser prismParser{source};
-
-                    bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
-
-                    auto prismParseResult = prismParser.parseWithoutTranslation(collectComments);
-
-                    pm_node_t *rewrittenNode =
-                        rbs::runPrismRBSRewrite(*gs, f.file, prismParseResult.getRawNodePointer(),
-                                                prismParseResult.getCommentLocations(), print, ctx, prismParser);
-
-                    auto translatedTree =
-                        parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false, false)
-                            .translate(rewrittenNode);
-
-                    parseResult = parser::ParseResult{move(translatedTree), prismParseResult.getCommentLocations()};
+                    parseResult = runPrismWithRBS(*gs, f.file, ctx);
                 } else {
                     parseResult = parser::Prism::Parser::run(ctx, false);
                 }
