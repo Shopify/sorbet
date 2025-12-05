@@ -1646,12 +1646,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             //   We can skip the `hasFwdRestArg`/`hasSplat` logic below if it's false.
             //   However, we still need the loop if it's true, to be able to tell the two cases apart.
 
-            NodeVec args;
-            // true if the call contains a forwarded argument like `foo(...)`
-            auto hasFwdArgs = callNode->arguments != nullptr &&
-                              PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
-            auto hasFwdRestArg = false; // true if the call contains an anonymous forwarded rest arg like `foo(*)`
-            auto hasSplat = false;      // true if the call contains a splatted expression like `foo(*a)`
             pm_keyword_hash_node *kwargsHash = nullptr;
             if (!prismArgs.empty()) {
                 // Pop the Kwargs Hash off the end of the arguments, if there is one.
@@ -1686,31 +1680,38 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         prismArgs.remove_suffix(1);
                     }
                 }
+            }
 
-                // TODO: reserve size for kwargs Hash keys and values, if needed.
-                // TODO: reserve size for block, if needed.
-                args.reserve(prismArgs.size());
+            // true if the call contains a forwarded argument like `foo(...)`
+            auto hasFwdArgs = callNode->arguments != nullptr &&
+                              PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
+            auto hasFwdRestArg = false; // true if the call contains an anonymous forwarded rest arg like `foo(*)`
+            auto hasSplat = false;      // true if the call contains a splatted expression like `foo(*a)`
 
-                for (auto &arg : prismArgs) {
-                    switch (PM_NODE_TYPE(arg)) {
-                        case PM_SPLAT_NODE: {
-                            auto splatNode = down_cast<pm_splat_node>(arg);
-                            if (splatNode->expression == nullptr) { // An anonymous splat like `f(*)`
-                                hasFwdRestArg = true;
-                            } else { // Splatting an expression like `f(*a)`
-                                hasSplat = true;
-                            }
+            NodeVec args;
+            // TODO: reserve size for kwargs Hash keys and values, if needed.
+            // TODO: reserve size for block, if needed.
+            args.reserve(prismArgs.size());
 
-                            args.emplace_back(translate(arg));
-
-                            break;
+            for (auto &arg : prismArgs) {
+                switch (PM_NODE_TYPE(arg)) {
+                    case PM_SPLAT_NODE: {
+                        auto splatNode = down_cast<pm_splat_node>(arg);
+                        if (splatNode->expression == nullptr) { // An anonymous splat like `f(*)`
+                            hasFwdRestArg = true;
+                        } else { // Splatting an expression like `f(*a)`
+                            hasSplat = true;
                         }
 
-                        default:
-                            args.emplace_back(translate(arg));
+                        args.emplace_back(translate(arg));
 
-                            break;
+                        break;
                     }
+
+                    default:
+                        args.emplace_back(translate(arg));
+
+                        break;
                 }
             }
 
