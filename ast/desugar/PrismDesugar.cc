@@ -43,7 +43,7 @@ struct DesugarContext final {
                    bool inModule, bool preserveConcreteSyntax)
         : ctx(ctx), uniqueCounter(uniqueCounter), enclosingBlockParamName(enclosingBlockParamName),
           enclosingMethodLoc(enclosingMethodLoc), enclosingMethodName(enclosingMethodName), inAnyBlock(inAnyBlock),
-          inModule(inModule), preserveConcreteSyntax(preserveConcreteSyntax){};
+          inModule(inModule), preserveConcreteSyntax(preserveConcreteSyntax) {};
 
     core::NameRef freshNameUnique(core::NameRef name) {
         return ctx.state.freshNameUnique(core::UniqueNameKind::Desugar, name, ++uniqueCounter);
