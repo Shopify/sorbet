@@ -13,14 +13,11 @@ namespace sorbet::rbs {
 parser::NodeVec TypeParamsToParserNode::typeParams(const rbs_node_list_t *rbsTypeParams,
                                                    const RBSDeclaration &declaration) {
     parser::NodeVec result;
+    result.reserve(rbsTypeParams->length);
 
-    for (rbs_node_list_node_t *list_node = rbsTypeParams->head; list_node != nullptr; list_node = list_node->next) {
-        ENFORCE(list_node->node->type == RBS_AST_TYPE_PARAM,
-                "Unexpected node type `{}` in type parameter list, expected `{}`", rbs_node_type_name(list_node->node),
-                "TypeParam");
-
-        auto rbsTypeParam = (rbs_ast_type_param_t *)list_node->node;
-        auto loc = declaration.typeLocFromRange(list_node->node->location->rg);
+    for (rbs_node_list_node_t *listNode = rbsTypeParams->head; listNode != nullptr; listNode = listNode->next) {
+        auto *rbsTypeParam = rbs_down_cast<rbs_ast_type_param_t>(listNode->node);
+        auto loc = declaration.typeLocFromRange(listNode->node->location->rg);
 
         if (rbsTypeParam->unchecked) {
             if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSUnsupported)) {
@@ -50,7 +47,7 @@ parser::NodeVec TypeParamsToParserNode::typeParams(const rbs_node_list_t *rbsTyp
         auto lowerBound = rbsTypeParam->lower_bound;
 
         if (defaultType || upperBound || lowerBound) {
-            auto typeTranslator = TypeToParserNode(ctx, vector<pair<core::LocOffsets, core::NameRef>>(), parser);
+            auto typeTranslator = TypeToParserNode(ctx, {}, parser);
             auto pairs = parser::NodeVec();
 
             if (defaultType) {

@@ -2,7 +2,7 @@
 #define SORBET_RBS_METHOD_COMMON_H
 
 #include "core/LocOffsets.h"
-#include <string>
+#include <string_view>
 
 extern "C" {
 #include "rbs.h"
@@ -29,7 +29,7 @@ struct RBSArg {
     Kind kind;
 };
 
-inline std::string argKindToString(RBSArg::Kind kind) {
+inline std::string_view argKindToString(RBSArg::Kind kind) {
     switch (kind) {
         case RBSArg::Kind::Positional:
             return "positional";
