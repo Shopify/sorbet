@@ -3077,9 +3077,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto [sendLoc, blockLoc] = computeSendLoc(lambdaNode, lambdaNode->body, nullptr, operatorLoc, prismArgs);
 
             auto receiver = make_unique<parser::Const>(operatorLoc, nullptr, core::Names::Constants::Kernel());
-            auto sendNode =
-                make_unique<parser::Send>(sendLoc, move(receiver), core::Names::lambda(), operatorLoc, NodeVec{});
+            // auto sendNode =
+            //     make_unique<parser::Send>(sendLoc, move(receiver), core::Names::lambda(), operatorLoc, NodeVec{});
 
+            (void)sendLoc; // We'll need these in the real implementation
+            (void)blockLoc;
             throw PrismFallback{}; // TODO: Not supported yet
         }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a local variable, e.g. `local &&= false`
@@ -3525,7 +3527,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto superNode = down_cast<pm_super_node>(node);
 
             auto blockArgumentNode = superNode->block;
-            NodeVec returnValues;
 
             if (blockArgumentNode) { // Adjust the location to exclude the literal block argument.
                 const uint8_t *start = superNode->base.location.start;
