@@ -1597,7 +1597,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto callNode = down_cast<pm_call_node>(node);
 
             auto constantNameString = parser.resolveConstant(callNode->name);
-            auto receiver = translate(callNode->receiver);
 
             core::LocOffsets messageLoc;
 
@@ -1737,8 +1736,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             };
 
-            enforceHasExpr(receiver);
-
             unique_ptr<parser::Node> blockBody; // e.g. `123` in `foo { |x| 123 }`
             ast::MethodDef::PARAMS_store blockParamsStore;
             ast::InsSeq::STATS_store blockStatsStore;
@@ -1840,11 +1837,11 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             ast::Send::Flags flags;
 
             ast::ExpressionPtr receiverExpr;
-            if (receiver == nullptr) { // Convert `foo()` to `self.foo()`
+            if (callNode->receiver == nullptr) { // Convert `foo()` to `self.foo()`
                 // 0-sized Loc, since `self.` doesn't appear in the original file.
                 receiverExpr = MK::Self(sendLoc0);
             } else {
-                receiverExpr = receiver->takeDesugaredExpr();
+                receiverExpr = desugar(callNode->receiver);
             }
 
             // Unsupported nodes are desugared to an empty tree.
