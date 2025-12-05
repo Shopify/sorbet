@@ -3807,10 +3807,6 @@ unique_ptr<ExprOnly> Translator::patternTranslate(pm_node_t *node) {
             auto key = desugar(assocNode->key);
             auto value = patternTranslate(assocNode->value);
 
-            if (PM_NODE_TYPE_P(assocNode->value, PM_IMPLICIT_NODE)) {
-                return value;
-            }
-
             // Pair is a structural component of hash patterns with no simple desugared expression
             return expr_only(MK::Nil(location));
         }
