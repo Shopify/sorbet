@@ -1977,8 +1977,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     auto sendExpr =
                         MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithSplatAndBlockPass(),
                                  messageLoc, numPosArgs, move(magicSendArgs), flags);
-                    return make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver), name,
-                                                             messageLoc, move(args));
+                    return expr_only(move(sendExpr));
                 }
 
                 if (prismBlock != nullptr) {
@@ -2068,8 +2067,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto sendExpr = MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(),
                                          messageLoc, numPosArgs, move(magicSendArgs), flags);
 
-                return make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver), name,
-                                                         messageLoc, move(args));
+                return expr_only(move(sendExpr));
             }
 
             ast::Send::ARGS_store sendArgs{};
