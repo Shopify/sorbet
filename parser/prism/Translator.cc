@@ -3533,7 +3533,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto superNode = down_cast<pm_super_node>(node);
 
             auto blockArgumentNode = superNode->block;
-            NodeVec returnValues;
 
             if (blockArgumentNode) { // Adjust the location to exclude the literal block argument.
                 const uint8_t *start = superNode->base.location.start;
