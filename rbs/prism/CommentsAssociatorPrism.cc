@@ -370,10 +370,12 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
         walkNode(body);
 
         // Visit standalone RBS comments after the last node in the body
-        auto loc = translateLocation(node->location);
-        int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
-        maybeInsertStandalonePlaceholders(begin->statements->body, 0, lastLine, endLine);
-        lastLine = endLine;
+        if (auto *statements = begin->statements) {
+            auto loc = translateLocation(node->location);
+            int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+            maybeInsertStandalonePlaceholders(statements->body, 0, lastLine, endLine);
+            lastLine = endLine;
+        }
 
         return body;
     }
