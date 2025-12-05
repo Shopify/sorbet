@@ -1176,15 +1176,15 @@ ast::ExpressionPtr Translator::desugarIndexOpAssign(pm_node_t *untypedNode) {
     auto openingLoc = translateLoc(node->opening_loc);
     auto lBracketLoc = core::LocOffsets{openingLoc.beginLoc, openingLoc.endLoc - 1};
 
-    auto receiverExpr = desugar(node->receiver);
+    auto receiver = desugar(node->receiver);
     auto argsStore = desugarArguments<ast::Send::ARGS_store>(node->arguments, up_cast(node->block));
 
     // The LHS location includes the receiver and the `[]`, but not the `=` or rhs.
     auto lhsLoc = translateLoc(node->receiver->location.start, node->closing_loc.end);
 
     // Create the LHS Send expression: recv[]
-    auto lhs = MK::Send(lhsLoc, move(receiverExpr), core::Names::squareBrackets(), lBracketLoc, argsStore.size(),
-                        move(argsStore));
+    auto lhs =
+        MK::Send(lhsLoc, move(receiver), core::Names::squareBrackets(), lBracketLoc, argsStore.size(), move(argsStore));
     auto rhs = desugar(node->value);
 
     if constexpr (Kind == OpAssignKind::Operator) {
@@ -1208,7 +1208,7 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
     auto node = down_cast<PrismSendNode>(untypedNode);
     auto location = translateLoc(untypedNode->location);
     auto name = translateConstantName(node->read_name);
-    auto receiverExpr = desugar(node->receiver);
+    auto receiver = desugar(node->receiver);
     auto messageLoc = translateLoc(node->message_loc);
 
     // The lhs's location spans from the start of the receiver to the end of the message
@@ -1218,7 +1218,7 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
         // Handle safe navigation: a&.b += 1
         // Creates pattern: { $temp = a; if $temp == nil then nil else $temp.b += 1 }
         auto tempRecv = nextUniqueDesugarName(core::Names::assignTemp());
-        auto recvLoc = receiverExpr.loc();
+        auto recvLoc = receiver.loc();
         auto zeroLengthLoc = location.copyWithZeroLength();
         auto zeroLengthRecvLoc = recvLoc.copyWithZeroLength();
 
@@ -1226,7 +1226,7 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
         constexpr auto len = "&"sv.size();
         auto ampersandLoc = translateLoc(node->call_operator_loc.start, node->call_operator_loc.start + len);
 
-        auto tempAssign = MK::Assign(zeroLengthRecvLoc, tempRecv, move(receiverExpr));
+        auto tempAssign = MK::Assign(zeroLengthRecvLoc, tempRecv, move(receiver));
         auto cond = MK::Send1(zeroLengthLoc, MK::Constant(zeroLengthRecvLoc, core::Symbols::NilClass()),
                               core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecv));
 
@@ -1257,7 +1257,7 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
     ast::Send::Flags flags;
     flags.isPrivateOk = PM_NODE_FLAG_P(untypedNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
 
-    auto lhs = MK::Send(lhsLoc, move(receiverExpr), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
+    auto lhs = MK::Send(lhsLoc, move(receiver), name, messageLoc, 0, ast::Send::ARGS_store{}, flags);
     auto rhs = desugar(node->value);
 
     if constexpr (Kind == OpAssignKind::Operator) {
@@ -1836,20 +1836,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             ast::Send::Flags flags;
 
-            ast::ExpressionPtr receiverExpr;
+            ast::ExpressionPtr receiver;
             if (callNode->receiver == nullptr) { // Convert `foo()` to `self.foo()`
                 // 0-sized Loc, since `self.` doesn't appear in the original file.
-                receiverExpr = MK::Self(sendLoc0);
+                receiver = MK::Self(sendLoc0);
             } else {
-                receiverExpr = desugar(callNode->receiver);
+                receiver = desugar(callNode->receiver);
             }
 
             // Unsupported nodes are desugared to an empty tree.
             // Treat them as if they were `self` to match `Desugar.cc`.
             // TODO: Clean up after direct desugaring is complete.
             // https://github.com/Shopify/sorbet/issues/671
-            if (ast::isa_tree<ast::EmptyTree>(receiverExpr)) {
-                receiverExpr = MK::Self(sendLoc0);
+            if (ast::isa_tree<ast::EmptyTree>(receiver)) {
+                receiver = MK::Self(sendLoc0);
                 flags.isPrivateOk = true;
             } else {
                 flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
@@ -1951,7 +1951,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto numPosArgs = 4;
                 ast::Send::ARGS_store magicSendArgs;
                 magicSendArgs.reserve(numPosArgs); // TODO: reserve room for a block pass arg
-                magicSendArgs.emplace_back(move(receiverExpr));
+                magicSendArgs.emplace_back(move(receiver));
                 magicSendArgs.emplace_back(move(methodName));
                 magicSendArgs.emplace_back(move(argsArrayExpr));
                 magicSendArgs.emplace_back(move(kwargsExpr));
@@ -2032,7 +2032,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
                 ast::Send::ARGS_store magicSendArgs;
                 magicSendArgs.reserve(3 + args.size());
-                magicSendArgs.emplace_back(move(receiverExpr));
+                magicSendArgs.emplace_back(move(receiver));
                 magicSendArgs.emplace_back(move(methodName));
                 magicSendArgs.emplace_back(move(blockPassArg));
 
@@ -2104,8 +2104,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
 
-            auto expr =
-                MK::Send(sendWithBlockLoc, move(receiverExpr), name, messageLoc, numPosArgs, move(sendArgs), flags);
+            auto expr = MK::Send(sendWithBlockLoc, move(receiver), name, messageLoc, numPosArgs, move(sendArgs), flags);
 
             return expr_only(move(expr));
         }
