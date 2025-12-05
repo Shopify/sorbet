@@ -148,41 +148,6 @@ template <typename StoreType> StoreType Translator::nodeListToStore(const pm_nod
 }
 
 // Collect pattern variable assignments from a pattern node (similar to desugarPatternMatchingVars in PrismDesugar.cc)
-// TODO: Remove this function once collectPatternMatchingVarsPrism is fully tested
-static void collectPatternMatchingVars(ast::InsSeq::STATS_store &vars, parser::Node *node) {
-    if (auto *var = parser::NodeWithExpr::cast_node<parser::MatchVar>(node)) {
-        auto loc = var->loc;
-        auto val = MK::RaiseUnimplemented(loc);
-        vars.emplace_back(MK::Assign(loc, var->name, move(val)));
-    } else if (auto *rest = parser::NodeWithExpr::cast_node<parser::MatchRest>(node)) {
-        collectPatternMatchingVars(vars, rest->var.get());
-    } else if (auto *pair = parser::NodeWithExpr::cast_node<parser::Pair>(node)) {
-        collectPatternMatchingVars(vars, pair->value.get());
-    } else if (auto *as_pattern = parser::NodeWithExpr::cast_node<parser::MatchAs>(node)) {
-        auto loc = as_pattern->as->loc;
-        auto name = parser::NodeWithExpr::cast_node<parser::MatchVar>(as_pattern->as.get())->name;
-        auto val = MK::RaiseUnimplemented(loc);
-        vars.emplace_back(MK::Assign(loc, name, move(val)));
-        collectPatternMatchingVars(vars, as_pattern->value.get());
-    } else if (auto *array_pattern = parser::NodeWithExpr::cast_node<parser::ArrayPattern>(node)) {
-        for (auto &elt : array_pattern->elts) {
-            collectPatternMatchingVars(vars, elt.get());
-        }
-    } else if (auto *array_pattern = parser::NodeWithExpr::cast_node<parser::ArrayPatternWithTail>(node)) {
-        for (auto &elt : array_pattern->elts) {
-            collectPatternMatchingVars(vars, elt.get());
-        }
-    } else if (auto *hash_pattern = parser::NodeWithExpr::cast_node<parser::HashPattern>(node)) {
-        for (auto &elt : hash_pattern->pairs) {
-            collectPatternMatchingVars(vars, elt.get());
-        }
-    } else if (auto *alt_pattern = parser::NodeWithExpr::cast_node<parser::MatchAlt>(node)) {
-        collectPatternMatchingVars(vars, alt_pattern->left.get());
-        collectPatternMatchingVars(vars, alt_pattern->right.get());
-    }
-}
-
-// Collect pattern variable assignments from a pattern node (similar to desugarPatternMatchingVars in PrismDesugar.cc)
 void Translator::collectPatternMatchingVarsPrism(ast::InsSeq::STATS_store &vars, pm_node_t *node) {
     if (node == nullptr) {
         return;
@@ -4032,30 +3997,6 @@ unique_ptr<ExprOnly> Translator::patternTranslate(pm_node_t *node) {
         default: {
             return expr_only(desugar(node));
         }
-    }
-}
-
-// Translates a Prism node list into a new `NodeVec` of legacy parser nodes.
-// This is like `translateMulti()`, but calls `patternTranslateMultiInto()` instead of `translateMultiInto()`.
-parser::NodeVec Translator::patternTranslateMulti(pm_node_list nodeList) {
-    auto prismNodes = absl::MakeSpan(nodeList.nodes, nodeList.size);
-
-    parser::NodeVec result;
-
-    // Pre-allocate the exactly capacity we're going to need, to prevent growth reallocations.
-    result.reserve(prismNodes.size());
-
-    patternTranslateMultiInto(result, prismNodes);
-
-    return result;
-}
-
-// Translates the given Prism pattern-matching nodes, and appends them to the given `NodeVec` of Sorbet nodes.
-// This is like `translateMultiInto()`, but calls `patternTranslate()` instead of `translate()`.
-void Translator::patternTranslateMultiInto(NodeVec &outSorbetNodes, absl::Span<pm_node_t *> prismNodes) {
-    for (auto &prismNode : prismNodes) {
-        unique_ptr<parser::Node> sorbetNode = patternTranslate(prismNode);
-        outSorbetNodes.emplace_back(move(sorbetNode));
     }
 }
 
