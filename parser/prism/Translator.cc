@@ -4216,6 +4216,10 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
         }
     };
 
+    for (auto *n : requireds) {
+        desugarPositionalParam(n);
+    }
+
     for (auto *n : optionals) {
         desugarPositionalParam(n);
     }
