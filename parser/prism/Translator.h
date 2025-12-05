@@ -226,10 +226,9 @@ private:
     ast::ExpressionPtr desugarAssignment(pm_node_t *node);
 
     // Pattern-matching
-    // ... variations of the main translation functions for pattern-matching related nodes.
-    std::unique_ptr<parser::Node> patternTranslate(pm_node_t *node);
-    parser::NodeVec patternTranslateMulti(pm_node_list prismNodes);
-    void patternTranslateMultiInto(NodeVec &sorbetNodes, absl::Span<pm_node_t *> prismNodes);
+    // ... variation of the main translation functions for pattern-matching related node.
+    ast::ExpressionPtr patternTranslate(pm_node_t *node);
+    ast::ExpressionPtr desugarOnelinePattern(core::LocOffsets loc, pm_node_t *match);
 
     std::string_view sliceLocation(pm_location_t loc) const;
 
@@ -242,8 +241,7 @@ private:
     template <typename PrismNode>
     ast::ExpressionPtr desugarMlhs(core::LocOffsets loc, PrismNode *lhs, ast::ExpressionPtr rhs);
 
-    std::pair<ast::ExpressionPtr, ast::ExpressionPtr> desugarMlhsParam(core::LocOffsets loc,
-                                                                       pm_multi_target_node *lhs);
+    std::pair<ast::ExpressionPtr, ast::ExpressionPtr> desugarMlhsParam(core::LocOffsets loc, pm_multi_target_node *lhs);
 
     // Desugar a class, singleton class or module body.
     ast::ClassDef::RHS_store desugarClassOrModule(pm_node *prismBodyNode);
