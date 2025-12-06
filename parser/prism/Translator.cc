@@ -1560,7 +1560,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto callNode = down_cast<pm_call_node>(node);
 
             auto constantNameString = parser.resolveConstant(callNode->name);
-            auto receiver = translate(callNode->receiver);
+            auto receiverNode = callNode->receiver;
 
             core::LocOffsets messageLoc;
 
@@ -1686,9 +1686,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             };
 
-            enforceHasExpr(receiver);
-
-            unique_ptr<parser::Node> blockBody; // e.g. `123` in `foo { |x| 123 }`
+            ast::ExpressionPtr blockBody; // e.g. `123` in `foo { |x| 123 }`
             ast::MethodDef::PARAMS_store blockParamsStore;
             ast::InsSeq::STATS_store blockStatsStore;
             unique_ptr<parser::Node> blockPassNode;
@@ -1700,9 +1698,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
 
-                    blockBody = this->enterBlockContext().translate(blockNode->body);
-
-                    enforceHasExpr(blockBody);
+                    blockBody = this->enterBlockContext().desugarNullable(blockNode->body);
 
                     if (blockNode->parameters != nullptr) {
                         switch (PM_NODE_TYPE(blockNode->parameters)) {
@@ -1778,11 +1774,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         blockPassArgIsSymbol = PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE);
 
                         if (!blockPassArgIsSymbol) {
-                            auto blockPassArgNode = translate(bp->expression);
-
-                            enforceHasExpr(blockPassArgNode);
-
-                            blockPassArg = blockPassArgNode->takeDesugaredExpr();
+                            blockPassArg = desugar(bp->expression);
                         }
                     } else {
                         // Replace an anonymous block pass like `f(&)` with a local variable
@@ -1807,20 +1799,20 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
             ast::Send::Flags flags;
 
-            ast::ExpressionPtr receiverExpr;
-            if (receiver == nullptr) { // Convert `foo()` to `self.foo()`
+            ast::ExpressionPtr receiver;
+            if (receiverNode == nullptr) { // Convert `foo()` to `self.foo()`
                 // 0-sized Loc, since `self.` doesn't appear in the original file.
-                receiverExpr = MK::Self(sendLoc0);
+                receiver = MK::Self(sendLoc0);
             } else {
-                receiverExpr = receiver->takeDesugaredExpr();
+                receiver = desugar(receiverNode);
             }
 
             // Unsupported nodes are desugared to an empty tree.
             // Treat them as if they were `self` to match `Desugar.cc`.
             // TODO: Clean up after direct desugaring is complete.
             // https://github.com/Shopify/sorbet/issues/671
-            if (ast::isa_tree<ast::EmptyTree>(receiverExpr)) {
-                receiverExpr = MK::Self(sendLoc0);
+            if (ast::isa_tree<ast::EmptyTree>(receiver)) {
+                receiver = MK::Self(sendLoc0);
                 flags.isPrivateOk = true;
             } else {
                 flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
@@ -1930,7 +1922,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto numPosArgs = 4;
                 ast::Send::ARGS_store magicSendArgs;
                 magicSendArgs.reserve(numPosArgs); // TODO: reserve room for a block pass arg
-                magicSendArgs.emplace_back(move(receiverExpr));
+                magicSendArgs.emplace_back(move(receiver));
                 magicSendArgs.emplace_back(move(methodName));
                 magicSendArgs.emplace_back(move(argsArrayExpr));
                 magicSendArgs.emplace_back(move(kwargsExpr));
@@ -1951,8 +1943,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     auto sendExpr =
                         MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithSplatAndBlockPass(),
                                  messageLoc, numPosArgs, move(magicSendArgs), flags);
-                    return make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver), name,
-                                                             messageLoc, move(args));
+                    return expr_only(move(sendExpr));
                 }
 
                 if (prismBlock != nullptr) {
@@ -1970,13 +1961,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                             blockExpr = desugarSymbolProc(symbol);
                         } else {
                             auto blockLoc = translateLoc(prismBlock->location);
-                            auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
 
                             if (!blockStatsStore.empty()) {
-                                blockBodyExpr = MK::InsSeq(blockLoc, move(blockStatsStore), move(blockBodyExpr));
+                                blockBody = MK::InsSeq(blockLoc, move(blockStatsStore), move(blockBody));
                             }
 
-                            blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
+                            blockExpr = MK::Block(blockLoc, move(blockBody), move(blockParamsStore));
                         }
 
                         magicSendArgs.emplace_back(move(blockExpr));
@@ -2011,7 +2001,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
 
                 ast::Send::ARGS_store magicSendArgs;
                 magicSendArgs.reserve(3 + args.size());
-                magicSendArgs.emplace_back(move(receiverExpr));
+                magicSendArgs.emplace_back(move(receiver));
                 magicSendArgs.emplace_back(move(methodName));
                 magicSendArgs.emplace_back(move(blockPassArg));
 
@@ -2041,8 +2031,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 auto sendExpr = MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(),
                                          messageLoc, numPosArgs, move(magicSendArgs), flags);
 
-                return make_node_with_expr<parser::Send>(move(sendExpr), sendWithBlockLoc, move(receiver), name,
-                                                         messageLoc, move(args));
+                return expr_only(move(sendExpr));
             }
 
             ast::Send::ARGS_store sendArgs{};
@@ -2077,13 +2066,12 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                         blockExpr = desugarSymbolProc(symbol);
                     } else {
                         auto blockLoc = translateLoc(prismBlock->location);
-                        auto blockBodyExpr = takeDesugaredExprOrEmptyTree(blockBody);
 
                         if (!blockStatsStore.empty()) {
-                            blockBodyExpr = MK::InsSeq(blockLoc, move(blockStatsStore), move(blockBodyExpr));
+                            blockBody = MK::InsSeq(blockLoc, move(blockStatsStore), move(blockBody));
                         }
 
-                        blockExpr = MK::Block(blockLoc, move(blockBodyExpr), move(blockParamsStore));
+                        blockExpr = MK::Block(blockLoc, move(blockBody), move(blockParamsStore));
                     }
 
                     sendArgs.emplace_back(move(blockExpr));
@@ -2096,8 +2084,7 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                 }
             }
 
-            auto expr =
-                MK::Send(sendWithBlockLoc, move(receiverExpr), name, messageLoc, numPosArgs, move(sendArgs), flags);
+            auto expr = MK::Send(sendWithBlockLoc, move(receiver), name, messageLoc, numPosArgs, move(sendArgs), flags);
 
             return expr_only(move(expr));
         }
