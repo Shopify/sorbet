@@ -70,6 +70,9 @@ public:
     pm_location_t getZeroWidthLocation() const;
     pm_location_t convertLocOffsets(core::LocOffsets loc) const;
 
+    pm_location_t getZeroWidthLocation() const;
+    pm_location_t convertLocOffsets(core::LocOffsets loc) const;
+
 private:
     std::vector<ParseError> collectErrors();
     std::vector<core::LocOffsets> collectCommentLocations();
