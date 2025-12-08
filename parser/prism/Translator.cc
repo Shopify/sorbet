@@ -2069,15 +2069,8 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             auto elseClause = desugarNullable(up_cast(caseMatchNode->else_clause));
 
             // Build an if ladder similar to CASE_NODE
-            core::NameRef tempName;
-            core::LocOffsets predicateLoc;
-
-            if (predicate != nullptr) {
-                predicateLoc = predicate.loc();
-                tempName = nextUniqueDesugarName(core::Names::assignTemp());
-            } else {
-                tempName = core::NameRef::noName();
-            }
+            auto tempName = nextUniqueDesugarName(core::Names::assignTemp());
+            auto predicateLoc = predicate.loc();
 
             // Start with the else clause as the final else
             ExpressionPtr resultExpr = move(elseClause);
