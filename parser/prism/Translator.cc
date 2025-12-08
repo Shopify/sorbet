@@ -1351,6 +1351,9 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 }
 
 ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
+    if (node == nullptr)
+        return MK::EmptyTree();
+
     return desugar(node);
 }
 
