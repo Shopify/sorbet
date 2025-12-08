@@ -15,7 +15,7 @@ parser::ParseResult Parser::run(core::MutableContext ctx, bool preserveConcreteS
     Prism::ParseResult parseResult = parser.parseWithoutTranslation(collectComments);
 
     auto translatedTree = Prism::Translator(parser, ctx, parseResult.parseErrors, preserveConcreteSyntax)
-                              .translate(parseResult.getRawNodePointer());
+                              .translate_TODO(parseResult.getRawNodePointer());
     return parser::ParseResult{move(translatedTree), move(parseResult.commentLocations)};
 }
 
