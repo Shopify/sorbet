@@ -57,6 +57,9 @@ public:
           parserUniqueCounter(this->parserUniqueCounterStorage),
           desugarUniqueCounter(this->desugarUniqueCounterStorage) {}
 
+    ast::ExpressionPtr desugar(pm_node_t *node);
+    ast::ExpressionPtr desugarNullable(pm_node_t *node);
+
     // Translates the given AST from Prism's node types into the equivalent AST in Sorbet's legacy parser node types.
     std::unique_ptr<parser::Node> translate(pm_node_t *node);
 
