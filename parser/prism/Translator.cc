@@ -1290,8 +1290,9 @@ template <typename PrismNode>
 pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *callNode, pm_node_t *blockNode,
                                                                     pm_node_t *receiver, core::LocOffsets initialLoc,
                                                                     const absl::Span<pm_node_t *> prismArgs) {
-    static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_lambda_node>,
-                  "computeSendLoc must be call with a `pm_call_node` or `pm_lambda_node`.");
+    static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_lambda_node> ||
+                      is_same_v<PrismNode, pm_super_node>,
+                  "computeSendLoc must be called with a `pm_call_node`, `pm_lambda_node`, or `pm_super_node`.");
     auto sendLoc = initialLoc;
 
     if (receiver) {
@@ -1321,6 +1322,10 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
         if (callNode->closing_loc.start && callNode->closing_loc.end) { // explicit `( )` or `[ ]` around the params
             sendLoc = sendLoc.join(translateLoc(callNode->closing_loc));
         }
+    } else if constexpr (is_same_v<PrismNode, pm_super_node>) {
+        if (callNode->rparen_loc.start && callNode->rparen_loc.end) {
+            sendLoc = sendLoc.join(translateLoc(callNode->rparen_loc));
+        }
     }
 
     if (!prismArgs.empty()) { // Extend to last argument's location, if any.
@@ -1346,18 +1351,34 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
     return std::make_pair(sendLoc, blockLoc);
 }
 
-ast::ExpressionPtr Translator::desugarMethodCall(pm_call_node *callNode, core::LocOffsets location) {
-    auto constantNameString = parser.resolveConstant(callNode->name);
-    auto receiver = desugarNullable(callNode->receiver);
+template <typename PrismNode>
+ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, core::LocOffsets location) {
+    static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_super_node>,
+                  "desugarMethodCall must be called with a `pm_call_node` or `pm_super_node`.");
 
+    core::NameRef name;
+    ast::ExpressionPtr receiver;
     core::LocOffsets messageLoc;
+    pm_node_t *receiverNode = nullptr;
 
-    // When the message is empty, like `foo.()`, the message location is the
-    // same as the call operator location
-    if (callNode->message_loc.start == nullptr && callNode->message_loc.end == nullptr) {
-        messageLoc = translateLoc(callNode->call_operator_loc);
+    std::string_view constantNameString;
+    if constexpr (is_same_v<PrismNode, pm_call_node>) {
+        constantNameString = parser.resolveConstant(callNode->name);
+        name = ctx.state.enterNameUTF8(constantNameString);
+        receiver = desugarNullable(callNode->receiver);
+        receiverNode = callNode->receiver;
+
+        // When the message is empty, like `foo.()`, the message location is the
+        // same as the call operator location
+        if (callNode->message_loc.start == nullptr && callNode->message_loc.end == nullptr) {
+            messageLoc = translateLoc(callNode->call_operator_loc);
+        } else {
+            messageLoc = translateLoc(callNode->message_loc);
+        }
     } else {
-        messageLoc = translateLoc(callNode->message_loc);
+        name = maybeTypedSuper();
+        receiver = MK::EmptyTree();
+        messageLoc = translateLoc(callNode->keyword_loc);
     }
 
     absl::Span<pm_node_t *> prismArgs;
@@ -1366,7 +1387,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(pm_call_node *callNode, core::L
     }
 
     // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9631 is fixed
-    auto needsLambdaLocWorkaround = callNode->receiver && PM_NODE_TYPE_P(callNode->receiver, PM_LAMBDA_NODE);
+    auto needsLambdaLocWorkaround = receiverNode && PM_NODE_TYPE_P(receiverNode, PM_LAMBDA_NODE);
 
     // The legacy parser nodes don't include the literal block argument (if any), but the desugar nodes do
     // include it.
@@ -1380,7 +1401,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(pm_call_node *callNode, core::L
         sendLoc = sendWithBlockLoc;
     } else { // There's a block, so we need to calculate the location of the "send" node, excluding it.
         std::tie(sendLoc, blockLoc) =
-            this->computeSendLoc(callNode, callNode->block, callNode->receiver, messageLoc, prismArgs);
+            this->computeSendLoc(callNode, callNode->block, receiverNode, messageLoc, prismArgs);
     }
     auto sendLoc0 = sendLoc.copyWithZeroLength();
 
@@ -1451,7 +1472,6 @@ ast::ExpressionPtr Translator::desugarMethodCall(pm_call_node *callNode, core::L
 
     pm_node_t *prismBlock = callNode->block;
 
-    auto name = ctx.state.enterNameUTF8(constantNameString);
     auto methodName = MK::Symbol(sendLoc0, name);
 
     if (name == core::Names::blockGiven_p()) {
@@ -1543,9 +1563,11 @@ ast::ExpressionPtr Translator::desugarMethodCall(pm_call_node *callNode, core::L
         blockPassLoc = sendLoc.copyEndWithZeroLength();
     }
 
-    if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
-        // TODO: Direct desugaring support for conditional sends is not implemented yet.
-        throw PrismFallback{};
+    if constexpr (is_same_v<PrismNode, pm_call_node>) {
+        if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
+            // TODO: Direct desugaring support for conditional sends is not implemented yet.
+            throw PrismFallback{};
+        }
     }
 
     ast::Send::Flags flags;
@@ -1557,7 +1579,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(pm_call_node *callNode, core::L
     if (ast::isa_tree<ast::EmptyTree>(receiver)) {
         receiver = MK::Self(sendLoc0);
         flags.isPrivateOk = true;
-    } else {
+    } else if constexpr (is_same_v<PrismNode, pm_call_node>) {
         flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
     }
 
@@ -3179,35 +3201,8 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
         }
         case PM_SUPER_NODE: { // A `super` call with explicit args, like `super()`, `super(a, b)`
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
-
             auto superNode = down_cast<pm_super_node>(node);
-
-            auto blockArgumentNode = superNode->block;
-
-            if (blockArgumentNode) { // Adjust the location to exclude the literal block argument.
-                const uint8_t *start = superNode->base.location.start;
-                const uint8_t *end;
-
-                if (superNode->rparen_loc.end) { // Try to use the location of the `)`, if any
-                    end = superNode->rparen_loc.end;
-                } else { // Otherwise, use the end of the last argument
-                    auto *argP = superNode->arguments;
-
-                    constexpr auto msg =
-                        "`PM_SUPER_NODE` must have arguments if it has no parens. If there's no args and no "
-                        "parens, then you wouldn't even have a `PM_SUPER_NODE` to begin with, but a "
-                        "`PM_FORWARDING_SUPER` instead)";
-                    ENFORCE(argP, msg);
-
-                    auto args = absl::MakeSpan(argP->arguments.nodes, argP->arguments.size);
-                    ENFORCE(!args.empty(), msg);
-                    end = args.back()->location.end;
-                }
-
-                location = translateLoc(start, end);
-            }
-
-            throw PrismFallback{};
+            return desugarMethodCall(superNode, location);
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
             auto symNode = down_cast<pm_symbol_node>(node);

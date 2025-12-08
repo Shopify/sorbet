@@ -266,7 +266,7 @@ private:
                                                                  pm_node_t *receiver, core::LocOffsets initialLoc,
                                                                  const absl::Span<pm_node_t *> prismArgs);
 
-    ast::ExpressionPtr desugarMethodCall(pm_call_node *callNode, core::LocOffsets location);
+    template <typename PrismNode> ast::ExpressionPtr desugarMethodCall(PrismNode *callNode, core::LocOffsets location);
 };
 
 } // namespace sorbet::parser::Prism
