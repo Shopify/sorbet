@@ -53,8 +53,10 @@ ExpressionPtr node2TreeImplBody(parser::Node *what) {
     }
 
     ENFORCE(what->hasDesugaredExpr(), "Node has no desugared expression");
+
     auto expr = what->takeDesugaredExpr();
     ENFORCE(expr != nullptr, "Node has null desugared expr");
+
     return expr;
 }
 
