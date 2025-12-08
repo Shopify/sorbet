@@ -8,8 +8,6 @@
 
 #include "absl/strings/str_replace.h"
 
-template class std::unique_ptr<sorbet::parser::Node>;
-
 using namespace std;
 
 namespace sorbet::parser::Prism {
@@ -198,7 +196,7 @@ ast::ExpressionPtr Translator::desugarOnelinePattern(core::LocOffsets loc, pm_no
     return MK::If(loc, move(matchExpr), move(bodyExpr), move(elseExpr));
 }
 
-std::unique_ptr<ExprOnly> Translator::make_unsupported_node(core::LocOffsets loc, std::string_view nodeName) const {
+ast::ExpressionPtr Translator::make_unsupported_node(core::LocOffsets loc, std::string_view nodeName) const {
     if (auto e = ctx.beginIndexerError(loc, core::errors::Desugar::UnsupportedNode)) {
         e.setHeader("Unsupported node type `{}`", nodeName);
     }
@@ -1328,13 +1326,7 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeMethodCallLoc(core::
 }
 
 ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
-    auto legacyNode = translate(node);
-    ENFORCE(legacyNode != nullptr);
-
-    auto expr = legacyNode->takeDesugaredExpr();
-    ENFORCE(expr != nullptr, "Node has no desugared expression");
-
-    return expr;
+    return translate(node);
 }
 
 ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
@@ -1345,7 +1337,13 @@ ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
     return desugar(node);
 }
 
-unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
+std::unique_ptr<parser::Node> Translator::translate_TODO(pm_node_t *node) {
+    auto expr = translate(node);
+    auto loc = expr.loc();
+    return make_unique<ExprOnly>(move(expr), loc);
+}
+
+ast::ExpressionPtr Translator::translate(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
 
