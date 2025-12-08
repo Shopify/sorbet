@@ -219,6 +219,27 @@ bool isStringLit(const ast::ExpressionPtr &expr) {
     return false;
 }
 
+// Detects calls to `block_given?`
+// Accepts:
+// - `block_given?()`
+// - `self.block_given?()`
+// - `Kernel.block_given?()`
+// - `::Kernel.block_given?()`
+// Rejects:
+// - `foo.block_given?(1)`
+// - `Object.block_given?` (it's private)
+bool isCallToBlockGivenP(pm_call_node *callNode, core::NameRef methodName, ast::ExpressionPtr &receiverExpr) {
+    if (methodName != core::Names::blockGiven_p() || callNode->arguments != nullptr) {
+        return false;
+    }
+
+    if (callNode->receiver == nullptr || PM_NODE_TYPE_P(callNode->receiver, PM_SELF_NODE)) {
+        return true;
+    }
+
+    return MK::isKernel(receiverExpr);
+};
+
 // Flattens the key/value pairs from the Kwargs Hash into the destination container.
 // If Kwargs Hash contains any splats, we skip the flattening and desugar the hash as-is.
 template <typename Container>
@@ -1445,11 +1466,25 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
         }
     }
 
-    // auto methodName = ctx.state.enterNameUTF8(constantNameString);
+    if constexpr (is_same_v<PrismNode, pm_call_node>) {
+        if (isCallToBlockGivenP(callNode, methodName, receiver) && isInMethodDef()) {
+            // Desugar:
+            //     def foo(&my_block)
+            //       x = block_given?
+            //     end
+            //
+            // to:
+            //     def foo(&my_block)
+            //       x = (my_block ? ::Kernel.block_given?() : false)
+            //     end
+            //
+            // Later stages of the pipeline have special handling for this,
+            // based on the nilability of the block (if specified)
 
-    if (methodName == core::Names::blockGiven_p()) {
-        categoryCounterInc("Prism fallback", "block_given?");
-        throw PrismFallback{}; // TODO: Implement special-case for `block_given?`
+            auto loc = sendWithBlockLoc;
+            auto sendExpr = MK::Send0(loc, move(receiver), core::Names::blockGiven_p(), messageLoc);
+            return MK::If(loc, MK::Local(loc, this->enclosingBlockParamName), move(sendExpr), MK::False(loc));
+        }
     }
 
     ast::Send::Flags flags;
