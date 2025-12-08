@@ -92,17 +92,6 @@ void enforceHasExpr(const std::unique_ptr<parser::Node> &node) {
     }
 }
 
-void enforceHasExpr(const std::unique_ptr<NodeWithExpr> &node) {
-    if (node && !node->hasDesugaredExpr()) {
-        throw PrismFallback{};
-    }
-}
-
-template <typename... Tail> void enforceHasExpr(const std::unique_ptr<parser::Node> &head, const Tail &...tail) {
-    enforceHasExpr(head);
-    enforceHasExpr(tail...);
-}
-
 // Helper to extract desugared expression or return EmptyTree if node is null.
 ExpressionPtr takeDesugaredExprOrEmptyTree(const std::unique_ptr<parser::Node> &node) {
     if (node == nullptr) {
