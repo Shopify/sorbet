@@ -265,6 +265,8 @@ private:
     std::pair<core::LocOffsets, core::LocOffsets> computeSendLoc(PrismNode *callNode, pm_node_t *blockNode,
                                                                  pm_node_t *receiver, core::LocOffsets initialLoc,
                                                                  const absl::Span<pm_node_t *> prismArgs);
+
+    ast::ExpressionPtr desugarMethodCall(pm_call_node *callNode, core::LocOffsets location);
 };
 
 } // namespace sorbet::parser::Prism
