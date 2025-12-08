@@ -1338,6 +1338,9 @@ ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
 std::unique_ptr<parser::Node> Translator::translate_TODO(pm_node_t *node) {
     auto expr = translate(node);
     auto loc = expr.loc();
+    if (!loc.exists()) {
+        loc = core::LocOffsets(1, 1); // fake it 'til you make it
+    }
     return make_unique<ExprOnly>(move(expr), loc);
 }
 
