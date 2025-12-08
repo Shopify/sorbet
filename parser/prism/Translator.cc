@@ -86,12 +86,6 @@ unique_ptr<ExprOnly> empty_expr() {
     return expr_only(MK::EmptyTree(), fakeLoc);
 }
 
-void enforceHasExpr(const std::unique_ptr<parser::Node> &node) {
-    if (node && !node->hasDesugaredExpr()) {
-        throw PrismFallback{};
-    }
-}
-
 // Helper template to convert a pm_node_list to any store type.
 // This is used to convert prism node lists to store types like ast::Array::ENTRY_store,
 // ast::Send::ARGS_store, ast::InsSeq::STATS_store, etc.
@@ -1380,11 +1374,12 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
 
 ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
     auto legacyNode = translate(node);
-
     ENFORCE(legacyNode != nullptr);
-    enforceHasExpr(legacyNode);
 
-    return legacyNode->takeDesugaredExpr();
+    auto expr = legacyNode->takeDesugaredExpr();
+    ENFORCE(expr != nullptr, "Node has no desugared expression");
+
+    return expr;
 }
 
 ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
