@@ -2118,10 +2118,9 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
             }
 
             // Wrap in an InsSeq with the predicate assignment (if there is a predicate)
-            if (predicate != nullptr) {
-                auto assignExpr = MK::Assign(predicateLoc, tempName, move(predicate));
-                resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
-            }
+            auto assignExpr = MK::Assign(predicateLoc, tempName, move(predicate));
+
+            resultExpr = MK::InsSeq1(location, move(assignExpr), move(resultExpr));
             return expr_only(move(resultExpr));
         }
         case PM_CASE_NODE: { // A classic `case` statement that only uses `when` (and not pattern matching with `in`)
