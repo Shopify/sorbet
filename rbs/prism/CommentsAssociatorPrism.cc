@@ -181,7 +181,7 @@ void CommentsAssociatorPrism::consumeCommentsUntilLine(int line) {
     commentByLine.erase(commentByLine.begin(), it);
 }
 
-void CommentsAssociatorPrism::associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc = false) {
+void CommentsAssociatorPrism::associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc) {
     auto loc = translateLocation(node->location);
     uint32_t targetLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
     if (adjustLocForHeredoc) {
@@ -853,8 +853,10 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_ASSOC_SPLAT_NODE: {
             auto *splatAssoc = down_cast<pm_assoc_splat_node_t>(node);
-            associateAssertionCommentsToNode(splatAssoc->value);
-            walkNode(splatAssoc->value);
+            if (auto *value = splatAssoc->value) {
+                associateAssertionCommentsToNode(value);
+                walkNode(value);
+            }
             break;
         }
         case PM_SUPER_NODE: {
