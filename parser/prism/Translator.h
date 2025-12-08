@@ -281,7 +281,7 @@ private:
 
     DesugaredBlockArgument desugarBlockPassArgument(pm_block_argument_node *bp);
 
-    ast::ExpressionPtr desugarMethodCall(pm_call_node *callNode, core::LocOffsets location);
+    template <typename PrismNode> ast::ExpressionPtr desugarMethodCall(PrismNode *callNode, core::LocOffsets location);
 };
 
 } // namespace sorbet::parser::Prism
