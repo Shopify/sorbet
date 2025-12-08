@@ -24,7 +24,7 @@ class ExprOnly final : public Node {
 public:
     ExprOnly(ast::ExpressionPtr desugaredExpr, core::LocOffsets loc)
         : Node(loc), desugaredExpr(std::move(desugaredExpr)) {
-        ENFORCE(this->desugaredExpr != nullptr, "Can't create NodeWithExpr with a null desugaredExpr.");
+        ENFORCE(this->desugaredExpr != nullptr, "Can't create ExprOnly with a null desugaredExpr.");
     }
     virtual ~ExprOnly() = default;
 
@@ -50,13 +50,13 @@ public:
 
     virtual ast::ExpressionPtr takeDesugaredExpr() final {
         ENFORCE(this->desugaredExpr != nullptr,
-                "Tried to call make a second call to `takeDesugaredExpr()` on a NodeWithExpr");
+                "Tried to call make a second call to `takeDesugaredExpr()` on a ExprOnly");
 
         // We know each `NodeAndExpr` object's `takeDesugaredExpr()` will be called at most once, either:
         // 1. When its parent node is being translated in `prism/Translator.cc`,
         //    and this value is used to create that parent's expr.
         // 2. When this node is visted by `node2TreeImpl` in `PrismDesugar.cc`,
-        //    and this value is called from the `NodeWithExpr` case
+        //    and this value is called from the `ExprOnly` case
         //
         // Because of this, we don't need to make any copies here. Just move this value out,
         // and hand exclusive ownership to the caller.
