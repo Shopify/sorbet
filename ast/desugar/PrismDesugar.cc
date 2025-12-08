@@ -22,10 +22,6 @@ struct PrismFallback {};
 // The Prism Desugarer starts out as a near-exact copy of the legacy Desugarer. Over time, we migrate more and more of
 // its logic out and into `parser/prism/Translator.cc`. Any changes made to the "upstream" Desugarer also need to be
 // refected here, and in the Translator.
-//
-// One key difference of the Prism desugarer is that it calls `NodeWithExpr::cast_node` and `NodeWithExpr::isa_node`
-// instead of the usual `parser::cast_node` and `parser::isa_node` functions. This adds extra overhead in the Prism
-// case, but remains zero-cost in the case of the legacy parser and the regular `Desugar.cc`.
 namespace sorbet::ast::prismDesugar {
 
 using namespace std;
@@ -35,21 +31,6 @@ namespace {
 // Translate a tree to an expression. NOTE: this should only be called from `node2TreeImpl`.
 ExpressionPtr node2TreeImplBody(parser::Node *what) {
     ENFORCE(what != nullptr);
-
-    if (auto *nodeWithExpr = parser::NodeWithExpr::cast_node<parser::NodeWithExpr>(what)) {
-        if (parser::NodeWithExpr::isa_node<parser::Splat>(nodeWithExpr->wrappedNode.get())) {
-            // Special case for Splats in method calls where we want zero-length locations
-            // The `parser::Send` case makes a fake parser::Array with locZeroLen to hide callWithSplat
-            // methods from hover.`
-            auto splat = parser::NodeWithExpr::cast_node<parser::Splat>(nodeWithExpr->wrappedNode.get());
-
-            if (!splat->var->hasDesugaredExpr()) {
-                throw parser::Prism::PrismFallback{};
-            }
-
-            return MK::Splat(what->loc, splat->var->takeDesugaredExpr());
-        }
-    }
 
     ENFORCE(what->hasDesugaredExpr(), "Node has no desugared expression");
 
