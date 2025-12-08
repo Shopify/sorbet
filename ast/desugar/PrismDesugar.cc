@@ -29,7 +29,6 @@ struct PrismFallback {};
 namespace sorbet::ast::prismDesugar {
 
 using namespace std;
-using sorbet::ast::desugar::DuplicateHashKeyCheck;
 
 namespace {
 
