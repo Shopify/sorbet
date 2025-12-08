@@ -196,7 +196,6 @@ ast::ExpressionPtr Translator::desugarOnelinePattern(core::LocOffsets loc, pm_no
     return MK::If(loc, move(matchExpr), move(bodyExpr), move(elseExpr));
 }
 
-// Like `make_node_with_expr`, but specifically for unsupported nodes.
 ast::ExpressionPtr Translator::make_unsupported_node(core::LocOffsets loc, std::string_view nodeName) const {
     if (auto e = ctx.beginIndexerError(loc, core::errors::Desugar::UnsupportedNode)) {
         e.setHeader("Unsupported node type `{}`", nodeName);
