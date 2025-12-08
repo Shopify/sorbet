@@ -2396,7 +2396,6 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
         case PM_DEFINED_NODE: {
             auto definedNode = down_cast<pm_defined_node>(node);
 
-            auto arg = translate(definedNode->value);
             auto valueNode = definedNode->value;
 
             switch (PM_NODE_TYPE(valueNode)) {
@@ -2458,14 +2457,16 @@ unique_ptr<parser::Node> Translator::translate(pm_node_t *node) {
                     }
 
                     absl::c_reverse(args);
-                    auto expr = MK::Send(arg->loc, MK::Magic(arg->loc), core::Names::defined_p(),
+                    auto argLoc = translateLoc(argument->location);
+                    auto expr = MK::Send(argLoc, MK::Magic(argLoc), core::Names::defined_p(),
                                          location.copyWithZeroLength(), args.size(), move(args));
                     return expr_only(move(expr));
                 }
                 default: {
                     // All other cases desugar to `::Magic.defined?()` with 0 arguments
                     ast::Send::ARGS_store args;
-                    auto expr = MK::Send(arg->loc, MK::Magic(arg->loc), core::Names::defined_p(),
+                    auto argLoc = translateLoc(argument->location);
+                    auto expr = MK::Send(argLoc, MK::Magic(argLoc), core::Names::defined_p(),
                                          location.copyWithZeroLength(), args.size(), move(args));
                     return expr_only(move(expr));
                 }
