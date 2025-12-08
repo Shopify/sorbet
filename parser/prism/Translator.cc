@@ -2531,6 +2531,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
                 throw PrismFallback{}; // TODO: Not implemented yet
             }
 
+            (void)length; // unused for now
             return expr;
         }
         case PM_GLOBAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a global variable, e.g. `$g &&= false`
