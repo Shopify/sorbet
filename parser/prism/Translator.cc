@@ -1323,10 +1323,6 @@ Translator::computeMethodCallLoc(core::LocOffsets initialLoc, pm_node_t *receive
     return {result, blockLoc};
 }
 
-ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
-    return translate(node);
-}
-
 ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
     if (node == nullptr) {
         return MK::EmptyTree();
@@ -1336,7 +1332,7 @@ ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
 }
 
 std::unique_ptr<parser::Node> Translator::translate_TODO(pm_node_t *node) {
-    auto expr = translate(node);
+    auto expr = desugar(node);
     auto loc = expr.loc();
     if (!loc.exists()) {
         loc = core::LocOffsets(1, 1); // fake it 'til you make it
@@ -1344,7 +1340,7 @@ std::unique_ptr<parser::Node> Translator::translate_TODO(pm_node_t *node) {
     return make_unique<ExprOnly>(move(expr), loc);
 }
 
-ast::ExpressionPtr Translator::translate(pm_node_t *node) {
+ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
     if (node == nullptr)
         return nullptr;
 
@@ -2420,7 +2416,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
         }
         case PM_EMBEDDED_VARIABLE_NODE: {
             auto embeddedVariableNode = down_cast<pm_embedded_variable_node>(node);
-            return translate(embeddedVariableNode->variable);
+            return desugar(embeddedVariableNode->variable);
         }
         case PM_ENSURE_NODE: { // An `ensure` clause, which can pertain to a `begin`
             unreachable("PM_ENSURE_NODE is handled separately as part of PM_BEGIN_NODE, see its docs for details.");
@@ -2617,7 +2613,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
         }
         case PM_IMPLICIT_NODE: { // A hash key without explicit value, like the `k4` in `{ k4: }`
             auto implicitNode = down_cast<pm_implicit_node>(node);
-            return translate(implicitNode->value);
+            return desugar(implicitNode->value);
         }
         case PM_IMPLICIT_REST_NODE: { // An implicit splat, like the `,` in `a, = 1, 2, 3`
             auto restLoc = core::LocOffsets{location.beginLoc + 1, location.beginLoc + 1};
@@ -2861,7 +2857,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
             //
             // This is why we just translate the `call` and completely ignore `matchWriteNode->targets`.
 
-            return translate(up_cast(matchWriteNode->call));
+            return desugar(up_cast(matchWriteNode->call));
         }
         case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
             auto moduleNode = down_cast<pm_module_node>(node);
@@ -2976,7 +2972,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
                 auto inlineIfSingle = false;
                 return desugarStatements(down_cast<pm_statements_node>(stmtsNode), inlineIfSingle);
             } else {
-                return translate(stmtsNode);
+                return desugar(stmtsNode);
             }
         }
         case PM_PRE_EXECUTION_NODE: { // The BEGIN keyword and body, like `BEGIN { ... }`
@@ -3110,7 +3106,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
             // Sorbet doesn't handle `shareable_constant_value` yet (https://bugs.ruby-lang.org/issues/17273).
             // We'll just handle the inner constant assignment as normal.
             auto shareableConstantNode = down_cast<pm_shareable_constant_node>(node);
-            return translate(shareableConstantNode->write);
+            return desugar(shareableConstantNode->write);
         }
         case PM_SINGLETON_CLASS_NODE: { // A singleton class, like `class << self ... end`
             auto classNode = down_cast<pm_singleton_class_node>(node);
@@ -3355,7 +3351,7 @@ const uint8_t *endLoc(pm_node_t *anyNode) {
     }
 }
 
-// Similar to `translate()`, but it's used for pattern-matching nodes.
+// Similar to `desugar()`, but it's used for pattern-matching nodes.
 //
 // This is necessary because some Prism nodes get translated differently depending on whether they're part of "regular"
 // syntax, or pattern-matching syntax.
