@@ -2522,7 +2522,7 @@ ast::ExpressionPtr Translator::translate(pm_node_t *node) {
             return MK::Send0Block(location, move(collection), core::Names::each(), locZeroLen, move(block));
         }
         case PM_FORWARDING_ARGUMENTS_NODE: { // The `...` argument in a method call, like `foo(...)`
-            return make_unique<parser::ForwardedArgs>(location);
+            unreachable("PM_FORWARDING_ARGUMENTS_NODE is handled separately in `PM_CALL_NODE`.");
         }
         case PM_FORWARDING_PARAMETER_NODE: { // The `...` parameter in a method definition, like `def foo(...)`
             unreachable("PM_FORWARDING_PARAMETER_NODE is handled separately in `desugarParametersNode()`.");
