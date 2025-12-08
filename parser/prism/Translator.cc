@@ -4552,8 +4552,6 @@ core::NameRef Translator::nextUniqueDesugarName(core::NameRef original) {
 }
 
 // Translate the options from a Regexp literal, if any. E.g. the `i` in `/foo/i`
-// Had to widen the type from `parser::Assign` to `parser::Node` to handle `make_node_with_expr` correctly.
-// TODO: narrow the type back after direct desugaring is complete. https://github.com/Shopify/sorbet/issues/671
 ast::ExpressionPtr Translator::desugarRegexpOptions(pm_location_t closingLoc) {
     ENFORCE(closingLoc.start && closingLoc.end);
 
