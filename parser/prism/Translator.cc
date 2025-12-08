@@ -2113,7 +2113,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
             core::NameRef tempName;
             core::LocOffsets predicateLoc;
-            bool hasPredicate = (predicate != nullptr);
+            bool hasPredicate = (caseNode->predicate != nullptr);
 
             if (hasPredicate) {
                 predicateLoc = predicate.loc();
