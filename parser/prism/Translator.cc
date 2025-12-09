@@ -1461,6 +1461,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
         flags.isPrivateOk = true;
     } else if constexpr (is_same_v<PrismNode, pm_call_node>) {
         flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
+    } else if constexpr (is_same_v<PrismNode, pm_super_node> || is_same_v<PrismNode, pm_lambda_node>) {
+        flags.isPrivateOk = true;
     }
 
     if (hasSplat || hasFwdRestArg || hasFwdArgs) { // f(*a) || f(*) || f(...)
