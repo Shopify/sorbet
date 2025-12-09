@@ -1548,9 +1548,54 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
             }
 
-            if (methodName == core::Names::blockGiven_p()) {
-                categoryCounterInc("Prism fallback", "block_given?");
-                throw PrismFallback{};
+            if (callNode->arguments == nullptr && callNode->block == nullptr &&
+                !PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
+                // categoryCounterInc("no-arg call", "true");
+
+                ast::Send::ARGS_store emptyArgs;
+
+                ast::Send::Flags flags;
+                flags.isPrivateOk = isPrivateOk;
+
+                return MK::Send(location, move(receiver), methodName, translateLoc(callNode->message_loc), 0,
+                                move(emptyArgs), flags);
+            } else {
+                // categoryCounterInc("no-arg call", "false");
+            }
+            
+            if (callNode->arguments == nullptr && callNode->block == nullptr &&
+                !PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
+                // categoryCounterInc("no-arg call", "true");
+
+                ast::Send::ARGS_store emptyArgs;
+
+                ast::Send::Flags flags;
+                flags.isPrivateOk = isPrivateOk;
+
+                return MK::Send(location, move(receiver), methodName, translateLoc(callNode->message_loc), 0,
+                                move(emptyArgs), flags);
+            } else {
+                // categoryCounterInc("no-arg call", "false");
+            }
+
+            if (isCallToBlockGivenP(callNode, methodName, receiver) && isInMethodDef()) {
+                // Desugar:
+                //     def foo(&my_block)
+                //       x = block_given?
+                //     end
+                //
+                // to:
+                //     def foo(&my_block)
+                //       x = (my_block ? ::Kernel.block_given?() : false)
+                //     end
+                //
+                // Later stages of the pipeline have special handling for this,
+                // based on the nilability of the block (if specified)
+
+                auto sendExpr = MK::Send0(location, move(receiver), core::Names::blockGiven_p(),
+                                          translateLoc(callNode->message_loc));
+                return MK::If(location, MK::Local(location, this->enclosingBlockParamName), move(sendExpr),
+                              MK::False(location));
             }
 
             // When the message is empty, like `foo.()`, the message location is the
