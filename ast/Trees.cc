@@ -1727,6 +1727,8 @@ string Send::showRawWithLocs(const core::GlobalState &gs, core::FileRef file, in
     printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "fun = {}\n", this->fun.showRaw(gs));
     printTabs(buf, tabs + 1);
+    fmt::format_to(std::back_inserter(buf), "funLoc = {}\n", core::Loc(file, this->funLoc).fileShortPosToString(gs));
+    printTabs(buf, tabs + 1);
     fmt::format_to(std::back_inserter(buf), "block = ");
     if (this->hasBlock()) {
         fmt::format_to(std::back_inserter(buf), "{}\n", this->block()->showRawWithLocs(gs, file, tabs + 1));
