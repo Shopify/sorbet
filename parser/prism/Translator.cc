@@ -1707,7 +1707,6 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             }
 
             DesugaredBlockArgument block;
-
             if (auto *prismBlock = callNode->block) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) { // a literal block with `{ ... }` or `do ... end`
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
@@ -1716,7 +1715,6 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                                                 blockNode->opening_loc);
                 } else {
                     ENFORCE(PM_NODE_TYPE_P(prismBlock, PM_BLOCK_ARGUMENT_NODE)); // the `&b` in `a.map(&b)`
-
                     auto *bp = down_cast<pm_block_argument_node>(prismBlock);
 
                     block = desugarBlockPassArgument(bp);
