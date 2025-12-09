@@ -265,6 +265,19 @@ private:
     std::pair<core::LocOffsets, core::LocOffsets> computeSendLoc(PrismNode *callNode, pm_node_t *blockNode,
                                                                  pm_node_t *receiver, core::LocOffsets initialLoc,
                                                                  const absl::Span<pm_node_t *> prismArgs);
+
+    struct LiteralBlock {
+        ast::ExpressionPtr expr;
+    };
+
+    struct BlockPassArg {
+        ast::ExpressionPtr expr;
+    };
+
+    using DesugaredBlockArgument = std::variant<std::monostate, LiteralBlock, BlockPassArg>;
+
+    LiteralBlock desugarLiteralBlock(pm_node *blockBody, pm_node *blockParameters, pm_location_t blockLoc,
+                                     pm_location_t blockNodeOpeningLoc);
 };
 
 } // namespace sorbet::parser::Prism
