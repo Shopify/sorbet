@@ -1498,7 +1498,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
         flags.isPrivateOk = true;
     } else if constexpr (is_same_v<PrismNode, pm_call_node>) {
         flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
-    } else if constexpr (is_same_v<PrismNode, pm_super_node> || is_same_v<PrismNode, pm_lambda_node>) {
+    } else if constexpr (is_same_v<PrismNode, pm_super_node>) {
+        // Note: pm_lambda_node intentionally does NOT set privateOk to match whitequark behavior.
         flags.isPrivateOk = true;
     }
 
