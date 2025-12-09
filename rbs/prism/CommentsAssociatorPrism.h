@@ -59,17 +59,16 @@ private:
     void walkStatements(pm_node_list_t &nodes);
     pm_node_t *walkBody(pm_node_t *node, pm_node_t *body);
     void walkConditionalNode(pm_node_t *node, pm_node_t *predicate, pm_statements_node *&statements,
-                             pm_node_t *&elsePart, std::string kind);
+                             pm_node_t *&elsePart, std::string_view kind);
     void associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc = false);
     void associateSignatureCommentsToNode(pm_node_t *node);
-    void consumeCommentsInsideNode(pm_node_t *node, std::string kind);
-    void consumeCommentsBetweenLines(int startLine, int endLine, std::string kind);
+    void consumeCommentsInsideNode(pm_node_t *node, std::string_view kind);
+    void consumeCommentsBetweenLines(int startLine, int endLine, std::string_view kind);
     void consumeCommentsUntilLine(int line);
     std::optional<uint32_t> locateTargetLine(pm_node_t *node);
     core::LocOffsets translateLocation(pm_location_t location);
 
     int maybeInsertStandalonePlaceholders(pm_node_list_t &nodes, int index, int lastLine, int currentLine);
-    bool nestingAllowsTypeAlias();
 };
 
 } // namespace sorbet::rbs

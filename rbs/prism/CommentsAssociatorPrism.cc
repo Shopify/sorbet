@@ -17,10 +17,13 @@ const string_view CommentsAssociatorPrism::ANNOTATION_PREFIX = "# @";
 const string_view CommentsAssociatorPrism::MULTILINE_RBS_PREFIX = "#|";
 const string_view CommentsAssociatorPrism::BIND_PREFIX = "#: self as ";
 
-const regex TYPE_ALIAS_PATTERN_PRISM("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*([^\\n]*)$");
+namespace {
 
-// Static regex pattern to avoid recompilation
-static const regex HEREDOC_PATTERN_PRISM("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
+// Static regex patterns to avoid recompilation
+const regex TYPE_ALIAS_PATTERN_PRISM("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*([^\\n]*)$");
+const regex HEREDOC_PATTERN_PRISM("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
+
+constexpr std::string_view TYPE_ALIAS_PREFIX = "type ";
 
 /**
  * Create a synthetic placeholder node (PM_CONSTANT_READ_NODE) with a marker constant ID.
@@ -32,7 +35,6 @@ pm_node_t *createSyntheticPlaceholder(sorbet::parser::Prism::Parser &parser, con
     return factory.ConstantReadNode(marker, comment.loc);
 }
 
-namespace {
 /**
  * Insert a node into a pm_node_list_t at a specific index.
  * The node is first appended to the end, then shifted into position.
@@ -49,9 +51,9 @@ void insertNodeAtIndex(pm_node_list_t &nodes, pm_node_t *node, size_t index) {
  * Check if the given range is the start of a heredoc assignment `= <<~FOO` and return the position of the end of the
  * heredoc marker.
  *
- * Returns -1 if no heredoc marker is found.
+ * Returns nullopt if no heredoc marker is found.
  */
-optional<uint32_t> hasHeredocMarker(core::Context ctx, const uint32_t fromPos, const uint32_t toPos) {
+optional<uint32_t> hasHeredocMarker(const core::Context &ctx, uint32_t fromPos, uint32_t toPos) {
     string_view source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
 
     string source_str(source);
@@ -117,14 +119,14 @@ core::LocOffsets CommentsAssociatorPrism::translateLocation(pm_location_t locati
     return core::LocOffsets{start, end};
 }
 
-void CommentsAssociatorPrism::consumeCommentsInsideNode(pm_node_t *node, string kind) {
+void CommentsAssociatorPrism::consumeCommentsInsideNode(pm_node_t *node, string_view kind) {
     auto loc = translateLocation(node->location);
     auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
     auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
     consumeCommentsBetweenLines(beginLine, endLine, kind);
 }
 
-void CommentsAssociatorPrism::consumeCommentsBetweenLines(int startLine, int endLine, string kind) {
+void CommentsAssociatorPrism::consumeCommentsBetweenLines(int startLine, int endLine, string_view kind) {
     auto it = commentByLine.begin();
     while (it != commentByLine.end() && it->first < startLine) {
         ++it;
@@ -225,9 +227,6 @@ void CommentsAssociatorPrism::associateSignatureCommentsToNode(pm_node_t *node) 
         it++;
     }
 
-    // if (!comments.empty()) {
-    //     fmt::print("Comments.first: {}\n", comments.front().string);
-    // }
     signaturesForNode[node] = move(comments);
 }
 
@@ -297,7 +296,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
             }
 
             // Register the constant name (e.g., "type foo") in the symbol table
-            auto nameStr = "type " + matches[1].str();
+            auto nameStr = std::string(TYPE_ALIAS_PREFIX) + matches[1].str();
             ctx.state.enterNameConstant(nameStr);
 
             // Create placeholder for the type expression
@@ -330,7 +329,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
 
 void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *predicate,
                                                   pm_statements_node *&statements, pm_node_t *&elsePart,
-                                                  std::string kind) {
+                                                  std::string_view kind) {
     auto nodeLoc = translateLocation(node->location);
     auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
     auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.endPos()).line;
@@ -470,7 +469,6 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
     if (node == nullptr) {
         return;
     }
-    // fmt::print("WALKING NODE, TYPE: {}\n", PM_NODE_TYPE(node));
 
     switch (PM_NODE_TYPE(node)) {
         case PM_AND_NODE: {

@@ -17,12 +17,6 @@ namespace sorbet::parser::Prism {
 class Parser;
 } // namespace sorbet::parser::Prism
 
-namespace sorbet::rbs {
-struct CommentNodePrism;
-pm_node_t *createSyntheticPlaceholder(sorbet::parser::Prism::Parser &parser, const CommentNodePrism &comment,
-                                      pm_constant_id_t marker);
-} // namespace sorbet::rbs
-
 namespace sorbet::parser::Prism {
 
 class ParseResult;
@@ -56,9 +50,6 @@ class Parser final {
     friend class ParseResult;
     friend struct NodeDeleter;
     friend class Factory;
-    friend pm_node_t *sorbet::rbs::createSyntheticPlaceholder(Parser &parser,
-                                                              const sorbet::rbs::CommentNodePrism &comment,
-                                                              pm_constant_id_t marker);
 
 public:
     Parser(std::string_view sourceCode) : parser{}, options{} {
