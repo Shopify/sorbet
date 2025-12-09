@@ -48,9 +48,9 @@ bool compareTrees(const core::GlobalState &gs, const void *avoid, const Tag tag,
                 return false;
             }
 
-            if (a->flags != b->flags) {
-                return false;
-            }
+            // if (a->flags != b->flags) {
+            //     return false;
+            // }
 
             if (a->numPosArgs() != b->numPosArgs()) {
                 return false;
