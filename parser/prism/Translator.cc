@@ -1353,14 +1353,17 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
 template <typename PrismNode>
 ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::ExpressionPtr receiver,
                                                  core::NameRef methodName, core::LocOffsets messageLoc,
+                                                 pm_arguments_node *prismArgsNode,
                                                  Translator::DesugaredBlockArgument block, core::LocOffsets location) {
-    static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_super_node>,
+    static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_super_node> ||
+                      is_same_v<PrismNode, pm_lambda_node>,
                   "desugarMethodCall must be called with a `pm_call_node` or `pm_super_node`.");
 
     pm_node_t *receiverNode = nullptr; // TEMP: Remove me
+    pm_node_t *prismBlock = nullptr;   // TEMP: Remove me
 
     absl::Span<pm_node_t *> prismArgs;
-    if (auto *prismArgsNode = callNode->arguments) {
+    if (prismArgsNode) {
         prismArgs = absl::MakeSpan(prismArgsNode->arguments.nodes, prismArgsNode->arguments.size);
     }
 
@@ -1373,13 +1376,12 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
     core::LocOffsets blockLoc; // The location of just the block node, on its own.
     core::LocOffsets sendWithBlockLoc = location;
     location = core::LocOffsets::none(); // Invalidate this to ensure we don't use it again in this path.
-    if (callNode->block == nullptr && !needsLambdaLocWorkaround) {
+    if (!std::holds_alternative<std::monostate>(block) && !needsLambdaLocWorkaround) {
         // There's no block, so the `sendLoc` and `sendWithBlockLoc` are the same, so we can just skip
         // the finicky logic in `computeSendLoc()`.
         sendLoc = sendWithBlockLoc;
     } else { // There's a block, so we need to calculate the location of the "send" node, excluding it.
-        std::tie(sendLoc, blockLoc) =
-            this->computeSendLoc(callNode, callNode->block, receiverNode, messageLoc, prismArgs);
+        std::tie(sendLoc, blockLoc) = this->computeSendLoc(callNode, prismBlock, receiverNode, messageLoc, prismArgs);
     }
     auto sendLoc0 = sendLoc.copyWithZeroLength();
 
@@ -1397,8 +1399,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
     //   However, we still need the loop if it's true, to be able to tell the two cases apart.
 
     // true if the call contains a forwarded argument like `foo(...)`
-    auto hasFwdArgs = callNode->arguments != nullptr &&
-                      PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
+    auto hasFwdArgs =
+        prismArgsNode != nullptr && PM_NODE_FLAG_P(prismArgsNode, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
     auto hasFwdRestArg = false; // true if the call contains an anonymous forwarded rest arg like `foo(*)`
     auto hasSplat = false;      // true if the call contains a splatted expression like `foo(*a)`
     pm_keyword_hash_node *kwargsHashNode = nullptr;
@@ -1429,7 +1431,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
         }
 
         // Detect splats in the argument list
-        if (PM_NODE_FLAG_P(callNode->arguments, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_SPLAT)) {
+        if (PM_NODE_FLAG_P(prismArgsNode, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_SPLAT)) {
             for (auto &arg : prismArgs) {
                 if (PM_NODE_TYPE_P(arg, PM_SPLAT_NODE)) {
                     auto splatNode = down_cast<pm_splat_node>(arg);
@@ -1644,7 +1646,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
     }
 
     return MK::Send(sendWithBlockLoc, move(receiver), methodName, messageLoc, numPosArgs, move(sendArgs), flags);
-}
+} // namespace sorbet::parser::Prism
 
 ast::ExpressionPtr Translator::desugarNullable(pm_node_t *node) {
     if (node == nullptr) {
@@ -1964,7 +1966,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                     // that a&.foo is treated as different from a.foo when checking for structural equality.
                     auto receiver = desugar(callNode->receiver);
                     auto newFun = ctx.state.freshNameUnique(core::UniqueNameKind::DesugarCsend, methodName, 1);
-                    return desugarMethodCall(callNode, move(receiver), newFun, methodNameLoc, move(block), location);
+                    return desugarMethodCall(callNode, move(receiver), newFun, methodNameLoc, callNode->arguments,
+                                             move(block), location);
                 }
 
                 // Desugar:
@@ -2009,8 +2012,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                               core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecvName));
 
                 auto tempRecv = MK::Local(zeroLengthRecvLoc, tempRecvName);
-                auto send =
-                    desugarMethodCall(callNode, move(tempRecv), methodName, methodNameLoc, move(block), location);
+                auto send = desugarMethodCall(callNode, move(tempRecv), methodName, methodNameLoc, callNode->arguments,
+                                              move(block), location);
 
                 ExpressionPtr nil =
                     MK::Send1(recvLoc.copyEndWithZeroLength(), MK::Magic(zeroLengthLoc),
@@ -2020,7 +2023,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             }
 
             auto receiver = desugarNullable(callNode->receiver);
-            return desugarMethodCall(callNode, move(receiver), methodName, methodNameLoc, move(block), location);
+            return desugarMethodCall(callNode, move(receiver), methodName, methodNameLoc, callNode->arguments,
+                                     move(block), location);
         }
         case PM_CALL_OPERATOR_WRITE_NODE: { // Compound assignment to a method call, e.g. `a.b += 1`
             return desugarSendOpAssign<pm_call_operator_write_node, OpAssignKind::Operator>(node);
@@ -2867,8 +2871,18 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
 
         case PM_LAMBDA_NODE: { // lambda literals, like `-> { 123 }`
-            categoryCounterInc("Prism fallback", "PM_LAMBDA_NODE");
-            throw PrismFallback{}; // TODO: Not implemented yet
+            auto lambdaNode = down_cast<pm_lambda_node>(node);
+
+            auto operatorLoc = translateLoc(lambdaNode->operator_loc); // the `->` arrow
+
+            // TODO: Switch to resolved `::Kernel` once https://github.com/sorbet/sorbet/pull/9736 is merged
+            // auto receiver = MK::Constant(operatorLoc, core::Symbols::Kernel());
+            auto receiver = MK::UnresolvedConstant(operatorLoc, MK::EmptyTree(), core::Names::Constants::Kernel());
+            pm_arguments_node *args = nullptr;
+            auto block = desugarLiteralBlock(lambdaNode->body, lambdaNode->parameters, lambdaNode->base.location,
+                                             lambdaNode->operator_loc);
+            return desugarMethodCall(lambdaNode, move(receiver), core::Names::lambda(), operatorLoc, args, move(block),
+                                     location);
         }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a local variable, e.g. `local &&= false`
             return desugarVariableOpAssign<pm_local_variable_and_write_node, OpAssignKind::And,
@@ -3241,7 +3255,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto methodName = maybeTypedSuper();
             auto methodNameLoc = translateLoc(superNode->keyword_loc);
             auto block = desugarBlock(superNode->block, superNode->arguments, superNode->base.location);
-            return desugarMethodCall(superNode, move(receiver), methodName, methodNameLoc, move(block), location);
+            return desugarMethodCall(superNode, move(receiver), methodName, methodNameLoc, superNode->arguments,
+                                     move(block), location);
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
             auto symNode = down_cast<pm_symbol_node>(node);
