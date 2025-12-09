@@ -35,7 +35,7 @@ class CommentsAssociatorPrism {
 public:
     static const std::string_view RBS_PREFIX;
 
-    CommentsAssociatorPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+    CommentsAssociatorPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                             std::vector<core::LocOffsets> commentLocations);
     CommentMapPrismNode run(pm_node_t *node);
 
@@ -45,7 +45,7 @@ private:
     static const std::string_view BIND_PREFIX;
 
     core::MutableContext ctx;
-    const parser::Prism::Parser &parser;
+    parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
     std::vector<core::LocOffsets> commentLocations;
     std::map<int, CommentNodePrism> commentByLine;

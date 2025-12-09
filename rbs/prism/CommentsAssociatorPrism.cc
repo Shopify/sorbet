@@ -1008,7 +1008,7 @@ CommentMapPrismNode CommentsAssociatorPrism::run(pm_node_t *node) {
     return CommentMapPrismNode{signaturesForNode, assertionsForNode};
 }
 
-CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, const parser::Prism::Parser &parser,
+CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                                                  vector<core::LocOffsets> commentLocations)
     : ctx(ctx), parser(parser), prism(parser), commentLocations(commentLocations), commentByLine() {
     for (auto &loc : commentLocations) {
