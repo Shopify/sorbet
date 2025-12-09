@@ -285,7 +285,8 @@ private:
 
     template <typename PrismNode>
     ast::ExpressionPtr desugarMethodCall(PrismNode *callNode, ast::ExpressionPtr receiver, core::NameRef methodName,
-                                         core::LocOffsets methodNameLoc, core::LocOffsets location);
+                                         core::LocOffsets methodNameLoc, DesugaredBlockArgument block,
+                                         core::LocOffsets location);
 };
 
 } // namespace sorbet::parser::Prism

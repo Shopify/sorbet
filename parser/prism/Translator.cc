@@ -1353,7 +1353,7 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
 template <typename PrismNode>
 ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::ExpressionPtr receiver,
                                                  core::NameRef methodName, core::LocOffsets messageLoc,
-                                                 core::LocOffsets location) {
+                                                 Translator::DesugaredBlockArgument block, core::LocOffsets location) {
     static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_super_node>,
                   "desugarMethodCall must be called with a `pm_call_node` or `pm_super_node`.");
 
@@ -1449,8 +1449,6 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
         categoryCounterInc("Prism fallback", "block_given?");
         throw PrismFallback{}; // TODO: Implement special-case for `block_given?`
     }
-
-    auto block = desugarBlock(callNode->block, callNode->arguments, callNode->base.location);
 
     ast::Send::Flags flags;
 
@@ -1951,6 +1949,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 methodNameLoc = translateLoc(callNode->message_loc);
             }
 
+            auto block = desugarBlock(callNode->block, callNode->arguments, callNode->base.location);
+
             // Conditional send handling
             if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
                 if (this->preserveConcreteSyntax) {
@@ -1962,7 +1962,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                     // that a&.foo is treated as different from a.foo when checking for structural equality.
                     auto receiver = desugar(callNode->receiver);
                     auto newFun = ctx.state.freshNameUnique(core::UniqueNameKind::DesugarCsend, methodName, 1);
-                    return desugarMethodCall(callNode, move(receiver), newFun, methodNameLoc, location);
+                    return desugarMethodCall(callNode, move(receiver), newFun, methodNameLoc, move(block), location);
                 }
 
                 // Desugar:
@@ -2007,7 +2007,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                               core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecvName));
 
                 auto tempRecv = MK::Local(zeroLengthRecvLoc, tempRecvName);
-                auto send = desugarMethodCall(callNode, move(tempRecv), methodName, methodNameLoc, location);
+                auto send =
+                    desugarMethodCall(callNode, move(tempRecv), methodName, methodNameLoc, move(block), location);
 
                 ExpressionPtr nil =
                     MK::Send1(recvLoc.copyEndWithZeroLength(), MK::Magic(zeroLengthLoc),
@@ -2017,7 +2018,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             }
 
             auto receiver = desugarNullable(callNode->receiver);
-            return desugarMethodCall(callNode, move(receiver), methodName, methodNameLoc, location);
+            return desugarMethodCall(callNode, move(receiver), methodName, methodNameLoc, move(block), location);
         }
         case PM_CALL_OPERATOR_WRITE_NODE: { // Compound assignment to a method call, e.g. `a.b += 1`
             return desugarSendOpAssign<pm_call_operator_write_node, OpAssignKind::Operator>(node);
@@ -3237,7 +3238,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto receiver = MK::Self(location);
             auto methodName = maybeTypedSuper();
             auto methodNameLoc = translateLoc(superNode->keyword_loc);
-            return desugarMethodCall(superNode, move(receiver), methodName, methodNameLoc, location);
+            auto block = desugarBlock(superNode->block, superNode->arguments, superNode->base.location);
+            return desugarMethodCall(superNode, move(receiver), methodName, methodNameLoc, move(block), location);
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
             auto symNode = down_cast<pm_symbol_node>(node);
