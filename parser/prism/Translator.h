@@ -282,7 +282,7 @@ private:
     DesugaredBlockArgument desugarBlockPassArgument(pm_block_argument_node *bp);
 
     template <typename PrismNode>
-    ast::ExpressionPtr desugarMethodCall(PrismNode *callNode, pm_node_t *receiverNode, core::NameRef methodName,
+    ast::ExpressionPtr desugarMethodCall(PrismNode *callNode, ast::ExpressionPtr receiver, core::NameRef methodName,
                                          core::LocOffsets methodNameLoc, core::LocOffsets location);
 };
 
