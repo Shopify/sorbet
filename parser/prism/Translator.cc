@@ -1446,6 +1446,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
     // auto methodName = ctx.state.enterNameUTF8(constantNameString);
 
     if (methodName == core::Names::blockGiven_p()) {
+        categoryCounterInc("Prism fallback", "block_given?");
         throw PrismFallback{}; // TODO: Implement special-case for `block_given?`
     }
 
@@ -2024,8 +2025,10 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 // Handle conditional send, e.g. `self&.target1, self&.target2 = 1, 2`
                 // It's not valid Ruby, but the parser needs to support it for the diagnostics to work
 
+                categoryCounterInc("Prism fallback", "PM_CALL_TARGET_NODE safe");
                 throw PrismFallback{}; // TODO: Not implemented yet
             } else {                   // Regular send, e.g. `self.target1, self.target2 = 1, 2`
+                categoryCounterInc("Prism fallback", "PM_CALL_TARGET_NODE regular");
                 throw PrismFallback{}; // TODO: Not implemented yet
             }
         }
@@ -2575,7 +2578,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto blockArgumentNode = forwardingSuperNode->block;
 
             if (blockArgumentNode != nullptr) { // always a PM_BLOCK_NODE
-                throw PrismFallback{};          // TODO: Not implemented yet
+                categoryCounterInc("Prism fallback", "PM_FORWARDING_SUPER_NODE");
+                throw PrismFallback{}; // TODO: Not implemented yet
             }
 
             (void)length; // unused for now
@@ -2847,7 +2851,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             return MK::RestParam(kwrestLoc, MK::KeywordArg(kwrestLoc, sorbetName));
         }
 
-        case PM_LAMBDA_NODE: {     // lambda literals, like `-> { 123 }`
+        case PM_LAMBDA_NODE: { // lambda literals, like `-> { 123 }`
+            categoryCounterInc("Prism fallback", "PM_LAMBDA_NODE");
             throw PrismFallback{}; // TODO: Not implemented yet
         }
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: { // And-assignment to a local variable, e.g. `local &&= false`
