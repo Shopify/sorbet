@@ -1606,8 +1606,6 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 }
             }
 
-            pm_node_t *prismBlock = callNode->block;
-
             auto methodName = ctx.state.enterNameUTF8(constantNameString);
 
             if (methodName == core::Names::blockGiven_p()) {
@@ -1616,7 +1614,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
             ast::ExpressionPtr blockExpr;
             ast::ExpressionPtr blockPassArg;
-            if (prismBlock != nullptr) {
+            if (auto *prismBlock = callNode->block) {
                 if (PM_NODE_TYPE_P(prismBlock, PM_BLOCK_NODE)) { // a literal block with `{ ... }` or `do ... end`
 
                     auto blockNode = down_cast<pm_block_node>(prismBlock);
