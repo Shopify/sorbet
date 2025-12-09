@@ -1351,33 +1351,10 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeSendLoc(PrismNode *c
 }
 
 template <typename PrismNode>
-ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, core::LocOffsets location) {
+ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, pm_node_t *receiverNode, core::NameRef methodName,
+                                                 core::LocOffsets messageLoc, core::LocOffsets location) {
     static_assert(is_same_v<PrismNode, pm_call_node> || is_same_v<PrismNode, pm_super_node>,
                   "desugarMethodCall must be called with a `pm_call_node` or `pm_super_node`.");
-
-    core::NameRef methodName;
-    ast::ExpressionPtr receiver;
-    core::LocOffsets messageLoc;
-    pm_node_t *receiverNode = nullptr;
-    std::string_view constantNameString;
-    if constexpr (is_same_v<PrismNode, pm_call_node>) {
-        constantNameString = parser.resolveConstant(callNode->name);
-        methodName = ctx.state.enterNameUTF8(constantNameString);
-        receiver = desugarNullable(callNode->receiver);
-        receiverNode = callNode->receiver;
-
-        // When the message is empty, like `foo.()`, the message location is the
-        // same as the call operator location
-        if (callNode->message_loc.start == nullptr && callNode->message_loc.end == nullptr) {
-            messageLoc = translateLoc(callNode->call_operator_loc);
-        } else {
-            messageLoc = translateLoc(callNode->message_loc);
-        }
-    } else {
-        methodName = maybeTypedSuper();
-        receiver = MK::EmptyTree();
-        messageLoc = translateLoc(callNode->keyword_loc);
-    }
 
     absl::Span<pm_node_t *> prismArgs;
     if (auto *prismArgsNode = callNode->arguments) {
@@ -1403,7 +1380,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, core::LocO
     }
     auto sendLoc0 = sendLoc.copyWithZeroLength();
 
-    if (constantNameString == "[]" || constantNameString == "[]=") {
+    if (methodName == core::Names::squareBrackets() || methodName == core::Names::squareBracketsEq()) {
         // Empty funLoc implies that errors should use the callLoc
         messageLoc.endLoc = messageLoc.beginLoc;
     }
@@ -1505,7 +1482,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, core::LocO
     // Treat them as if they were `self` to match `Desugar.cc`.
     // TODO: Clean up after direct desugaring is complete.
     // https://github.com/Shopify/sorbet/issues/671
-    // auto receiver = desugarNullable(receiverNode);
+    auto receiver = desugarNullable(receiverNode);
     if (ast::isa_tree<ast::EmptyTree>(receiver)) {
         receiver = MK::Self(sendLoc0);
         flags.isPrivateOk = true;
@@ -1953,7 +1930,20 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_CALL_NODE: { // A method call like `a.b()` or `a&.b()`
             auto callNode = down_cast<pm_call_node>(node);
-            return desugarMethodCall(callNode, location);
+
+            auto methodNameString = parser.resolveConstant(callNode->name);
+            auto methodName = ctx.state.enterNameUTF8(methodNameString);
+            auto methodNameLoc = translateLoc(callNode->message_loc);
+
+            // When the message is empty, like `foo.()`, the message location is the
+            // same as the call operator location
+            if (callNode->message_loc.start == nullptr && callNode->message_loc.end == nullptr) {
+                methodNameLoc = translateLoc(callNode->call_operator_loc);
+            } else {
+                methodNameLoc = translateLoc(callNode->message_loc);
+            }
+
+            return desugarMethodCall(callNode, callNode->receiver, methodName, methodNameLoc, location);
         }
         case PM_CALL_OPERATOR_WRITE_NODE: { // Compound assignment to a method call, e.g. `a.b += 1`
             return desugarSendOpAssign<pm_call_operator_write_node, OpAssignKind::Operator>(node);
@@ -3165,7 +3155,11 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_SUPER_NODE: { // A `super` call with explicit args, like `super()`, `super(a, b)`
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
             auto superNode = down_cast<pm_super_node>(node);
-            return desugarMethodCall(superNode, location);
+
+            pm_node_t *receiver = nullptr;
+            auto methodName = maybeTypedSuper();
+            auto methodNameLoc = translateLoc(superNode->keyword_loc);
+            return desugarMethodCall(superNode, receiver, methodName, methodNameLoc, location);
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
             auto symNode = down_cast<pm_symbol_node>(node);
