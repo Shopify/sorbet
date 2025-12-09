@@ -14,10 +14,6 @@ extern "C" {
 #include "parser/ParseResult.h"
 
 namespace sorbet::parser::Prism {
-class Parser;
-} // namespace sorbet::parser::Prism
-
-namespace sorbet::parser::Prism {
 
 class ParseResult;
 

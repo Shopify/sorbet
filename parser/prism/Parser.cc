@@ -64,7 +64,7 @@ pm_location_t Parser::convertLocOffsets(core::LocOffsets loc) const {
 }
 
 vector<ParseError> Parser::collectErrors() {
-    vector<ParseError> parseErrors;
+    vector<ParseError> parseErrors{};
     parseErrors.reserve(parser.error_list.size);
 
     auto errorList = parser.error_list;
@@ -81,7 +81,7 @@ vector<ParseError> Parser::collectErrors() {
 
 vector<core::LocOffsets> Parser::collectCommentLocations() {
     auto commentList = parser.comment_list;
-    vector<core::LocOffsets> commentLocations;
+    vector<core::LocOffsets> commentLocations{};
     commentLocations.reserve(parser.comment_list.size);
 
     for (auto *node = commentList.head; node != nullptr; node = node->next) {
