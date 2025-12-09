@@ -1585,7 +1585,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                                         return false;
                                     });
 
-                    if (isKwargs) {
+                    if (isKwargs) { // INVESTIGATE: Always true?
                         kwargsHashNode = keywordHashNode;
 
                         // Remove the kwargsHash from the arguments Span, so it's not revisited by the `for` loop below.
