@@ -1512,7 +1512,6 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto callNode = down_cast<pm_call_node>(node);
 
             auto constantNameString = parser.resolveConstant(callNode->name);
-            auto receiver = desugarNullable(callNode->receiver);
 
             // When the message is empty, like `foo.()`, the message location is the
             // same as the call operator location
@@ -1729,6 +1728,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             // Treat them as if they were `self` to match `Desugar.cc`.
             // TODO: Clean up after direct desugaring is complete.
             // https://github.com/Shopify/sorbet/issues/671
+            auto receiver = desugarNullable(callNode->receiver);
             if (ast::isa_tree<ast::EmptyTree>(receiver)) {
                 receiver = MK::Self(sendLoc0);
                 flags.isPrivateOk = true;
