@@ -181,7 +181,7 @@ void CommentsAssociatorPrism::consumeCommentsUntilLine(int line) {
     commentByLine.erase(commentByLine.begin(), it);
 }
 
-void CommentsAssociatorPrism::associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc = false) {
+void CommentsAssociatorPrism::associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc) {
     auto loc = translateLocation(node->location);
     uint32_t targetLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
     if (adjustLocForHeredoc) {
@@ -370,10 +370,12 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
         walkNode(body);
 
         // Visit standalone RBS comments after the last node in the body
-        auto loc = translateLocation(node->location);
-        int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
-        maybeInsertStandalonePlaceholders(begin->statements->body, 0, lastLine, endLine);
-        lastLine = endLine;
+        if (auto *statements = begin->statements) {
+            auto loc = translateLocation(node->location);
+            int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+            maybeInsertStandalonePlaceholders(statements->body, 0, lastLine, endLine);
+            lastLine = endLine;
+        }
 
         return body;
     }
@@ -851,8 +853,10 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         }
         case PM_ASSOC_SPLAT_NODE: {
             auto *splatAssoc = down_cast<pm_assoc_splat_node_t>(node);
-            associateAssertionCommentsToNode(splatAssoc->value);
-            walkNode(splatAssoc->value);
+            if (auto *value = splatAssoc->value) {
+                associateAssertionCommentsToNode(value);
+                walkNode(value);
+            }
             break;
         }
         case PM_SUPER_NODE: {

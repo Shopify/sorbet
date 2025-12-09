@@ -115,9 +115,9 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
             }
         }
 
-        ENFORCE(helperNode != nullptr);
-
-        helpers.push_back(helperNode);
+        if (helperNode != nullptr) {
+            helpers.emplace_back(helperNode);
+        }
     }
 
     return helpers;

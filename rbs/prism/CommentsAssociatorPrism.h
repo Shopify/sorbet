@@ -60,7 +60,7 @@ private:
     pm_node_t *walkBody(pm_node_t *node, pm_node_t *body);
     void walkConditionalNode(pm_node_t *node, pm_node_t *predicate, pm_statements_node *&statements,
                              pm_node_t *&elsePart, std::string kind);
-    void associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc);
+    void associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc = false);
     void associateSignatureCommentsToNode(pm_node_t *node);
     void consumeCommentsInsideNode(pm_node_t *node, std::string kind);
     void consumeCommentsBetweenLines(int startLine, int endLine, std::string kind);
