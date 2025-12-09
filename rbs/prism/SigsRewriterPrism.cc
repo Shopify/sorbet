@@ -128,8 +128,8 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
  *
  * This is useful for cases where we want to insert helpers into the body of a class/module/etc.
  */
-pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &parser) {
-    Factory prism(const_cast<parser::Prism::Parser &>(parser));
+pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, parser::Prism::Parser &parser) {
+    Factory prism(parser);
 
     if (body == nullptr) {
         return prism.StatementsNode(loc, absl::Span<pm_node_t *>{});
@@ -146,7 +146,7 @@ pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, const parser::Pr
 /**
  * Returns true if the body contains an `extend T::Helpers` call already.
  */
-bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Parser *prismParser,
+bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Parser &prismParser,
                            core::MutableContext ctx) {
     ENFORCE(body != nullptr);
 
@@ -158,7 +158,7 @@ bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Pars
         }
 
         auto *call = down_cast<pm_call_node_t>(stmt);
-        auto methodName = prismParser->resolveConstant(call->name);
+        auto methodName = prismParser.resolveConstant(call->name);
 
         if (methodName != "extend") {
             continue;
@@ -178,13 +178,13 @@ bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Pars
         }
 
         auto *constantPath = down_cast<pm_constant_path_node_t>(arg);
-        auto argName = prismParser->resolveConstant(constantPath->name);
+        auto argName = prismParser.resolveConstant(constantPath->name);
 
         if (argName != "Helpers") {
             continue;
         }
 
-        if (prismParser->isT(constantPath->parent)) {
+        if (prismParser.isT(constantPath->parent)) {
             return true;
         }
     }
@@ -195,7 +195,7 @@ bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Pars
 /**
  * Inserts an `extend T::Helpers` call into the body if it doesn't already exist.
  */
-void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc, const parser::Prism::Parser *prismParser,
+void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc, const parser::Prism::Parser &prismParser,
                                core::MutableContext ctx, const parser::Prism::Factory &prism) {
     auto *stmts = down_cast<pm_statements_node_t>(*body);
     ENFORCE(stmts != nullptr);
@@ -435,7 +435,6 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
-    // fmt::print("rewriting body: {}\n", PM_NODE_TYPE(node));
 
     // Handle statements nodes (class/module bodies with multiple statements)
     if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
@@ -501,7 +500,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
 
             klass->body = maybeWrapBody(klass->body, loc, parser);
             if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(&klass->body, loc, &parser, ctx, prism);
+                maybeInsertExtendTHelpers(&klass->body, loc, parser, ctx, prism);
                 insertHelpers(&klass->body, helpers);
             }
 
@@ -515,7 +514,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
 
             module->body = maybeWrapBody(module->body, loc, parser);
             if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(&module->body, loc, &parser, ctx, prism);
+                maybeInsertExtendTHelpers(&module->body, loc, parser, ctx, prism);
                 insertHelpers(&module->body, helpers);
             }
 
@@ -529,7 +528,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
 
             sclass->body = maybeWrapBody(sclass->body, loc, parser);
             if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(&sclass->body, loc, &parser, ctx, prism);
+                maybeInsertExtendTHelpers(&sclass->body, loc, parser, ctx, prism);
                 insertHelpers(&sclass->body, helpers);
             }
 
@@ -547,8 +546,6 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
     if (node == nullptr) {
         return node;
     }
-
-    // fmt::print("rewriting node: {}\n", PM_NODE_TYPE(node));
 
     switch (PM_NODE_TYPE(node)) {
         case PM_BEGIN_NODE: {
