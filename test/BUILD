@@ -507,8 +507,10 @@ pipeline_tests(
             # UnresolvedConstantLit with empty name, Whitequark produces EmptyTree
             "prism_regression/constants_invalid.rb",
 
-            # Location differences in error recovery - Prism provides tighter/different
-            # location spans for ErrorNode compared to Whitequark:
+            "prism_regression/keyword_redo.rb",
+
+            ##### error-recovery tests #####
+
             # - `x =` (missing RHS) has different Assign/ErrorNode locations
             "prism_regression/error_recovery/assign.rb",
 
@@ -518,18 +520,6 @@ pipeline_tests(
             # - `/foo` (unterminated regex) - Prism includes content up to EOF,
             #   Whitequark produces empty regex
             "prism_regression/invalid/unterminated_regex.rb",
-
-            # Numbered block parameter location differs: Prism uses last occurrence
-            # of `_1`, Whitequark uses first occurrence
-            "prism_regression/multiple_numbered_params.rb",
-
-            # Prism desugared tree doesn't match legacy desugared tree (desugar differences)
-            "prism_regression/assign_to_index.rb",
-            "prism_regression/call_implicit_kw_args.rb",
-            "prism_regression/for_loop.rb",
-            "prism_regression/keyword_redo.rb",
-            "prism_regression/literal_hash.rb",
-            "prism_regression/multi_write.rb",
         ],
     ),
     "PrismPosTests",
