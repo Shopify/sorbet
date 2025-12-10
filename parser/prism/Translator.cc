@@ -1562,7 +1562,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
             // E.g. `foo(...) { "literal" }` - has both <fwd-block> and the { } block.
             // The block pass arg goes in the args, and the literal block attaches to the send.
 
-            auto blockPassLoc = blockPassWithLiteral->blockPassExpr.loc();
+            auto blockPassLoc = blockPassWithLiteral->loc;
 
             magicSendArgs.emplace_back(move(blockPassWithLiteral->blockPassExpr));
             magicSendArgs.emplace_back(move(blockPassWithLiteral->literalBlock));
@@ -1595,7 +1595,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
         // Desugar a call (without splat) that has both a block pass AND a literal block.
         // E.g. `foo(&block) { "literal" }` - both need to be kept.
 
-        auto blockPassLoc = blockPassWithLiteral->blockPassExpr.loc();
+        auto blockPassLoc = blockPassWithLiteral->loc;
 
         ast::Send::ARGS_store magicSendArgs;
         magicSendArgs.reserve(3 + numPosArgs);
@@ -1723,8 +1723,10 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
     if (block == nullptr) {
         // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
         if (hasFwdArgs) {
-            auto fwdBlockLoc = translateLoc(parentLoc);
-            return BlockPassArg{MK::Local(fwdBlockLoc, core::Names::fwdBlock()), fwdBlockLoc};
+            // The local variable uses the full call location, but the Magic node uses zero-length at END
+            auto fullLoc = translateLoc(parentLoc);
+            auto magicLoc = fullLoc.copyEndWithZeroLength();
+            return BlockPassArg{MK::Local(fullLoc, core::Names::fwdBlock()), magicLoc};
         }
         return std::monostate{}; // This call has no block
     }
@@ -1740,19 +1742,24 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
         if (blockArgInArgs != nullptr) {
             auto blockPassResult = desugarBlockPassArgument(blockArgInArgs);
             if (auto *blockPassArg = std::get_if<BlockPassArg>(&blockPassResult)) {
-                return BlockPassWithLiteralBlock{move(blockPassArg->expr), move(literalBlock.expr)};
+                return BlockPassWithLiteralBlock{move(blockPassArg->expr), move(literalBlock.expr), blockPassArg->loc};
             }
             // If desugarBlockPassArgument returned a LiteralBlock (symbol proc), use that as block pass
             if (auto *symbolProc = std::get_if<LiteralBlock>(&blockPassResult)) {
-                return BlockPassWithLiteralBlock{move(symbolProc->expr), move(literalBlock.expr)};
+                // Symbol procs don't have a separate loc, use the expression's loc
+                auto symbolProcLoc = symbolProc->expr.loc();
+                return BlockPassWithLiteralBlock{move(symbolProc->expr), move(literalBlock.expr), symbolProcLoc};
             }
         }
 
         // Handle combination of forwarding args AND a literal block.
         // e.g., `foo(...) { "literal" }` should pass both <fwd-block> AND the literal block.
         if (hasFwdArgs) {
-            return BlockPassWithLiteralBlock{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock()),
-                                             move(literalBlock.expr)};
+            // The local variable uses the full call location, but the Magic node uses zero-length at END
+            auto fullLoc = translateLoc(parentLoc);
+            auto magicLoc = fullLoc.copyEndWithZeroLength();
+            return BlockPassWithLiteralBlock{MK::Local(fullLoc, core::Names::fwdBlock()), move(literalBlock.expr),
+                                             magicLoc};
         }
 
         return literalBlock;

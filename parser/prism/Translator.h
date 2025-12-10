@@ -273,8 +273,9 @@ private:
     // For cases like `foo(...) { block }` where we have both forwarding (which includes <fwd-block>)
     // AND a literal block. Both need to be passed to the method call.
     struct BlockPassWithLiteralBlock {
-        ast::ExpressionPtr blockPassExpr; // The <fwd-block>
+        ast::ExpressionPtr blockPassExpr; // The <fwd-block> or &block expression
         ast::ExpressionPtr literalBlock;  // The { block } or do...end
+        core::LocOffsets loc;             // Location for Magic node (zero-length for forwarding, full &blk otherwise)
     };
 
     using DesugaredBlockArgument = std::variant<std::monostate, LiteralBlock, BlockPassArg, BlockPassWithLiteralBlock>;
