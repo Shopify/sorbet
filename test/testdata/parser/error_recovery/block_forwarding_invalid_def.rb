@@ -14,16 +14,14 @@ def case7_block_param_and_forwarding(&block, ...)
 #                                          ^ error: unexpected token ","
   bar(...)
 #     ^^^ error: unexpected token "..."
-end
-#^^ error: unexpected token "end"
+end # error: unexpected token "end"
 
 # Case 7a: & + ... (anonymous)
 def case7a_anonymous_block_param_and_forwarding(&, ...)
 #                                                ^ error: unexpected token ","
   bar(...)
 #     ^^^ error: unexpected token "..."
-end
-#^^ error: unexpected token "end"
+end # error: unexpected token "end"
 
 # Case 8: & + ... + { } (named)
 def case8_all_three(&block, ...)
