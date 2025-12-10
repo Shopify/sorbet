@@ -56,10 +56,10 @@ void insertNodeAtIndex(pm_node_list_t &nodes, pm_node_t *node, size_t index) {
 optional<uint32_t> hasHeredocMarker(const core::Context &ctx, uint32_t fromPos, uint32_t toPos) {
     string_view source(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
 
-    string source_str(source);
+    string sourceStr(source);
     smatch match;
-    if (regex_search(source_str, HEREDOC_PATTERN_PRISM)) {
-        return fromPos + source_str.length();
+    if (regex_search(sourceStr, HEREDOC_PATTERN_PRISM)) {
+        return fromPos + sourceStr.length();
     }
 
     return nullopt;
@@ -328,7 +328,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
 }
 
 void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *predicate,
-                                                  pm_statements_node *&statements, pm_node_t *&elsePart,
+                                                  pm_statements_node_t *&statements, pm_node_t *&elsePart,
                                                   std::string_view kind) {
     auto nodeLoc = translateLocation(node->location);
     auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
@@ -342,7 +342,7 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
 
     lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
 
-    statements = down_cast<pm_statements_node>(walkBody(node, up_cast(statements)));
+    statements = down_cast<pm_statements_node_t>(walkBody(node, up_cast(statements)));
 
     if (statements) {
         auto stmtLoc = translateLocation(statements->base.location);
@@ -698,7 +698,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *unless_ = down_cast<pm_unless_node_t>(node);
             pm_node_t *elseClause = up_cast(unless_->else_clause);
             walkConditionalNode(node, unless_->predicate, unless_->statements, elseClause, "unless");
-            unless_->else_clause = down_cast<pm_else_node>(elseClause);
+            unless_->else_clause = down_cast<pm_else_node_t>(elseClause);
             break;
         }
         case PM_IN_NODE: {
@@ -1012,10 +1012,10 @@ CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, parse
                                                  vector<core::LocOffsets> commentLocations)
     : ctx(ctx), parser(parser), prism(parser), commentLocations(commentLocations), commentByLine() {
     for (auto &loc : commentLocations) {
-        auto comment_string = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.endPos() - loc.beginPos());
+        auto commentString = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.endPos() - loc.beginPos());
         auto start32 = static_cast<uint32_t>(loc.beginPos());
         auto end32 = static_cast<uint32_t>(loc.endPos());
-        auto comment = CommentNodePrism{core::LocOffsets{start32, end32}, comment_string};
+        auto comment = CommentNodePrism{core::LocOffsets{start32, end32}, commentString};
 
         auto line = core::Loc::pos2Detail(ctx.file.data(ctx), start32).line;
         commentByLine[line] = comment;
