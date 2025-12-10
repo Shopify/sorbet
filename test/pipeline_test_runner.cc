@@ -144,7 +144,7 @@ public:
 
     ExpectationHandler(Expectations &test, shared_ptr<core::ErrorQueue> &errorQueue,
                        shared_ptr<core::ErrorCollector> &errorCollector)
-        : test(test), errorQueue(errorQueue), errorCollector(errorCollector){};
+        : test(test), errorQueue(errorQueue), errorCollector(errorCollector) {};
 
     bool hasExpectation(string_view expectationType) {
         return test.expectations.contains(expectationType);
@@ -294,28 +294,34 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             core::MutableContext ctx(gs, core::Symbols::root(), file);
             core::UnfreezeNameTable nameTableAccess(ctx); // enters original strings
 
-            auto prismDirectDesugarAST = ast::prismDesugar::node2Tree(ctx, move(prismParseResult.tree));
-
             auto disableParserComparison =
                 BooleanPropertyAssertion::getValue("disable-parser-comparison", assertions).value_or(false);
 
-            if (prismParseResult.tree != nullptr && !disableParserComparison) {
-                ast::ExpressionPtr legacyDesugarAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
+            ast::ExpressionPtr resultAST;
+            if (prismParseResult.tree != nullptr) {
+                auto prismDirectDesugarAST = ast::prismDesugar::node2Tree(ctx, move(prismParseResult.tree));
 
-                if (!legacyDesugarAST.prismDesugarEqual(gs, prismDirectDesugarAST, file)) {
-                    auto expected = legacyDesugarAST.showRawWithLocs(gs, file);
-                    auto actual = prismDirectDesugarAST.showRawWithLocs(gs, file);
-                    cout << "--- Expected: " << endl;
-                    cout << expected << endl << endl;
-                    cout << "+++ Actual: " << endl;
-                    cout << actual << endl << endl;
-                    cout << "Diff:" << endl;
-                    CHECK_EQ_DIFF(expected, actual,
-                                  fmt::format("Prism desugared tree does not match legacy desugared tree"));
+                if (!disableParserComparison) {
+                    ast::ExpressionPtr legacyDesugarAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
+
+                    if (!legacyDesugarAST.prismDesugarEqual(gs, prismDirectDesugarAST, file)) {
+                        auto expected = legacyDesugarAST.showRawWithLocs(gs, file);
+                        auto actual = prismDirectDesugarAST.showRawWithLocs(gs, file);
+                        cout << "--- Expected: " << endl;
+                        cout << expected << endl << endl;
+                        cout << "+++ Actual: " << endl;
+                        cout << actual << endl << endl;
+                        cout << "Diff:" << endl;
+                        CHECK_EQ_DIFF(expected, actual,
+                                      fmt::format("Prism desugared tree does not match legacy desugared tree"));
+                    }
                 }
+                resultAST = move(prismDirectDesugarAST);
+            } else {
+                resultAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
             }
 
-            desugared = testSerialize(gs, ast::ParsedFile{move(prismDirectDesugarAST), file});
+            desugared = testSerialize(gs, ast::ParsedFile{move(resultAST), file});
         }
 
         handler.addObserved(gs, "desugar-tree", [&]() { return desugared.tree.toString(gs); });
@@ -548,8 +554,7 @@ TEST_CASE("PerPhaseTest") { // NOLINT
         realmain::Minimize::writeDiff(*gs, *gsForMinimize, printerConfig);
 
         auto addNewline = false;
-        handler.addObserved(
-            *gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
+        handler.addObserved(*gs, "minimized-rbi", [&]() { return printerConfig.flushToString(); }, addNewline);
     }
 
     // Simulate what pipeline.cc does: We want to start typechecking big files first because it helps with better work
@@ -732,7 +737,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
     // Allow later phases to have errors that we didn't test for
     errorQueue->flushAllErrors(*gs);
-    { auto _ = errorCollector->drainErrors(); }
+    {
+        auto _ = errorCollector->drainErrors();
+    }
 
     // now we test the incremental resolver
 
@@ -893,7 +900,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
     // and drain all the remaining errors
     errorQueue->flushAllErrors(*gs);
-    { auto _ = errorCollector->drainErrors(); }
+    {
+        auto _ = errorCollector->drainErrors();
+    }
 
     {
         INFO("the incremental resolver should not add new symbols");
