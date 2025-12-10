@@ -1545,7 +1545,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
             // Desugar a call with a splat, and any other expression as a block pass argument.
             // E.g. `foo(*splat, &block)`
 
-            auto blockPassLoc = blockPassArg->expr.loc();
+            auto blockPassLoc = blockPassArg->loc;
 
             magicSendArgs.emplace_back(move(blockPassArg->expr));
             block = std::monostate{};
@@ -1631,7 +1631,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
         // Desugar a call without a splat, and any other expression as a block pass argument.
         // E.g. `a.each(&block)`
 
-        auto blockPassLoc = blockPassArg->expr.loc();
+        auto blockPassLoc = blockPassArg->loc;
 
         ast::Send::ARGS_store magicSendArgs;
         magicSendArgs.reserve(3 + prismArgs.size());
@@ -1719,6 +1719,11 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
     }
 
     if (block == nullptr) {
+        // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
+        if (hasFwdArgs) {
+            auto fwdBlockLoc = translateLoc(parentLoc);
+            return BlockPassArg{MK::Local(fwdBlockLoc, core::Names::fwdBlock()), fwdBlockLoc};
+        }
         return std::monostate{}; // This call has no block
     }
 
@@ -1837,18 +1842,19 @@ Translator::LiteralBlock Translator::desugarLiteralBlock(pm_node *blockBodyNode,
 }
 
 Translator::DesugaredBlockArgument Translator::desugarBlockPassArgument(pm_block_argument_node *bp) {
+    auto fullLoc = translateLoc(bp->base.location); // Full `&blk` location including the `&`
     if (bp->expression) {
         if (PM_NODE_TYPE_P(bp->expression, PM_SYMBOL_NODE)) {
             auto symbol = down_cast<pm_symbol_node>(bp->expression);
             return LiteralBlock{desugarSymbolProc(symbol)};
         } else {
-            return BlockPassArg{desugar(bp->expression)};
+            return BlockPassArg{desugar(bp->expression), fullLoc};
         }
     } else {
         // Replace an anonymous block pass like `f(&)` with a local variable
         // reference, like `f(&<&>)`.
-        auto loc = translateLoc(bp->base.location).copyEndWithZeroLength();
-        return BlockPassArg{MK::Local(loc, core::Names::ampersand())};
+        auto loc = fullLoc.copyEndWithZeroLength();
+        return BlockPassArg{MK::Local(loc, core::Names::ampersand()), fullLoc};
     }
 }
 
@@ -3342,9 +3348,14 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
             auto superNode = down_cast<pm_super_node>(node);
 
-            auto receiver = MK::Self(location);
+            // Whitequark uses a zero-length location for the Self receiver of super calls.
+            auto selfLoc = core::LocOffsets{location.beginPos(), location.beginPos()};
+            auto receiver = MK::Self(selfLoc);
             auto methodName = maybeTypedSuper();
-            auto methodNameLoc = translateLoc(superNode->keyword_loc);
+            // Whitequark synthesizes a Send node for super where methodLoc is the full super expression,
+            // not just the keyword. This matches the behavior in Desugar.cc where:
+            //   make_unique<parser::Send>(super->loc, nullptr, method, super->loc, move(super->args))
+            auto methodNameLoc = location;
             auto block = desugarBlock(superNode->block, superNode->arguments, superNode->base.location);
             auto isPrivateOk = true; // Matches previous parser+desugar behaviour
             return desugarMethodCall(move(receiver), methodName, methodNameLoc, superNode->arguments,
