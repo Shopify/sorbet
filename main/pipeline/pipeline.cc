@@ -47,9 +47,7 @@
 #include "rbs/AssertionsRewriter.h"
 #include "rbs/CommentsAssociator.h"
 #include "rbs/SigsRewriter.h"
-#include "rbs/prism/AssertionsRewriterPrism.h"
-#include "rbs/prism/CommentsAssociatorPrism.h"
-#include "rbs/prism/SigsRewriterPrism.h"
+#include "rbs/prism/RBSRewriterPrism.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 
@@ -206,10 +204,6 @@ core::StrictLevel decideStrictLevel(const core::GlobalState &gs, const core::Fil
 
 namespace {
 
-pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
-                              const vector<core::LocOffsets> &commentLocations, const options::Printers &print,
-                              core::MutableContext &ctx, parser::Prism::Parser &parser);
-
 ast::ExpressionPtr fetchTreeFromCache(core::GlobalState &gs, core::FileRef fref, core::File &file,
                                       const unique_ptr<const OwnedKeyValueStore> &kvstore) {
     if (kvstore == nullptr) {
@@ -281,7 +275,7 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
         auto node = prismResult.getRawNodePointer();
 
         if (gs.cacheSensitiveOptions.rbsEnabled) {
-            node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
+            node = rbs::runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
 
         bool directlyDesugar = !gs.cacheSensitiveOptions.rbsEnabled;
@@ -377,27 +371,6 @@ ast::ParsedFile runLocalVars(core::GlobalState &gs, ast::ParsedFile tree) {
 
 ast::ParsedFile emptyParsedFile(core::FileRef file) {
     return {ast::MK::EmptyTree(), file};
-}
-
-pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
-                              const vector<core::LocOffsets> &commentLocations, const options::Printers &print,
-                              core::MutableContext &ctx, parser::Prism::Parser &parser) {
-    Timer timeit(gs.tracer(), "runPrismRBSRewrite", {{"file", string(file.data(gs).path())}});
-
-    auto associator = rbs::CommentsAssociatorPrism(ctx, parser, commentLocations);
-    auto commentMap = associator.run(node);
-
-    auto sigsRewriter = rbs::SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode);
-    node = sigsRewriter.run(node);
-
-    auto assertionsRewriter = rbs::AssertionsRewriterPrism(ctx, parser, commentMap.assertionsForNode);
-    node = assertionsRewriter.run(node);
-
-    if (print.RBSRewriteTree.enabled) {
-        print.RBSRewriteTree.fmt("{}\n", parser.prettyPrint(node));
-    }
-
-    return node;
 }
 
 } // namespace
