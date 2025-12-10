@@ -500,31 +500,6 @@ pipeline_tests(
             # of `_1`, Whitequark uses first occurrence
             "prism_regression/multiple_numbered_params.rb",
 
-            # Prism parses invalid Ruby that Whitequark rejects:
-            # - `def foo(&, ...); end` - block param combined with forwarding args
-            "prism_regression/call_block_param_and_forwarding.rb",
-
-            # - Multiple invalid `**nil` combinations in method signatures
-            "prism_regression/call_kw_nil_args.rb",
-
-            # Different AST for invalid empty constant `::` - Prism produces
-            # UnresolvedConstantLit with empty name, Whitequark produces EmptyTree
-            "prism_regression/constants_invalid.rb",
-
-            "prism_regression/keyword_redo.rb",
-
-            ##### error-recovery tests #####
-
-            # - `x =` (missing RHS) has different Assign/ErrorNode locations
-            "prism_regression/error_recovery/assign.rb",
-
-            # - `1 +` (missing operand) has different Send/ErrorNode locations
-            "prism_regression/invalid/missing_node.rb",
-
-            # - `/foo` (unterminated regex) - Prism includes content up to EOF,
-            #   Whitequark produces empty regex
-            "prism_regression/invalid/unterminated_regex.rb",
-
             ##### Other exclusions #####
 
             # related to ruby 3.4 syntax changes
@@ -533,9 +508,6 @@ pipeline_tests(
             # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9630
             "prism_regression/multi_target.rb",
             "prism_regression/multi_write.rb",
-
-            # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9631
-            "prism_regression/lambda.rb",
         ],
     ),
     "PrismPosTests",
