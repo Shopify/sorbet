@@ -1380,7 +1380,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
     } else { // There's a block, so we need to calculate the location of the "send" node, excluding it.
         std::tie(sendLoc, blockLoc) = computeMethodCallLoc(messageLoc, receiverNode, prismArgs, closingLoc, block);
     }
-    auto sendLoc0 = sendLoc.copyWithZeroLength();
+    // Zero-length location at START of full expression (matches Whitequark's locZeroLen)
+    auto sendLoc0 = sendWithBlockLoc.copyWithZeroLength();
 
     if (methodName == core::Names::squareBrackets() || methodName == core::Names::squareBracketsEq()) {
         // Empty funLoc implies that errors should use the callLoc
