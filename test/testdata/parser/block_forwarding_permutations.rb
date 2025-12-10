@@ -1,5 +1,4 @@
 # typed: false
-# disable-parser-comparison: true
 
 # This file documents combinations of block forwarding.
 #
