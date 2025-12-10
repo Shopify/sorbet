@@ -260,5 +260,67 @@ ClassDef{
         ]
       }
     }
+
+    MethodDef{
+      flags = {}
+      name = <U case6_block_pass_and_literal><<U <todo method>>>
+      params = [BlockParam{ expr = UnresolvedIdent{
+          kind = Local
+          name = <U block>
+        } }]
+      rhs = Send{
+        flags = {privateOk}
+        recv = ConstantLit{
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <call-with-block-pass>>
+        block = Block {
+          params = [
+          ]
+          body = Literal{ value = "literal block" }
+        }
+        pos_args = 3
+        args = [
+          Self
+          Literal{ value = :foo }
+          UnresolvedIdent{
+            kind = Local
+            name = <U block>
+          }
+        ]
+      }
+    }
+
+    MethodDef{
+      flags = {}
+      name = <U case6a_anonymous_block_pass_and_literal><<U <todo method>>>
+      params = [BlockParam{ expr = UnresolvedIdent{
+          kind = Local
+          name = <P <U &> $3>
+        } }]
+      rhs = Send{
+        flags = {privateOk}
+        recv = ConstantLit{
+          symbol = (class ::<Magic>)
+          orig = nullptr
+        }
+        fun = <U <call-with-block-pass>>
+        block = Block {
+          params = [
+          ]
+          body = Literal{ value = "literal block" }
+        }
+        pos_args = 3
+        args = [
+          Self
+          Literal{ value = :foo }
+          UnresolvedIdent{
+            kind = Local
+            name = <U &>
+          }
+        ]
+      }
+    }
   ]
 }
