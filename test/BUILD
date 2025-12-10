@@ -399,10 +399,12 @@ pipeline_tests(
             "prism_regression/call_block_param_and_forwarding.rb",
             "prism_regression/call_kw_nil_args.rb",
             "prism_regression/constants_invalid.rb",
+            "prism_regression/keyword_redo.rb",
+
+            # error recovery related
             "prism_regression/error_recovery/assign.rb",
             "prism_regression/invalid/missing_node.rb",
             "prism_regression/invalid/unterminated_regex.rb",
-            "prism_regression/keyword_redo.rb",
         ],
     ),
     "PrismPosTests",
