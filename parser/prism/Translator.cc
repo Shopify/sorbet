@@ -1643,7 +1643,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             }
 
             // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9631 is fixed
-            auto needsLambdaLocWorkaround = callNode->receiver && PM_NODE_TYPE_P(callNode->receiver, PM_LAMBDA_NODE);
+            auto needsLambdaLocWorkaround = receiverNode && PM_NODE_TYPE_P(receiverNode, PM_LAMBDA_NODE);
 
             // The legacy parser nodes don't include the literal block argument (if any), but the desugar nodes do
             // include it.
@@ -1656,8 +1656,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 // the finicky logic in `computeMethodCallLoc()`.
                 sendLoc = sendWithBlockLoc;
             } else { // There's a block, so we need to calculate the location of the "send" node, excluding it.
-                std::tie(sendLoc, blockLoc) = computeMethodCallLoc(messageLoc, callNode->receiver, prismArgs,
-                                                                   callNode->closing_loc, callNode->block);
+                std::tie(sendLoc, blockLoc) =
+                    computeMethodCallLoc(messageLoc, receiverNode, prismArgs, callNode->closing_loc, callNode->block);
             }
             auto sendLoc0 = sendLoc.copyWithZeroLength();
 
