@@ -1285,11 +1285,10 @@ ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
     return MK::Assign(location, move(lhs), move(rhs));
 }
 
-pair<core::LocOffsets, core::LocOffsets> Translator::computeMethodCallLoc(core::LocOffsets initialLoc,
-                                                                          pm_node_t *receiver,
-                                                                          const absl::Span<pm_node_t *> prismArgs,
-                                                                          pm_location_t closingLoc,
-                                                                          pm_node_t *blockNode) {
+pair<core::LocOffsets, core::LocOffsets>
+Translator::computeMethodCallLoc(core::LocOffsets initialLoc, pm_node_t *receiver,
+                                 const absl::Span<pm_node_t *> prismArgs, pm_location_t closingLoc,
+                                 const Translator::DesugaredBlockArgument &block) {
     auto result = initialLoc;
 
     if (receiver) {
@@ -1328,14 +1327,12 @@ pair<core::LocOffsets, core::LocOffsets> Translator::computeMethodCallLoc(core::
     }
 
     core::LocOffsets blockLoc;
-    if (blockNode) {
-        blockLoc = translateLoc(blockNode->location);
+    if (auto *blockPassArg = std::get_if<BlockPassArg>(&block)) {
+        result = result.join(blockPassArg->expr.loc());
 
-        // The block pass arugment is not stored with the other arguments, so we handle it separately here.
-        if (PM_NODE_TYPE_P(blockNode, PM_BLOCK_ARGUMENT_NODE)) {
-            auto blockPassArgLoc = translateLoc(blockNode->location);
-            result = result.join(blockPassArgLoc);
-        }
+        blockLoc = blockPassArg->expr.loc();
+    } else if (auto *literalBlock = std::get_if<LiteralBlock>(&block)) {
+        blockLoc = literalBlock->expr.loc();
     }
 
     return {result, blockLoc};
@@ -1691,8 +1688,8 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 // the finicky logic in `computeMethodCallLoc()`.
                 sendLoc = sendWithBlockLoc;
             } else { // There's a block, so we need to calculate the location of the "send" node, excluding it.
-                std::tie(sendLoc, blockLoc) = computeMethodCallLoc(methodNameLoc, receiverNode, prismArgs,
-                                                                   callNode->closing_loc, callNode->block);
+                std::tie(sendLoc, blockLoc) =
+                    computeMethodCallLoc(methodNameLoc, receiverNode, prismArgs, callNode->closing_loc, block);
             }
             auto sendLoc0 = sendLoc.copyWithZeroLength();
 
