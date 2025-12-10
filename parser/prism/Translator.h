@@ -267,6 +267,7 @@ private:
 
     struct BlockPassArg {
         ast::ExpressionPtr expr;
+        core::LocOffsets loc; // Full location including the `&` (e.g., `&blk`)
     };
 
     // For cases like `foo(...) { block }` where we have both forwarding (which includes <fwd-block>)
