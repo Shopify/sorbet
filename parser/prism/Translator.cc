@@ -2326,7 +2326,14 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 }
 
                 auto then = desugarStatements(prismWhen->statements);
-                resultExpr = MK::If(whenLoc, move(patternsResult), move(then), move(resultExpr));
+                // Whitequark extends the when clause location to include the start of the else part,
+                // but ONLY when the when body is empty. Use the start of resultExpr's location as the end.
+                auto ifLoc = whenLoc;
+                bool bodyIsEmpty = (then == nullptr || ast::isa_tree<ast::EmptyTree>(then));
+                if (bodyIsEmpty && resultExpr != nullptr && resultExpr.loc().exists()) {
+                    ifLoc = core::LocOffsets{whenLoc.beginPos(), resultExpr.loc().beginPos()};
+                }
+                resultExpr = MK::If(ifLoc, move(patternsResult), move(then), move(resultExpr));
             }
 
             if (hasPredicate) {
