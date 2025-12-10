@@ -206,6 +206,10 @@ core::StrictLevel decideStrictLevel(const core::GlobalState &gs, const core::Fil
 
 namespace {
 
+pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
+                              const vector<core::LocOffsets> &commentLocations, const options::Printers &print,
+                              core::MutableContext &ctx, parser::Prism::Parser &parser);
+
 ast::ExpressionPtr fetchTreeFromCache(core::GlobalState &gs, core::FileRef fref, core::File &file,
                                       const unique_ptr<const OwnedKeyValueStore> &kvstore) {
     if (kvstore == nullptr) {
@@ -226,32 +230,6 @@ ast::ExpressionPtr fetchTreeFromCache(core::GlobalState &gs, core::FileRef fref,
 
     prodCounterInc("types.input.files.kvstore.hit");
     return core::serialize::Serializer::loadTree(gs, file, maybeCached.data);
-}
-
-unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file, parser::ParseResult &&parseResult,
-                                       const options::Printers &print) {
-    auto node = move(parseResult.tree);
-    auto commentLocations = move(parseResult.commentLocations);
-
-    fmt::print("NOOOOO RUNNING RBS REWRITE WITHOUT PRISM\n");
-    Timer timeit(gs.tracer(), "runRBSRewrite", {{"file", string(file.data(gs).path())}});
-    core::MutableContext ctx(gs, core::Symbols::root(), file);
-    core::UnfreezeNameTable nameTableAccess(gs);
-
-    auto associator = rbs::CommentsAssociator(ctx, commentLocations);
-    auto commentMap = associator.run(node);
-
-    auto sigsRewriter = rbs::SigsRewriter(ctx, commentMap.signaturesForNode);
-    node = sigsRewriter.run(move(node));
-
-    auto assertionsRewriter = rbs::AssertionsRewriter(ctx, commentMap.assertionsForNode);
-    node = assertionsRewriter.run(move(node));
-
-    if (print.RBSRewriteTree.enabled) {
-        print.RBSRewriteTree.fmt("{}\n", node->toStringWithTabs(gs, 0));
-    }
-
-    return node;
 }
 
 parser::ParseResult runParser(core::GlobalState &gs, core::FileRef file, const options::Printers &print,
@@ -282,7 +260,7 @@ parser::ParseResult runParser(core::GlobalState &gs, core::FileRef file, const o
 }
 
 parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, const options::Printers &print,
-                                   bool preserveConcreteSyntax = false) {
+                                   const options::Options &opts, bool preserveConcreteSyntax = false) {
     Timer timeit(gs.tracer(), "runParser", {{"file", string(file.data(gs).path())}});
 
     parser::ParseResult parseResult;
@@ -296,44 +274,66 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
         bool collectComments = gs.cacheSensitiveOptions.rbsEnabled;
         parser::Prism::ParseResult prismResult = parser.parseWithoutTranslation(collectComments);
 
-        auto node = prismResult.getRawNodePointer();
-
-        if (print.ParseTreePrism.enabled) {
-            print.ParseTreePrism.fmt("{}\n", parser.prettyPrint(node));
+        if (opts.stopAfterPhase == options::Phase::PARSER) {
+            return parser::ParseResult{nullptr, prismResult.getCommentLocations()};
         }
+
+        auto node = prismResult.getRawNodePointer();
 
         if (gs.cacheSensitiveOptions.rbsEnabled) {
             node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
 
-        auto translatedTree =
-            parser::Prism::Translator(parser, ctx, prismResult.getParseErrors(), false, false).translate(node);
+        bool directlyDesugar = !gs.cacheSensitiveOptions.rbsEnabled;
+        auto translatedTree = parser::Prism::Translator(parser, ctx, prismResult.getParseErrors(), directlyDesugar,
+                                                        preserveConcreteSyntax)
+                                  .translate(node);
 
         parseResult = parser::ParseResult{move(translatedTree), prismResult.getCommentLocations()};
     }
 
-    if (print.ParseTree.enabled) {
-        if (parseResult.tree) {
+    if (parseResult.tree) {
+        if (print.ParseTree.enabled) {
             print.ParseTree.fmt("{}\n", parseResult.tree->toStringWithTabs(gs, 0));
         }
-    }
-    if (print.ParseTreeJson.enabled) {
-        if (parseResult.tree) {
+        if (print.ParseTreeJson.enabled) {
             print.ParseTreeJson.fmt("{}\n", parseResult.tree->toJSON(gs, 0));
         }
-    }
-    if (print.ParseTreeJsonWithLocs.enabled) {
-        if (parseResult.tree) {
+        if (print.ParseTreeJsonWithLocs.enabled) {
             print.ParseTreeJson.fmt("{}\n", parseResult.tree->toJSONWithLocs(gs, file, 0));
         }
-    }
-    if (print.ParseTreeWhitequark.enabled) {
-        if (parseResult.tree) {
+        if (print.ParseTreeWhitequark.enabled) {
             print.ParseTreeWhitequark.fmt("{}\n", parseResult.tree->toWhitequark(gs, 0));
         }
     }
 
     return parseResult;
+}
+
+unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file, parser::ParseResult &&parseResult,
+                                       const options::Printers &print) {
+    auto node = move(parseResult.tree);
+    auto commentLocations = move(parseResult.commentLocations);
+
+    if (gs.cacheSensitiveOptions.rbsEnabled) {
+        Timer timeit(gs.tracer(), "runRBSRewrite", {{"file", string(file.data(gs).path())}});
+        core::MutableContext ctx(gs, core::Symbols::root(), file);
+        core::UnfreezeNameTable nameTableAccess(gs);
+
+        auto associator = rbs::CommentsAssociator(ctx, commentLocations);
+        auto commentMap = associator.run(node);
+
+        auto sigsRewriter = rbs::SigsRewriter(ctx, commentMap.signaturesForNode);
+        node = sigsRewriter.run(move(node));
+
+        auto assertionsRewriter = rbs::AssertionsRewriter(ctx, commentMap.assertionsForNode);
+        node = assertionsRewriter.run(move(node));
+
+        if (print.RBSRewriteTree.enabled) {
+            print.RBSRewriteTree.fmt("{}\n", node->toStringWithTabs(gs, 0));
+        }
+    }
+    return node;
 }
 
 ast::ExpressionPtr runDesugar(core::GlobalState &gs, core::FileRef file, unique_ptr<parser::Node> parseTree,
@@ -379,19 +379,14 @@ ast::ParsedFile emptyParsedFile(core::FileRef file) {
     return {ast::MK::EmptyTree(), file};
 }
 
-} // namespace
-
-pm_node_t *runPrismRBSRewrite(sorbet::core::GlobalState &gs, sorbet::core::FileRef file, pm_node_t *node,
-                              const std::vector<sorbet::core::LocOffsets> &commentLocations,
-                              const sorbet::realmain::options::Printers &print, sorbet::core::MutableContext &ctx,
-                              parser::Prism::Parser &parser) {
+pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
+                              const vector<core::LocOffsets> &commentLocations, const options::Printers &print,
+                              core::MutableContext &ctx, parser::Prism::Parser &parser) {
     Timer timeit(gs.tracer(), "runPrismRBSRewrite", {{"file", string(file.data(gs).path())}});
 
-    // fmt::print("TRIGGERING COMMENTS ASSOCIATOR PRISM\n");
     auto associator = rbs::CommentsAssociatorPrism(ctx, parser, commentLocations);
     auto commentMap = associator.run(node);
 
-    // fmt::print("TRIGGERING SIGS REWRITER PRISM\n");
     auto sigsRewriter = rbs::SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode);
     node = sigsRewriter.run(node);
 
@@ -405,6 +400,8 @@ pm_node_t *runPrismRBSRewrite(sorbet::core::GlobalState &gs, sorbet::core::FileR
     return node;
 }
 
+} // namespace
+
 ast::ExpressionPtr desugarOne(const options::Options &opts, core::GlobalState &gs, core::FileRef file,
                               bool preserveConcreteSyntax) {
     auto &print = opts.print;
@@ -416,12 +413,7 @@ ast::ExpressionPtr desugarOne(const options::Options &opts, core::GlobalState &g
         }
         auto parseResult = runParser(gs, file, print, opts.traceLexer, opts.traceParser);
 
-        unique_ptr<parser::Node> parseTree;
-        if (gs.cacheSensitiveOptions.rbsEnabled) {
-            parseTree = runRBSRewrite(gs, file, move(parseResult), print);
-        } else {
-            parseTree = move(parseResult.tree);
-        }
+        auto parseTree = runRBSRewrite(gs, file, move(parseResult), print);
 
         return runDesugar(gs, file, move(parseTree), print, preserveConcreteSyntax);
     } catch (SorbetException &) {
@@ -457,25 +449,23 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                         return emptyParsedFile(file);
                     }
 
-                    if (lgs.cacheSensitiveOptions.rbsEnabled) {
-                        parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
-                    } else {
-                        parseTree = move(parseResult.tree);
-                    }
-
-                    if (opts.stopAfterPhase == options::Phase::RBS_REWRITER) {
-                        return emptyParsedFile(file);
-                    }
+                    parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
 
                     break;
                 }
                 case options::Parser::PRISM: {
-                    auto parseResult = runPrismParser(lgs, file, print);
-                    parseTree = move(parseResult.tree);
+                    auto parseResult = runPrismParser(lgs, file, print, opts);
 
-                    if (opts.stopAfterPhase == options::Phase::PARSER) {
+                    // parseResult is null if runPrismParser stopped after an intermediate phase
+                    if (parseResult.tree == nullptr) {
                         return emptyParsedFile(file);
                     }
+
+                    parseTree = move(parseResult.tree);
+
+                    // TODO: Remove this check once runPrismRBSRewrite is no longer no-oped inside of runPrismParser
+                    // https://github.com/sorbet/sorbet/issues/9065
+                    // parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
 
                     break;
                 }
