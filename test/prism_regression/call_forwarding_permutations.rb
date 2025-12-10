@@ -9,10 +9,9 @@
 #     3. Just ...       - def f(...); bar(...); end
 #     4. Just { }       - def f; bar { }; end
 #     5. ... + { }      - def f(...); bar(...) { }; end
-#   Error cases (call-site):
-#     7. & + { }        - def f(&b); bar(&b) { }; end  -- prism crashes
+#     6. & + { }        - def f(&b); bar(&b) { }; end
 #   Error cases (definition - method lost in error recovery):
-#     6. & + ...        - def f(&, ...); end
+#     7. & + ...        - def f(&, ...); end
 #     8. & + ... + { }  - def f(&, ...); bar(...) { }; end
 
 # ==============================================================================
@@ -51,33 +50,33 @@ def case5_forwarding_and_literal(...)
   foo(...) { "literal block" }
 end
 
+# CASE 6: & + { } at call site
+# Block pass argument AND a literal block.
+# Both should be kept in the output.
+def case6_block_pass_and_literal(&block)
+  foo(&block) { "literal block" }
+end
+
+# Case 6a: Anonymous block param with literal block
+def case6a_anonymous_block_pass_and_literal(&)
+  foo(&) { "literal block" }
+end
+
 # ==============================================================================
-# EXCLUDED CASES - Commented out because they crash prism or lose the method
+# EXCLUDED CASES - Commented out because they lose the method in error recovery
 # ==============================================================================
 
-# Case 6: & + ... in definition (named block param)
+# Case 7: & + ... in definition (named block param)
 # Parser error: can't have both & and ... in definition.
 # Method definition is LOST in error recovery - only inner expressions survive.
-# def case6_block_param_and_forwarding(&block, ...)
+# def case7_block_param_and_forwarding(&block, ...)
 #   bar(...)
 # end
 
-# Case 6a: & + ... in definition (anonymous block param)
+# Case 7a: & + ... in definition (anonymous block param)
 # Same issue - method is lost.
-# def case6a_anonymous_block_param_and_forwarding(&, ...)
+# def case7a_anonymous_block_param_and_forwarding(&, ...)
 #   bar(...)
-# end
-
-# Case 7: & + { } at call site (named block param)
-# Prism crashes with: "PM_BLOCK_ARGUMENT_NODE is handled specially in desugarArguments()"
-# def case7_block_pass_and_literal(&block)
-#   foo(&block) { "literal block" }
-# end
-
-# Case 7a: & + { } at call site (anonymous block param)
-# Same crash.
-# def case7a_anonymous_block_pass_and_literal(&)
-#   foo(&) { "literal block" }
 # end
 
 # Case 8: & + ... + { } (all three, named block param)
