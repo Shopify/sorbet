@@ -395,6 +395,9 @@ pipeline_tests(
             "prism_regression/**/*.exp",
         ],
         exclude = [
+            # related to ruby 3.4 syntax changes
+            "prism_regression/assign_to_index.rb",
+
             # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9630
             "prism_regression/multi_target.rb",
             "prism_regression/multi_write.rb",
