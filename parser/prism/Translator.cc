@@ -2966,8 +2966,11 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
             auto receiver = MK::Constant(operatorLoc, core::Symbols::Kernel());
             pm_arguments_node *args = nullptr;
-            auto block = desugarLiteralBlock(lambdaNode->body, lambdaNode->parameters, lambdaNode->base.location,
-                                             lambdaNode->operator_loc);
+            // Use opening_loc to closing_loc for the block location (just the `{ }` or `do end` part),
+            // not base.location which includes the `->` arrow.
+            auto blockBodyLoc = pm_location_t{lambdaNode->opening_loc.start, lambdaNode->closing_loc.end};
+            auto block =
+                desugarLiteralBlock(lambdaNode->body, lambdaNode->parameters, blockBodyLoc, lambdaNode->operator_loc);
             auto isPrivateOk = true; // Matches previous parser+desugar behaviour
             return desugarMethodCall(move(receiver), core::Names::lambda(), operatorLoc, args, lambdaNode->closing_loc,
                                      move(block), location, isPrivateOk);
