@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 -> { 123 }
 -> (param) { param }
