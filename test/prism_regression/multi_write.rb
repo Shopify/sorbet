@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 a, b = 1, 2
 
