@@ -1708,7 +1708,13 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
     // TODO: handle combination of both `hasFwdArgs` and block.
     // https://sorbet.run/?arg=--print=desugar-tree&arg=--parser=original#%23%20typed%3A%20false%0A%0Adef%20forwarding_with_literal_block%28...%29%0A%20%20%20%20%23%20Notice%20this%20passes%20%60%3Cfwd-block%3E%60%20*and*%20a%20%60do%20...%20end%60%20block%0A%20%20%20%20to_s%28...%29%20%7B%20%22my%20big%20beautiful%20block%20literal%22%20%7D%0Aend%0A%0Adef%20forwarding_with_block_pass%28...%29%0A%20%20%20%20%23%20Notice%20this%20passes%20%60%3Cfwd-block%3E%60%20*and*%20an%20%60%3CErrorNode%3E%60%0A%20%20%20%20to_s%28...%2C%20%26%22my%20block%20pass%20arg%22%29%0Aend
 
+    auto hasFwdArgs = otherArgs != nullptr && PM_NODE_FLAG_P(otherArgs, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
+
     if (block == nullptr) {
+        // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
+        if (hasFwdArgs) {
+            return BlockPassArg{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock())};
+        }
         return std::monostate{}; // This call has no block
     }
 
@@ -1723,15 +1729,6 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
 
         return desugarBlockPassArgument(bp);
     }
-
-    auto hasFwdArgs = otherArgs != nullptr && PM_NODE_FLAG_P(otherArgs, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
-
-    // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
-    if (hasFwdArgs) {
-        return BlockPassArg{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock())};
-    }
-
-    return std::monostate{}; // This call has no block
 }
 
 Translator::LiteralBlock Translator::desugarLiteralBlock(pm_node *blockBodyNode, pm_node *blockParameters,
