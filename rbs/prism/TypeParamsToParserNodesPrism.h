@@ -1,5 +1,5 @@
-#ifndef RBS_TYPE_PARAMS_TO_PARSER_NODE_PRISM_H
-#define RBS_TYPE_PARAMS_TO_PARSER_NODE_PRISM_H
+#ifndef RBS_TYPE_PARAMS_TO_PARSER_NODES_PRISM_H
+#define RBS_TYPE_PARAMS_TO_PARSER_NODES_PRISM_H
 
 #include "parser/prism/Factory.h"
 #include "parser/prism/Parser.h"
@@ -12,14 +12,14 @@ extern "C" {
 
 namespace sorbet::rbs {
 
-class TypeParamsToParserNodePrism {
+class TypeParamsToParserNodesPrism {
     core::MutableContext ctx;
-    Parser parser;
+    const Parser &parser;
     parser::Prism::Parser &prismParser;
     const parser::Prism::Factory prism;
 
 public:
-    TypeParamsToParserNodePrism(core::MutableContext ctx, Parser parser, parser::Prism::Parser &prismParser)
+    TypeParamsToParserNodesPrism(core::MutableContext ctx, const Parser &parser, parser::Prism::Parser &prismParser)
         : ctx(ctx), parser(parser), prismParser(prismParser), prism(prismParser) {}
 
     std::vector<pm_node_t *> typeParams(const rbs_node_list_t *rbsTypeParams, const RBSDeclaration &declaration);
@@ -27,4 +27,4 @@ public:
 
 } // namespace sorbet::rbs
 
-#endif // RBS_TYPE_PARAMS_TO_PARSER_NODE_PRISM_H
+#endif // RBS_TYPE_PARAMS_TO_PARSER_NODES_PRISM_H
