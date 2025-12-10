@@ -1545,6 +1545,23 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
                             messageLoc, numPosArgs, move(magicSendArgs), flags);
         }
 
+        if (auto *blockPassWithLiteral = std::get_if<BlockPassWithLiteralBlock>(&block)) {
+            // Desugar a call with both a block pass (from forwarding) AND a literal block.
+            // E.g. `foo(...) { "literal" }` - has both <fwd-block> and the { } block.
+            // The block pass arg goes in the args, and the literal block attaches to the send.
+
+            auto blockPassLoc = blockPassWithLiteral->blockPassExpr.loc();
+
+            magicSendArgs.emplace_back(move(blockPassWithLiteral->blockPassExpr));
+            magicSendArgs.emplace_back(move(blockPassWithLiteral->literalBlock));
+            block = std::monostate{};
+            numPosArgs++;
+            flags.hasBlock = true;
+
+            return MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithSplatAndBlockPass(),
+                            messageLoc, numPosArgs, move(magicSendArgs), flags);
+        }
+
         if (auto *literalBlock = std::get_if<LiteralBlock>(&block)) {
             magicSendArgs.emplace_back(move(literalBlock->expr));
             block = std::monostate{};
@@ -1637,8 +1654,7 @@ std::unique_ptr<parser::Node> Translator::translate_TODO(pm_node_t *node) {
 // (as the location used for the `<fwd-block>` argument).
 Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm_arguments_node *otherArgs,
                                                             pm_location_t parentLoc) {
-    // TODO: handle combination of both `hasFwdArgs` and block.
-    // https://sorbet.run/?arg=--print=desugar-tree&arg=--parser=original#%23%20typed%3A%20false%0A%0Adef%20forwarding_with_literal_block%28...%29%0A%20%20%20%20%23%20Notice%20this%20passes%20%60%3Cfwd-block%3E%60%20*and*%20a%20%60do%20...%20end%60%20block%0A%20%20%20%20to_s%28...%29%20%7B%20%22my%20big%20beautiful%20block%20literal%22%20%7D%0Aend%0A%0Adef%20forwarding_with_block_pass%28...%29%0A%20%20%20%20%23%20Notice%20this%20passes%20%60%3Cfwd-block%3E%60%20*and*%20an%20%60%3CErrorNode%3E%60%0A%20%20%20%20to_s%28...%2C%20%26%22my%20block%20pass%20arg%22%29%0Aend
+    auto hasFwdArgs = otherArgs != nullptr && PM_NODE_FLAG_P(otherArgs, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
 
     if (block == nullptr) {
         return std::monostate{}; // This call has no block
@@ -1647,23 +1663,24 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
     if (PM_NODE_TYPE_P(block, PM_BLOCK_NODE)) { // a literal block with `{ ... }` or `do ... end`
         auto blockNode = down_cast<pm_block_node>(block);
 
-        return desugarLiteralBlock(blockNode->body, blockNode->parameters, blockNode->base.location,
-                                   blockNode->opening_loc);
+        auto literalBlock = desugarLiteralBlock(blockNode->body, blockNode->parameters, blockNode->base.location,
+                                                blockNode->opening_loc);
+
+        if (!hasFwdArgs) {
+            return literalBlock;
+        }
+
+        // Handle combination of both forwarding args AND a literal block.
+        // e.g., `foo(...) { "literal" }` should pass both <fwd-block> AND the literal block.
+        return BlockPassWithLiteralBlock{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock()),
+                                         move(literalBlock.expr)};
+
     } else {
         ENFORCE(PM_NODE_TYPE_P(block, PM_BLOCK_ARGUMENT_NODE)); // the `&b` in `a.map(&b)`
         auto *bp = down_cast<pm_block_argument_node>(block);
 
         return desugarBlockPassArgument(bp);
     }
-
-    auto hasFwdArgs = otherArgs != nullptr && PM_NODE_FLAG_P(otherArgs, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
-
-    // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
-    if (hasFwdArgs) {
-        return BlockPassArg{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock())};
-    }
-
-    return std::monostate{}; // This call has no block
 }
 
 Translator::LiteralBlock Translator::desugarLiteralBlock(pm_node *blockBodyNode, pm_node *blockParameters,
