@@ -10,9 +10,19 @@
 #     4. Just { }       - def f; bar { }; end
 #     5. ... + { }      - def f(...); bar(...) { }; end
 #     6. & + { }        - def f(&b); bar(&b) { }; end
-#   Error cases (definition - method lost in error recovery):
+#   Error cases (definition - cannot be tested, see below):
 #     7. & + ...        - def f(&, ...); end
 #     8. & + ... + { }  - def f(&, ...); bar(...) { }; end
+
+# Cases 7, 7a, 8, 8a are excluded from this test.
+#
+# These cases have `&` and `...` together in the definition, which is a parser
+# error. The error recovery is fundamentally different between parsers:
+#   - Whitequark: Aggressive recovery destroys the entire file from error point
+#   - Prism: Graceful recovery keeps method definitions with error flags
+#
+# Since this tests parser error recovery (not desugaring), these cases cannot
+# be meaningfully compared between parsers.
 
 # ==============================================================================
 # VALID CASES - These should produce identical output
@@ -63,30 +73,25 @@ def case6a_anonymous_block_pass_and_literal(&)
 end
 
 # ==============================================================================
-# EXCLUDED CASES - Commented out because they lose the method in error recovery
+# ERROR CASES - These cannot be tested, see above
 # ==============================================================================
 
 # Case 7: & + ... in definition (named block param)
-# Parser error: can't have both & and ... in definition.
-# Method definition is LOST in error recovery - only inner expressions survive.
 # def case7_block_param_and_forwarding(&block, ...)
 #   bar(...)
 # end
 
 # Case 7a: & + ... in definition (anonymous block param)
-# Same issue - method is lost.
 # def case7a_anonymous_block_param_and_forwarding(&, ...)
 #   bar(...)
 # end
 
 # Case 8: & + ... + { } (all three, named block param)
-# Parser error at definition causes method to be lost.
 # def case8_all_three(&block, ...)
 #   foo(...) { "literal block" }
 # end
 
 # Case 8a: & + ... + { } (all three, anonymous block param)
-# Same issue - method is lost.
 # def case8a_all_three_anonymous(&, ...)
 #   foo(...) { "literal block" }
 # end
