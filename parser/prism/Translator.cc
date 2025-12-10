@@ -1497,7 +1497,10 @@ ast::ExpressionPtr Translator::desugarMethodCall(PrismNode *callNode, ast::Expre
         receiver = MK::Self(sendLoc0);
         flags.isPrivateOk = true;
     } else if constexpr (is_same_v<PrismNode, pm_call_node>) {
-        flags.isPrivateOk = PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
+        // Only set privateOk if the visibility flag is set AND the receiver is actually Self.
+        // This handles csend desugaring where we replace self with a temp variable.
+        flags.isPrivateOk =
+            PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY) && ast::isa_tree<ast::Self>(receiver);
     } else if constexpr (is_same_v<PrismNode, pm_super_node>) {
         // Note: pm_lambda_node intentionally does NOT set privateOk to match whitequark behavior.
         flags.isPrivateOk = true;
