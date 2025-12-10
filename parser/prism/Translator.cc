@@ -1449,6 +1449,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
                 continue; // Skip anonymous splats (like `f(*)`), which are handled separately in `PM_CALL_NODE`
             } else if (PM_NODE_TYPE_P(arg, PM_FORWARDING_ARGUMENTS_NODE)) {
                 continue; // Skip forwarded args (like `f(...)`), which are handled separately in `PM_CALL_NODE`
+            } else if (PM_NODE_TYPE_P(arg, PM_BLOCK_ARGUMENT_NODE)) {
+                continue; // Skip block args (like `f(&block)`), which are handled by `desugarBlock`
             }
 
             argExprs.emplace_back(desugar(arg));
@@ -1576,8 +1578,42 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
                         numPosArgs, move(magicSendArgs), flags);
     }
 
-    // Grab a copy of the argument count, before we concat in the kwargs key/value pairs. // huh?
-    int numPosArgs = prismArgs.size();
+    // Count args, excluding block arguments which are handled separately
+    int numPosArgs =
+        absl::c_count_if(prismArgs, [](auto *arg) { return !PM_NODE_TYPE_P(arg, PM_BLOCK_ARGUMENT_NODE); });
+
+    if (auto *blockPassWithLiteral = std::get_if<BlockPassWithLiteralBlock>(&block)) {
+        // Desugar a call (without splat) that has both a block pass AND a literal block.
+        // E.g. `foo(&block) { "literal" }` - both need to be kept.
+
+        auto blockPassLoc = blockPassWithLiteral->blockPassExpr.loc();
+
+        ast::Send::ARGS_store magicSendArgs;
+        magicSendArgs.reserve(3 + numPosArgs);
+        magicSendArgs.emplace_back(move(receiver));
+        magicSendArgs.emplace_back(MK::Symbol(sendLoc0, methodName));
+        magicSendArgs.emplace_back(move(blockPassWithLiteral->blockPassExpr));
+        magicSendArgs.emplace_back(move(blockPassWithLiteral->literalBlock));
+        block = std::monostate{};
+
+        int magicNumPosArgs = 3;
+        flags.hasBlock = true;
+
+        for (auto *arg : prismArgs) {
+            if (PM_NODE_TYPE_P(arg, PM_BLOCK_ARGUMENT_NODE)) {
+                continue; // Skip block args, handled above
+            }
+            magicSendArgs.emplace_back(desugar(arg));
+        }
+
+        if (kwargsHashNode) {
+            flattenKwargs(kwargsHashNode, magicSendArgs);
+            ast::desugar::DuplicateHashKeyCheck::checkSendArgs(ctx, magicNumPosArgs, magicSendArgs);
+        }
+
+        return MK::Send(sendWithBlockLoc, MK::Magic(blockPassLoc), core::Names::callWithBlockPass(), messageLoc,
+                        magicNumPosArgs, move(magicSendArgs), flags);
+    }
 
     if (auto *blockPassArg = std::get_if<BlockPassArg>(&block)) {
         // FIXME: move this comment
@@ -1600,6 +1636,9 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
         numPosArgs += 3;
 
         for (auto *arg : prismArgs) {
+            if (PM_NODE_TYPE_P(arg, PM_BLOCK_ARGUMENT_NODE)) {
+                continue; // Skip block args, handled by `desugarBlock`
+            }
             magicSendArgs.emplace_back(desugar(arg));
         }
 
@@ -1617,6 +1656,9 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
     // TODO: reserve size for the block, if needed.
     sendArgs.reserve(prismArgs.size());
     for (auto *arg : prismArgs) {
+        if (PM_NODE_TYPE_P(arg, PM_BLOCK_ARGUMENT_NODE)) {
+            continue; // Skip block args, handled by `desugarBlock`
+        }
         sendArgs.emplace_back(desugar(arg));
     }
 
@@ -1657,6 +1699,18 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
                                                             pm_location_t parentLoc) {
     auto hasFwdArgs = otherArgs != nullptr && PM_NODE_FLAG_P(otherArgs, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
 
+    // Check if there's a block argument in otherArgs (e.g., &block in `foo(&block) { }`)
+    pm_block_argument_node *blockArgInArgs = nullptr;
+    if (otherArgs != nullptr) {
+        auto args = absl::MakeSpan(otherArgs->arguments.nodes, otherArgs->arguments.size);
+        for (auto *arg : args) {
+            if (PM_NODE_TYPE_P(arg, PM_BLOCK_ARGUMENT_NODE)) {
+                blockArgInArgs = down_cast<pm_block_argument_node>(arg);
+                break;
+            }
+        }
+    }
+
     if (block == nullptr) {
         return std::monostate{}; // This call has no block
     }
@@ -1667,14 +1721,27 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
         auto literalBlock = desugarLiteralBlock(blockNode->body, blockNode->parameters, blockNode->base.location,
                                                 blockNode->opening_loc);
 
-        if (!hasFwdArgs) {
-            return literalBlock;
+        // Handle combination of block pass argument AND a literal block.
+        // e.g., `foo(&block) { "literal" }` - both need to be kept.
+        if (blockArgInArgs != nullptr) {
+            auto blockPassResult = desugarBlockPassArgument(blockArgInArgs);
+            if (auto *blockPassArg = std::get_if<BlockPassArg>(&blockPassResult)) {
+                return BlockPassWithLiteralBlock{move(blockPassArg->expr), move(literalBlock.expr)};
+            }
+            // If desugarBlockPassArgument returned a LiteralBlock (symbol proc), use that as block pass
+            if (auto *symbolProc = std::get_if<LiteralBlock>(&blockPassResult)) {
+                return BlockPassWithLiteralBlock{move(symbolProc->expr), move(literalBlock.expr)};
+            }
         }
 
-        // Handle combination of both forwarding args AND a literal block.
+        // Handle combination of forwarding args AND a literal block.
         // e.g., `foo(...) { "literal" }` should pass both <fwd-block> AND the literal block.
-        return BlockPassWithLiteralBlock{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock()),
-                                         move(literalBlock.expr)};
+        if (hasFwdArgs) {
+            return BlockPassWithLiteralBlock{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock()),
+                                             move(literalBlock.expr)};
+        }
+
+        return literalBlock;
 
     } else {
         ENFORCE(PM_NODE_TYPE_P(block, PM_BLOCK_ARGUMENT_NODE)); // the `&b` in `a.map(&b)`
