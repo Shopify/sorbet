@@ -565,8 +565,10 @@ pipeline_tests(
             # location spans for ErrorNode compared to Whitequark:
             # - `x =` (missing RHS) has different Assign/ErrorNode locations
             "prism_regression/error_recovery/assign.rb",
+
             # - `1 +` (missing operand) has different Send/ErrorNode locations
             "prism_regression/invalid/missing_node.rb",
+
             # - `/foo` (unterminated regex) - Prism includes content up to EOF,
             #   Whitequark produces empty regex
             "prism_regression/invalid/unterminated_regex.rb",
