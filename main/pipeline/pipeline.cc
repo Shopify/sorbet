@@ -276,9 +276,7 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
 
         auto node = prismResult.getRawNodePointer();
 
-        // TODO: Remove `&& false` once RBS rewriter with Prism AST migration is complete
-        // https://github.com/sorbet/sorbet/issues/9065
-        if (gs.cacheSensitiveOptions.rbsEnabled && false) {
+        if (gs.cacheSensitiveOptions.rbsEnabled) {
             node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
 
@@ -466,13 +464,11 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                     parser::ParseResult parseResult;
                     try {
                         parseResult = runPrismParser(lgs, file, print, opts);
-
-                        // The RBS rewriter produces plain Whitequark nodes and not `NodeWithExpr` which causes errors
-                        // in `PrismDesugar.cc`. For now, disable all direct translation, and fallback to `Desugar.cc`.
-                        usePrismDesugar = !lgs.cacheSensitiveOptions.rbsEnabled;
+                        usePrismDesugar = true;
                         categoryCounterInc("Prism parse kind", "direct");
                     } catch (parser::Prism::PrismFallback &) {
                         parseResult = runParser(lgs, file, print, opts.traceLexer, opts.traceParser);
+                        usePrismDesugar = false;
                         categoryCounterInc("Prism parse kind", "fallback");
                     }
 
@@ -481,9 +477,12 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                         return emptyParsedFile(file);
                     }
 
-                    // TODO: Remove this check once runPrismRBSRewrite is no longer no-oped inside of runPrismParser
-                    // https://github.com/sorbet/sorbet/issues/9065
-                    parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
+                    // If we fallback to the legacy parser, we might need to run the whitequark RBS rewriter
+                    if (lgs.cacheSensitiveOptions.rbsEnabled && !usePrismDesugar) {
+                        parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
+                    } else {
+                        parseTree = move(parseResult.tree);
+                    }
 
                     break;
                 }
