@@ -269,7 +269,14 @@ private:
         ast::ExpressionPtr expr;
     };
 
-    using DesugaredBlockArgument = std::variant<std::monostate, LiteralBlock, BlockPassArg>;
+    // For cases like `foo(...) { block }` where we have both forwarding (which includes <fwd-block>)
+    // AND a literal block. Both need to be passed to the method call.
+    struct BlockPassWithLiteralBlock {
+        ast::ExpressionPtr blockPassExpr; // The <fwd-block>
+        ast::ExpressionPtr literalBlock;  // The { block } or do...end
+    };
+
+    using DesugaredBlockArgument = std::variant<std::monostate, LiteralBlock, BlockPassArg, BlockPassWithLiteralBlock>;
 
     std::pair<core::LocOffsets, core::LocOffsets> computeMethodCallLoc(core::LocOffsets initialLoc, pm_node_t *receiver,
                                                                        const absl::Span<pm_node_t *> prismArgs,
