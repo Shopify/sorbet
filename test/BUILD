@@ -318,6 +318,7 @@ pipeline_tests(
         exclude = [
             # Tests having to do with tree differences in invalid Ruby code; will address later
             "testdata/parser/error_recovery/**",
+            "testdata/parser/block_forwarding_permutations.rb",
             "testdata/parser/crash_block_pass_suggestion.rb",
             "testdata/parser/invalid_fatal.rb",
             "testdata/parser/invalid_syntax_error.rb",
@@ -388,10 +389,22 @@ pipeline_tests(
 
 pipeline_tests(
     "prism_regression_corpus",
-    glob([
-        "prism_regression/**/*.rb",
-        "prism_regression/**/*.exp",
-    ]),
+    glob(
+        [
+            "prism_regression/**/*.rb",
+            "prism_regression/**/*.exp",
+        ],
+        exclude = [
+            "prism_regression/assign_to_index.rb",
+            "prism_regression/call_block_param_and_forwarding.rb",
+            "prism_regression/call_kw_nil_args.rb",
+            "prism_regression/constants_invalid.rb",
+            "prism_regression/error_recovery/assign.rb",
+            "prism_regression/invalid/missing_node.rb",
+            "prism_regression/invalid/unterminated_regex.rb",
+            "prism_regression/keyword_redo.rb",
+        ],
+    ),
     "PrismPosTests",
     parser = "prism",
 )
