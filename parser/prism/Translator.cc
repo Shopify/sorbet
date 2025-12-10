@@ -4890,16 +4890,12 @@ unique_ptr<parser::Node> Translator::translateCallWithBlock(pm_node_t *prismBloc
                 }
             }
 
-<<<<<<< HEAD
             auto name = core::Names::it();
             auto it = MK::Local(itUsageLoc, name);
             auto itDecl = make_node_with_expr<parser::LVar>(move(it), itUsageLoc, name);
             parametersNode =
                 make_node_with_expr<parser::ItParam>(itDecl->takeDesugaredExpr(), itParamLoc, move(itDecl));
-=======
-            auto itDecl = make_unique<parser::LVar>(itUsageLoc, core::Names::it());
-            parametersNode = make_unique<parser::ItParam>(itParamLoc, move(itDecl));
->>>>>>> 9659de922 (Add support for 'it' as the default block param (#9443))
+
         } else {
             parametersNode = translate(prismParametersNode);
         }
