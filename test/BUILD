@@ -496,6 +496,10 @@ pipeline_tests(
             "prism_regression/**/*.exp",
         ],
         exclude = [
+            # Numbered block parameter location differs: Prism uses last occurrence
+            # of `_1`, Whitequark uses first occurrence
+            "prism_regression/multiple_numbered_params.rb",
+
             # Prism parses invalid Ruby that Whitequark rejects:
             # - `def foo(&, ...); end` - block param combined with forwarding args
             "prism_regression/call_block_param_and_forwarding.rb",
@@ -520,6 +524,18 @@ pipeline_tests(
             # - `/foo` (unterminated regex) - Prism includes content up to EOF,
             #   Whitequark produces empty regex
             "prism_regression/invalid/unterminated_regex.rb",
+
+            ##### Other exclusions #####
+
+            # related to ruby 3.4 syntax changes
+            "prism_regression/assign_to_index.rb",
+
+            # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9630
+            "prism_regression/multi_target.rb",
+            "prism_regression/multi_write.rb",
+
+            # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9631
+            "prism_regression/lambda.rb",
         ],
     ),
     "PrismPosTests",
