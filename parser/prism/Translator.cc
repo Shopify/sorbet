@@ -3935,7 +3935,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
         sendLoc = sendWithBlockLoc;
     }
 
-    auto sendLoc0 = sendLoc.copyWithZeroLength();
+    // Zero-length location at START of full expression (matches Whitequark's locZeroLen)
+    auto sendLoc0 = sendWithBlockLoc.copyWithZeroLength();
 
     if (methodName == core::Names::squareBrackets() || methodName == core::Names::squareBracketsEq()) {
         // Empty funLoc implies that errors should use the callLoc
