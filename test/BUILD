@@ -561,19 +561,7 @@ pipeline_tests(
             "prism_regression/**/*.exp",
         ],
         exclude = [
-            # Location differences in error recovery - Prism provides tighter/different
-            # location spans for ErrorNode compared to Whitequark:
-            # - `x =` (missing RHS) has different Assign/ErrorNode locations
-            "prism_regression/error_recovery/assign.rb",
-
-            # - `1 +` (missing operand) has different Send/ErrorNode locations
-            "prism_regression/invalid/missing_node.rb",
-
-            # - `/foo` (unterminated regex) - Prism includes content up to EOF,
-            #   Whitequark produces empty regex
-            "prism_regression/invalid/unterminated_regex.rb",
-
-            # Prism desugared tree doesn't match legacy desugared tree (desugar differences)
+            # related to ruby 3.4 syntax changes
             "prism_regression/assign_to_index.rb",
             "prism_regression/multi_target.rb",
             "prism_regression/call_block_param.rb",
