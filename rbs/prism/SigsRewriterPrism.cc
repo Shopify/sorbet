@@ -50,7 +50,7 @@ pm_node_t *signaturesTarget(pm_node_t *node, parser::Prism::Parser &parser) {
  *
  * We do not error if the node is not a constant, we just insert it as is and let the pipeline error down the line.
  */
-pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser &parser, Comment annotation,
+pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser &parser, const Comment &annotation,
                                  int offset) {
     while (annotation.string[offset] == ' ') {
         offset++;
@@ -83,31 +83,24 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
     Factory prism(parser);
     vector<pm_node_t *> helpers;
 
-    for (auto &annotation : annotations) {
+    for (const auto &annotation : annotations) {
         pm_node_t *helperNode = nullptr;
 
-        // TODO: Should call0 use core::NameRef?
         if (annotation.string == "abstract") {
-            pm_node_t *self = prism.Self(annotation.typeLoc);
-            helperNode = prism.Call0(annotation.typeLoc, self, "abstract!"sv);
+            helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "abstract!"sv);
         } else if (annotation.string == "interface") {
-            pm_node_t *self = prism.Self(annotation.typeLoc);
-            helperNode = prism.Call0(annotation.typeLoc, self, "interface!"sv);
+            helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "interface!"sv);
         } else if (annotation.string == "final") {
-            pm_node_t *self = prism.Self(annotation.typeLoc);
-            helperNode = prism.Call0(annotation.typeLoc, self, "final!"sv);
+            helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "final!"sv);
         } else if (annotation.string == "sealed") {
-            pm_node_t *self = prism.Self(annotation.typeLoc);
-            helperNode = prism.Call0(annotation.typeLoc, self, "sealed!"sv);
+            helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "sealed!"sv);
         } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
             if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
                 auto statementsList = std::array{type};
                 auto *stmts = prism.StatementsNode(annotation.typeLoc, absl::MakeSpan(statementsList));
 
-                // Create self.requires_ancestor call
-                pm_node_t *self = prism.Self(annotation.typeLoc);
-                pm_node_t *callNode = prism.Call0(annotation.typeLoc, self, "requires_ancestor"sv);
-
+                pm_node_t *callNode =
+                    prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "requires_ancestor"sv);
                 auto *call = down_cast<pm_call_node_t>(callNode);
                 call->block = prism.Block(annotation.typeLoc, stmts);
 
@@ -278,7 +271,7 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
     if (commentsByNode != nullptr && node != nullptr) {
         if (auto it = commentsByNode->find(node); it != commentsByNode->end()) {
             auto &nodes = it->second;
-            auto declaration_comments = vector<Comment>{};
+            auto declarationComments = vector<Comment>{};
 
             for (auto &commentNode : nodes) {
                 if (absl::StartsWith(commentNode.string, "# @")) {
@@ -306,12 +299,12 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
                         .string = commentNode.string.substr(2),
                     };
 
-                    if (declaration_comments.empty()) {
-                        declaration_comments.emplace_back(move(comment));
+                    if (declarationComments.empty()) {
+                        declarationComments.emplace_back(move(comment));
                     } else {
-                        comments.signatures.emplace_back(RBSDeclaration{move(declaration_comments)});
-                        declaration_comments.clear();
-                        declaration_comments.emplace_back(move(comment));
+                        comments.signatures.emplace_back(RBSDeclaration{move(declarationComments)});
+                        declarationComments.clear();
+                        declarationComments.emplace_back(move(comment));
                     }
                     continue;
                 }
@@ -330,13 +323,13 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
                         .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 2, commentNode.loc.endPos()},
                         .string = commentNode.string.substr(2),
                     };
-                    declaration_comments.emplace_back(move(comment));
+                    declarationComments.emplace_back(move(comment));
                     continue;
                 }
             }
 
-            if (!declaration_comments.empty()) {
-                auto rbsDeclaration = RBSDeclaration{move(declaration_comments)};
+            if (!declarationComments.empty()) {
+                auto rbsDeclaration = RBSDeclaration{move(declarationComments)};
                 comments.signatures.emplace_back(move(rbsDeclaration));
             }
         }
@@ -363,7 +356,6 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
             }
         } else if (PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
             auto *call = down_cast<pm_call_node_t>(node);
-            Factory prism(parser);
             if (parser.isVisibilityCall(node)) {
                 // For visibility modifiers, translate the signature for the inner method definition
                 auto sig = signatureTranslator.translateMethodSignature(call->arguments->arguments.nodes[0],
@@ -440,9 +432,7 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
         auto *statements = down_cast<pm_statements_node_t>(node);
 
-        // TODO: Do we need to create a new body, can't we append to the existing body?
-
-        // Save old statements
+        // Save old statements before modifying (pm_node_list_append can realloc, invalidating pointers)
         pm_node_list_t oldStmts = statements->body;
         statements->body = (pm_node_list_t){.size = 0, .capacity = 0, .nodes = nullptr};
 
@@ -604,7 +594,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_FOR_NODE: {
             auto *for_ = down_cast<pm_for_node_t>(node);
             if (for_->statements) {
-                for_->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(for_->statements)));
+                for_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(for_->statements)));
             }
             return node;
         }
@@ -627,7 +617,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_RESCUE_NODE: {
             auto *rescue = down_cast<pm_rescue_node_t>(node);
             if (rescue->statements) {
-                rescue->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(rescue->statements)));
+                rescue->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(rescue->statements)));
             }
             if (rescue->subsequent) {
                 rescue->subsequent = down_cast<pm_rescue_node_t>(rewriteNode(up_cast(rescue->subsequent)));
@@ -637,21 +627,21 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_ELSE_NODE: {
             auto *else_ = down_cast<pm_else_node_t>(node);
             if (else_->statements) {
-                else_->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(else_->statements)));
+                else_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(else_->statements)));
             }
             return node;
         }
         case PM_ENSURE_NODE: {
             auto *ensure = down_cast<pm_ensure_node_t>(node);
             if (ensure->statements) {
-                ensure->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(ensure->statements)));
+                ensure->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(ensure->statements)));
             }
             return node;
         }
         case PM_IF_NODE: {
             auto *if_ = down_cast<pm_if_node_t>(node);
             if (if_->statements) {
-                if_->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(if_->statements)));
+                if_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(if_->statements)));
             }
             if (if_->subsequent) {
                 if_->subsequent = rewriteBody(if_->subsequent);
@@ -661,10 +651,10 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_UNLESS_NODE: {
             auto *unless_ = down_cast<pm_unless_node_t>(node);
             if (unless_->statements) {
-                unless_->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(unless_->statements)));
+                unless_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(unless_->statements)));
             }
             if (unless_->else_clause) {
-                unless_->else_clause = down_cast<pm_else_node>(rewriteBody(up_cast(unless_->else_clause)));
+                unless_->else_clause = down_cast<pm_else_node_t>(rewriteBody(up_cast(unless_->else_clause)));
             }
             return node;
         }
@@ -692,7 +682,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_WHEN_NODE: {
             auto *when = down_cast<pm_when_node_t>(node);
             if (when->statements) {
-                when->statements = down_cast<pm_statements_node>(rewriteBody(up_cast(when->statements)));
+                when->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(when->statements)));
             }
             return node;
         }
@@ -741,10 +731,10 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         }
         case PM_CONSTANT_WRITE_NODE: {
             auto *write = down_cast<pm_constant_write_node_t>(node);
-            // Check if this is a type alias assignment
-            if (PM_NODE_TYPE_P(write->value, PM_CONSTANT_READ_NODE)) {
-                auto *constantRead = down_cast<pm_constant_read_node_t>(write->value);
-                // Check for synthetic type alias marker
+            // Check if this is a type alias assignment with synthetic marker
+            if (auto *constantRead = PM_NODE_TYPE_P(write->value, PM_CONSTANT_READ_NODE)
+                                         ? down_cast<pm_constant_read_node_t>(write->value)
+                                         : nullptr) {
                 if (constantRead->name == RBS_SYNTHETIC_TYPE_ALIAS_MARKER) {
                     // Replace the value with the T.type_alias call
                     write->value = replaceSyntheticTypeAlias(write->value);
