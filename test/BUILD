@@ -395,7 +395,6 @@ pipeline_tests(
             "prism_regression/**/*.exp",
         ],
         exclude = [
-            "prism_regression/assign_to_index.rb",
             "prism_regression/call_block_param_and_forwarding.rb",
             "prism_regression/call_kw_nil_args.rb",
             "prism_regression/constants_invalid.rb",
@@ -405,6 +404,16 @@ pipeline_tests(
             "prism_regression/error_recovery/assign.rb",
             "prism_regression/invalid/missing_node.rb",
             "prism_regression/invalid/unterminated_regex.rb",
+
+            # related to ruby 3.4 syntax changes
+            "prism_regression/assign_to_index.rb",
+
+            # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9630
+            "prism_regression/multi_target.rb",
+            "prism_regression/multi_write.rb",
+
+            # TODO: resolve following: https://github.com/sorbet/sorbet/issues/9631
+            "prism_regression/lambda.rb",
         ],
     ),
     "PrismPosTests",
