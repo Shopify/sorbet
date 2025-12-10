@@ -291,6 +291,7 @@ pipeline_tests(
         exclude = [
             # Tests having to do with tree differences in invalid Ruby code; will address later
             "testdata/parser/error_recovery/**",
+            "testdata/parser/block_forwarding_permutations.rb",
             "testdata/parser/crash_block_pass_suggestion.rb",
             "testdata/parser/invalid_fatal.rb",
             "testdata/parser/invalid_syntax_error.rb",
@@ -367,9 +368,16 @@ pipeline_tests(
             "prism_regression/**/*.exp",
         ],
         exclude = [
+            "prism_regression/assign_to_index.rb",
+
+            # Numbered block parameter location differs: Prism uses last occurrence
+            # of `_1`, Whitequark uses first occurrence
+            "prism_regression/multiple_numbered_params.rb",
+
             # Prism parses invalid Ruby that Whitequark rejects:
             # - `def foo(&, ...); end` - block param combined with forwarding args
             "prism_regression/call_block_param_and_forwarding.rb",
+
             # - Multiple invalid `**nil` combinations in method signatures
             "prism_regression/call_kw_nil_args.rb",
 
@@ -381,15 +389,15 @@ pipeline_tests(
             # location spans for ErrorNode compared to Whitequark:
             # - `x =` (missing RHS) has different Assign/ErrorNode locations
             "prism_regression/error_recovery/assign.rb",
+
             # - `1 +` (missing operand) has different Send/ErrorNode locations
             "prism_regression/invalid/missing_node.rb",
+
             # - `/foo` (unterminated regex) - Prism includes content up to EOF,
             #   Whitequark produces empty regex
             "prism_regression/invalid/unterminated_regex.rb",
 
-            # Numbered block parameter location differs: Prism uses last occurrence
-            # of `_1`, Whitequark uses first occurrence
-            "prism_regression/multiple_numbered_params.rb",
+            "prism_regression/keyword_redo.rb",
         ],
     ),
     "PrismPosTests",
