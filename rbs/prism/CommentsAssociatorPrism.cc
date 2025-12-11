@@ -356,12 +356,16 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
 
     lastLine = posToLine(nodeLoc.beginPos());
 
-    if ((statements = down_cast<pm_statements_node_t>(walkBody(node, up_cast(statements))))) {
-        auto stmtLoc = translateLocation(statements->base.location);
-        lastLine = posToLine(stmtLoc.endPos());
+    pm_node_t *thenBody = up_cast(statements);
+    pm_node_t *thenResult = walkBody(thenBody, thenBody);
+    statements = down_cast<pm_statements_node_t>(thenResult);
+
+    if (thenResult) {
+        auto thenLoc = translateLocation(thenResult->location);
+        lastLine = posToLine(thenLoc.endPos());
     }
 
-    elsePart = walkBody(node, elsePart);
+    elsePart = walkBody(elsePart, elsePart);
 
     if (beginLine != endLine) {
         associateAssertionCommentsToNode(node);
@@ -370,8 +374,26 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
     consumeCommentsInsideNode(node, kind);
 }
 
+void CommentsAssociatorPrism::processTrailingComments(pm_node_t *node, pm_node_list_t &nodes) {
+    if (node == nullptr || contextAllowingTypeAlias.empty()) {
+        return;
+    }
+
+    auto loc = translateLocation(node->location);
+    int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+    maybeInsertStandalonePlaceholders(nodes, nodes.size, lastLine, endLine);
+    lastLine = endLine;
+}
+
 pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
     if (body == nullptr) {
+        pm_node_list_t nodes = {0, 0, NULL};
+        processTrailingComments(node, nodes);
+
+        if (nodes.size > 0) {
+            auto loc = translateLocation(node->location);
+            return prism.StatementsNode(loc, absl::MakeSpan(nodes.nodes, nodes.size));
+        }
         return nullptr;
     }
 
@@ -380,19 +402,17 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
         auto *begin = down_cast<pm_begin_node_t>(body);
         walkNode(body);
 
-        // Visit standalone RBS comments after the last node in the body
-        if (auto *statements = begin->statements) {
-            auto loc = translateLocation(node->location);
-            int endLine = posToLine(loc.endPos());
-            maybeInsertStandalonePlaceholders(statements->body, 0, lastLine, endLine);
-            lastLine = endLine;
+        if (begin->statements) {
+            processTrailingComments(node, begin->statements->body);
         }
 
         return body;
     }
 
     if (PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE)) {
+        auto *statements = down_cast<pm_statements_node_t>(body);
         walkNode(body);
+        processTrailingComments(node, statements->body);
 
         return body;
     }
@@ -412,10 +432,7 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
     // Visit standalone RBS comments after the body node
     pm_node_list_t afterNodesData = prism.emptyNodeList();
     PrismNodeListPtr afterNodes(&afterNodesData, prismNodeListFree);
-    auto loc = translateLocation(node->location);
-    int endLine = posToLine(loc.endPos());
-    maybeInsertStandalonePlaceholders(*afterNodes, 0, lastLine, endLine);
-    lastLine = endLine;
+    processTrailingComments(node, *afterNodes);
 
     if (beforeNodes->size > 0 || afterNodes->size > 0) {
         pm_node_list_t nodes = prism.nodeListWithCapacity(beforeNodes->size + 1 + afterNodes->size);
