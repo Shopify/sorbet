@@ -1337,7 +1337,9 @@ Translator::computeMethodCallLoc(core::LocOffsets initialLoc, pm_node_t *receive
         //     a[1, 2] = 3
         //           ^     closing loc
         //               ^ last arg loc
-        result = result.join(translateLoc(prismArgs.back()->location));
+        // For heredoc xstrings, endLoc() extends to the closing delimiter.
+        auto lastArg = prismArgs.back();
+        result = result.join(translateLoc(startLoc(lastArg), endLoc(lastArg)));
     }
 
     core::LocOffsets blockLoc;
@@ -1364,6 +1366,16 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
     absl::Span<pm_node_t *> prismArgs;
     if (argumentsNode != nullptr) {
         prismArgs = absl::MakeSpan(argumentsNode->arguments.nodes, argumentsNode->arguments.size);
+    }
+
+    // For heredoc xstrings in arguments, Prism's call node location only includes the opening.
+    // Extend the location to include the full heredoc using endLoc(), which handles heredocs.
+    if (!prismArgs.empty()) {
+        auto lastArg = prismArgs.back();
+        if (PM_NODE_TYPE_P(lastArg, PM_X_STRING_NODE) || PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
+            auto heredocEnd = translateLoc(lastArg->location.start, endLoc(lastArg));
+            location = core::LocOffsets{location.beginPos(), heredocEnd.endPos()};
+        }
     }
 
     // The legacy parser nodes don't include the literal block argument (if any), but the desugar nodes do
@@ -2965,8 +2977,10 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_INTERPOLATED_X_STRING_NODE: { // An executable string with backticks, like `echo "Hello, world!"`
             auto interpolatedXStringNode = down_cast<pm_interpolated_x_string_node>(node);
-            auto desugared = desugarDString(location, interpolatedXStringNode->parts);
-            return MK::Send1(location, MK::Self(location), core::Names::backtick(), location.copyWithZeroLength(),
+            // For heredocs, endLoc() extends to the closing delimiter (excluding trailing newline).
+            auto xstringLoc = translateLoc(startLoc(node), endLoc(node));
+            auto desugared = desugarDString(xstringLoc, interpolatedXStringNode->parts);
+            return MK::Send1(xstringLoc, MK::Self(xstringLoc), core::Names::backtick(), xstringLoc.copyWithZeroLength(),
                              move(desugared));
         }
         case PM_IT_LOCAL_VARIABLE_READ_NODE: { // Reading the `it` default param in a block, e.g. `a.map { it + 1 }`
@@ -3485,13 +3499,16 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_X_STRING_NODE: { // A non-interpolated x-string, like `/usr/bin/env ls`
             auto strNode = down_cast<pm_x_string_node>(node);
 
+            // For heredocs, endLoc() extends to the closing delimiter (excluding trailing newline).
+            auto xstringLoc = translateLoc(startLoc(node), endLoc(node));
+
             auto unescaped = &strNode->unescaped;
             auto source = parser.extractString(unescaped);
             auto content = ctx.state.enterNameUTF8(source);
             auto contentLoc = translateLoc(strNode->content_loc);
 
             // Create the backtick send call for the desugared expression
-            return MK::Send1(location, MK::Self(location), core::Names::backtick(), location.copyWithZeroLength(),
+            return MK::Send1(xstringLoc, MK::Self(xstringLoc), core::Names::backtick(), xstringLoc.copyWithZeroLength(),
                              MK::String(contentLoc, content));
         }
         case PM_YIELD_NODE: { // The `yield` keyword, like `yield`, `yield 1, 2, 3`
@@ -3566,6 +3583,19 @@ const uint8_t *startLoc(pm_node_t *anyNode) {
     }
 }
 
+// Returns the end of a closing location, excluding any trailing newline.
+// Used for heredocs where Prism's closing_loc includes the newline after the delimiter.
+const uint8_t *closingLocEnd(pm_location_t closingLoc) {
+    if (closingLoc.start && closingLoc.end) {
+        auto end = closingLoc.end;
+        if (end > closingLoc.start && *(end - 1) == '\n') {
+            end--;
+        }
+        return end;
+    }
+    return nullptr;
+}
+
 // End counterpart of `startLoc()`. See its docs for details.
 const uint8_t *endLoc(pm_node_t *anyNode) {
     switch (PM_NODE_TYPE(anyNode)) {
@@ -3578,6 +3608,36 @@ const uint8_t *endLoc(pm_node_t *anyNode) {
             // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9630 is fixed
             auto *node = down_cast<pm_multi_write_node>(anyNode);
             return endLoc(node->value);
+        }
+        case PM_CALL_NODE: {
+            // For call nodes with heredoc xstring arguments, Prism's location only includes the opening.
+            // Extend to include the full heredoc by checking the last argument.
+            auto *node = down_cast<pm_call_node>(anyNode);
+            if (node->arguments && node->arguments->arguments.size > 0) {
+                auto *lastArg = node->arguments->arguments.nodes[node->arguments->arguments.size - 1];
+                if (PM_NODE_TYPE_P(lastArg, PM_X_STRING_NODE) ||
+                    PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
+                    return endLoc(lastArg);
+                }
+            }
+            return anyNode->location.end;
+        }
+        case PM_X_STRING_NODE: {
+            // For heredoc xstrings, Prism's base.location only includes the opening delimiter.
+            // Use closing_loc to get the full heredoc span, excluding the trailing newline.
+            auto *node = down_cast<pm_x_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
+        }
+        case PM_INTERPOLATED_X_STRING_NODE: {
+            // Same as PM_X_STRING_NODE - extend to closing delimiter for heredocs.
+            auto *node = down_cast<pm_interpolated_x_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
         }
         default: {
             return anyNode->location.end;
