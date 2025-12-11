@@ -566,7 +566,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
 
             associateAssertionCommentsToNode(node);
 
-            walkNode(block->body);
+            block->body = walkBody(node, block->body);
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), blockLoc.endPos()).line;
             consumeCommentsBetweenLines(beginLine, endLine, "block");
             break;
