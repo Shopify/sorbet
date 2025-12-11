@@ -237,5 +237,39 @@ Begin {
         ]
       }
     }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          Send {
+            receiver = Const {
+              scope = NULL
+              name = <C <U FOO>>
+            }
+            method = <U target1=>
+            args = [
+            ]
+          }
+          Send {
+            receiver = Const {
+              scope = NULL
+              name = <C <U FOO>>
+            }
+            method = <U target2=>
+            args = [
+            ]
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+          Integer {
+            val = "19"
+          }
+          Integer {
+            val = "20"
+          }
+        ]
+      }
+    }
   ]
 }
