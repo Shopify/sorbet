@@ -58,6 +58,7 @@ private:
     void walkNodes(pm_node_list_t &nodes);
     void walkStatements(pm_node_list_t &nodes);
     pm_node_t *walkBody(pm_node_t *node, pm_node_t *body);
+    void processTrailingComments(pm_node_t *node, pm_node_list_t &statements);
     template <typename PrismNode> void walkAssignmentNode(pm_node_t *anyNode);
     template <typename PrismNode> void walkCallAssignmentNode(pm_node_t *untypedNode, std::string_view label);
     template <typename PrismNode> void walkIndexAssignmentNode(pm_node_t *untypedNode, std::string_view label);
