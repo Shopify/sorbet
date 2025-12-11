@@ -1272,7 +1272,9 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
 template <typename PrismAssignmentNode, ast::UnresolvedIdent::Kind IdentKind>
 ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
-    auto location = translateLoc(untypedNode->location);
+    // For heredocs, Prism's location only includes the opening tag (e.g., "x = <<~EOF").
+    // Extend to include the full heredoc body by using endLoc() on the value.
+    auto location = translateLoc(startLoc(untypedNode), endLoc(node->value));
     auto rhs = desugar(node->value);
 
     ast::ExpressionPtr lhs;
@@ -1375,6 +1377,7 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
 
     // For heredoc xstrings in arguments, Prism's call node location only includes the opening.
     // Extend the location to include the full heredoc using endLoc(), which handles heredocs.
+    // NOTE: Only xstrings extend the call location; regular string heredocs do not.
     if (!prismArgs.empty()) {
         auto lastArg = prismArgs.back();
         if (PM_NODE_TYPE_P(lastArg, PM_X_STRING_NODE) || PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
@@ -2963,8 +2966,11 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_INTERPOLATED_STRING_NODE: { // An interpolated string like `"foo #{bar} baz"`
             auto interpolatedStringNode = down_cast<pm_interpolated_string_node>(node);
 
+            // For heredocs, endLoc() extends to the closing delimiter.
+            auto strLoc = translateLoc(startLoc(node), endLoc(node));
+
             // Desugar `"a #{b} c"` to `::Magic.<string-interpolate>("a ", b, " c")`
-            return desugarDString(location, interpolatedStringNode->parts);
+            return desugarDString(strLoc, interpolatedStringNode->parts);
         }
         case PM_INTERPOLATED_SYMBOL_NODE: { // A symbol like `:"a #{b} c"`
             auto interpolatedSymbolNode = down_cast<pm_interpolated_symbol_node>(node);
@@ -3395,10 +3401,13 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_STRING_NODE: { // A string literal, e.g. `"foo"`
             auto strNode = down_cast<pm_string_node>(node);
 
+            // For heredocs, endLoc() extends to the closing delimiter.
+            auto strLoc = translateLoc(startLoc(node), endLoc(node));
+
             auto unescaped = &strNode->unescaped;
             auto content = ctx.state.enterNameUTF8(parser.extractString(unescaped));
 
-            return MK::String(location, content);
+            return MK::String(strLoc, content);
         }
         case PM_SUPER_NODE: { // A `super` call with explicit args, like `super()`, `super(a, b)`
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
@@ -3610,6 +3619,7 @@ const uint8_t *endLoc(pm_node_t *anyNode) {
         case PM_CALL_NODE: {
             // For call nodes with heredoc xstring arguments, Prism's location only includes the opening.
             // Extend to include the full heredoc by checking the last argument.
+            // NOTE: Only xstrings extend the call location; regular string heredocs do not.
             auto *node = down_cast<pm_call_node>(anyNode);
             if (node->arguments && node->arguments->arguments.size > 0) {
                 auto *lastArg = node->arguments->arguments.nodes[node->arguments->arguments.size - 1];
@@ -3617,6 +3627,23 @@ const uint8_t *endLoc(pm_node_t *anyNode) {
                     PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
                     return endLoc(lastArg);
                 }
+            }
+            return anyNode->location.end;
+        }
+        case PM_STRING_NODE: {
+            // For heredoc strings, Prism's base.location only includes the opening delimiter.
+            // Use closing_loc to get the full heredoc span, excluding the trailing newline.
+            auto *node = down_cast<pm_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
+        }
+        case PM_INTERPOLATED_STRING_NODE: {
+            // Same as PM_STRING_NODE - extend to closing delimiter for heredocs.
+            auto *node = down_cast<pm_interpolated_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
             }
             return anyNode->location.end;
         }
@@ -3636,6 +3663,31 @@ const uint8_t *endLoc(pm_node_t *anyNode) {
                 return end;
             }
             return anyNode->location.end;
+        }
+        case PM_LOCAL_VARIABLE_WRITE_NODE: {
+            // For assignments with heredoc values, extend to the heredoc closing delimiter.
+            auto *node = down_cast<pm_local_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_INSTANCE_VARIABLE_WRITE_NODE: {
+            auto *node = down_cast<pm_instance_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CLASS_VARIABLE_WRITE_NODE: {
+            auto *node = down_cast<pm_class_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
+            auto *node = down_cast<pm_global_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CONSTANT_WRITE_NODE: {
+            auto *node = down_cast<pm_constant_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CONSTANT_PATH_WRITE_NODE: {
+            auto *node = down_cast<pm_constant_path_write_node>(anyNode);
+            return endLoc(node->value);
         }
         default: {
             return anyNode->location.end;
