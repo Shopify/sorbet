@@ -900,6 +900,12 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             block->body = rewriteBody(block->body);
             return node;
         }
+        case PM_LAMBDA_NODE: {
+            auto *lambda = down_cast<pm_lambda_node_t>(node);
+            node = maybeInsertCast(node);
+            lambda->body = rewriteBody(lambda->body);
+            return node;
+        }
 
         // Loops
         case PM_WHILE_NODE: {

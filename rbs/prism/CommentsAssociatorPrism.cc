@@ -571,6 +571,17 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsBetweenLines(beginLine, endLine, "block");
             break;
         }
+        case PM_LAMBDA_NODE: {
+            auto *lambda = down_cast<pm_lambda_node_t>(node);
+            auto lambdaLoc = translateLocation(node->location);
+            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), lambdaLoc.beginPos()).line;
+            associateAssertionCommentsToNode(node);
+
+            lambda->body = walkBody(node, lambda->body);
+            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), lambdaLoc.endPos()).line;
+            consumeCommentsBetweenLines(beginLine, endLine, "lambda");
+            break;
+        }
         case PM_BREAK_NODE: {
             auto *break_ = down_cast<pm_break_node_t>(node);
             // Only associate comments if the last expression is on the same line as the break
