@@ -441,6 +441,28 @@ template <typename PrismNode> void CommentsAssociatorPrism::walkAssignmentNode(p
     consumeCommentsInsideNode(untypedNode, "assign");
 }
 
+template <typename PrismNode>
+void CommentsAssociatorPrism::walkCallAssignmentNode(pm_node_t *untypedNode, std::string_view label) {
+    auto *assign = down_cast<PrismNode>(untypedNode);
+    associateAssertionCommentsToNode(assign->value, true);
+    walkNode(assign->value);
+    walkNode(assign->receiver);
+    consumeCommentsInsideNode(untypedNode, label);
+}
+
+template <typename PrismNode>
+void CommentsAssociatorPrism::walkIndexAssignmentNode(pm_node_t *untypedNode, std::string_view label) {
+    auto *assign = down_cast<PrismNode>(untypedNode);
+    associateAssertionCommentsToNode(assign->value, true);
+    walkNode(assign->receiver);
+    if (assign->arguments != nullptr) {
+        walkNodes(assign->arguments->arguments);
+    }
+    walkNode(up_cast(assign->block));
+    walkNode(assign->value);
+    consumeCommentsInsideNode(untypedNode, label);
+}
+
 void CommentsAssociatorPrism::walkNodes(pm_node_list_t &nodes) {
     for (size_t i = 0; i < nodes.size; i++) {
         auto node = nodes.nodes[i];
@@ -650,6 +672,30 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 }
                 walkNode(call->block);
             }
+            break;
+        }
+        case PM_CALL_AND_WRITE_NODE: {
+            walkCallAssignmentNode<pm_call_and_write_node_t>(node, "and_asgn");
+            break;
+        }
+        case PM_CALL_OR_WRITE_NODE: {
+            walkCallAssignmentNode<pm_call_or_write_node_t>(node, "or_asgn");
+            break;
+        }
+        case PM_CALL_OPERATOR_WRITE_NODE: {
+            walkCallAssignmentNode<pm_call_operator_write_node_t>(node, "op_asgn");
+            break;
+        }
+        case PM_INDEX_AND_WRITE_NODE: {
+            walkIndexAssignmentNode<pm_index_and_write_node_t>(node, "and_asgn");
+            break;
+        }
+        case PM_INDEX_OR_WRITE_NODE: {
+            walkIndexAssignmentNode<pm_index_or_write_node_t>(node, "or_asgn");
+            break;
+        }
+        case PM_INDEX_OPERATOR_WRITE_NODE: {
+            walkIndexAssignmentNode<pm_index_operator_write_node_t>(node, "op_asgn");
             break;
         }
         case PM_DEF_NODE: {
