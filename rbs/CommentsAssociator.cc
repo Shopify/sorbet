@@ -371,6 +371,7 @@ void CommentsAssociator::walkNode(parser::Node *node) {
         [&](parser::AndAsgn *andAsgn) {
             associateAssertionCommentsToNode(andAsgn->right.get(), true);
             walkNode(andAsgn->right.get());
+            walkNode(andAsgn->left.get());
             consumeCommentsInsideNode(node, "and_asgn");
         },
         [&](parser::Array *array) {
@@ -563,6 +564,7 @@ void CommentsAssociator::walkNode(parser::Node *node) {
         [&](parser::OpAsgn *opAsgn) {
             associateAssertionCommentsToNode(opAsgn->right.get(), true);
             walkNode(opAsgn->right.get());
+            walkNode(opAsgn->left.get());
             consumeCommentsInsideNode(node, "op_asgn");
         },
         [&](parser::Or *or_) {
@@ -574,6 +576,7 @@ void CommentsAssociator::walkNode(parser::Node *node) {
         [&](parser::OrAsgn *orAsgn) {
             associateAssertionCommentsToNode(orAsgn->right.get(), true);
             walkNode(orAsgn->right.get());
+            walkNode(orAsgn->left.get());
             consumeCommentsInsideNode(node, "or_asgn");
         },
         [&](parser::Pair *pair) {
