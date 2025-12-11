@@ -59,6 +59,8 @@ private:
     void walkStatements(pm_node_list_t &nodes);
     pm_node_t *walkBody(pm_node_t *node, pm_node_t *body);
     template <typename PrismNode> void walkAssignmentNode(pm_node_t *anyNode);
+    template <typename PrismNode> void walkCallAssignmentNode(pm_node_t *untypedNode, std::string_view label);
+    template <typename PrismNode> void walkIndexAssignmentNode(pm_node_t *untypedNode, std::string_view label);
     void walkConditionalNode(pm_node_t *node, pm_node_t *predicate, pm_statements_node_t *&statements,
                              pm_node_t *&elsePart, std::string_view kind);
     void associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc = false);
