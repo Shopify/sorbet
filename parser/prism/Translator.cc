@@ -1390,7 +1390,8 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
     if (!prismArgs.empty()) {
         auto lastArg = prismArgs.back();
         if (PM_NODE_TYPE_P(lastArg, PM_X_STRING_NODE) || PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
-            location = translateLoc(callNode->base.location.start, endLoc(lastArg));
+            auto heredocEnd = translateLoc(lastArg->location.start, endLoc(lastArg));
+            location = core::LocOffsets{location.beginPos(), heredocEnd.endPos()};
         }
     }
 
@@ -1802,15 +1803,6 @@ Translator::DesugaredBlockArgument Translator::desugarBlock(pm_node_t *block, pm
 
         return desugarBlockPassArgument(bp);
     }
-
-    auto hasFwdArgs = otherArgs != nullptr && PM_NODE_FLAG_P(otherArgs, PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING);
-
-    // Desugar a call like `foo(...)` so it has a block argument like `foo(..., &<fwd-block>)`.
-    if (hasFwdArgs) {
-        return BlockPassArg{MK::Local(translateLoc(parentLoc), core::Names::fwdBlock())};
-    }
-
-    return std::monostate{}; // This call has no block
 }
 
 Translator::LiteralBlock Translator::desugarLiteralBlock(pm_node *blockBodyNode, pm_node *blockParameters,
@@ -2111,7 +2103,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 methodNameLoc = translateLoc(callNode->message_loc);
             }
 
-            auto block = desugarBlock(callNode->block, callNode->arguments, callNode->closing_loc);
+            auto block = desugarBlock(callNode->block, callNode->arguments, callNode->base.location);
 
             // Conditional send handling
             if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
@@ -2170,8 +2162,9 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                               core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecvName));
 
                 auto tempRecv = MK::Local(zeroLengthRecvLoc, tempRecvName);
+                // CSend desugars to $temp.method(), which should not have privateOk
                 auto send = desugarMethodCall(move(tempRecv), methodName, methodNameLoc, callNode->arguments,
-                                              callNode->closing_loc, move(block), location, isPrivateOk);
+                                              callNode->closing_loc, move(block), location, /*isPrivateOk=*/false);
 
                 ExpressionPtr nil =
                     MK::Send1(recvLoc.copyEndWithZeroLength(), MK::Magic(zeroLengthLoc),
@@ -3055,7 +3048,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto blockBodyLoc = pm_location_t{lambdaNode->opening_loc.start, lambdaNode->closing_loc.end};
             auto block =
                 desugarLiteralBlock(lambdaNode->body, lambdaNode->parameters, blockBodyLoc, lambdaNode->operator_loc);
-            auto isPrivateOk = true; // Matches previous parser+desugar behaviour
+            auto isPrivateOk = false; // Kernel.lambda is not a private call
             return desugarMethodCall(move(receiver), core::Names::lambda(), operatorLoc, args, lambdaNode->closing_loc,
                                      move(block), location, isPrivateOk);
         }
