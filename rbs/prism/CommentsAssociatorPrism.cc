@@ -434,6 +434,13 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
     return body;
 }
 
+template <typename PrismNode> void CommentsAssociatorPrism::walkAssignmentNode(pm_node_t *untypedNode) {
+    auto *assign = down_cast<PrismNode>(untypedNode);
+    associateAssertionCommentsToNode(assign->value, true);
+    walkNode(assign->value);
+    consumeCommentsInsideNode(untypedNode, "assign");
+}
+
 void CommentsAssociatorPrism::walkNodes(pm_node_list_t &nodes) {
     for (size_t i = 0; i < nodes.size; i++) {
         auto node = nodes.nodes[i];
@@ -930,47 +937,84 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             consumeCommentsInsideNode(node, "begin");
             break;
         }
-        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_LOCAL_VARIABLE_AND_WRITE_NODE:
+        case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            walkAssignmentNode<pm_local_variable_operator_write_node_t>(node);
+            break;
+        }
+        case PM_LOCAL_VARIABLE_AND_WRITE_NODE: {
+            walkAssignmentNode<pm_local_variable_and_write_node_t>(node);
+            break;
+        }
         case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
-            // Local variable compound writes (+=, &&=, ||=) all have same layout: name_loc, operator_loc, value
-            auto *assign = reinterpret_cast<pm_local_variable_operator_write_node_t *>(node);
-            associateAssertionCommentsToNode(assign->value, true);
-            walkNode(assign->value);
-            consumeCommentsInsideNode(node, "assign");
+            walkAssignmentNode<pm_local_variable_or_write_node_t>(node);
             break;
         }
-        case PM_CONSTANT_OPERATOR_WRITE_NODE:
-        case PM_CONSTANT_AND_WRITE_NODE:
-        case PM_CONSTANT_OR_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_AND_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_OR_WRITE_NODE:
-        case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_CLASS_VARIABLE_AND_WRITE_NODE:
-        case PM_CLASS_VARIABLE_OR_WRITE_NODE:
-        case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE:
-        case PM_GLOBAL_VARIABLE_AND_WRITE_NODE:
+        case PM_CONSTANT_OPERATOR_WRITE_NODE: {
+            walkAssignmentNode<pm_constant_operator_write_node_t>(node);
+            break;
+        }
+        case PM_CONSTANT_AND_WRITE_NODE: {
+            walkAssignmentNode<pm_constant_and_write_node_t>(node);
+            break;
+        }
+        case PM_CONSTANT_OR_WRITE_NODE: {
+            walkAssignmentNode<pm_constant_or_write_node_t>(node);
+            break;
+        }
+        case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: {
+            walkAssignmentNode<pm_instance_variable_operator_write_node_t>(node);
+            break;
+        }
+        case PM_INSTANCE_VARIABLE_AND_WRITE_NODE: {
+            walkAssignmentNode<pm_instance_variable_and_write_node_t>(node);
+            break;
+        }
+        case PM_INSTANCE_VARIABLE_OR_WRITE_NODE: {
+            walkAssignmentNode<pm_instance_variable_or_write_node_t>(node);
+            break;
+        }
+        case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE: {
+            walkAssignmentNode<pm_class_variable_operator_write_node_t>(node);
+            break;
+        }
+        case PM_CLASS_VARIABLE_AND_WRITE_NODE: {
+            walkAssignmentNode<pm_class_variable_and_write_node_t>(node);
+            break;
+        }
+        case PM_CLASS_VARIABLE_OR_WRITE_NODE: {
+            walkAssignmentNode<pm_class_variable_or_write_node_t>(node);
+            break;
+        }
+        case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE: {
+            walkAssignmentNode<pm_global_variable_operator_write_node_t>(node);
+            break;
+        }
+        case PM_GLOBAL_VARIABLE_AND_WRITE_NODE: {
+            walkAssignmentNode<pm_global_variable_and_write_node_t>(node);
+            break;
+        }
         case PM_GLOBAL_VARIABLE_OR_WRITE_NODE: {
-            // Compound assignment nodes (+=, &&=, ||=) for constant/instance/class/global variables
-            // These have compatible layout: name, name_loc, operator_loc, value
-            auto *assign = reinterpret_cast<pm_constant_operator_write_node_t *>(node);
-            associateAssertionCommentsToNode(assign->value, true);
-            walkNode(assign->value);
-            consumeCommentsInsideNode(node, "assign");
+            walkAssignmentNode<pm_global_variable_or_write_node_t>(node);
             break;
         }
-        case PM_LOCAL_VARIABLE_WRITE_NODE:
-        case PM_CONSTANT_WRITE_NODE:
-        case PM_INSTANCE_VARIABLE_WRITE_NODE:
-        case PM_CLASS_VARIABLE_WRITE_NODE:
+        case PM_LOCAL_VARIABLE_WRITE_NODE: {
+            walkAssignmentNode<pm_local_variable_write_node_t>(node);
+            break;
+        }
+        case PM_CONSTANT_WRITE_NODE: {
+            walkAssignmentNode<pm_constant_write_node_t>(node);
+            break;
+        }
+        case PM_INSTANCE_VARIABLE_WRITE_NODE: {
+            walkAssignmentNode<pm_instance_variable_write_node_t>(node);
+            break;
+        }
+        case PM_CLASS_VARIABLE_WRITE_NODE: {
+            walkAssignmentNode<pm_class_variable_write_node_t>(node);
+            break;
+        }
         case PM_GLOBAL_VARIABLE_WRITE_NODE: {
-            // All write nodes have value field at same offset after base
-            // Use reinterpret_cast since they have compatible layout
-            auto *assign = reinterpret_cast<pm_local_variable_write_node_t *>(node);
-            associateAssertionCommentsToNode(assign->value, true);
-            walkNode(assign->value);
-            consumeCommentsInsideNode(node, "assign");
+            walkAssignmentNode<pm_global_variable_write_node_t>(node);
             break;
         }
         default: {
