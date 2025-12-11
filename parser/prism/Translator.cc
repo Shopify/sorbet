@@ -1341,7 +1341,9 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
 template <typename PrismAssignmentNode, ast::UnresolvedIdent::Kind IdentKind>
 ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
     auto node = down_cast<PrismAssignmentNode>(untypedNode);
-    auto location = translateLoc(untypedNode->location);
+    // For heredocs, Prism's location only includes the opening tag (e.g., "x = <<~EOF").
+    // Extend to include the full heredoc body by using endLoc() on the value.
+    auto location = translateLoc(startLoc(untypedNode), endLoc(node->value));
     auto rhs = desugar(node->value);
 
     ast::ExpressionPtr lhs;
@@ -2586,8 +2588,11 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_INTERPOLATED_STRING_NODE: { // An interpolated string like `"foo #{bar} baz"`
             auto interpolatedStringNode = down_cast<pm_interpolated_string_node>(node);
 
+            // For heredocs, endLoc() extends to the closing delimiter.
+            auto strLoc = translateLoc(startLoc(node), endLoc(node));
+
             // Desugar `"a #{b} c"` to `::Magic.<string-interpolate>("a ", b, " c")`
-            return desugarDString(location, interpolatedStringNode->parts);
+            return desugarDString(strLoc, interpolatedStringNode->parts);
         }
         case PM_INTERPOLATED_SYMBOL_NODE: { // A symbol like `:"a #{b} c"`
             auto interpolatedSymbolNode = down_cast<pm_interpolated_symbol_node>(node);
@@ -3039,10 +3044,13 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_STRING_NODE: { // A string literal, e.g. `"foo"`
             auto strNode = down_cast<pm_string_node>(node);
 
+            // For heredocs, endLoc() extends to the closing delimiter.
+            auto strLoc = translateLoc(startLoc(node), endLoc(node));
+
             auto unescaped = &strNode->unescaped;
             auto content = ctx.state.enterNameUTF8(parser.extractString(unescaped));
 
-            return MK::String(location, content);
+            return MK::String(strLoc, content);
         }
         case PM_SUPER_NODE: { // A `super` call with explicit args, like `super()`, `super(a, b)`
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
