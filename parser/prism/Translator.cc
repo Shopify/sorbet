@@ -470,10 +470,7 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
     auto processTarget = [this, &stats, &i, zloc, tempExpanded](pm_node_t *c) {
         ENFORCE(!PM_NODE_TYPE_P(c, PM_SPLAT_NODE), "splat already handled");
 
-        // For multi-target nodes, Whitequark strips the parens from the location.
-        auto cloc = PM_NODE_TYPE_P(c, PM_MULTI_TARGET_NODE)
-                        ? translateLoc(mlhsLocation(down_cast<pm_multi_target_node>(c)))
-                        : translateLoc(c->location);
+        auto cloc = translateLoc(c->location);
         auto zcloc = cloc.copyWithZeroLength();
         auto val =
             MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
