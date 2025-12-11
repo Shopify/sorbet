@@ -2083,7 +2083,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 methodNameLoc = translateLoc(callNode->message_loc);
             }
 
-            auto block = desugarBlock(callNode->block, callNode->arguments, callNode->closing_loc);
+            auto block = desugarBlock(callNode->block, callNode->arguments, callNode->base.location);
 
             // Conditional send handling
             if (PM_NODE_FLAG_P(callNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
@@ -2145,6 +2145,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 auto isPrivateOk = false;
 
                 auto tempRecv = MK::Local(zeroLengthRecvLoc, tempRecvName);
+                // CSend desugars to $temp.method(), which should not have privateOk
                 auto send = desugarMethodCall(move(tempRecv), methodName, methodNameLoc, callNode->arguments,
                                               callNode->closing_loc, move(block), location, isPrivateOk);
 
@@ -3035,7 +3036,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto blockBodyLoc = pm_location_t{lambdaNode->opening_loc.start, lambdaNode->closing_loc.end};
             auto block =
                 desugarLiteralBlock(lambdaNode->body, lambdaNode->parameters, blockBodyLoc, lambdaNode->operator_loc);
-            auto isPrivateOk = true; // Matches previous parser+desugar behaviour
+            auto isPrivateOk = false; // Kernel.lambda is not a private call
             return desugarMethodCall(move(receiver), core::Names::lambda(), operatorLoc, args, lambdaNode->closing_loc,
                                      move(block), location, isPrivateOk);
         }
