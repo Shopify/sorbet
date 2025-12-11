@@ -1433,7 +1433,9 @@ Translator::computeMethodCallLoc(core::LocOffsets initialLoc, pm_node_t *receive
         //     a[1, 2] = 3
         //           ^     closing loc
         //               ^ last arg loc
-        result = result.join(translateLoc(prismArgs.back()->location));
+        // For heredoc xstrings, endLoc() extends to the closing delimiter.
+        auto lastArg = prismArgs.back();
+        result = result.join(translateLoc(startLoc(lastArg), endLoc(lastArg)));
     }
 
     core::LocOffsets blockLoc;
@@ -2611,8 +2613,10 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_INTERPOLATED_X_STRING_NODE: { // An executable string with backticks, like `echo "Hello, world!"`
             auto interpolatedXStringNode = down_cast<pm_interpolated_x_string_node>(node);
-            auto desugared = desugarDString(location, interpolatedXStringNode->parts);
-            return MK::Send1(location, MK::Self(location), core::Names::backtick(), location.copyWithZeroLength(),
+            // For heredocs, endLoc() extends to the closing delimiter (excluding trailing newline).
+            auto xstringLoc = translateLoc(startLoc(node), endLoc(node));
+            auto desugared = desugarDString(xstringLoc, interpolatedXStringNode->parts);
+            return MK::Send1(xstringLoc, MK::Self(xstringLoc), core::Names::backtick(), xstringLoc.copyWithZeroLength(),
                              move(desugared));
         }
         case PM_IT_LOCAL_VARIABLE_READ_NODE: { // Reading the `it` default param in a block, e.g. `a.map { it + 1 }`
@@ -3149,13 +3153,16 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_X_STRING_NODE: { // A non-interpolated x-string, like `/usr/bin/env ls`
             auto strNode = down_cast<pm_x_string_node>(node);
 
+            // For heredocs, endLoc() extends to the closing delimiter (excluding trailing newline).
+            auto xstringLoc = translateLoc(startLoc(node), endLoc(node));
+
             auto unescaped = &strNode->unescaped;
             auto source = parser.extractString(unescaped);
             auto content = ctx.state.enterNameUTF8(source);
             auto contentLoc = translateLoc(strNode->content_loc);
 
             // Create the backtick send call for the desugared expression
-            return MK::Send1(location, MK::Self(location), core::Names::backtick(), location.copyWithZeroLength(),
+            return MK::Send1(xstringLoc, MK::Self(xstringLoc), core::Names::backtick(), xstringLoc.copyWithZeroLength(),
                              MK::String(contentLoc, content));
         }
         case PM_YIELD_NODE: { // The `yield` keyword, like `yield`, `yield 1, 2, 3`
@@ -3210,6 +3217,19 @@ core::LocOffsets Translator::translateLoc(pm_location_t loc) const {
 // but there are some exceptions, which get handled here.
 const uint8_t *startLoc(pm_node_t *anyNode) {
     return anyNode->location.start;
+}
+
+// Returns the end of a closing location, excluding any trailing newline.
+// Used for heredocs where Prism's closing_loc includes the newline after the delimiter.
+const uint8_t *closingLocEnd(pm_location_t closingLoc) {
+    if (closingLoc.start && closingLoc.end) {
+        auto end = closingLoc.end;
+        if (end > closingLoc.start && *(end - 1) == '\n') {
+            end--;
+        }
+        return end;
+    }
+    return nullptr;
 }
 
 // End counterpart of `startLoc()`. See its docs for details.
@@ -4037,6 +4057,16 @@ ast::ExpressionPtr Translator::desugarMethodCall(ast::ExpressionPtr receiver, co
     absl::Span<pm_node_t *> prismArgs;
     if (argumentsNode != nullptr) {
         prismArgs = absl::MakeSpan(argumentsNode->arguments.nodes, argumentsNode->arguments.size);
+    }
+
+    // For heredoc xstrings in arguments, Prism's call node location only includes the opening.
+    // Extend the location to include the full heredoc using endLoc(), which handles heredocs.
+    if (!prismArgs.empty()) {
+        auto lastArg = prismArgs.back();
+        if (PM_NODE_TYPE_P(lastArg, PM_X_STRING_NODE) || PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
+            auto heredocEnd = translateLoc(lastArg->location.start, endLoc(lastArg));
+            location = core::LocOffsets{location.beginPos(), heredocEnd.endPos()};
+        }
     }
 
     // The legacy parser nodes don't include the literal block argument (if any), but the desugar nodes do
