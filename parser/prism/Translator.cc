@@ -441,81 +441,85 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
 
     int i = 0;
     int before = 0, after = 0;
-    bool didSplat = false;
     auto zloc = loc.copyWithZeroLength();
 
     auto lefts = absl::MakeSpan(lhs->lefts.nodes, lhs->lefts.size);
     auto rights = absl::MakeSpan(lhs->rights.nodes, lhs->rights.size);
     bool hasSplat = lhs->rest && PM_NODE_TYPE_P(lhs->rest, PM_SPLAT_NODE);
-    size_t totalSize = lefts.size() + (hasSplat ? 1 : 0) + rights.size();
 
-    auto processTarget = [this, &didSplat, &stats, &i, &after, &before, totalSize, loc, zloc,
-                          tempExpanded](pm_node_t *c) {
-        if (PM_NODE_TYPE_P(c, PM_SPLAT_NODE)) {
-            auto *splat = down_cast<pm_splat_node>(c);
-            ENFORCE(!didSplat, "did splat already");
-            didSplat = true;
-
-            int left = i;
-            int right = totalSize - left - 1;
-
-            if (splat->expression) {
-                ast::ExpressionPtr lh = desugar(splat->expression);
-
-                if (right == 0) {
-                    right = 1;
-                }
-                auto lhloc = lh.loc();
-                auto zlhloc = lhloc.copyWithZeroLength();
-                // Calling `to_ary` is not faithful to the runtime behavior,
-                // but that it is faithful to the expected static type-checking behavior.
-                auto ary = MK::Send0(loc, MK::Local(loc, tempExpanded), core::Names::toAry(), zlhloc);
-                stats.emplace_back(MK::Assign(lhloc, move(lh), move(ary)));
-            }
-            i = -right;
-        } else {
-            if (didSplat) {
-                ++after;
-            } else {
-                ++before;
-            }
-
-            // For multi-target nodes, Whitequark strips the parens from the location.
-            auto cloc = PM_NODE_TYPE_P(c, PM_MULTI_TARGET_NODE)
-                            ? translateLoc(mlhsLocation(down_cast<pm_multi_target_node>(c)))
-                            : translateLoc(c->location);
-            auto zcloc = cloc.copyWithZeroLength();
+    // When the splat is the ONLY element in the multi-target (no lefts, no rights),
+    // Whitequark treats it like a RestParam, not a SplatLhs. Use [] with index 0
+    // instead of to_ary. This matches Whitequark's behavior for `|(*args)|`.
+    if (hasSplat && lefts.empty() && rights.empty()) {
+        auto *splat = down_cast<pm_splat_node>(lhs->rest);
+        if (splat->expression) {
+            ast::ExpressionPtr lh = desugar(splat->expression);
+            auto lhloc = lh.loc();
+            auto zcloc = translateLoc(splat->operator_loc).copyWithZeroLength();
             auto val =
-                MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
+                MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, 0));
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
+        }
+        auto expanded = MK::Send3(loc, MK::Magic(loc), core::Names::expandSplat(), zloc, MK::Local(loc, tempRhs),
+                                  MK::Int(loc, 1), MK::Int(loc, 0));
+        stats.insert(stats.begin(), MK::Assign(loc, tempExpanded, move(expanded)));
+        stats.insert(stats.begin(), MK::Assign(loc, tempRhs, move(rhs)));
+        return MK::InsSeq(loc, move(stats), MK::Local(loc, tempRhs));
+    }
 
-            if (PM_NODE_TYPE_P(c, PM_MULTI_TARGET_NODE)) {
-                auto *mlhs = down_cast<pm_multi_target_node>(c);
-                stats.emplace_back(desugarMlhs(cloc, mlhs, move(val)));
-            } else {
-                ast::ExpressionPtr lh = desugar(c);
-                if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
-                    if (auto e =
-                            ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
-                        e.setHeader("Unsupported rest args in destructure");
-                    }
-                    lh = move(restParam->expr);
+    auto processTarget = [this, &stats, &i, zloc, tempExpanded](pm_node_t *c) {
+        ENFORCE(!PM_NODE_TYPE_P(c, PM_SPLAT_NODE), "splat already handled");
+
+        // For multi-target nodes, Whitequark strips the parens from the location.
+        auto cloc = PM_NODE_TYPE_P(c, PM_MULTI_TARGET_NODE)
+                        ? translateLoc(mlhsLocation(down_cast<pm_multi_target_node>(c)))
+                        : translateLoc(c->location);
+        auto zcloc = cloc.copyWithZeroLength();
+        auto val =
+            MK::Send1(zcloc, MK::Local(zcloc, tempExpanded), core::Names::squareBrackets(), zloc, MK::Int(zloc, i));
+
+        if (PM_NODE_TYPE_P(c, PM_MULTI_TARGET_NODE)) {
+            auto *mlhs = down_cast<pm_multi_target_node>(c);
+            stats.emplace_back(desugarMlhs(cloc, mlhs, move(val)));
+        } else {
+            ast::ExpressionPtr lh = desugar(c);
+            if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
+                if (auto e = ctx.beginIndexerError(lh.loc(), core::errors::Desugar::UnsupportedRestArgsDestructure)) {
+                    e.setHeader("Unsupported rest args in destructure");
                 }
-
-                auto lhloc = lh.loc();
-                stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
+                lh = move(restParam->expr);
             }
 
-            i++;
+            auto lhloc = lh.loc();
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(val)));
         }
+
+        i++;
     };
 
     for (auto *c : lefts) {
+        ++before;
         processTarget(c);
     }
     if (hasSplat) {
-        processTarget(lhs->rest);
+        // Handle splat separately - use to_ary to capture remaining elements
+        auto *splat = down_cast<pm_splat_node>(lhs->rest);
+        size_t totalSize = lefts.size() + 1 + rights.size();
+        int right = totalSize - i - 1;
+        if (right == 0) {
+            right = 1;
+        }
+        if (splat->expression) {
+            ast::ExpressionPtr lh = desugar(splat->expression);
+            auto lhloc = lh.loc();
+            auto zlhloc = lhloc.copyWithZeroLength();
+            auto ary = MK::Send0(loc, MK::Local(loc, tempExpanded), core::Names::toAry(), zlhloc);
+            stats.emplace_back(MK::Assign(lhloc, move(lh), move(ary)));
+        }
+        i = -right;
     }
     for (auto *c : rights) {
+        ++after;
         processTarget(c);
     }
 
