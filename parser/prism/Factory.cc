@@ -511,6 +511,14 @@ pm_node_t *Factory::T_Enumerator(core::LocOffsets loc) const {
     return ConstantPathNode(loc, T(loc), "Enumerator"sv);
 }
 
+pm_node_t *Factory::T_Enumerator_Lazy(core::LocOffsets loc) const {
+    return ConstantPathNode(loc, T_Enumerator(loc), "Lazy"sv);
+}
+
+pm_node_t *Factory::T_Enumerator_Chain(core::LocOffsets loc) const {
+    return ConstantPathNode(loc, T_Enumerator(loc), "Chain"sv);
+}
+
 pm_node_t *Factory::T_Hash(core::LocOffsets loc) const {
     return ConstantPathNode(loc, T(loc), "Hash"sv);
 }
