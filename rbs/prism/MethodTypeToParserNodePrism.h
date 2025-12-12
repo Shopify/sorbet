@@ -1,12 +1,9 @@
 #ifndef RBS_METHOD_TYPE_TO_PARSER_NODE_PRISM_H
 #define RBS_METHOD_TYPE_TO_PARSER_NODE_PRISM_H
 
-#include "parser/parser.h"
 #include "parser/prism/Factory.h"
-#include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "rbs/rbs_common.h"
-#include <memory>
 
 extern "C" {
 #include "prism.h"
