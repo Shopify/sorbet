@@ -289,7 +289,7 @@ private:
                                          core::LocOffsets location, bool isPrivateOk);
 
     template <typename Lambda>
-    ast::ExpressionPtr desugarConditionalSend(pm_node_t *parentNode, pm_node_t *receiverNode,
+    ast::ExpressionPtr desugarConditionalSend(pm_node_t *parentNode, ast::ExpressionPtr receiver,
                                               pm_constant_id_t methodNameID, pm_location_t methodNamePrismLoc,
                                               Lambda &&body);
 };

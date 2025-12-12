@@ -407,30 +407,30 @@ ast::ExpressionPtr Translator::desugarDString(core::LocOffsets loc, pm_node_list
 }
 
 template <typename Lambda>
-ast::ExpressionPtr Translator::desugarConditionalSend(pm_node_t *parentNode, pm_node_t *receiverNode,
+ast::ExpressionPtr Translator::desugarConditionalSend(pm_node_t *parentNode, ast::ExpressionPtr receiver,
                                                       pm_constant_id_t methodNameID, pm_location_t methodNamePrismLoc,
                                                       Lambda &&body) {
     auto parentLoc = translateLoc(parentNode->location);
     auto loc0 = parentLoc.copyWithZeroLength();
 
-    ast::ExpressionPtr receiver;
-    if (receiverNode == nullptr) { // Convert `foo()` to `self.foo()`
-        receiver = MK::Self(loc0);
-    } else {
-        receiver = desugar(receiverNode);
-    }
+    // ast::ExpressionPtr receiver;
+    // if (receiverNode == nullptr) { // Convert `foo()` to `self.foo()`
+    //     receiver = MK::Self(loc0);
+    // } else {
+    //     receiver = desugar(receiverNode);
+    // }
 
-    // Unsupported nodes are desugared to an empty tree.
-    // Treat them as if they were `self` to match `Desugar.cc`.
-    // TODO: Clean up after direct desugaring is complete.
-    // https://github.com/Shopify/sorbet/issues/671
-    ast::Send::Flags flags;
-    if (ast::isa_tree<ast::EmptyTree>(receiver)) {
-        receiver = MK::Self(parentLoc);
-        flags.isPrivateOk = true;
-    } else {
-        flags.isPrivateOk = PM_NODE_FLAG_P(parentNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
-    }
+    // // Unsupported nodes are desugared to an empty tree.
+    // // Treat them as if they were `self` to match `Desugar.cc`.
+    // // TODO: Clean up after direct desugaring is complete.
+    // // https://github.com/Shopify/sorbet/issues/671
+    // ast::Send::Flags flags;
+    // if (ast::isa_tree<ast::EmptyTree>(receiver)) {
+    //     receiver = MK::Self(parentLoc);
+    //     flags.isPrivateOk = true;
+    // } else {
+    //     flags.isPrivateOk = PM_NODE_FLAG_P(parentNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
+    // }
 
     auto recvLoc = receiver.loc();
     auto recvLoc0 = recvLoc.copyWithZeroLength();
@@ -442,7 +442,7 @@ ast::ExpressionPtr Translator::desugarConditionalSend(pm_node_t *parentNode, pm_
     core::NameRef receiverTempLocalVarName = nextUniqueDesugarName(core::Names::assignTemp());
 
     // $temp = receiver
-    auto assignment = MK::Assign(recvLoc0, receiverTempLocalVarName, desugar(receiverNode));
+    auto assignment = MK::Assign(recvLoc0, receiverTempLocalVarName, move(receiver));
 
     // Just compare with `NilClass` to avoid potentially calling into a class-defined `==`
     auto cond = MK::Send1(loc0, ast::MK::Constant(recvLoc0, core::Symbols::NilClass()), core::Names::tripleEq(),
@@ -575,7 +575,7 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
                                         move(arguments));
                     };
 
-                    auto expr = desugarConditionalSend(up_cast(callTargetNode), receiverNode, callTargetNode->name,
+                    auto expr = desugarConditionalSend(up_cast(callTargetNode), move(receiver), callTargetNode->name,
                                                        callTargetNode->message_loc, body);
                     stats.emplace_back(move(expr));
                 } else {
@@ -2113,13 +2113,9 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 //       end
                 //     end
 
-                core::NameRef tempRecvName = nextUniqueDesugarName(core::Names::assignTemp());
                 auto recvLoc = translateLoc(callNode->receiver->location);
                 // // Assign some desugar-produced nodes with zero-length Locs so IDE ignores them when mapping text
                 // // location to node.
-                auto loc = location;
-                auto zeroLengthLoc = loc.copyWithZeroLength();
-                auto zeroLengthRecvLoc = recvLoc.copyWithZeroLength();
                 auto csendLoc = recvLoc.copyEndWithZeroLength();
                 if (recvLoc.endPos() + 1 <= ctx.file.data(ctx).source().size()) {
                     auto ampersandLoc = core::LocOffsets{recvLoc.endPos(), recvLoc.endPos() + 1};
@@ -2133,23 +2129,21 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
                 ENFORCE(callNode->receiver != nullptr, "Conditional sends should always have a receiver.");
 
-                // $temp = receiver
-                auto assignment = MK::Assign(zeroLengthRecvLoc, tempRecvName, move(receiver));
+                // Workaround for a bug in the legacy desugarer, which never allows `&.` to call private methods.
+                // https://github.com/sorbet/sorbet/issues/9756
+                isPrivateOk = false;
 
-                // Just compare with `NilClass` to avoid potentially calling into a class-defined `==`
-                auto cond =
-                    MK::Send1(zeroLengthLoc, ast::MK::Constant(zeroLengthRecvLoc, core::Symbols::NilClass()),
-                              core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecvName));
+                auto arguments = callNode->arguments;
+                auto closingLoc = callNode->closing_loc;
+                auto body = [this, arguments, closingLoc, &block, location,
+                             isPrivateOk](ast::ExpressionPtr receiverTempLocal, core::LocOffsets parentLoc,
+                                          core::NameRef methodName, core::LocOffsets methodNameLoc) {
+                    return desugarMethodCall(move(receiverTempLocal), methodName, methodNameLoc, arguments, closingLoc,
+                                             move(block), location, isPrivateOk);
+                };
 
-                auto tempRecv = MK::Local(zeroLengthRecvLoc, tempRecvName);
-                auto send = desugarMethodCall(move(tempRecv), methodName, methodNameLoc, callNode->arguments,
-                                              callNode->closing_loc, move(block), location, isPrivateOk);
-
-                ExpressionPtr nil =
-                    MK::Send1(recvLoc.copyEndWithZeroLength(), MK::Magic(zeroLengthLoc),
-                              core::Names::nilForSafeNavigation(), zeroLengthLoc, MK::Local(csendLoc, tempRecvName));
-                auto if_ = MK::If(zeroLengthLoc, move(cond), move(nil), move(send));
-                return MK::InsSeq1(location, move(assignment), move(if_));
+                return desugarConditionalSend(up_cast(callNode), move(receiver), callNode->name, callNode->message_loc,
+                                              body);
             }
 
             return desugarMethodCall(move(receiver), methodName, methodNameLoc, callNode->arguments,
