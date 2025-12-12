@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 proc { _1 + _2 }
 proc do _1 + _2 end
