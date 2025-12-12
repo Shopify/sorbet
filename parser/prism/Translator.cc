@@ -3056,10 +3056,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
             auto operatorLoc = translateLoc(lambdaNode->operator_loc); // the `->` arrow
 
-            // TODO: Switch to resolved `::Kernel` once we break parity with the legacy parser
-            //       https://github.com/Shopify/sorbet/issues/671
-            // auto receiver = MK::Constant(operatorLoc, core::Symbols::Kernel());
-            auto receiver = MK::UnresolvedConstant(operatorLoc, MK::EmptyTree(), core::Names::Constants::Kernel());
+            auto receiver = MK::Constant(operatorLoc, core::Symbols::Kernel());
             pm_arguments_node *args = nullptr;
             // Use opening_loc to closing_loc for the block location (just the `{ }` or `do end` part),
             // not base.location which includes the `->` arrow.
@@ -4181,7 +4178,10 @@ Translator::findNumberedParamsUsageLocs(core::LocOffsets loc, pm_statements_node
 
             if (varName.length() == 2 && varName[0] == '_' && '1' <= varName[1] && varName[1] <= '9') {
                 auto number = varName[1] - '0';
-                activeRegion[number - 1] = this->translateLoc(node->location);
+                // Only set the location if it hasn't been set yet (use the first occurrence)
+                if (!activeRegion[number - 1].exists()) {
+                    activeRegion[number - 1] = this->translateLoc(node->location);
+                }
             }
 
             if (absl::c_all_of(activeRegion, [](const core::LocOffsets &loc) { return loc.exists(); })) {
