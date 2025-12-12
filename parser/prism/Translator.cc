@@ -487,11 +487,6 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
                 auto callTargetNode = down_cast<pm_call_target_node>(c);
                 auto receiverNode = callTargetNode->receiver;
 
-                if (PM_NODE_FLAG_P(callTargetNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
-                    categoryCounterInc("Prism fallback", "PM_CALL_TARGET_NODE with PM_CALL_NODE_FLAGS_SAFE_NAVIGATION");
-                    throw PrismFallback{};
-                }
-
                 ast::ExpressionPtr receiver;
                 if (receiverNode == nullptr) { // Convert `foo()` to `self.foo()`
                     receiver = MK::Self(zcloc);
@@ -513,10 +508,55 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
 
                 auto methodName = translateConstantName(callTargetNode->name);
                 auto methodNameLoc = translateLoc(callTargetNode->message_loc);
-                ast::Send::ARGS_store emptyArgs;
-                stats.emplace_back(
-                    MK::Send(cloc, move(receiver), methodName, methodNameLoc, 0, move(emptyArgs), flags));
-                // stats.emplace_back(MK::Nil(cloc));
+
+                ast::Send::ARGS_store arguments;
+                arguments.emplace_back(move(val));
+
+                if (PM_NODE_FLAG_P(callTargetNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
+                    core::NameRef tempRecvName = nextUniqueDesugarName(core::Names::assignTemp());
+                    auto recvLoc = translateLoc(receiverNode->location);
+                    // // Assign some desugar-produced nodes with zero-length Locs so IDE ignores them when mapping text
+                    // // location to node.
+                    auto loc = cloc;
+                    auto zeroLengthLoc = loc.copyWithZeroLength();
+                    auto zeroLengthRecvLoc = recvLoc.copyWithZeroLength();
+                    auto csendLoc = recvLoc.copyEndWithZeroLength();
+                    if (recvLoc.endPos() + 1 <= ctx.file.data(ctx).source().size()) {
+                        auto ampersandLoc = core::LocOffsets{recvLoc.endPos(), recvLoc.endPos() + 1};
+                        // The arg loc for the synthetic variable created for the purpose of this safe navigation
+                        // check is a bit of a hack. It's intentionally one character too short so that for
+                        // completion requests it doesn't match `x&.|` (which would defeat completion requests.)
+                        if (ctx.locAt(ampersandLoc).source(ctx) == "&") {
+                            csendLoc = ampersandLoc;
+                        }
+                    }
+
+                    ENFORCE(receiverNode != nullptr, "Conditional sends should always have a receiver.");
+
+                    // $temp = receiver
+                    auto receiver = desugar(receiverNode);
+                    auto assignment = MK::Assign(zeroLengthRecvLoc, tempRecvName, desugar(receiverNode));
+
+                    // Just compare with `NilClass` to avoid potentially calling into a class-defined `==`
+                    auto cond = MK::Send1(
+                        zeroLengthLoc, ast::MK::Constant(zeroLengthRecvLoc, core::Symbols::NilClass()),
+                        core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecvName));
+
+                    auto tempRecv = MK::Local(zeroLengthRecvLoc, tempRecvName);
+
+                    auto send = MK::Send(cloc, move(tempRecv), methodName, methodNameLoc, 1, move(arguments), flags);
+
+                    ExpressionPtr nil = MK::Send1(recvLoc.copyEndWithZeroLength(), MK::Magic(zeroLengthLoc),
+                                                  core::Names::nilForSafeNavigation(), zeroLengthLoc,
+                                                  MK::Local(csendLoc, tempRecvName));
+                    auto if_ = MK::If(zeroLengthLoc, move(cond), move(nil), move(send));
+                    auto wrappingInsSeq = MK::InsSeq1(cloc, move(assignment), move(if_));
+
+                    stats.emplace_back(move(wrappingInsSeq));
+                } else {
+                    stats.emplace_back(
+                        MK::Send(cloc, move(receiver), methodName, methodNameLoc, 1, move(arguments), flags));
+                }
             } else {
                 ast::ExpressionPtr lh = desugar(c);
                 if (auto restParam = ast::cast_tree<ast::RestParam>(lh)) {
@@ -2069,8 +2109,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 ENFORCE(callNode->receiver != nullptr, "Conditional sends should always have a receiver.");
 
                 // $temp = receiver
-                auto receiver = desugar(callNode->receiver);
-                auto assignment = MK::Assign(zeroLengthRecvLoc, tempRecvName, desugar(callNode->receiver));
+                auto assignment = MK::Assign(zeroLengthRecvLoc, tempRecvName, move(receiver));
 
                 // Just compare with `NilClass` to avoid potentially calling into a class-defined `==`
                 auto cond =
