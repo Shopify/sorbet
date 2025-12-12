@@ -1,27 +1,20 @@
 #include "rbs/prism/TypeParamsToParserNodesPrism.h"
 
 #include "core/errors/rewriter.h"
-#include "parser/prism/Factory.h"
-#include "parser/prism/Parser.h"
 #include "rbs/prism/TypeToParserNodePrism.h"
-#include "rbs/rbs_common.h"
 
 using namespace std;
 
 namespace sorbet::rbs {
 
-vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_t *rbsTypeParams,
-                                                            const RBSDeclaration &declaration) {
+vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list_t *rbsTypeParams,
+                                                             const RBSDeclaration &declaration) {
     vector<pm_node_t *> result;
     result.reserve(rbsTypeParams->length);
 
-    for (rbs_node_list_node_t *list_node = rbsTypeParams->head; list_node != nullptr; list_node = list_node->next) {
-        ENFORCE(list_node->node->type == RBS_AST_TYPE_PARAM,
-                "Unexpected node type `{}` in type parameter list, expected `{}`", rbs_node_type_name(list_node->node),
-                "TypeParam");
-
-        auto rbsTypeParam = (rbs_ast_type_param_t *)list_node->node;
-        auto loc = declaration.typeLocFromRange(list_node->node->location->rg);
+    for (auto *listNode = rbsTypeParams->head; listNode != nullptr; listNode = listNode->next) {
+        auto *rbsTypeParam = rbs_down_cast<rbs_ast_type_param_t>(listNode->node);
+        auto loc = declaration.typeLocFromRange(listNode->node->location->rg);
 
         if (rbsTypeParam->unchecked) {
             if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSUnsupported)) {
@@ -48,8 +41,7 @@ vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_
 
         pm_node_t *block = nullptr;
         if (defaultType || upperBound || lowerBound) {
-            auto typeTranslator =
-                TypeToParserNodePrism(ctx, absl::Span<pair<core::LocOffsets, core::NameRef>>{}, parser, prismParser);
+            auto typeTranslator = TypeToParserNodePrism(ctx, {}, parser, prismParser);
             vector<pm_node_t *> pairs;
 
             if (defaultType) {
@@ -70,12 +62,10 @@ vector<pm_node_t *> TypeParamsToParserNodePrism::typeParams(const rbs_node_list_
                 pairs.push_back(prism.AssocNode(loc, key, value));
             }
 
-            auto body = prism.Hash(loc, absl::MakeSpan(pairs));
-            block = prism.Block(loc, body);
+            block = prism.Block(loc, prism.Hash(loc, absl::MakeSpan(pairs)));
         }
 
         auto typeCall = prism.Call(loc, prism.SorbetPrivateStatic(loc), "type_member"sv, absl::MakeSpan(args), block);
-
         auto assign = prism.ConstantWriteNode(loc, prism.addConstantToPool(nameConstant.show(ctx.state)), typeCall);
         result.push_back(assign);
     }

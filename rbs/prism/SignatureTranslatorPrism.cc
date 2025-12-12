@@ -130,8 +130,8 @@ vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDecla
         return vector<pm_node_t *>{};
     }
 
-    auto typeParamsToParserNode = TypeParamsToParserNodePrism(ctx, move(rbsParser), *parser);
-    return typeParamsToParserNode.typeParams(rbsTypeParams, declaration);
+    TypeParamsToParserNodesPrism typeParamsTranslator(ctx, rbsParser, *parser);
+    return typeParamsTranslator.typeParams(rbsTypeParams, declaration);
 }
 
 } // namespace sorbet::rbs
