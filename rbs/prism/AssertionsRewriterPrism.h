@@ -1,12 +1,10 @@
 #ifndef SORBET_RBS_ASSERTIONS_REWRITER_PRISM_H
 #define SORBET_RBS_ASSERTIONS_REWRITER_PRISM_H
 
-#include "parser/parser.h"
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "rbs/prism/CommentsAssociatorPrism.h"
 #include "rbs/rbs_common.h"
-#include <memory>
 
 extern "C" {
 #include "prism.h"
@@ -45,8 +43,6 @@ private:
 
     void consumeComment(core::LocOffsets loc);
     bool hasConsumedComment(core::LocOffsets loc);
-    std::optional<InlineCommentPrism> commentForPos(uint32_t fromPos, std::vector<char> allowedTokens);
-    std::optional<InlineCommentPrism> commentForNode(const std::unique_ptr<parser::Node> &node);
     std::optional<InlineCommentPrism> commentForNode(pm_node_t *node);
 
     core::LocOffsets translateLocation(pm_location_t location);
@@ -60,9 +56,6 @@ private:
     pm_node_t *maybeInsertCast(pm_node_t *node);
     pm_node_t *insertCast(pm_node_t *node, std::optional<std::pair<pm_node_t *, InlineCommentPrism::Kind>> pair);
     pm_node_t *replaceSyntheticBind(pm_node_t *node);
-
-    void checkDanglingCommentWithDecl(uint32_t nodeEnd, uint32_t declEnd, std::string kind);
-    void checkDanglingComment(uint32_t nodeEnd, std::string kind);
 };
 
 } // namespace sorbet::rbs
