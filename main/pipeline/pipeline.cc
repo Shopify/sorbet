@@ -208,7 +208,7 @@ namespace {
 
 pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
                               const vector<core::LocOffsets> &commentLocations, const options::Printers &print,
-                              core::MutableContext &ctx, const parser::Prism::Parser &parser);
+                              core::MutableContext &ctx, parser::Prism::Parser &parser);
 
 ast::ExpressionPtr fetchTreeFromCache(core::GlobalState &gs, core::FileRef fref, core::File &file,
                                       const unique_ptr<const OwnedKeyValueStore> &kvstore) {
@@ -383,7 +383,7 @@ ast::ParsedFile emptyParsedFile(core::FileRef file) {
 
 pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
                               const vector<core::LocOffsets> &commentLocations, const options::Printers &print,
-                              core::MutableContext &ctx, const parser::Prism::Parser &parser) {
+                              core::MutableContext &ctx, parser::Prism::Parser &parser) {
     Timer timeit(gs.tracer(), "runPrismRBSRewrite", {{"file", string(file.data(gs).path())}});
 
     auto associator = rbs::CommentsAssociatorPrism(ctx, parser, commentLocations);
