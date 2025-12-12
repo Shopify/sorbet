@@ -1299,42 +1299,37 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
     auto lhsLoc = core::LocOffsets{location.beginPos(), messageLoc.endPos()};
 
     if (PM_NODE_FLAG_P(untypedNode, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION)) {
-        // Handle safe navigation: a&.b += 1
-        // Creates pattern: { $temp = a; if $temp == nil then nil else $temp.b += 1 }
-        auto tempRecv = nextUniqueDesugarName(core::Names::assignTemp());
-        auto recvLoc = receiverExpr.loc();
-        auto zeroLengthLoc = location.copyWithZeroLength();
-        auto zeroLengthRecvLoc = recvLoc.copyWithZeroLength();
+        // Handle safe navigation on the LHS, like: a&.b += 1
 
-        // The `&` in `a&.b = 1`
-        constexpr auto len = "&"sv.size();
-        auto ampersandLoc = translateLoc(node->call_operator_loc.start, node->call_operator_loc.start + len);
+        // Desugar:
+        //     receiver&.b += 1
+        // to:
+        //     begin
+        //       $temp = receiver()
+        //       if ::NilClass === $temp
+        //         nil
+        //       else
+        //         $temp.b += 1
+        //       end
+        //     end
+        auto body = [&](ast::ExpressionPtr receiverTempLocal, core::LocOffsets parentLoc, core::NameRef methodName,
+                        core::LocOffsets methodNameLoc) -> ast::ExpressionPtr {
+            auto innerSend =
+                MK::Send(parentLoc, move(receiverTempLocal), methodName, methodNameLoc, 0, ast::Send::ARGS_store{});
 
-        auto tempAssign = MK::Assign(zeroLengthRecvLoc, tempRecv, move(receiverExpr));
-        auto cond = MK::Send1(zeroLengthLoc, MK::Constant(zeroLengthRecvLoc, core::Symbols::NilClass()),
-                              core::Names::tripleEq(), zeroLengthRecvLoc, MK::Local(zeroLengthRecvLoc, tempRecv));
+            auto rhs = desugar(node->value);
 
-        // Create the inner send: $temp.b
-        auto innerSend =
-            MK::Send(location, MK::Local(zeroLengthRecvLoc, tempRecv), name, messageLoc, 0, ast::Send::ARGS_store{});
+            if constexpr (Kind == OpAssignKind::Operator) {
+                auto opLoc = translateLoc(node->binary_operator_loc);
+                auto op = translateConstantName(node->binary_operator);
+                return desugarAnyOpAssign<Kind>(parentLoc, move(innerSend), move(rhs), op, opLoc, false);
+            } else {
+                return desugarAnyOpAssign<Kind>(parentLoc, move(innerSend), move(rhs), core::NameRef::noName(),
+                                                core::LocOffsets::none(), false);
+            }
+        };
 
-        auto rhs = desugar(node->value);
-
-        ast::ExpressionPtr assignmentExpr;
-        if constexpr (Kind == OpAssignKind::Operator) {
-            auto opLoc = translateLoc(node->binary_operator_loc);
-            auto op = translateConstantName(node->binary_operator);
-            assignmentExpr = desugarAnyOpAssign<Kind>(location, move(innerSend), move(rhs), op, opLoc, false);
-        } else {
-            assignmentExpr = desugarAnyOpAssign<Kind>(location, move(innerSend), move(rhs), core::NameRef::noName(),
-                                                      core::LocOffsets::none(), false);
-        }
-
-        auto nilValue =
-            MK::Send1(recvLoc.copyEndWithZeroLength(), MK::Magic(zeroLengthLoc), core::Names::nilForSafeNavigation(),
-                      zeroLengthLoc, MK::Local(ampersandLoc, tempRecv));
-        auto ifExpr = MK::If(zeroLengthLoc, move(cond), move(nilValue), move(assignmentExpr));
-        return MK::InsSeq1(location, move(tempAssign), move(ifExpr));
+        return desugarConditionalSend(untypedNode, move(receiverExpr), node->read_name, node->message_loc, body);
     }
 
     // Regular send: a.b += 1
