@@ -17,6 +17,19 @@ bool hasTypeParam(absl::Span<const pair<core::LocOffsets, core::NameRef>> typePa
     return absl::c_any_of(typeParams, [&](const auto &param) { return param.second == name; });
 }
 
+bool isEnumerator(pm_node_t *node, parser::Prism::Parser &prismParser, core::GlobalState &gs) {
+    auto *constNode = PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE) ? down_cast<pm_constant_read_node_t>(node) : nullptr;
+    auto *pathNode = PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE) ? down_cast<pm_constant_path_node_t>(node) : nullptr;
+
+    if (!constNode && !pathNode) {
+        return false;
+    }
+
+    auto nameId = constNode ? constNode->name : pathNode->name;
+    auto name = gs.enterNameConstant(prismParser.resolveConstant(nameId));
+    return name == core::Names::Constants::Enumerator() && (constNode || pathNode->parent == nullptr);
+}
+
 } // namespace
 
 pm_node_t *TypeToParserNodePrism::namespaceConst(const rbs_namespace_t *rbsNamespace, const RBSDeclaration &declaration,
@@ -77,6 +90,10 @@ pm_node_t *TypeToParserNodePrism::typeNameType(const rbs_type_name_t *typeName, 
             } else if (nameConstant == core::Names::Constants::Range()) {
                 return prism.T_Range(loc);
             }
+        } else if (nameConstant == core::Names::Constants::Lazy() && isEnumerator(parent, prismParser, ctx.state)) {
+            return prism.T_Enumerator_Lazy(loc);
+        } else if (nameConstant == core::Names::Constants::Chain() && isEnumerator(parent, prismParser, ctx.state)) {
+            return prism.T_Enumerator_Chain(loc);
         }
     } else {
         // The type may refer to a type parameter, so we need to check if it exists as a NameKind::UTF8

@@ -224,7 +224,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   ::T::Sig::WithoutRuntime.sig() do ||
-    <self>.returns(<emptyTree>::<C Enumerator>::<C Lazy>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
+    <self>.returns(::<root>::<C T>::<C Enumerator>::<C Lazy>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
   end
 
   def generic_type_enumerator_lazy<<todo method>>(&<blk>)
@@ -232,7 +232,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   ::T::Sig::WithoutRuntime.sig() do ||
-    <self>.returns(::<root>::<C Enumerator>::<C Lazy>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
+    <self>.returns(::<root>::<C T>::<C Enumerator>::<C Lazy>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
   end
 
   def generic_type_enumerator_lazy_root<<todo method>>(&<blk>)
@@ -240,7 +240,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   ::T::Sig::WithoutRuntime.sig() do ||
-    <self>.returns(<emptyTree>::<C Enumerator>::<C Chain>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
+    <self>.returns(::<root>::<C T>::<C Enumerator>::<C Chain>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
   end
 
   def generic_type_enumerator_chain<<todo method>>(&<blk>)
@@ -248,7 +248,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   ::T::Sig::WithoutRuntime.sig() do ||
-    <self>.returns(::<root>::<C Enumerator>::<C Chain>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
+    <self>.returns(::<root>::<C T>::<C Enumerator>::<C Chain>.<syntheticSquareBrackets>(<emptyTree>::<C Integer>))
   end
 
   def generic_type_enumerator_chain_root<<todo method>>(&<blk>)
