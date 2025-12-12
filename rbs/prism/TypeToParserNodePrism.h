@@ -51,6 +51,8 @@ private:
     pm_node_t *tupleType(const rbs_types_tuple_t *node, core::LocOffsets loc, const RBSDeclaration &declaration);
     pm_node_t *recordType(const rbs_types_record_t *node, core::LocOffsets loc, const RBSDeclaration &declaration);
     pm_node_t *variableType(const rbs_types_variable_t *node, core::LocOffsets loc);
+
+    std::vector<pm_node_t *> translateNodeList(rbs_node_list *list, const RBSDeclaration &declaration);
 };
 
 } // namespace sorbet::rbs
