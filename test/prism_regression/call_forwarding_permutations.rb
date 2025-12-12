@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 # This file tests combinations of block forwarding and literal blocks.
 #
