@@ -267,6 +267,11 @@ pm_node_t *Factory::SorbetPrivateStatic(core::LocOffsets loc) const {
     return ConstantPathNode(loc, sorbetPrivate, "Static"sv);
 }
 
+pm_node_t *Factory::SorbetPrivateStaticVoid(core::LocOffsets loc) const {
+    // Build a root-anchored constant path ::Sorbet::Private::Static::Void
+    return ConstantPathNode(loc, SorbetPrivateStatic(loc), "Void"sv);
+}
+
 pm_node_t *Factory::TSigWithoutRuntime(core::LocOffsets loc) const {
     // Build a root-anchored constant path ::T::Sig::WithoutRuntime
     pm_node_t *tConst = ConstantPathNode(loc, nullptr, "T"sv);
