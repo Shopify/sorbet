@@ -127,23 +127,27 @@ sh_test(
 # Run the macro
 prism_location_test_suite(
     name = "prism_location_tests",
-    srcs = glob(
-        ["prism_regression/**/*.rb"],
-        exclude = [
-            "prism_regression/error_recovery/assign.rb",
-            "prism_regression/lambda.rb",
-            "prism_regression/call_kw_nil_args.rb",
-            "prism_regression/call_block_param_and_forwarding.rb",
-            "prism_regression/constants_invalid.rb",
-            "prism_regression/invalid/unterminated_regex.rb",
-            "prism_regression/csend_brackets.rb",
-            "prism_regression/block_symbol.rb",
-            "prism_regression/multiple_numbered_params.rb",
+    # srcs = glob(
+    #     ["prism_regression/**/*.rb"],
+    #    exclude = [
+    #        "prism_regression/error_recovery/assign.rb",
+    #        "prism_regression/lambda.rb",
+    #        "prism_regression/call_kw_nil_args.rb",
+    #        "prism_regression/call_block_param_and_forwarding.rb",
+    #        "prism_regression/constants_invalid.rb",
+    #        "prism_regression/invalid/unterminated_regex.rb",
+    #        "prism_regression/csend_brackets.rb",
+    #        "prism_regression/block_symbol.rb",
+    #        "prism_regression/multiple_numbered_params.rb",
 
-            # Sorbet's parser includes the last newline in the `<ErrorNode>`, but Prism doesn't.
-            "prism_regression/invalid/missing_node.rb",
-        ],
-    ),
+    #        # Sorbet's parser includes the last newline in the `<ErrorNode>`, but Prism doesn't.
+    #        "prism_regression/invalid/missing_node.rb",
+    #    ],
+    # ),
+    srcs = [
+        "prism_regression/assign_to_method_result.rb",
+        "prism_regression/super.rb",
+    ],
 )
 
 # Create a test suite to run all the location tests
