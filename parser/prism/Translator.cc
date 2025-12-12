@@ -5360,6 +5360,12 @@ unique_ptr<parser::Node> Translator::translateConst(PrismLhsNode *node) {
                         fullPath[2] == ctx.state.enterNameUTF8("WithoutRuntime")) {
                         return make_unique<parser::ResolvedConst>(location, core::Symbols::T_Sig_WithoutRuntime());
                     }
+                    if (fullPath.size() == 4 && fullPath[0] == ctx.state.enterNameUTF8("Sorbet") &&
+                        fullPath[1] == ctx.state.enterNameUTF8("Private") &&
+                        fullPath[2] == ctx.state.enterNameUTF8("Static") &&
+                        fullPath[3] == ctx.state.enterNameUTF8("Void")) {
+                        return make_unique<parser::ResolvedConst>(location, core::Symbols::void_());
+                    }
                 }
             }
         }

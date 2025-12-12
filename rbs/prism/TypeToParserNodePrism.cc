@@ -148,7 +148,7 @@ pm_node_t *TypeToParserNodePrism::optionalType(const rbs_types_optional_t *node,
 }
 
 pm_node_t *TypeToParserNodePrism::voidType(const rbs_types_bases_void_t *node, core::LocOffsets loc) {
-    return prism.ConstantReadNode("T.void"sv, loc);
+    return prism.SorbetPrivateStaticVoid(loc);
 }
 
 pm_node_t *TypeToParserNodePrism::functionType(const rbs_types_function_t *node, core::LocOffsets loc,

@@ -74,6 +74,7 @@ public:
 
     // High-level node creators
     pm_node_t *SorbetPrivateStatic(core::LocOffsets loc) const;
+    pm_node_t *SorbetPrivateStaticVoid(core::LocOffsets loc) const;
     pm_node_t *TSigWithoutRuntime(core::LocOffsets loc) const;
 
     // T constant and method helpers
