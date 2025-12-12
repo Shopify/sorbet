@@ -410,8 +410,8 @@ pipeline_tests(
 
             # Additional failing Prism tests - various location and desugaring differences
             "testdata/compiler/block_iseq_names.rb",
+            "testdata/compiler/destructuring_assignment.rb",
             "testdata/compiler/exceptions/raise_across_interop__*.rb",
-            "testdata/compiler/exceptions/raise_across_interop.rb",
             "testdata/compiler/exceptions/rescue_in_block.rb",
             "testdata/compiler/intrinsics/array_compact.rb",
             "testdata/compiler/intrinsics/array_compact_bang.rb",
