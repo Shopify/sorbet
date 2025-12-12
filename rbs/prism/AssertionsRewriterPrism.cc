@@ -1,12 +1,9 @@
 #include "rbs/prism/AssertionsRewriterPrism.h"
 
-#include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
 #include "core/errors/rewriter.h"
-#include "parser/helper.h"
-#include "parser/prism/Helpers.h"
 #include "rbs/prism/SignatureTranslatorPrism.h"
-#include "rbs/prism/TypeToParserNodePrism.h"
+#include <cctype>
 #include <regex>
 
 using namespace std;
@@ -36,14 +33,11 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
         comment.kind == InlineCommentPrism::Kind::ABSURD) {
         // The type should never be used but we need to hold the location...
-        pm_node_t *nil = prism.Nil(comment.comment.typeLoc);
-
-        return pair{nil, comment.kind};
+        return pair{prism.Nil(comment.comment.typeLoc), comment.kind};
     }
 
-    auto signatureTranslatorPrism = rbs::SignatureTranslatorPrism(ctx, parser);
-    auto declaration = RBSDeclaration(vector<Comment>{comment.comment});
-    auto type = signatureTranslatorPrism.translateAssertionType(absl::MakeSpan(typeParams), declaration);
+    auto type = rbs::SignatureTranslatorPrism(ctx, parser)
+                    .translateAssertionType(absl::MakeSpan(typeParams), RBSDeclaration({comment.comment}));
 
     if (type == nullptr) {
         // We couldn't parse the type, we produced an error, we don't return anything
@@ -67,7 +61,7 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
  */
 vector<pair<core::LocOffsets, core::NameRef>>
 extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &parser, pm_node_t *block) {
-    auto typeParams = vector<pair<core::LocOffsets, core::NameRef>>{};
+    vector<pair<core::LocOffsets, core::NameRef>> typeParams;
 
     // Do we have a block?
     if (!block || !PM_NODE_TYPE_P(block, PM_BLOCK_NODE)) {
@@ -162,13 +156,12 @@ bool sameConstant(parser::Prism::Parser &parser, pm_node_t *a, pm_node_t *b) {
             return false;
         }
 
-        if ((aPath->parent == nullptr && bPath->parent != nullptr) ||
-            (aPath->parent != nullptr && bPath->parent == nullptr)) {
-            return false;
+        // If both parents are null, we've matched the entire path
+        if (aPath->parent == nullptr && bPath->parent == nullptr) {
+            return true;
         }
 
-        return (aPath->parent == nullptr && bPath->parent == nullptr) ||
-               sameConstant(parser, aPath->parent, bPath->parent);
+        return sameConstant(parser, aPath->parent, bPath->parent);
     }
 
     return false;
@@ -217,13 +210,11 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
 
         case PM_ARGUMENTS_NODE: {
             auto *original = down_cast<pm_arguments_node_t>(node);
-
-            std::vector<pm_node_t *> copiedArgs;
+            vector<pm_node_t *> copiedArgs;
             copiedArgs.reserve(original->arguments.size);
             for (size_t i = 0; i < original->arguments.size; i++) {
                 copiedArgs.push_back(deepCopyGenericTypeNode(parser, original->arguments.nodes[i]));
             }
-
             return up_cast(prism.createArgumentsNode(absl::MakeSpan(copiedArgs), original->base.location));
         }
 
@@ -233,7 +224,6 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         //   - G1[Numeric] -> Numeric
         case PM_CONSTANT_READ_NODE: {
             auto *original = down_cast<pm_constant_read_node_t>(node);
-
             return prism.ConstantReadNode(original->name, original->base.location);
         }
 
@@ -243,7 +233,6 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         //   - G1[MyModule::MyClass] -> MyModule::MyClass
         case PM_CONSTANT_PATH_NODE: {
             auto *original = down_cast<pm_constant_path_node_t>(node);
-
             return prism.ConstantPathNode(original->base.location, deepCopyGenericTypeNode(parser, original->parent),
                                           original->name);
         }
@@ -682,138 +671,117 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         // And assignments
         case PM_LOCAL_VARIABLE_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_local_variable_and_write_node_t>(node);
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
         case PM_INSTANCE_VARIABLE_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_instance_variable_and_write_node_t>(node);
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
         case PM_CLASS_VARIABLE_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_class_variable_and_write_node_t>(node);
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
         case PM_GLOBAL_VARIABLE_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_global_variable_and_write_node_t>(node);
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
         case PM_CONSTANT_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_constant_and_write_node_t>(node);
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
         case PM_CONSTANT_PATH_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_constant_path_and_write_node_t>(node);
             andWrite->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(andWrite->target)));
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
         case PM_CALL_AND_WRITE_NODE: {
             auto *andWrite = down_cast<pm_call_and_write_node_t>(node);
             andWrite->receiver = rewriteNode(andWrite->receiver);
-            andWrite->value = maybeInsertCast(andWrite->value);
-            andWrite->value = rewriteNode(andWrite->value);
+            andWrite->value = rewriteNode(maybeInsertCast(andWrite->value));
             return node;
         }
 
         // Operator assignments
         case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_local_variable_operator_write_node_t>(node);
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
         case PM_INSTANCE_VARIABLE_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_instance_variable_operator_write_node_t>(node);
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
         case PM_CLASS_VARIABLE_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_class_variable_operator_write_node_t>(node);
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
         case PM_GLOBAL_VARIABLE_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_global_variable_operator_write_node_t>(node);
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
         case PM_CONSTANT_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_constant_operator_write_node_t>(node);
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
         case PM_CONSTANT_PATH_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_constant_path_operator_write_node_t>(node);
             opWrite->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(opWrite->target)));
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
         case PM_CALL_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_call_operator_write_node_t>(node);
             opWrite->receiver = rewriteNode(opWrite->receiver);
-            opWrite->value = maybeInsertCast(opWrite->value);
-            opWrite->value = rewriteNode(opWrite->value);
+            opWrite->value = rewriteNode(maybeInsertCast(opWrite->value));
             return node;
         }
 
         // Or assignments
         case PM_LOCAL_VARIABLE_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_local_variable_or_write_node_t>(node);
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
         case PM_INSTANCE_VARIABLE_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_instance_variable_or_write_node_t>(node);
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
         case PM_CLASS_VARIABLE_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_class_variable_or_write_node_t>(node);
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
         case PM_GLOBAL_VARIABLE_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_global_variable_or_write_node_t>(node);
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
         case PM_CONSTANT_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_constant_or_write_node_t>(node);
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
         case PM_CONSTANT_PATH_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_constant_path_or_write_node_t>(node);
             orWrite->target = down_cast<pm_constant_path_node_t>(rewriteNode(up_cast(orWrite->target)));
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
         case PM_CALL_OR_WRITE_NODE: {
             auto *orWrite = down_cast<pm_call_or_write_node_t>(node);
             orWrite->receiver = rewriteNode(orWrite->receiver);
-            orWrite->value = maybeInsertCast(orWrite->value);
-            orWrite->value = rewriteNode(orWrite->value);
+            orWrite->value = rewriteNode(maybeInsertCast(orWrite->value));
             return node;
         }
 
@@ -821,8 +789,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_MULTI_WRITE_NODE: {
             auto *masgn = down_cast<pm_multi_write_node_t>(node);
             // TODO: Handle target nodes (lefts/rest/rights)
-            masgn->value = maybeInsertCast(masgn->value);
-            masgn->value = rewriteNode(masgn->value);
+            masgn->value = rewriteNode(maybeInsertCast(masgn->value));
             return node;
         }
 
@@ -835,9 +802,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
                 return node;
             }
             if (parser.isSafeNavigationCall(node)) {
-                call->receiver = maybeInsertCast(call->receiver);
-                call->receiver = rewriteNode(call->receiver);
-
+                call->receiver = rewriteNode(maybeInsertCast(call->receiver));
                 node = maybeInsertCast(node);
             } else {
                 // Normal call - matches Whitequark's Send handling
@@ -1066,8 +1031,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         }
         case PM_ASSOC_SPLAT_NODE: {
             auto *splat = down_cast<pm_assoc_splat_node_t>(node);
-            splat->value = maybeInsertCast(splat->value);
-            splat->value = rewriteNode(splat->value);
+            splat->value = rewriteNode(maybeInsertCast(splat->value));
             return node;
         }
 
