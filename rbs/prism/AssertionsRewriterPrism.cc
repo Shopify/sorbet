@@ -724,6 +724,20 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             andWrite->value = rewriteNode(andWrite->value);
             return node;
         }
+        case PM_INDEX_AND_WRITE_NODE: {
+            auto *andWrite = down_cast<pm_index_and_write_node_t>(node);
+            andWrite->receiver = rewriteNode(andWrite->receiver);
+            if (andWrite->arguments != nullptr) {
+                rewriteNodes(andWrite->arguments->arguments);
+            }
+            if (andWrite->block != nullptr) {
+                andWrite->block =
+                    down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(andWrite->block)));
+            }
+            andWrite->value = maybeInsertCast(andWrite->value);
+            andWrite->value = rewriteNode(andWrite->value);
+            return node;
+        }
 
         // Operator assignments
         case PM_LOCAL_VARIABLE_OPERATOR_WRITE_NODE: {
@@ -766,6 +780,20 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_CALL_OPERATOR_WRITE_NODE: {
             auto *opWrite = down_cast<pm_call_operator_write_node_t>(node);
             opWrite->receiver = rewriteNode(opWrite->receiver);
+            opWrite->value = maybeInsertCast(opWrite->value);
+            opWrite->value = rewriteNode(opWrite->value);
+            return node;
+        }
+        case PM_INDEX_OPERATOR_WRITE_NODE: {
+            auto *opWrite = down_cast<pm_index_operator_write_node_t>(node);
+            opWrite->receiver = rewriteNode(opWrite->receiver);
+            if (opWrite->arguments != nullptr) {
+                rewriteNodes(opWrite->arguments->arguments);
+            }
+            if (opWrite->block != nullptr) {
+                opWrite->block =
+                    down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(opWrite->block)));
+            }
             opWrite->value = maybeInsertCast(opWrite->value);
             opWrite->value = rewriteNode(opWrite->value);
             return node;
@@ -816,6 +844,20 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             orWrite->value = rewriteNode(orWrite->value);
             return node;
         }
+        case PM_INDEX_OR_WRITE_NODE: {
+            auto *orWrite = down_cast<pm_index_or_write_node_t>(node);
+            orWrite->receiver = rewriteNode(orWrite->receiver);
+            if (orWrite->arguments != nullptr) {
+                rewriteNodes(orWrite->arguments->arguments);
+            }
+            if (orWrite->block != nullptr) {
+                orWrite->block =
+                    down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(orWrite->block)));
+            }
+            orWrite->value = maybeInsertCast(orWrite->value);
+            orWrite->value = rewriteNode(orWrite->value);
+            return node;
+        }
 
         // Multi-assignment
         case PM_MULTI_WRITE_NODE: {
@@ -856,6 +898,12 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             auto *block = down_cast<pm_block_node_t>(node);
             node = maybeInsertCast(node);
             block->body = rewriteBody(block->body);
+            return node;
+        }
+        case PM_LAMBDA_NODE: {
+            auto *lambda = down_cast<pm_lambda_node_t>(node);
+            node = maybeInsertCast(node);
+            lambda->body = rewriteBody(lambda->body);
             return node;
         }
 
