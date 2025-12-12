@@ -2068,9 +2068,6 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 //     def foo(&my_block)
                 //       x = (my_block ? ::Kernel.block_given?() : false)
                 //     end
-                //
-                // Later stages of the pipeline have special handling for this,
-                // based on the nilability of the block (if specified)
 
                 auto sendExpr = MK::Send0(location, move(receiver), core::Names::blockGiven_p(),
                                           translateLoc(callNode->message_loc));
