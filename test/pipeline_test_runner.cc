@@ -44,6 +44,7 @@
 #include "payload/payload.h"
 #include "rbs/AssertionsRewriter.h"
 #include "rbs/SigsRewriter.h"
+#include "rbs/prism/RBSRewriterPrism.h"
 #include "resolver/resolver.h"
 #include "rewriter/rewriter.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
@@ -257,9 +258,9 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
                         auto prismParseResult = prismParser.parseWithoutTranslation(collectComments);
 
-                        pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
-                            gs, file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
-                            print, ctx, prismParser);
+                        pm_node_t *rewrittenNode =
+                            rbs::runPrismRBSRewrite(gs, file, prismParseResult.getRawNodePointer(),
+                                                    prismParseResult.getCommentLocations(), print, ctx, prismParser);
 
                         auto translatedTree =
                             parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false, false)
@@ -792,9 +793,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
 
                     auto prismParseResult = prismParser.parseWithoutTranslation(collectComments);
 
-                    pm_node_t *rewrittenNode = realmain::pipeline::runPrismRBSRewrite(
-                        *gs, f.file, prismParseResult.getRawNodePointer(), prismParseResult.getCommentLocations(),
-                        print, ctx, prismParser);
+                    pm_node_t *rewrittenNode =
+                        rbs::runPrismRBSRewrite(*gs, f.file, prismParseResult.getRawNodePointer(),
+                                                prismParseResult.getCommentLocations(), print, ctx, prismParser);
 
                     auto translatedTree =
                         parser::Prism::Translator(prismParser, ctx, prismParseResult.getParseErrors(), false, false)
