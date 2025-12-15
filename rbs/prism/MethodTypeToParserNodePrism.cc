@@ -702,10 +702,21 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
             if (!methodArgs.empty() && paramIndex < methodArgs.size()) {
                 auto methodArg = methodArgs[paramIndex];
 
-                // Special case: anonymous block parameter (&) should use symbol :&
-                if (arg.kind == RBSArg::Kind::Block && methodArg.nameId == PM_CONSTANT_ID_UNSET) {
-                    symbolNode = prism.Symbol(tinyLocOffsets, "&"sv);
-                } else if (methodArg.nameId != PM_CONSTANT_ID_UNSET) {
+                if (methodArg.nameId == PM_CONSTANT_ID_UNSET) {
+                    switch (arg.kind) {
+                        case RBSArg::Kind::RestKeyword:
+                            symbolNode = prism.Symbol(tinyLocOffsets, "**"sv);
+                            break;
+                        case RBSArg::Kind::RestPositional:
+                            symbolNode = prism.Symbol(tinyLocOffsets, "*"sv);
+                            break;
+                        case RBSArg::Kind::Block:
+                            symbolNode = prism.Symbol(tinyLocOffsets, "&"sv);
+                            break;
+                        default:
+                            break;
+                    }
+                } else {
                     symbolNode = prism.SymbolFromConstant(tinyLocOffsets, methodArg.nameId);
                 }
             }
