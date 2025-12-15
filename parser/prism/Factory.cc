@@ -546,4 +546,16 @@ void Factory::free(void *ptr) const { // see Prism's `include/prism/defines.h`
     ::xfree(ptr);
 }
 
+pm_node_list_t Factory::emptyNodeList() const {
+    return {.size = 0, .capacity = 0, .nodes = nullptr};
+}
+
+pm_node_list_t Factory::nodeListWithCapacity(size_t capacity) const {
+    if (capacity == 0) {
+        return emptyNodeList();
+    }
+    auto *nodes = calloc<pm_node_t *>(capacity);
+    return {.size = 0, .capacity = capacity, .nodes = nodes};
+}
+
 } // namespace sorbet::parser::Prism
