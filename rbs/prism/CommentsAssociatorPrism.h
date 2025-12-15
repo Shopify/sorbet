@@ -56,6 +56,7 @@ private:
 
     void walkNode(pm_node_t *node);
     void walkNodes(pm_node_list_t &nodes);
+    void walkArgumentsNode(pm_arguments_node_t *args);
     void walkStatements(pm_node_list_t &nodes);
     pm_node_t *walkBody(pm_node_t *node, pm_node_t *body);
     template <typename PrismNode> void walkAssignmentNode(pm_node_t *anyNode);

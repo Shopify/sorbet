@@ -116,6 +116,9 @@ public:
     void *realloc(void *ptr, size_t size) const;
     void free(void *ptr) const;
 
+    pm_node_list_t emptyNodeList() const;
+    pm_node_list_t nodeListWithCapacity(size_t capacity) const;
+
 private:
     pm_node_list_t copyNodesToList(const absl::Span<pm_node_t *> nodes) const;
 };
