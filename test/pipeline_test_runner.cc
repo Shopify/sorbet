@@ -320,7 +320,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             if (prismParseResult.tree != nullptr) {
                 auto prismDirectDesugarAST = ast::prismDesugar::node2Tree(ctx, move(prismParseResult.tree));
 
-                if (!disableParserComparison) {
+                if (!disableParserComparison && !gs.cacheSensitiveOptions.rbsEnabled) {
                     ast::ExpressionPtr legacyDesugarAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
 
                     if (!legacyDesugarAST.prismDesugarEqual(gs, prismDirectDesugarAST, file)) {
