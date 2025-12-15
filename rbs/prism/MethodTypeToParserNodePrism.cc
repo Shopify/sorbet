@@ -615,8 +615,6 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     collectArgs(declaration, functionType->required_positionals, args, RBSArg::Kind::Positional);
 
     collectArgs(declaration, functionType->optional_positionals, args, RBSArg::Kind::OptionalPositional);
-    // Include trailing positionals to match non-Prism behavior
-    collectArgs(declaration, functionType->trailing_positionals, args, RBSArg::Kind::Positional);
     if (functionType->rest_positionals) {
         auto loc = declaration.typeLocFromRange(functionType->rest_positionals->location->rg);
         auto nameLoc = adjustNameLoc(declaration, functionType->rest_positionals);
@@ -624,6 +622,8 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
         auto arg = RBSArg{loc, nameLoc, param->name, param->type, RBSArg::Kind::RestPositional};
         args.emplace_back(arg);
     }
+    // Include trailing positionals to match non-Prism behavior
+    collectArgs(declaration, functionType->trailing_positionals, args, RBSArg::Kind::Positional);
     collectKeywords(declaration, functionType->required_keywords, args, RBSArg::Kind::Keyword);
     collectKeywords(declaration, functionType->optional_keywords, args, RBSArg::Kind::OptionalKeyword);
     if (functionType->rest_keywords) {
