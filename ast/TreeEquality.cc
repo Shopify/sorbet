@@ -418,8 +418,25 @@ struct PrismDesugarComparator {
         //      but have no easy way to incrementing all the alraady-created names.
         //
         // So for now, we'll ignore the difference between uniquely generated names.
-        return a.hasUniqueNameKind(gs, core::UniqueNameKind::Desugar) &&
-               b.hasUniqueNameKind(gs, core::UniqueNameKind::Desugar);
+        if (a.hasUniqueNameKind(gs, core::UniqueNameKind::Desugar) &&
+            b.hasUniqueNameKind(gs, core::UniqueNameKind::Desugar)) {
+            return true;
+        }
+
+        auto isAnonymousParamName = [](core::NameRef name) {
+            return name == core::Names::star() || name == core::Names::starStar() || name == core::Names::ampersand();
+        };
+
+        if (isAnonymousParamName(a) && b.hasUniqueNameKind(gs, core::UniqueNameKind::Parser) &&
+            b.isUniqueNameOf(gs, a)) {
+            return true;
+        }
+        if (isAnonymousParamName(b) && a.hasUniqueNameKind(gs, core::UniqueNameKind::Parser) &&
+            a.isUniqueNameOf(gs, b)) {
+            return true;
+        }
+
+        return false;
     }
 
     static bool compareLocations(const core::LocOffsets a, const core::LocOffsets b) {
