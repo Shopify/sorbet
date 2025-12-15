@@ -2548,6 +2548,14 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
                 body = MK::EmptyTree();
             }
 
+            if (!statsStore.empty()) {
+                auto bodyLoc = body.loc();
+                if (!bodyLoc.exists()) {
+                    bodyLoc = location;
+                }
+                body = MK::InsSeq(bodyLoc, move(statsStore), move(body));
+            }
+
             auto methodExpr = MK::Method(location, declLoc, name, move(paramsStore), move(body));
 
             if (isSingletonMethod) {
