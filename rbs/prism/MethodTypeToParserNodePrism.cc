@@ -553,10 +553,10 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(const pm_node_t *methodD
     collectArgs(declaration, functionType->required_positionals, args, RBSArg::Kind::Positional);
 
     collectArgs(declaration, functionType->optional_positionals, args, RBSArg::Kind::OptionalPositional);
-    collectArgs(declaration, functionType->trailing_positionals, args, RBSArg::Kind::Positional);
     if (functionType->rest_positionals) {
         collectRestParam(declaration, functionType->rest_positionals, args, RBSArg::Kind::RestPositional);
     }
+    collectArgs(declaration, functionType->trailing_positionals, args, RBSArg::Kind::Positional);
     collectKeywords(declaration, functionType->required_keywords, args, RBSArg::Kind::Keyword);
     collectKeywords(declaration, functionType->optional_keywords, args, RBSArg::Kind::OptionalKeyword);
     if (functionType->rest_keywords) {
