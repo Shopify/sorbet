@@ -2225,7 +2225,10 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             }
 
             // Wrap in an InsSeq with the predicate assignment (if there is a predicate)
-            auto predicate = desugar(caseMatchNode->predicate);
+            auto predicate = desugarNullable(caseMatchNode->predicate);
+            if (ast::isa_tree<ast::EmptyTree>(predicate)) {
+                return resultExpr;
+            }
             auto tempName = nextUniqueDesugarName(core::Names::assignTemp());
             auto assignExpr = MK::Assign(predicate.loc(), tempName, move(predicate));
 
