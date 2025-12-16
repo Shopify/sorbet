@@ -69,6 +69,7 @@ private:
     void consumeCommentsUntilLine(int line);
     std::optional<uint32_t> locateTargetLine(pm_node_t *node);
     core::LocOffsets translateLocation(pm_location_t location);
+    uint32_t posToLine(uint32_t pos);
 
     int maybeInsertStandalonePlaceholders(pm_node_list_t &nodes, int index, int lastLine, int currentLine);
 };
