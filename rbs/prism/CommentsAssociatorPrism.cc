@@ -82,14 +82,14 @@ optional<uint32_t> CommentsAssociatorPrism::locateTargetLine(pm_node_t *node) {
         case PM_STRING_NODE: {
             auto loc = translateLocation(node->location);
             if (hasHeredocMarker(ctx, loc.beginPos(), loc.endPos())) {
-                return core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
+                return posToLine(loc.beginPos());
             }
             break;
         }
         case PM_INTERPOLATED_STRING_NODE: {
             auto loc = translateLocation(node->location);
             if (hasHeredocMarker(ctx, loc.beginPos(), loc.endPos())) {
-                return core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
+                return posToLine(loc.beginPos());
             }
             break;
         }
@@ -116,16 +116,17 @@ optional<uint32_t> CommentsAssociatorPrism::locateTargetLine(pm_node_t *node) {
 }
 
 core::LocOffsets CommentsAssociatorPrism::translateLocation(pm_location_t location) {
-    const uint8_t *sourceStart = (const uint8_t *)ctx.file.data(ctx).source().data();
-    uint32_t start = static_cast<uint32_t>(location.start - sourceStart);
-    uint32_t end = static_cast<uint32_t>(location.end - sourceStart);
-    return core::LocOffsets{start, end};
+    return parser.translateLocation(location);
+}
+
+uint32_t CommentsAssociatorPrism::posToLine(uint32_t pos) {
+    return core::Loc::pos2Detail(ctx.file.data(ctx), pos).line;
 }
 
 void CommentsAssociatorPrism::consumeCommentsInsideNode(pm_node_t *node, string_view kind) {
     auto loc = translateLocation(node->location);
-    auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
-    auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+    auto beginLine = posToLine(loc.beginPos());
+    auto endLine = posToLine(loc.endPos());
     consumeCommentsBetweenLines(beginLine, endLine, kind);
 }
 
@@ -190,7 +191,7 @@ void CommentsAssociatorPrism::consumeCommentsUntilLine(int line) {
 
 void CommentsAssociatorPrism::associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc) {
     auto loc = translateLocation(node->location);
-    uint32_t targetLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+    uint32_t targetLine = posToLine(loc.endPos());
     if (adjustLocForHeredoc) {
         if (auto line = locateTargetLine(node)) {
             targetLine = *line;
@@ -210,7 +211,7 @@ void CommentsAssociatorPrism::associateAssertionCommentsToNode(pm_node_t *node, 
 
 void CommentsAssociatorPrism::associateSignatureCommentsToNode(pm_node_t *node) {
     auto loc = translateLocation(node->location);
-    auto nodeStartLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.beginPos()).line;
+    auto nodeStartLine = posToLine(loc.beginPos());
 
     vector<CommentNodePrism> comments;
 
@@ -344,8 +345,8 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
                                                   pm_statements_node_t *&statements, pm_node_t *&elsePart,
                                                   std::string_view kind) {
     auto nodeLoc = translateLocation(node->location);
-    auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
-    auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.endPos()).line;
+    auto beginLine = posToLine(nodeLoc.beginPos());
+    auto endLine = posToLine(nodeLoc.endPos());
 
     if (beginLine == endLine) {
         associateAssertionCommentsToNode(node);
@@ -353,11 +354,11 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
 
     walkNode(predicate);
 
-    lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.beginPos()).line;
+    lastLine = posToLine(nodeLoc.beginPos());
 
     if ((statements = down_cast<pm_statements_node_t>(walkBody(node, up_cast(statements))))) {
         auto stmtLoc = translateLocation(statements->base.location);
-        lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmtLoc.endPos()).line;
+        lastLine = posToLine(stmtLoc.endPos());
     }
 
     elsePart = walkBody(node, elsePart);
@@ -382,7 +383,7 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
         // Visit standalone RBS comments after the last node in the body
         if (auto *statements = begin->statements) {
             auto loc = translateLocation(node->location);
-            int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+            int endLine = posToLine(loc.endPos());
             maybeInsertStandalonePlaceholders(statements->body, 0, lastLine, endLine);
             lastLine = endLine;
         }
@@ -402,7 +403,7 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
 
     // Visit standalone RBS comments before the body node
     auto bodyLoc = translateLocation(body->location);
-    auto currentLine = core::Loc::pos2Detail(ctx.file.data(ctx), bodyLoc.beginPos()).line;
+    auto currentLine = posToLine(bodyLoc.beginPos());
     maybeInsertStandalonePlaceholders(*beforeNodes, 0, lastLine, currentLine);
     lastLine = currentLine;
 
@@ -412,7 +413,7 @@ pm_node_t *CommentsAssociatorPrism::walkBody(pm_node_t *node, pm_node_t *body) {
     pm_node_list_t afterNodesData = prism.emptyNodeList();
     PrismNodeListPtr afterNodes(&afterNodesData, prismNodeListFree);
     auto loc = translateLocation(node->location);
-    int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), loc.endPos()).line;
+    int endLine = posToLine(loc.endPos());
     maybeInsertStandalonePlaceholders(*afterNodes, 0, lastLine, endLine);
     lastLine = endLine;
 
@@ -497,14 +498,14 @@ void CommentsAssociatorPrism::walkStatements(pm_node_list_t &nodes) {
         }
 
         auto stmtLoc = translateLocation(stmt->location);
-        auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmtLoc.beginPos()).line;
+        auto beginLine = posToLine(stmtLoc.beginPos());
 
         auto inserted = maybeInsertStandalonePlaceholders(nodes, i, lastLine, beginLine);
         i += inserted;
 
         walkNode(stmt);
 
-        lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmtLoc.endPos()).line;
+        lastLine = posToLine(stmtLoc.endPos());
     }
 }
 
@@ -569,7 +570,7 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             walkNode(up_cast(begin->ensure_clause));
 
             auto nodeLoc = translateLocation(node->location);
-            lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), nodeLoc.endPos()).line;
+            lastLine = posToLine(nodeLoc.endPos());
             consumeCommentsInsideNode(node, "begin");
             break;
         }
@@ -577,24 +578,24 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *block = down_cast<pm_block_node_t>(node);
 
             auto blockLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), blockLoc.beginPos()).line;
+            auto beginLine = posToLine(blockLoc.beginPos());
             consumeCommentsUntilLine(beginLine);
 
             associateAssertionCommentsToNode(node);
 
             block->body = walkBody(node, block->body);
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), blockLoc.endPos()).line;
+            auto endLine = posToLine(blockLoc.endPos());
             consumeCommentsBetweenLines(beginLine, endLine, "block");
             break;
         }
         case PM_LAMBDA_NODE: {
             auto *lambda = down_cast<pm_lambda_node_t>(node);
             auto lambdaLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), lambdaLoc.beginPos()).line;
+            auto beginLine = posToLine(lambdaLoc.beginPos());
             associateAssertionCommentsToNode(node);
 
             lambda->body = walkBody(node, lambda->body);
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), lambdaLoc.endPos()).line;
+            auto endLine = posToLine(lambdaLoc.endPos());
             consumeCommentsBetweenLines(beginLine, endLine, "lambda");
             break;
         }
@@ -604,10 +605,10 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             // Only associate comments if the last expression is on the same line as the break
             if (auto *args = break_->arguments; args && args->arguments.size > 0) {
                 auto breakLoc = translateLocation(node->location);
-                auto breakLine = core::Loc::pos2Detail(ctx.file.data(ctx), breakLoc.beginPos()).line;
+                auto breakLine = posToLine(breakLoc.beginPos());
                 auto lastArgIdx = args->arguments.size - 1;
                 auto lastArgLoc = translateLocation(args->arguments.nodes[lastArgIdx]->location);
-                auto lastExprLine = core::Loc::pos2Detail(ctx.file.data(ctx), lastArgLoc.beginPos()).line;
+                auto lastExprLine = posToLine(lastArgLoc.beginPos());
                 if (lastExprLine == breakLine) {
                     associateAssertionCommentsToNode(node);
                 }
@@ -646,12 +647,12 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             associateSignatureCommentsToNode(node);
 
             auto classLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), classLoc.beginPos()).line;
+            auto beginLine = posToLine(classLoc.beginPos());
             consumeCommentsUntilLine(beginLine);
 
             cls->body = walkBody(up_cast(cls), cls->body);
 
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), classLoc.endPos()).line;
+            auto endLine = posToLine(classLoc.endPos());
             consumeCommentsBetweenLines(beginLine, endLine, "class");
             contextAllowingTypeAlias.pop_back();
             break;
@@ -811,12 +812,12 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             associateSignatureCommentsToNode(node);
 
             auto modLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), modLoc.beginPos()).line;
+            auto beginLine = posToLine(modLoc.beginPos());
             consumeCommentsUntilLine(beginLine);
 
             mod->body = walkBody(up_cast(mod), mod->body);
 
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), modLoc.endPos()).line;
+            auto endLine = posToLine(modLoc.endPos());
             consumeCommentsBetweenLines(beginLine, endLine, "module");
             contextAllowingTypeAlias.pop_back();
             break;
@@ -827,10 +828,10 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             // Only associate comments if the last expression is on the same line as the next
             if (auto *args = next->arguments; args && args->arguments.size > 0) {
                 auto nextLoc = translateLocation(node->location);
-                auto nextLine = core::Loc::pos2Detail(ctx.file.data(ctx), nextLoc.beginPos()).line;
+                auto nextLine = posToLine(nextLoc.beginPos());
                 auto lastArgIdx = args->arguments.size - 1;
                 auto lastArgLoc = translateLocation(args->arguments.nodes[lastArgIdx]->location);
-                auto lastExprLine = core::Loc::pos2Detail(ctx.file.data(ctx), lastArgLoc.beginPos()).line;
+                auto lastExprLine = posToLine(lastArgLoc.beginPos());
                 if (lastExprLine == nextLine) {
                     associateAssertionCommentsToNode(node);
                 }
@@ -858,8 +859,8 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *rescue = down_cast<pm_rescue_node_t>(node);
 
             auto rescueLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), rescueLoc.beginPos()).line;
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), rescueLoc.endPos()).line;
+            auto beginLine = posToLine(rescueLoc.beginPos());
+            auto endLine = posToLine(rescueLoc.endPos());
 
             if (beginLine == endLine) {
                 // Single line rescue that may have an assertion comment
@@ -899,10 +900,10 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             // Only associate comments if the last expression is on the same line as the return
             if (auto *args = ret->arguments; args && args->arguments.size > 0) {
                 auto returnLoc = translateLocation(node->location);
-                auto returnLine = core::Loc::pos2Detail(ctx.file.data(ctx), returnLoc.beginPos()).line;
+                auto returnLine = posToLine(returnLoc.beginPos());
                 auto lastArgIdx = args->arguments.size - 1;
                 auto lastArgLoc = translateLocation(args->arguments.nodes[lastArgIdx]->location);
-                auto lastExprLine = core::Loc::pos2Detail(ctx.file.data(ctx), lastArgLoc.beginPos()).line;
+                auto lastExprLine = posToLine(lastArgLoc.beginPos());
                 if (lastExprLine == returnLine) {
                     associateAssertionCommentsToNode(node);
                 }
@@ -919,12 +920,12 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             associateSignatureCommentsToNode(node);
 
             auto sclassLoc = translateLocation(node->location);
-            auto beginLine = core::Loc::pos2Detail(ctx.file.data(ctx), sclassLoc.beginPos()).line;
+            auto beginLine = posToLine(sclassLoc.beginPos());
             consumeCommentsUntilLine(beginLine);
 
             sclass->body = walkBody(up_cast(sclass), sclass->body);
 
-            auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), sclassLoc.endPos()).line;
+            auto endLine = posToLine(sclassLoc.endPos());
             consumeCommentsBetweenLines(beginLine, endLine, "sclass");
             contextAllowingTypeAlias.pop_back();
             break;
@@ -1140,7 +1141,7 @@ CommentsAssociatorPrism::CommentsAssociatorPrism(core::MutableContext ctx, parse
         auto end32 = static_cast<uint32_t>(loc.endPos());
         auto comment = CommentNodePrism{core::LocOffsets{start32, end32}, commentString};
 
-        auto line = core::Loc::pos2Detail(ctx.file.data(ctx), start32).line;
+        auto line = posToLine(start32);
         commentByLine[line] = comment;
     }
 }
