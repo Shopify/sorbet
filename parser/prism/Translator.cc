@@ -2394,7 +2394,15 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_CLASS_NODE: { // Class declarations, not including singleton class declarations (`class <<`)
             auto classNode = down_cast<pm_class_node>(node);
 
-            auto name = desugar(classNode->constant_path);
+            ast::ExpressionPtr name;
+            if (classNode->constant_path == nullptr ||
+                (!PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_READ_NODE) &&
+                 !PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                auto nameLoc = translateLoc(classNode->class_keyword_loc);
+                name = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), core::Names::Constants::ConstantNameMissing());
+            } else {
+                name = desugar(classNode->constant_path);
+            }
             auto declLoc = translateLoc(classNode->class_keyword_loc).join(name.loc());
 
             ast::ClassDef::ANCESTORS_store ancestors;
@@ -3111,7 +3119,15 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_MODULE_NODE: { // Modules declarations, like `module A::B::C; ...; end`
             auto moduleNode = down_cast<pm_module_node>(node);
 
-            auto name = desugar(moduleNode->constant_path);
+            ast::ExpressionPtr name;
+            if (moduleNode->constant_path == nullptr ||
+                (!PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_READ_NODE) &&
+                 !PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                auto nameLoc = translateLoc(moduleNode->module_keyword_loc);
+                name = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), core::Names::Constants::ConstantNameMissing());
+            } else {
+                name = desugar(moduleNode->constant_path);
+            }
             auto declLoc = translateLoc(moduleNode->module_keyword_loc).join(name.loc());
 
             auto body = this->enterModuleContext().desugarClassOrModule(moduleNode->body);
