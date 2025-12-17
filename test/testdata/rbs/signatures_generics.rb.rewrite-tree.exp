@@ -332,4 +332,10 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
   end
 
   <runtime method definition of make_g17>
+
+  class <emptyTree>::<C G18><<C <todo sym>>> < (::<todo sym>)
+    <emptyTree>::<C X> = ::Sorbet::Private::Static.type_member() do ||
+      {:fixed => ::Sorbet::Private::Static::Void}
+    end
+  end
 end

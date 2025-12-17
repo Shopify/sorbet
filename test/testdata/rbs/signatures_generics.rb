@@ -218,3 +218,6 @@ class G17; end
 def make_g17(x)
   G17.new #: G17[X, X]
 end
+
+#: [X = void]
+class G18; end
