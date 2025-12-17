@@ -317,11 +317,16 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
     auto node = move(parseResult.tree);
     auto commentLocations = move(parseResult.commentLocations);
 
+    std::cerr << "Inside runRBSRewrite!!" << std::endl;
+    gs.cacheSensitiveOptions.rbsEnabled = true;
+
+    // rbsEnabled IS NOT TRUE AT THIS POINT
     if (gs.cacheSensitiveOptions.rbsEnabled) {
         Timer timeit(gs.tracer(), "runRBSRewrite", {{"file", string(file.data(gs).path())}});
         core::MutableContext ctx(gs, core::Symbols::root(), file);
         core::UnfreezeNameTable nameTableAccess(gs);
 
+        std::cerr << "Running CommentsAssociator" << std::endl;
         auto associator = rbs::CommentsAssociator(ctx, commentLocations);
         auto commentMap = associator.run(node);
 
@@ -432,6 +437,8 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
     auto &print = opts.print;
     auto parser = opts.cacheSensitiveOptions.usePrismParser ? options::Parser::PRISM : options::Parser::ORIGINAL;
 
+    std::cerr << "Entering indexOne!!" << std::endl;
+
     ast::ParsedFile rewritten{nullptr, file};
     rewritten.setCached(tree != nullptr);
 
@@ -451,6 +458,7 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                         return emptyParsedFile(file);
                     }
 
+                    std::cerr << "Running RBS rewrite after parser" << std::endl;
                     parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
 
                     break;
@@ -1420,7 +1428,7 @@ class CFGCollectorAndTyper {
     const options::Options &opts;
 
 public:
-    CFGCollectorAndTyper(const options::Options &opts) : opts(opts){};
+    CFGCollectorAndTyper(const options::Options &opts) : opts(opts) {};
 
     void preTransformMethodDef(core::Context ctx, ast::ExpressionPtr &tree) {
         auto &m = ast::cast_tree_nonnull<ast::MethodDef>(tree);

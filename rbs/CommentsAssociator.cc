@@ -735,6 +735,7 @@ CommentMap CommentsAssociator::run(unique_ptr<parser::Node> &node) {
 
 CommentsAssociator::CommentsAssociator(core::MutableContext ctx, vector<core::LocOffsets> commentLocations)
     : ctx(ctx), commentLocations(commentLocations), commentByLine() {
+    std::cerr << "CommentsAssociator: rbsEnabled: " << ctx.state.cacheSensitiveOptions.rbsEnabled << std::endl;
     for (auto &loc : commentLocations) {
         auto comment_string = ctx.file.data(ctx).source().substr(loc.beginPos(), loc.length());
         auto start32 = static_cast<uint32_t>(loc.beginPos());

@@ -51,6 +51,7 @@ public:
     virtual ~LSPWrapper();
 
     const LSPConfiguration &config() const;
+    void printRbsEnabled() const;
 
     /**
      * Enable all experimental LSP features.

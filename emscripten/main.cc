@@ -63,6 +63,8 @@ void EMSCRIPTEN_KEEPALIVE lsp(void (*respond)(const char *), const char *message
         wrapper->enableAllExperimentalFeatures();
     }
 
+    wrapper->printRbsEnabled();
+
     auto responses = wrapper->getLSPResponsesFor(message);
     for (auto &response : responses) {
         respond(response->toJSON().c_str());

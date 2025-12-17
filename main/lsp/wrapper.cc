@@ -116,6 +116,7 @@ SingleThreadedLSPWrapper::createWithGlobalState(unique_ptr<core::GlobalState> gs
     // `make_unique` doesn't work because that method doesn't have access to the constructor.
     auto wrapper = new SingleThreadedLSPWrapper(move(gs), move(options), move(logger), nullptr, nullptr, move(kvstore),
                                                 disableFastPath);
+    wrapper->config_->logger->error("Created SingleThreadedLSPWrapper with global state");
     return unique_ptr<SingleThreadedLSPWrapper>(wrapper);
 }
 
@@ -128,6 +129,7 @@ SingleThreadedLSPWrapper::create(string_view rootPath, shared_ptr<options::Optio
     // See comment in `SingleThreadedLSPWrapper::createWithGlobalState`
     auto wrapper = new SingleThreadedLSPWrapper(move(pair.first), move(options), move(logger), move(stderrColorSink),
                                                 move(typeErrorsConsole), move(pair.second), disableFastPath);
+    wrapper->config_->logger->error("Created SingleThreadedLSPWrapper");
     return unique_ptr<SingleThreadedLSPWrapper>(wrapper);
 }
 
@@ -150,9 +152,12 @@ unique_ptr<LSPMessage> MultiThreadedLSPWrapper::read(int timeoutMs) {
 }
 
 void LSPWrapper::enableAllExperimentalFeatures() {
+    config_->logger->error("Enabling all experimental features");
+
     opts->lspDocumentHighlightEnabled = true;
     opts->lspSignatureHelpEnabled = true;
     opts->lspDocumentFormatRubyfmtEnabled = true;
+    opts->cacheSensitiveOptions.rbsEnabled = true;
 }
 
 int LSPWrapper::getTypecheckCount() {
@@ -165,6 +170,14 @@ void LSPWrapper::setSlowPathBlocked(bool blocked) {
 
 const LSPConfiguration &LSPWrapper::config() const {
     return *config_;
+}
+
+void LSPWrapper::printRbsEnabled() const {
+    if (opts->cacheSensitiveOptions.rbsEnabled) {
+        config_->logger->error("rbsEnabled: true");
+    } else {
+        config_->logger->error("rbsEnabled: false");
+    }
 }
 
 } // namespace sorbet::realmain::lsp
