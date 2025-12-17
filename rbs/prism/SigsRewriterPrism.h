@@ -50,6 +50,7 @@ private:
     pm_node_t *rewriteBody(pm_node_t *node);
     pm_node_t *rewriteNode(pm_node_t *node);
     void rewriteNodes(pm_node_list_t &nodes);
+    void rewriteArgumentsNode(pm_arguments_node_t *args);
     pm_node_t *rewriteClass(pm_node_t *node);
     std::unique_ptr<std::vector<pm_node_t *>> signaturesForNode(pm_node_t *node);
     CommentsPrism commentsForNode(pm_node_t *node);
