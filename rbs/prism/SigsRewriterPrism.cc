@@ -1,5 +1,6 @@
 #include "rbs/prism/SigsRewriterPrism.h"
 
+#include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_split.h"
 #include "core/errors/rewriter.h"
@@ -20,24 +21,21 @@ namespace sorbet::rbs {
 
 namespace {
 
-pm_node_t *signaturesTarget(pm_node_t *node, const parser::Prism::Parser &parser) {
+bool canHaveSignature(pm_node_t *node, const parser::Prism::Parser &parser) {
     if (node == nullptr) {
-        return nullptr;
+        return false;
     }
 
     switch (PM_NODE_TYPE(node)) {
         case PM_DEF_NODE:
             // Both instance methods and singleton methods use PM_DEF_NODE in Prism
             // (singleton methods have a receiver field set)
-            return node;
+            return true;
         case PM_CALL_NODE: {
-            if (parser.isAttrAccessorCall(node) || parser.isVisibilityCall(node)) {
-                return node;
-            }
-            return nullptr;
+            return parser.isAttrAccessorCall(node) || parser.isVisibilityCall(node);
         }
         default:
-            return nullptr;
+            return false;
     }
 }
 
@@ -79,8 +77,13 @@ pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser
  */
 vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Comment> annotations,
                                    parser::Prism::Parser &parser) {
+    if (annotations.empty()) {
+        return {};
+    }
+
     Factory prism(parser);
     vector<pm_node_t *> helpers;
+    helpers.reserve(annotations.size());
 
     for (const auto &annotation : annotations) {
         pm_node_t *helperNode = nullptr;
@@ -142,54 +145,49 @@ bool containsExtendTHelper(pm_statements_node_t *body, const parser::Prism::Pars
                            core::MutableContext ctx) {
     ENFORCE(body != nullptr);
 
-    for (size_t i = 0; i < body->body.size; i++) {
-        pm_node_t *stmt = body->body.nodes[i];
-
+    auto statements = absl::MakeSpan(body->body.nodes, body->body.size);
+    return absl::c_any_of(statements, [&](pm_node_t *stmt) {
         if (!PM_NODE_TYPE_P(stmt, PM_CALL_NODE)) {
-            continue;
+            return false;
         }
 
         auto *call = down_cast<pm_call_node_t>(stmt);
         auto methodName = prismParser.resolveConstant(call->name);
 
         if (methodName != "extend") {
-            continue;
+            return false;
         }
 
         if (call->receiver != nullptr && !PM_NODE_TYPE_P(call->receiver, PM_SELF_NODE)) {
-            continue;
+            return false;
         }
 
         if (call->arguments == nullptr || call->arguments->arguments.size != 1) {
-            continue;
+            return false;
         }
 
         pm_node_t *arg = call->arguments->arguments.nodes[0];
         if (!PM_NODE_TYPE_P(arg, PM_CONSTANT_PATH_NODE)) {
-            continue;
+            return false;
         }
 
         auto *constantPath = down_cast<pm_constant_path_node_t>(arg);
         auto argName = prismParser.resolveConstant(constantPath->name);
 
         if (argName != "Helpers") {
-            continue;
+            return false;
         }
 
-        if (prismParser.isT(constantPath->parent)) {
-            return true;
-        }
-    }
-
-    return false;
+        return prismParser.isT(constantPath->parent);
+    });
 }
 
 /**
  * Inserts an `extend T::Helpers` call into the body if it doesn't already exist.
  */
-void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc, const parser::Prism::Parser &prismParser,
+void maybeInsertExtendTHelpers(pm_node_t *body, core::LocOffsets loc, const parser::Prism::Parser &prismParser,
                                core::MutableContext ctx, const parser::Prism::Factory &prism) {
-    auto *statements = down_cast<pm_statements_node_t>(*body);
+    auto *statements = down_cast<pm_statements_node_t>(body);
     ENFORCE(statements != nullptr);
 
     if (containsExtendTHelper(statements, prismParser, ctx)) {
@@ -206,8 +204,8 @@ void maybeInsertExtendTHelpers(pm_node_t **body, core::LocOffsets loc, const par
 /**
  * Inserts the helpers into the body.
  */
-void insertHelpers(pm_node_t **body, absl::Span<pm_node_t *const> helpers) {
-    auto *statements = down_cast<pm_statements_node_t>(*body);
+void insertHelpers(pm_node_t *body, absl::Span<pm_node_t *const> helpers) {
+    auto *statements = down_cast<pm_statements_node_t>(body);
     ENFORCE(statements != nullptr);
 
     for (auto *helper : helpers) {
@@ -217,10 +215,10 @@ void insertHelpers(pm_node_t **body, absl::Span<pm_node_t *const> helpers) {
 
 } // namespace
 
-void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t **body) {
+void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t *body) {
     ENFORCE(PM_NODE_TYPE_P(node, PM_CLASS_NODE) || PM_NODE_TYPE_P(node, PM_MODULE_NODE) ||
                 PM_NODE_TYPE_P(node, PM_SINGLETON_CLASS_NODE),
-            "Unimplemented node type");
+            "Type parameters can only exist on classes, singleton classes, and modules");
 
     auto comments = commentsForNode(node);
     if (comments.signatures.empty()) {
@@ -236,15 +234,15 @@ void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t **body) {
     }
 
     auto signature = comments.signatures[0];
-    auto typeParamsTranslator = SignatureTranslatorPrism(ctx, parser);
+    auto typeParamsTranslator = SignatureTranslatorPrism{ctx, parser};
     auto typeParams = typeParamsTranslator.translateTypeParams(signature);
 
     if (typeParams.empty()) {
         return;
     }
 
-    ENFORCE(*body != nullptr && PM_NODE_TYPE_P(*body, PM_STATEMENTS_NODE), "Body must be a statements node");
-    auto *statements = down_cast<pm_statements_node_t>(*body);
+    ENFORCE(body != nullptr && PM_NODE_TYPE_P(body, PM_STATEMENTS_NODE), "Body must be a statements node");
+    auto *statements = down_cast<pm_statements_node_t>(body);
 
     for (auto *typeParam : typeParams) {
         pm_node_list_append(&statements->body, typeParam);
@@ -253,74 +251,80 @@ void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t **body) {
 
 CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
     auto comments = CommentsPrism{};
+
+    if (commentsByNode == nullptr || node == nullptr) {
+        return comments;
+    }
+
+    auto it = commentsByNode->find(node);
+    if (it == commentsByNode->end()) {
+        return comments;
+    }
+
     enum class SignatureState { None, Started, Multiline };
     auto state = SignatureState::None;
 
-    if (commentsByNode != nullptr && node != nullptr) {
-        if (auto it = commentsByNode->find(node); it != commentsByNode->end()) {
-            auto &nodes = it->second;
-            auto declarationComments = vector<Comment>{};
+    auto &nodes = it->second;
+    auto declarationComments = vector<Comment>{};
 
-            for (auto &commentNode : nodes) {
-                if (absl::StartsWith(commentNode.string, "# @")) {
-                    auto comment = Comment{
-                        .commentLoc = commentNode.loc,
-                        .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 3, commentNode.loc.endPos()},
-                        .string = commentNode.string.substr(3),
-                    };
-                    comments.annotations.emplace_back(move(comment));
-                    continue;
-                }
-
-                if (absl::StartsWith(commentNode.string, "#:")) {
-                    if (state == SignatureState::Multiline) {
-                        if (auto e = ctx.beginIndexerError(commentNode.loc,
-                                                           core::errors::Rewriter::RBSMultilineMisformatted)) {
-                            e.setHeader("Signature start (\"#:\") cannot appear after a multiline signature (\"#|\")");
-                            return comments;
-                        }
-                    }
-                    state = SignatureState::Started;
-                    auto comment = Comment{
-                        .commentLoc = commentNode.loc,
-                        .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 2, commentNode.loc.endPos()},
-                        .string = commentNode.string.substr(2),
-                    };
-
-                    if (declarationComments.empty()) {
-                        declarationComments.emplace_back(move(comment));
-                    } else {
-                        comments.signatures.emplace_back(RBSDeclaration{move(declarationComments)});
-                        declarationComments.clear();
-                        declarationComments.emplace_back(move(comment));
-                    }
-                    continue;
-                }
-
-                if (absl::StartsWith(commentNode.string, "#|")) {
-                    if (state == SignatureState::None) {
-                        if (auto e = ctx.beginIndexerError(commentNode.loc,
-                                                           core::errors::Rewriter::RBSMultilineMisformatted)) {
-                            e.setHeader("Multiline signature (\"#|\") must be preceded by a signature start (\"#:\")");
-                            return comments;
-                        }
-                    }
-                    state = SignatureState::Multiline;
-                    auto comment = Comment{
-                        .commentLoc = commentNode.loc,
-                        .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 2, commentNode.loc.endPos()},
-                        .string = commentNode.string.substr(2),
-                    };
-                    declarationComments.emplace_back(move(comment));
-                    continue;
-                }
-            }
-
-            if (!declarationComments.empty()) {
-                auto rbsDeclaration = RBSDeclaration{move(declarationComments)};
-                comments.signatures.emplace_back(move(rbsDeclaration));
-            }
+    for (auto &commentNode : nodes) {
+        if (absl::StartsWith(commentNode.string, "# @")) {
+            auto comment = Comment{
+                .commentLoc = commentNode.loc,
+                .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 3, commentNode.loc.endPos()},
+                .string = commentNode.string.substr(3),
+            };
+            comments.annotations.emplace_back(move(comment));
+            continue;
         }
+
+        if (absl::StartsWith(commentNode.string, "#:")) {
+            if (state == SignatureState::Multiline) {
+                if (auto e = ctx.beginIndexerError(commentNode.loc,
+                                                   core::errors::Rewriter::RBSMultilineMisformatted)) {
+                    e.setHeader("Signature start (\"#:\") cannot appear after a multiline signature (\"#|\")");
+                    return comments;
+                }
+            }
+            state = SignatureState::Started;
+            auto comment = Comment{
+                .commentLoc = commentNode.loc,
+                .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 2, commentNode.loc.endPos()},
+                .string = commentNode.string.substr(2),
+            };
+
+            if (declarationComments.empty()) {
+                declarationComments.emplace_back(move(comment));
+            } else {
+                comments.signatures.emplace_back(RBSDeclaration{move(declarationComments)});
+                declarationComments.clear();
+                declarationComments.emplace_back(move(comment));
+            }
+            continue;
+        }
+
+        if (absl::StartsWith(commentNode.string, "#|")) {
+            if (state == SignatureState::None) {
+                if (auto e = ctx.beginIndexerError(commentNode.loc,
+                                                   core::errors::Rewriter::RBSMultilineMisformatted)) {
+                    e.setHeader("Multiline signature (\"#|\") must be preceded by a signature start (\"#:\")");
+                    return comments;
+                }
+            }
+            state = SignatureState::Multiline;
+            auto comment = Comment{
+                .commentLoc = commentNode.loc,
+                .typeLoc = core::LocOffsets{commentNode.loc.beginPos() + 2, commentNode.loc.endPos()},
+                .string = commentNode.string.substr(2),
+            };
+            declarationComments.emplace_back(move(comment));
+            continue;
+        }
+    }
+
+    if (!declarationComments.empty()) {
+        auto rbsDeclaration = RBSDeclaration{move(declarationComments)};
+        comments.signatures.emplace_back(move(rbsDeclaration));
     }
 
     return comments;
@@ -334,7 +338,7 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
     }
 
     auto signatures = make_unique<vector<pm_node_t *>>();
-    auto signatureTranslator = rbs::SignatureTranslatorPrism(ctx, parser);
+    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser};
 
     for (auto &declaration : comments.signatures) {
         if (PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
@@ -392,7 +396,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
         .string = fullString.substr(typeBeginLoc + 1),
     }}};
 
-    auto signatureTranslator = rbs::SignatureTranslatorPrism(ctx, parser);
+    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser};
     absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
     auto type = signatureTranslator.translateAssertionType(typeParams, typeDeclaration);
 
@@ -434,8 +438,8 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
         for (size_t i = 0; i < oldStmts.size; i++) {
             pm_node_t *stmt = oldStmts.nodes[i];
 
-            if (auto target = signaturesTarget(stmt, parser)) {
-                if (auto signatures = signaturesForNode(target)) {
+            if (canHaveSignature(stmt, parser)) {
+                if (auto signatures = signaturesForNode(stmt)) {
                     // Add all signatures
                     for (auto sig : *signatures) {
                         pm_node_list_append(&statements->body, sig);
@@ -454,14 +458,18 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     }
 
     // Handle single node that is a signature target
-    if (auto target = signaturesTarget(node, parser)) {
-        if (auto signatures = signaturesForNode(target)) {
+    if (canHaveSignature(node, parser)) {
+        if (auto signatures = signaturesForNode(node)) {
             // Wrap in a statements node with signatures + node
             return createStatementsWithSignatures(rewriteNode(node), move(signatures));
         }
     }
 
     return rewriteNode(node);
+}
+
+pm_statements_node_t *SigsRewriterPrism::rewriteBody(pm_statements_node_t *stmts) {
+    return down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
 }
 
 pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
@@ -484,11 +492,11 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
 
             klass->body = maybeWrapBody(klass->body, loc, parser);
             if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(&klass->body, loc, parser, ctx, prism);
-                insertHelpers(&klass->body, helpers);
+                maybeInsertExtendTHelpers(klass->body, loc, parser, ctx, prism);
+                insertHelpers(klass->body, helpers);
             }
 
-            insertTypeParams(node, &klass->body);
+            insertTypeParams(node, klass->body);
             break;
         }
         case PM_MODULE_NODE: {
@@ -498,11 +506,11 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
 
             module->body = maybeWrapBody(module->body, loc, parser);
             if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(&module->body, loc, parser, ctx, prism);
-                insertHelpers(&module->body, helpers);
+                maybeInsertExtendTHelpers(module->body, loc, parser, ctx, prism);
+                insertHelpers(module->body, helpers);
             }
 
-            insertTypeParams(node, &module->body);
+            insertTypeParams(node, module->body);
             break;
         }
         case PM_SINGLETON_CLASS_NODE: {
@@ -512,11 +520,11 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
 
             sclass->body = maybeWrapBody(sclass->body, loc, parser);
             if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(&sclass->body, loc, parser, ctx, prism);
-                insertHelpers(&sclass->body, helpers);
+                maybeInsertExtendTHelpers(sclass->body, loc, parser, ctx, prism);
+                insertHelpers(sclass->body, helpers);
             }
 
-            insertTypeParams(node, &sclass->body);
+            insertTypeParams(node, sclass->body);
             break;
         }
         default:
@@ -588,7 +596,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_FOR_NODE: {
             auto *for_ = down_cast<pm_for_node_t>(node);
             if (auto *stmts = for_->statements) {
-                for_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                for_->statements = rewriteBody(stmts);
             }
             return node;
         }
@@ -611,7 +619,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_RESCUE_NODE: {
             auto *rescue = down_cast<pm_rescue_node_t>(node);
             if (auto *stmts = rescue->statements) {
-                rescue->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                rescue->statements = rewriteBody(stmts);
             }
             if (auto *subsequent = rescue->subsequent) {
                 rescue->subsequent = down_cast<pm_rescue_node_t>(rewriteNode(up_cast(subsequent)));
@@ -621,21 +629,21 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_ELSE_NODE: {
             auto *else_ = down_cast<pm_else_node_t>(node);
             if (auto *stmts = else_->statements) {
-                else_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                else_->statements = rewriteBody(stmts);
             }
             return node;
         }
         case PM_ENSURE_NODE: {
             auto *ensure = down_cast<pm_ensure_node_t>(node);
             if (auto *stmts = ensure->statements) {
-                ensure->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                ensure->statements = rewriteBody(stmts);
             }
             return node;
         }
         case PM_IF_NODE: {
             auto *if_ = down_cast<pm_if_node_t>(node);
             if (auto *stmts = if_->statements) {
-                if_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                if_->statements = rewriteBody(stmts);
             }
             if (auto *subsequent = if_->subsequent) {
                 if_->subsequent = rewriteBody(subsequent);
@@ -645,7 +653,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_UNLESS_NODE: {
             auto *unless_ = down_cast<pm_unless_node_t>(node);
             if (auto *stmts = unless_->statements) {
-                unless_->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                unless_->statements = rewriteBody(stmts);
             }
             if (auto *elseClause = unless_->else_clause) {
                 unless_->else_clause = down_cast<pm_else_node_t>(rewriteBody(up_cast(elseClause)));
@@ -676,7 +684,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         case PM_WHEN_NODE: {
             auto *when = down_cast<pm_when_node_t>(node);
             if (auto *stmts = when->statements) {
-                when->statements = down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
+                when->statements = rewriteBody(stmts);
             }
             return node;
         }
