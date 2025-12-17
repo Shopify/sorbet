@@ -1317,8 +1317,7 @@ ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
             // Substitute a fake local variable assignment so parsing can continue
             lhs = MK::Local(nameLoc, core::Names::dynamicConstAssign());
         } else {
-            auto name = translateConstantName(node->name);
-            auto constantName = ctx.state.enterNameConstant(name);
+            auto constantName = translateConstantNameAndEnter(node->name);
             lhs = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), constantName);
         }
     } else if constexpr (is_same_v<PrismAssignmentNode, pm_constant_path_write_node>) {
@@ -1338,8 +1337,7 @@ ast::ExpressionPtr Translator::desugarAssignment(pm_node_t *untypedNode) {
             } else {
                 scope = desugar(target->parent);
             }
-            auto name = translateConstantName(target->name);
-            auto constantName = ctx.state.enterNameConstant(name);
+            auto constantName = translateConstantNameAndEnter(target->name);
             lhs = MK::UnresolvedConstant(pathLoc, move(scope), constantName);
         }
     } else {
@@ -4904,6 +4902,14 @@ ast::ExpressionPtr Translator::translateConst(pm_node_t *anyNode) {
 
 core::NameRef Translator::translateConstantName(pm_constant_id_t constant_id) {
     return ctx.state.enterNameUTF8(parser.resolveConstant(constant_id));
+}
+
+core::NameRef Translator::translateConstantNameAndEnter(pm_constant_id_t constant_id) {
+    // In error recovery cases the name may be unset.
+    if (constant_id == PM_CONSTANT_ID_UNSET) {
+        return core::Names::Constants::ConstantNameMissing();
+    }
+    return ctx.state.enterNameConstant(translateConstantName(constant_id));
 }
 
 core::NameRef Translator::nextUniqueParserName(core::NameRef original) {

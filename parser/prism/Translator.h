@@ -151,6 +151,7 @@ private:
     template <typename PrismLhsNode, bool checkForDynamicConstAssign = false>
     ast::ExpressionPtr translateConst(pm_node_t *node);
     core::NameRef translateConstantName(pm_constant_id_t constantId);
+    core::NameRef translateConstantNameAndEnter(pm_constant_id_t constantId);
 
     // Generates a unique name for a `parser::Node`.
     core::NameRef nextUniqueParserName(core::NameRef original);
