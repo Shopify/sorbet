@@ -876,6 +876,11 @@ void validateSealedAncestorHelper(core::Context ctx, const core::ClassOrModuleRe
 
         auto klassFile = bestNonRBIFile(ctx, klass);
 
+        // If the class has no file (e.g. singleton of root class), skip validation.
+        if (!klassFile.exists()) {
+            continue;
+        }
+
         // See the comment on the isPackageRBI call in `validateSealed` for more information about why we skip package
         // rbi files here.
         if (klassFile.data(ctx).isPackageRBI()) {
@@ -899,6 +904,11 @@ void validateSealed(core::Context ctx, const core::ClassOrModuleRef klass, const
     const auto superClass = klass.data(ctx)->superClass();
     if (superClass.exists() && superClass.data(ctx)->flags.isSealed) {
         auto file = bestNonRBIFile(ctx, klass);
+
+        // If the class has no file (e.g. singleton of root class), skip validation.
+        if (!file.exists()) {
+            return;
+        }
 
         // Normally we would skip RBIs for the purpose of checking `sealed!`, but when running in stripe-packages mode
         // this may be the only definition available. Additionally, if some of the sealed subclasses are only exported
