@@ -48,8 +48,10 @@ private:
     core::LocOffsets translateLocation(pm_location_t location);
 
     pm_node_t *rewriteBody(pm_node_t *tree);
+    pm_statements_node_t *rewriteBody(pm_statements_node_t *stmts);
     pm_node_t *rewriteNode(pm_node_t *tree);
     void rewriteNodes(pm_node_list_t &nodes);
+    void rewriteArgumentsNode(pm_arguments_node_t *args);
     void rewriteNodesAsArray(pm_node_t *node, pm_node_list_t &nodes);
 
     bool saveTypeParams(pm_node_t *call);
