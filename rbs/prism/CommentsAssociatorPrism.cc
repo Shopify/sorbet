@@ -356,12 +356,16 @@ void CommentsAssociatorPrism::walkConditionalNode(pm_node_t *node, pm_node_t *pr
 
     lastLine = posToLine(nodeLoc.beginPos());
 
-    if ((statements = down_cast<pm_statements_node_t>(walkBody(node, up_cast(statements))))) {
-        auto stmtLoc = translateLocation(statements->base.location);
-        lastLine = posToLine(stmtLoc.endPos());
+    pm_node_t *thenBody = up_cast(statements);
+    pm_node_t *thenResult = walkBody(thenBody, thenBody);
+    statements = down_cast<pm_statements_node_t>(thenResult);
+
+    if (thenResult) {
+        auto thenLoc = translateLocation(thenResult->location);
+        lastLine = posToLine(thenLoc.endPos());
     }
 
-    elsePart = walkBody(node, elsePart);
+    elsePart = walkBody(elsePart, elsePart);
 
     if (beginLine != endLine) {
         associateAssertionCommentsToNode(node);
