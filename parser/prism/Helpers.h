@@ -240,6 +240,38 @@ template <typename Visitor> void walkPrismAST(const pm_node_t *node, Visitor &&v
 // Forward declarations
 class Parser;
 
+// Check if a single Prism node's type matches any of the provided expected types.
+// Returns true if the node matches any of the expected types, false otherwise.
+// This is used for error recovery: when a node doesn't match expected types,
+// it likely represents a parser error (e.g., MissingNode or UnexpectedNode).
+//
+// Example usage:
+//   if (!expectedNode(node, PM_SYMBOL_NODE, PM_INTERPOLATED_SYMBOL_NODE)) {
+//       // Handle error case - node is not a symbol
+//   }
+template <typename... Types> bool expectedNode(pm_node_t *node, Types... types) {
+    static_assert(sizeof...(types) > 0, "expectedNode requires at least one expected type");
+    return ((PM_NODE_TYPE_P(node, types)) || ...);
+}
+
+// Check if all nodes in a span match any of the provided expected types.
+// Returns true only if every node in the span matches at least one of the expected types.
+// Returns true for empty spans (vacuously true).
+//
+// Example usage:
+//   if (!expectedNodes(lefts, PM_LOCAL_VARIABLE_TARGET_NODE, PM_MULTI_TARGET_NODE, ...)) {
+//       // Handle error case - some node is not a valid target
+//   }
+template <typename... Types> bool expectedNodes(absl::Span<pm_node_t *> nodes, Types... types) {
+    static_assert(sizeof...(types) > 0, "expectedNodes requires at least one expected type");
+    for (auto *node : nodes) {
+        if (!expectedNode(node, types...)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace sorbet::parser::Prism
 
 // Forward declarations for parser LHS types

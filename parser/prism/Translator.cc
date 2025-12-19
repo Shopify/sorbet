@@ -380,6 +380,12 @@ ast::ExpressionPtr Translator::desugarDString(core::LocOffsets loc, pm_node_list
 
     auto prismNodes = absl::MakeSpan(prismNodeList.nodes, prismNodeList.size);
     for (pm_node *prismNode : prismNodes) {
+        // Skip unexpected nodes (e.g., error recovery nodes like MissingNode or UnexpectedNode)
+        if (!expectedNode(prismNode, PM_STRING_NODE, PM_EMBEDDED_STATEMENTS_NODE, PM_EMBEDDED_VARIABLE_NODE,
+                          PM_INTERPOLATED_STRING_NODE)) {
+            continue;
+        }
+
         auto expr = desugar(prismNode);
 
         if (allStringsSoFar && isStringLit(expr)) {
@@ -427,35 +433,20 @@ template <typename PrismNode>
 ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs, ast::ExpressionPtr rhs) {
     static_assert(is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>);
 
-    auto isValidAssignmentTarget = [](pm_node_t *node) -> bool {
-        switch (PM_NODE_TYPE(node)) {
-            case PM_LOCAL_VARIABLE_TARGET_NODE:
-            case PM_INSTANCE_VARIABLE_TARGET_NODE:
-            case PM_CLASS_VARIABLE_TARGET_NODE:
-            case PM_GLOBAL_VARIABLE_TARGET_NODE:
-            case PM_CONSTANT_TARGET_NODE:
-            case PM_CONSTANT_PATH_TARGET_NODE:
-            case PM_CALL_TARGET_NODE:
-            case PM_INDEX_TARGET_NODE:
-            case PM_MULTI_TARGET_NODE:
-            case PM_REQUIRED_PARAMETER_NODE:
-                return true;
-            default:
-                return false;
-        }
-    };
-
     auto lefts = absl::MakeSpan(lhs->lefts.nodes, lhs->lefts.size);
     auto rights = absl::MakeSpan(lhs->rights.nodes, lhs->rights.size);
-    for (auto *c : lefts) {
-        if (!isValidAssignmentTarget(c)) {
-            return MK::EmptyTree();
-        }
+
+    if (!expectedNodes(lefts, PM_LOCAL_VARIABLE_TARGET_NODE, PM_INSTANCE_VARIABLE_TARGET_NODE,
+                       PM_CLASS_VARIABLE_TARGET_NODE, PM_GLOBAL_VARIABLE_TARGET_NODE, PM_CONSTANT_TARGET_NODE,
+                       PM_CONSTANT_PATH_TARGET_NODE, PM_CALL_TARGET_NODE, PM_INDEX_TARGET_NODE, PM_MULTI_TARGET_NODE,
+                       PM_REQUIRED_PARAMETER_NODE)) {
+        return MK::EmptyTree();
     }
-    for (auto *c : rights) {
-        if (!isValidAssignmentTarget(c)) {
-            return MK::EmptyTree();
-        }
+    if (!expectedNodes(rights, PM_LOCAL_VARIABLE_TARGET_NODE, PM_INSTANCE_VARIABLE_TARGET_NODE,
+                       PM_CLASS_VARIABLE_TARGET_NODE, PM_GLOBAL_VARIABLE_TARGET_NODE, PM_CONSTANT_TARGET_NODE,
+                       PM_CONSTANT_PATH_TARGET_NODE, PM_CALL_TARGET_NODE, PM_INDEX_TARGET_NODE, PM_MULTI_TARGET_NODE,
+                       PM_REQUIRED_PARAMETER_NODE)) {
+        return MK::EmptyTree();
     }
 
     ast::InsSeq::STATS_store stats;
@@ -1929,7 +1920,12 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto aliasGlobalVariableNode = down_cast<pm_alias_global_variable_node>(node);
 
             auto toExpr = desugar(aliasGlobalVariableNode->new_name);
-            auto fromExpr = desugar(aliasGlobalVariableNode->old_name);
+            auto fromExpr =
+                expectedNode(aliasGlobalVariableNode->old_name, PM_GLOBAL_VARIABLE_READ_NODE,
+                             PM_BACK_REFERENCE_READ_NODE, PM_NUMBERED_REFERENCE_READ_NODE)
+                    ? desugar(aliasGlobalVariableNode->old_name)
+                    : MK::UnresolvedConstant(translateLoc(aliasGlobalVariableNode->old_name->location), MK::EmptyTree(),
+                                             core::Names::Constants::ErrorNode());
 
             // Desugar `alias $new $old` to `self.alias_method($new, $old)`
             return MK::Send2(location, MK::Self(location), core::Names::aliasMethod(), location.copyWithZeroLength(),
@@ -1939,7 +1935,10 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
             auto aliasMethodNode = down_cast<pm_alias_method_node>(node);
 
             auto toExpr = desugar(aliasMethodNode->new_name);
-            auto fromExpr = desugar(aliasMethodNode->old_name);
+            auto fromExpr = expectedNode(aliasMethodNode->old_name, PM_SYMBOL_NODE, PM_INTERPOLATED_SYMBOL_NODE)
+                                ? desugar(aliasMethodNode->old_name)
+                                : MK::UnresolvedConstant(translateLoc(aliasMethodNode->old_name->location),
+                                                         MK::EmptyTree(), core::Names::Constants::ErrorNode());
 
             // Desugar methods: `alias new old` to `self.alias_method(new, old)`
             return MK::Send2(location, MK::Self(location), core::Names::aliasMethod(), location.copyWithZeroLength(),
@@ -2429,8 +2428,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
             ast::ExpressionPtr name;
             if (classNode->constant_path == nullptr ||
-                (!PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_READ_NODE) &&
-                 !PM_NODE_TYPE_P(classNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                !expectedNode(classNode->constant_path, PM_CONSTANT_READ_NODE, PM_CONSTANT_PATH_NODE)) {
                 auto nameLoc = translateLoc(classNode->class_keyword_loc);
                 name = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), core::Names::Constants::ConstantNameMissing());
             } else {
@@ -2732,25 +2730,11 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         case PM_FOR_NODE: { // `for x in a; ...; end`
             auto forNode = down_cast<pm_for_node>(node);
 
-            auto isValidTarget = [](pm_node_t *node) {
-                switch (PM_NODE_TYPE(node)) {
-                    case PM_LOCAL_VARIABLE_TARGET_NODE:
-                    case PM_INSTANCE_VARIABLE_TARGET_NODE:
-                    case PM_CLASS_VARIABLE_TARGET_NODE:
-                    case PM_GLOBAL_VARIABLE_TARGET_NODE:
-                    case PM_CONSTANT_TARGET_NODE:
-                    case PM_CONSTANT_PATH_TARGET_NODE:
-                    case PM_CALL_TARGET_NODE:
-                    case PM_INDEX_TARGET_NODE:
-                    case PM_MULTI_TARGET_NODE:
-                        return true;
-                    default:
-                        return false;
-                }
-            };
-
             // Index might be invalid in error recovery cases, match original parser behavior.
-            if (!isValidTarget(forNode->index)) {
+            if (!expectedNode(forNode->index, PM_LOCAL_VARIABLE_TARGET_NODE, PM_INSTANCE_VARIABLE_TARGET_NODE,
+                              PM_CLASS_VARIABLE_TARGET_NODE, PM_GLOBAL_VARIABLE_TARGET_NODE, PM_CONSTANT_TARGET_NODE,
+                              PM_CONSTANT_PATH_TARGET_NODE, PM_CALL_TARGET_NODE, PM_INDEX_TARGET_NODE,
+                              PM_MULTI_TARGET_NODE)) {
                 return MK::Nil(location.copyWithZeroLength());
             }
 
@@ -3184,8 +3168,7 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
 
             ast::ExpressionPtr name;
             if (moduleNode->constant_path == nullptr ||
-                (!PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_READ_NODE) &&
-                 !PM_NODE_TYPE_P(moduleNode->constant_path, PM_CONSTANT_PATH_NODE))) {
+                !expectedNode(moduleNode->constant_path, PM_CONSTANT_READ_NODE, PM_CONSTANT_PATH_NODE)) {
                 auto nameLoc = translateLoc(moduleNode->module_keyword_loc);
                 name = MK::UnresolvedConstant(nameLoc, MK::EmptyTree(), core::Names::Constants::ConstantNameMissing());
             } else {
@@ -4104,14 +4087,12 @@ Translator::desugarParametersNode(pm_parameters_node *paramsNode, core::LocOffse
     }
 
     for (auto *prismNode : posts) {
-        // Valid Ruby can only have `**nil` once in the parameter list, which is modelled with a
-        // `NoKeywordsParameterNode` in the `keyword_rest` field.
-        // If invalid code tries to use more than one `**nil` (like `def foo(**nil, **nil)`),
-        // Prism will report an error, but still place the excess `**nil` nodes in `posts` list (never the others like
-        // `requireds` or `optionals`), which we need to skip here.
-        if (!PM_NODE_TYPE_P(prismNode, PM_NO_KEYWORDS_PARAMETER_NODE)) {
-            paramsStore.emplace_back(desugar(prismNode));
+        // Skip unexpected nodes (e.g., error recovery nodes like MissingNode or UnexpectedNode)
+        // Also skip duplicate `**nil` nodes that Prism places here on parsing errors.
+        if (!expectedNode(prismNode, PM_REQUIRED_PARAMETER_NODE, PM_MULTI_TARGET_NODE)) {
+            continue;
         }
+        paramsStore.emplace_back(desugar(prismNode));
     }
 
     for (auto *kwarg : keywords) {
@@ -4684,7 +4665,10 @@ ast::Rescue::RESCUE_CASE_store Translator::desugarRescueCases(pm_rescue_node *fi
 
         // Handle exception variable (e.g., the `e` in `rescue => e`)
         ast::ExpressionPtr varExpr;
-        if (rescueNode->reference != nullptr) {
+        if (rescueNode->reference != nullptr &&
+            expectedNode(rescueNode->reference, PM_LOCAL_VARIABLE_TARGET_NODE, PM_INSTANCE_VARIABLE_TARGET_NODE,
+                         PM_CLASS_VARIABLE_TARGET_NODE, PM_GLOBAL_VARIABLE_TARGET_NODE, PM_CONSTANT_TARGET_NODE,
+                         PM_CONSTANT_PATH_TARGET_NODE, PM_CALL_TARGET_NODE, PM_INDEX_TARGET_NODE)) {
             auto refExpr = desugar(rescueNode->reference);
             bool isLocal = ast::isa_tree<ast::Local>(refExpr);
             if (!isLocal) {
