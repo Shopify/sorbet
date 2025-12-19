@@ -531,6 +531,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         return;
     }
 
+    // If all RBS comments have been processed and associated with nodes, we can skip walking the rest of the tree.
+    if (commentByLine.empty()) {
+        return;
+    }
+
     switch (PM_NODE_TYPE(node)) {
         case PM_AND_NODE: {
             auto *and_ = down_cast<pm_and_node_t>(node);

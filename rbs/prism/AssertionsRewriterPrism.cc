@@ -328,7 +328,7 @@ bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
 }
 
 /**
- * Mark the given comment location as "consumed" so it won't be picked up by subsequent calls to `commentForPos`.
+ * Mark the given comment location as "consumed" so it won't be picked up by subsequent calls to `commentForNode`.
  */
 void AssertionsRewriterPrism::consumeComment(core::LocOffsets loc) {
     consumedComments.emplace(make_pair(loc.beginPos(), loc.endPos()));
@@ -599,6 +599,11 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         return node;
     }
 
+    // If all comments have been consumed, we can skip the rest of the tree.
+    if (consumedComments.size() >= totalComments) {
+        return node;
+    }
+
     switch (PM_NODE_TYPE(node)) {
         // Scopes
         case PM_MODULE_NODE: {
@@ -721,8 +726,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             andWrite->receiver = rewriteNode(andWrite->receiver);
             rewriteArgumentsNode(andWrite->arguments);
             if (andWrite->block != nullptr) {
-                andWrite->block =
-                    down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(andWrite->block)));
+                andWrite->block = down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(andWrite->block)));
             }
             andWrite->value = maybeInsertCast(andWrite->value);
             andWrite->value = rewriteNode(andWrite->value);
@@ -772,8 +776,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             opWrite->receiver = rewriteNode(opWrite->receiver);
             rewriteArgumentsNode(opWrite->arguments);
             if (opWrite->block != nullptr) {
-                opWrite->block =
-                    down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(opWrite->block)));
+                opWrite->block = down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(opWrite->block)));
             }
             opWrite->value = maybeInsertCast(opWrite->value);
             opWrite->value = rewriteNode(opWrite->value);
@@ -823,8 +826,7 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
             orWrite->receiver = rewriteNode(orWrite->receiver);
             rewriteArgumentsNode(orWrite->arguments);
             if (orWrite->block != nullptr) {
-                orWrite->block =
-                    down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(orWrite->block)));
+                orWrite->block = down_cast<pm_block_argument_node_t>(rewriteNode(up_cast(orWrite->block)));
             }
             orWrite->value = maybeInsertCast(orWrite->value);
             orWrite->value = rewriteNode(orWrite->value);
@@ -1135,6 +1137,17 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
 pm_node_t *AssertionsRewriterPrism::run(pm_node_t *node) {
     if (node == nullptr) {
         return node;
+    }
+
+    // If there are no assertion comments to process we can skip entire tree walk.
+    if (commentsByNode->empty()) {
+        return node;
+    }
+
+    // Calculate total number of comments for early termination.
+    totalComments = 0;
+    for (const auto &[_, comments] : *commentsByNode) {
+        totalComments += comments.size();
     }
 
     return rewriteBody(node);

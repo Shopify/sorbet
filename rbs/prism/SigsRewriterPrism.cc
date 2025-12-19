@@ -752,6 +752,11 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 }
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
+    // If there are no signature comments to process, we can skip the entire tree walk.
+    if (commentsByNode->empty()) {
+        return node;
+    }
+
     return rewriteBody(node);
 }
 

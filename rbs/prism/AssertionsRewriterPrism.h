@@ -40,6 +40,7 @@ private:
     std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> *commentsByNode;
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};
     std::set<std::pair<uint32_t, uint32_t>> consumedComments = {};
+    size_t totalComments = 0;
 
     void consumeComment(core::LocOffsets loc);
     bool hasConsumedComment(core::LocOffsets loc);
