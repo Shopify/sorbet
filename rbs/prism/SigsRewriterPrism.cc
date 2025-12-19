@@ -252,12 +252,12 @@ void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t *body) {
 CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
     auto comments = CommentsPrism{};
 
-    if (commentsByNode == nullptr || node == nullptr) {
+    if (node == nullptr) {
         return comments;
     }
 
-    auto it = commentsByNode->find(node);
-    if (it == commentsByNode->end()) {
+    auto it = commentsByNode.find(node);
+    if (it == commentsByNode.end()) {
         return comments;
     }
 
@@ -753,7 +753,7 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
     // If there are no signature comments to process, we can skip the entire tree walk.
-    if (commentsByNode->empty()) {
+    if (commentsByNode.empty()) {
         return node;
     }
 

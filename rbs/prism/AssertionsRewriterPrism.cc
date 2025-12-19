@@ -357,12 +357,12 @@ core::LocOffsets AssertionsRewriterPrism::translateLocation(pm_location_t locati
  * Returns `nullopt` if no comment is found or if the comment was already consumed.
  */
 optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(pm_node_t *node) {
-    if (commentsByNode == nullptr || node == nullptr) {
+    if (node == nullptr) {
         return nullopt;
     }
 
-    auto it = commentsByNode->find(node);
-    if (it == commentsByNode->end()) {
+    auto it = commentsByNode.find(node);
+    if (it == commentsByNode.end()) {
         return nullopt;
     }
 
@@ -1140,13 +1140,13 @@ pm_node_t *AssertionsRewriterPrism::run(pm_node_t *node) {
     }
 
     // If there are no assertion comments to process we can skip entire tree walk.
-    if (commentsByNode->empty()) {
+    if (commentsByNode.empty()) {
         return node;
     }
 
     // Calculate total number of comments for early termination.
     totalComments = 0;
-    for (const auto &[_, comments] : *commentsByNode) {
+    for (const auto &[_, comments] : commentsByNode) {
         totalComments += comments.size();
     }
 

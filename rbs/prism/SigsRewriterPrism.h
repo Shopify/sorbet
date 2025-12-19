@@ -38,14 +38,14 @@ class SigsRewriterPrism {
 public:
     SigsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                       std::unordered_map<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(parser), prism(parser), commentsByNode(&commentsByNode) {}
+        : ctx(ctx), parser(parser), prism(parser), commentsByNode(commentsByNode) {}
     pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
     parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
-    std::unordered_map<pm_node_t *, std::vector<rbs::CommentNodePrism>> *commentsByNode;
+    std::unordered_map<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode;
 
     pm_node_t *rewriteBody(pm_node_t *node);
     pm_statements_node_t *rewriteBody(pm_statements_node_t *stmts);
