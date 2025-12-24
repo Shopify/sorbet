@@ -275,7 +275,10 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
         auto node = prismResult.getRawNodePointer();
 
         if (gs.cacheSensitiveOptions.rbsEnabled) {
-            node = rbs::runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
+            node = rbs::runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), ctx, parser);
+            if (print.RBSRewriteTree.enabled) {
+                print.RBSRewriteTree.fmt("{}\n", parser.prettyPrint(node));
+            }
         }
 
         bool directlyDesugar = !gs.cacheSensitiveOptions.rbsEnabled;
@@ -1393,7 +1396,7 @@ class CFGCollectorAndTyper {
     const options::Options &opts;
 
 public:
-    CFGCollectorAndTyper(const options::Options &opts) : opts(opts){};
+    CFGCollectorAndTyper(const options::Options &opts) : opts(opts) {};
 
     void preTransformMethodDef(core::Context ctx, ast::ExpressionPtr &tree) {
         auto &m = ast::cast_tree_nonnull<ast::MethodDef>(tree);

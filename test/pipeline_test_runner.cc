@@ -74,9 +74,8 @@ parser::ParseResult runPrismWithRBS(core::GlobalState &gs, core::FileRef file, c
     parser::Prism::Parser prismParser{ctx.file.data(ctx).source()};
     auto prismResult = prismParser.parseWithoutTranslation(true);
 
-    realmain::options::Printers print{};
     auto *rewrittenNode = rbs::runPrismRBSRewrite(gs, file, prismResult.getRawNodePointer(),
-                                                  prismResult.getCommentLocations(), print, ctx, prismParser);
+                                                  prismResult.getCommentLocations(), ctx, prismParser);
 
     auto translatedTree = parser::Prism::Translator(prismParser, ctx, prismResult.getParseErrors(), false, false)
                               .translate(rewrittenNode);
