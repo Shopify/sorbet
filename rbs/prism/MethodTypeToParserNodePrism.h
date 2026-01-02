@@ -18,8 +18,8 @@ class MethodTypeToParserNodePrism {
     const parser::Prism::Factory prism;
 
 public:
-    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parse, parser::Prism::Parser &prismParser)
-        : ctx(ctx), parser(parse), prismParser(prismParser), prism(prismParser) {}
+    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser, parser::Prism::Parser &prismParser)
+        : ctx(ctx), parser(parser), prismParser(prismParser), prism(prismParser) {}
 
     /**
      * Create a Prism signature node from RBS method signature.
@@ -27,7 +27,7 @@ public:
      * For example the signature comment `#: () -> void` will be translated as
      * `sig { void }`.
      */
-    pm_node_t *methodSignature(const pm_node_t *methodDef, const rbs_method_type_t *methodType,
+    pm_node_t *methodSignature(pm_node_t *methodDef, const rbs_method_type_t *methodType,
                                const RBSDeclaration &declaration, absl::Span<const Comment> annotations);
 
     /**
@@ -36,7 +36,7 @@ public:
      * For example the attribute type comment `#: Integer` will be translated as
      * `sig { returns(Integer) }`.
      */
-    pm_node_t *attrSignature(const pm_call_node_t *call, const rbs_node_t *type, const RBSDeclaration &declaration,
+    pm_node_t *attrSignature(pm_call_node_t *call, const rbs_node_t *type, const RBSDeclaration &declaration,
                              absl::Span<const Comment> annotations);
 
 private:
