@@ -25,7 +25,7 @@ vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list
         auto nameStr = parser.resolveConstant(rbsTypeParam->name);
         auto nameConstant = ctx.state.enterNameConstant(nameStr);
 
-        vector<pm_node_t *> args;
+        absl::InlinedVector<pm_node_t *, 1> args;
         if (rbsTypeParam->variance) {
             auto variance = parser.resolveKeyword(rbsTypeParam->variance);
             if (variance == "covariant") {
@@ -42,7 +42,7 @@ vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list
         pm_node_t *block = nullptr;
         if (defaultType || upperBound || lowerBound) {
             auto typeTranslator = TypeToParserNodePrism(ctx, {}, parser, prismParser);
-            vector<pm_node_t *> pairs;
+            absl::InlinedVector<pm_node_t *, 3> pairs;
 
             if (defaultType) {
                 auto key = prism.Symbol(loc, core::Names::fixed().show(ctx.state));
