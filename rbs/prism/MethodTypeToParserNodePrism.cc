@@ -111,14 +111,15 @@ core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pm
         corrected = "\n" + indent + "raise \"Abstract method called\"";
     }
 
-    return core::AutocorrectSuggestion{fmt::format("Add `raise` to the method body"),
+    return core::AutocorrectSuggestion{fmt::format("Add `{}` to the method body", "raise"),
                                        {core::AutocorrectSuggestion::Edit{ctx.locAt(editLoc), corrected}}};
 }
 
 void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, const parser::Prism::Parser *prismParser) {
-    if (PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
+    if (!PM_NODE_TYPE_P(node, PM_DEF_NODE)) return
         auto *def = down_cast<pm_def_node_t>(node);
         if (def->body && isRaise(def->body, prismParser)) {
+            pm_node_destroy(prismParser, def->body);
             def->body = nullptr;
             return;
         }
@@ -299,11 +300,13 @@ bool checkParameterKindMatch(const RBSArg &arg, const pm_node_t *methodArg) {
 }
 
 void collectArgs(const RBSDeclaration &declaration, rbs_node_list_t *field, vector<RBSArg> &args, RBSArg::Kind kind) {
+    ENFORCE(kind == RBSArg::Kind::Positional || kind == RBSArg::Kind::OptionalPositional || kind == RBSArg::Kind::RestPositional);
+    
     if (field == nullptr || field->length == 0) {
         return;
     }
 
-    for (rbs_node_list_node_t *list_node = field->head; list_node != nullptr; list_node = list_node->next) {
+    for (auto *list_node = field->head; list_node != nullptr; list_node = list_node->next) {
         auto loc = declaration.typeLocFromRange(list_node->node->location->rg);
         auto nameLoc = adjustNameLoc(declaration, list_node->node);
 
@@ -317,7 +320,9 @@ void collectArgs(const RBSDeclaration &declaration, rbs_node_list_t *field, vect
     }
 }
 
-void collectKeywords(const RBSDeclaration &declaration, rbs_hash_t *field, vector<RBSArg> &args, RBSArg::Kind kind) {
+void collectKeywordParams(const RBSDeclaration &declaration, rbs_hash_t *field, vector<RBSArg> &params, RBSArg::Kind kind) {
+    ENFORCE(kind == RBSArg::Kind::Keyword || kind == RBSArg::Kind::OptionalKeyword);
+    
     if (field == nullptr) {
         return;
     }
@@ -342,6 +347,7 @@ void collectKeywords(const RBSDeclaration &declaration, rbs_hash_t *field, vecto
 
 void collectRestParam(const RBSDeclaration &declaration, rbs_node_t *restParam, vector<RBSArg> &args,
                       RBSArg::Kind kind) {
+    ENFORCE(kind == RBSArg::Kind::RestPositional || kind == RBSArg::Kind::RestKeyword);
     ENFORCE(restParam->type == RBS_TYPES_FUNCTION_PARAM, "Unexpected node type `{}` in rest argument, expected `{}`",
             rbs_node_type_name(restParam), "FunctionParam");
 
@@ -412,10 +418,8 @@ vector<MethodParamInfo> getMethodArgs(pm_def_node_t *def) {
     auto *params = def->parameters;
 
     // requireds
-    if (params->requireds.size > 0) {
-        for (size_t i = 0; i < params->requireds.size; i++) {
-            appendParamName(result, params->requireds.nodes[i]);
-        }
+    for (size_t i = 0; i < params->requireds.size; i++) {
+        appendParamName(result, params->requireds.nodes[i]);
     }
     // optionals
     if (params->optionals.size > 0) {
@@ -474,7 +478,7 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(pm_call_node_t *call, cons
         if (call->arguments->arguments.size > 1) {
             if (auto e = ctx.beginIndexerError(prismParser.translateLocation(call->base.location),
                                                core::errors::Rewriter::RBSUnsupported)) {
-                e.setHeader("RBS signatures for attr_writer do not support multiple arguments");
+                e.setHeader("attr_writer can only have a single parameter");
             }
             return nullptr;
         }
@@ -523,7 +527,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
 
     // Collect type parameters
     vector<pair<core::LocOffsets, core::NameRef>> typeParams;
-    for (rbs_node_list_node_t *list_node = node.type_params->head; list_node != nullptr; list_node = list_node->next) {
+    for (auto *list_node = node.type_params->head; list_node != nullptr; list_node = list_node->next) {
         auto loc = declaration.typeLocFromRange(list_node->node->location->rg);
 
         ENFORCE(list_node->node->type == RBS_AST_TYPE_PARAM,
@@ -561,8 +565,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
     if (functionType->rest_keywords) {
         collectRestParam(declaration, functionType->rest_keywords, args, RBSArg::Kind::RestKeyword);
     }
-    auto *rbsBlock = node.block;
-    if (rbsBlock) {
+    if (auto *rbsBlock = node.block) {
         auto loc = declaration.typeLocFromRange(rbsBlock->base.location->rg);
         auto arg = RBSArg{
             .loc = loc, .nameLoc = loc, .name = nullptr, .type = (rbs_node_t *)rbsBlock, .kind = RBSArg::Kind::Block};
@@ -613,7 +616,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
         if (arg.name) {
             symbolNode = createSymbolNode(arg.name, arg.nameLoc);
         } else {
-            // Fallback to method parameter name when RBS omitted it
+            // RBS sig didn't give a name, fallback to the name from method def
             core::LocOffsets tinyLocOffsets = firstLineTypeLoc.copyWithZeroLength();
             if (!methodArgs.empty() && paramIndex < methodArgs.size()) {
                 auto methodArg = methodArgs[paramIndex];
