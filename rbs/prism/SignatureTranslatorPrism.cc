@@ -10,59 +10,56 @@ using namespace sorbet::parser::Prism;
 
 namespace sorbet::rbs {
 
+namespace {
+Parser makeParser(string_view str) {
+    return Parser{makeRBSString(str), RBS_ENCODING_UTF_8_ENTRY};
+}
+} // namespace
+
 pm_node_t *
 SignatureTranslatorPrism::translateAssertionType(absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams,
                                                  const rbs::RBSDeclaration &assertion) {
-    rbs_string_t rbsString = makeRBSString(assertion.string);
-    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
+    Parser rbsParser = makeParser(assertion.string);
+    rbs_node_t *rbsType = rbsParser.parseType();
 
-    Parser parser(rbsString, encoding);
-    rbs_node_t *rbsType = parser.parseType();
-
-    if (parser.hasError()) {
-        auto loc = assertion.typeLocFromRange(parser.getError()->token.range);
+    if (rbsParser.hasError()) {
+        auto loc = assertion.typeLocFromRange(rbsParser.getError()->token.range);
         if (auto e = ctx.beginIndexerError(loc, core::errors::Rewriter::RBSSyntaxError)) {
-            e.setHeader("Failed to parse RBS type ({})", parser.getError()->message);
+            e.setHeader("Failed to parse RBS type ({})", rbsParser.getError()->message);
         }
         return nullptr;
     }
 
-    auto typeToParserNodePrism = TypeToParserNodePrism(ctx, typeParams, move(parser), *this->parser);
+    auto typeToParserNodePrism = TypeToParserNodePrism(ctx, typeParams, move(rbsParser), *prismParser);
     return typeToParserNodePrism.toPrismNode(rbsType, assertion);
 }
 
 pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declaration) {
-    rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
+    Parser rbsParser = makeParser(declaration.string);
+    rbs_node_t *rbsType = rbsParser.parseType();
 
-    Parser parser(rbsString, encoding);
-    rbs_node_t *rbsType = parser.parseType();
-
-    if (parser.hasError()) {
-        auto offset = declaration.typeLocFromRange(parser.getError()->token.range);
+    if (rbsParser.hasError()) {
+        auto offset = declaration.typeLocFromRange(rbsParser.getError()->token.range);
         if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
-            e.setHeader("Failed to parse RBS type ({})", parser.getError()->message);
+            e.setHeader("Failed to parse RBS type ({})", rbsParser.getError()->message);
         }
         return nullptr;
     }
 
-    auto typeTranslator = TypeToParserNodePrism(ctx, {}, move(parser), *this->parser);
+    auto typeTranslator = TypeToParserNodePrism(ctx, {}, move(rbsParser), *prismParser);
     return typeTranslator.toPrismNode(rbsType, declaration);
 }
 
 pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t *call,
                                                             const RBSDeclaration &declaration,
                                                             absl::Span<const Comment> annotations) {
-    rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
+    Parser rbsParser = makeParser(declaration.string);
+    rbs_node_t *rbsType = rbsParser.parseType();
 
-    Parser parser(rbsString, encoding);
-    rbs_node_t *rbsType = parser.parseType();
-
-    if (parser.hasError()) {
-        auto offset = declaration.typeLocFromRange(parser.getError()->token.range);
+    if (rbsParser.hasError()) {
+        auto offset = declaration.typeLocFromRange(rbsParser.getError()->token.range);
         // First parse failed, let's check if the user mistakenly used a method signature on an accessor
-        auto methodParser = Parser(rbsString, encoding);
+        auto methodParser = makeParser(declaration.string);
         methodParser.parseMethodType();
 
         if (!methodParser.hasError()) {
@@ -78,36 +75,30 @@ pm_node_t *SignatureTranslatorPrism::translateAttrSignature(const pm_call_node_t
         return nullptr;
     }
 
-    auto methodTypeToParserNode = MethodTypeToParserNodePrism(ctx, move(parser), *this->parser);
+    auto methodTypeToParserNode = MethodTypeToParserNodePrism(ctx, move(rbsParser), *prismParser);
     return methodTypeToParserNode.attrSignature(call, rbsType, declaration, annotations);
 }
 
 pm_node_t *SignatureTranslatorPrism::translateMethodSignature(const pm_node_t *methodDef,
                                                               const RBSDeclaration &declaration,
                                                               absl::Span<const Comment> annotations) {
-    rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
+    Parser rbsParser = makeParser(declaration.string);
+    rbs_method_type_t *rbsMethodType = rbsParser.parseMethodType();
 
-    Parser parser(rbsString, encoding);
-    rbs_method_type_t *rbsMethodType = parser.parseMethodType();
-
-    if (parser.hasError()) {
-        auto offset = declaration.typeLocFromRange(parser.getError()->token.range);
+    if (rbsParser.hasError()) {
+        auto offset = declaration.typeLocFromRange(rbsParser.getError()->token.range);
         if (auto e = ctx.beginIndexerError(offset, core::errors::Rewriter::RBSSyntaxError)) {
-            e.setHeader("Failed to parse RBS signature ({})", parser.getError()->message);
+            e.setHeader("Failed to parse RBS signature ({})", rbsParser.getError()->message);
         }
         return nullptr;
     }
 
-    auto methodTypeToParserNodePrism = MethodTypeToParserNodePrism(ctx, move(parser), *this->parser);
+    auto methodTypeToParserNodePrism = MethodTypeToParserNodePrism(ctx, move(rbsParser), *prismParser);
     return methodTypeToParserNodePrism.methodSignature(methodDef, rbsMethodType, declaration, annotations);
 }
 
 vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDeclaration &declaration) {
-    rbs_string_t rbsString = makeRBSString(declaration.string);
-    const rbs_encoding_t *encoding = RBS_ENCODING_UTF_8_ENTRY;
-
-    Parser rbsParser(rbsString, encoding);
+    Parser rbsParser = makeParser(declaration.string);
     rbs_node_list_t *rbsTypeParams = rbsParser.parseTypeParams();
 
     if (rbsParser.hasError()) {
@@ -118,7 +109,7 @@ vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDecla
         return {};
     }
 
-    TypeParamsToParserNodesPrism typeParamsTranslator(ctx, rbsParser, *parser);
+    TypeParamsToParserNodesPrism typeParamsTranslator(ctx, rbsParser, *prismParser);
     return typeParamsTranslator.typeParams(rbsTypeParams, declaration);
 }
 
