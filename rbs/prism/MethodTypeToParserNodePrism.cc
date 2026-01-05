@@ -403,31 +403,29 @@ vector<pm_node_t *> getMethodParams(pm_def_node_t *def) {
     result.reserve(params->requireds.size + params->optionals.size + restSize + params->posts.size +
                    params->keywords.size + kwrestSize + blockSize);
 
-    // requireds
     for (size_t i = 0; i < params->requireds.size; i++) {
         result.push_back(params->requireds.nodes[i]);
     }
-    // optionals
+
     for (size_t i = 0; i < params->optionals.size; i++) {
         result.push_back(params->optionals.nodes[i]);
     }
-    // rest
+
     if (params->rest) {
         result.push_back(params->rest);
     }
-    // posts (trailing positionals)
+
     for (size_t i = 0; i < params->posts.size; i++) {
         result.push_back(params->posts.nodes[i]);
     }
-    // keywords
     for (size_t i = 0; i < params->keywords.size; i++) {
         result.push_back(params->keywords.nodes[i]);
     }
-    // keyword rest
+
     if (params->keyword_rest) {
         result.push_back(params->keyword_rest);
     }
-    // block
+
     if (params->block) {
         result.push_back(up_cast(params->block));
     }
@@ -542,9 +540,12 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
     auto restKeywordsSize = functionType->rest_keywords ? 1 : 0;
     auto blockSize = node.block ? 1 : 0;
 
-    size_t requiredPositionalsSize = functionType->required_positionals ? functionType->required_positionals->length : 0;
-    size_t optionalPositionalsSize = functionType->optional_positionals ? functionType->optional_positionals->length : 0;
-    size_t trailingPositionalsSize = functionType->trailing_positionals ? functionType->trailing_positionals->length : 0;
+    size_t requiredPositionalsSize =
+        functionType->required_positionals ? functionType->required_positionals->length : 0;
+    size_t optionalPositionalsSize =
+        functionType->optional_positionals ? functionType->optional_positionals->length : 0;
+    size_t trailingPositionalsSize =
+        functionType->trailing_positionals ? functionType->trailing_positionals->length : 0;
     size_t requiredKeywordsSize = functionType->required_keywords ? functionType->required_keywords->length : 0;
     size_t optionalKeywordsSize = functionType->optional_keywords ? functionType->optional_keywords->length : 0;
 
