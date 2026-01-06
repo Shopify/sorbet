@@ -419,6 +419,38 @@ void SigsRewriterPrism::rewriteArgumentsNode(pm_arguments_node_t *args) {
     }
 }
 
+pm_statements_node_t *SigsRewriterPrism::rewriteBody(pm_statements_node_t *statements) {
+    if (statements == nullptr) {
+        return statements;
+    }
+
+    // Save old statements before modifying (pm_node_list_append can realloc, invalidating pointers)
+    pm_node_list_t oldStmts = statements->body;
+    statements->body = (pm_node_list_t){.size = 0, .capacity = 0, .nodes = nullptr};
+
+    // For each statement, insert signatures before it if it's a signature target
+    for (size_t i = 0; i < oldStmts.size; i++) {
+        pm_node_t *stmt = oldStmts.nodes[i];
+
+        if (canHaveSignature(stmt, parser)) {
+            if (auto signatures = signaturesForNode(stmt)) {
+                // Add all signatures
+                for (auto sig : *signatures) {
+                    pm_node_list_append(&statements->body, sig);
+                }
+            }
+        }
+
+        // Add the rewritten statement
+        pm_node_list_append(&statements->body, rewriteNode(stmt));
+    }
+
+    // Free the old list structure (not the nodes themselves, as they were moved)
+    free(oldStmts.nodes);
+
+    return statements;
+}
+
 pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     if (node == nullptr) {
         return node;
@@ -426,33 +458,7 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
 
     // Handle statements nodes (class/module bodies with multiple statements)
     if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
-        auto *statements = down_cast<pm_statements_node_t>(node);
-
-        // Save old statements before modifying (pm_node_list_append can realloc, invalidating pointers)
-        pm_node_list_t oldStmts = statements->body;
-        statements->body = (pm_node_list_t){.size = 0, .capacity = 0, .nodes = nullptr};
-
-        // For each statement, insert signatures before it if it's a signature target
-        for (size_t i = 0; i < oldStmts.size; i++) {
-            pm_node_t *stmt = oldStmts.nodes[i];
-
-            if (canHaveSignature(stmt, parser)) {
-                if (auto signatures = signaturesForNode(stmt)) {
-                    // Add all signatures
-                    for (auto sig : *signatures) {
-                        pm_node_list_append(&statements->body, sig);
-                    }
-                }
-            }
-
-            // Add the rewritten statement
-            pm_node_list_append(&statements->body, rewriteNode(stmt));
-        }
-
-        // Free the old list structure (not the nodes themselves, as they were moved)
-        free(oldStmts.nodes);
-
-        return node;
+        return up_cast(rewriteBody(down_cast<pm_statements_node_t>(node)));
     }
 
     // Handle single node that is a signature target
@@ -464,10 +470,6 @@ pm_node_t *SigsRewriterPrism::rewriteBody(pm_node_t *node) {
     }
 
     return rewriteNode(node);
-}
-
-pm_statements_node_t *SigsRewriterPrism::rewriteBody(pm_statements_node_t *stmts) {
-    return down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
 }
 
 pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
