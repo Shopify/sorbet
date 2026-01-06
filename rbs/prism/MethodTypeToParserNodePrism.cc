@@ -54,36 +54,6 @@ bool isSelfOrKernel(pm_node_t *node, const parser::Prism::Parser *prismParser) {
     return false;
 }
 
-// Check if the method body is only a single `raise` call
-bool isRaise(pm_node_t *node, const parser::Prism::Parser *prismParser) {
-    if (!node) {
-        return false;
-    }
-
-    if (PM_NODE_TYPE_P(node, PM_STATEMENTS_NODE)) {
-        auto *stmts = down_cast<pm_statements_node_t>(node);
-        if (stmts->body.size == 1) {
-            node = stmts->body.nodes[0];
-        } else {
-            return false; // Multiple statements, not just a raise
-        }
-    }
-
-    if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
-        return false;
-    }
-
-    auto *call = down_cast<pm_call_node_t>(node);
-    auto methodName = prismParser->resolveConstant(call->name);
-
-    if (methodName != "raise") {
-        return false;
-    }
-
-    // Check receiver is nil (implicit self) or self/Kernel
-    return call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser);
-}
-
 core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pm_node_t *method,
                                                     const parser::Prism::Parser *prismParser, pm_node_t *method_body) {
     core::LocOffsets editLoc;
@@ -113,27 +83,66 @@ core::AutocorrectSuggestion autocorrectAbstractBody(core::MutableContext ctx, pm
                                        {core::AutocorrectSuggestion::Edit{ctx.locAt(editLoc), corrected}}};
 }
 
+// Returns true if the node is a valid abstract method (def node with a body that only raises)
+// e.g. def abstract_method = raise
+bool isValidAbstractMethod(pm_node_t *node, const parser::Prism::Parser *prismParser) {
+    if (!PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
+        return false;
+    }
+
+    auto *def = down_cast<pm_def_node_t>(node);
+
+    // Check if body is a single raise call
+    if (def->body) {
+        pm_node_t *bodyNode = def->body;
+
+        // Unwrap statements node if it contains exactly one statement
+        if (PM_NODE_TYPE_P(bodyNode, PM_STATEMENTS_NODE)) {
+            auto *stmts = down_cast<pm_statements_node_t>(bodyNode);
+            if (stmts->body.size == 1) {
+                bodyNode = stmts->body.nodes[0];
+            } else {
+                return false; // Multiple statements, not just a raise
+            }
+        }
+
+        // Check if it's a raise call
+        if (bodyNode && PM_NODE_TYPE_P(bodyNode, PM_CALL_NODE)) {
+            auto *call = down_cast<pm_call_node_t>(bodyNode);
+            auto methodName = prismParser->resolveConstant(call->name);
+
+            if (methodName == "raise" && (call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser))) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, const parser::Prism::Parser *prismParser) {
-    if (PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
+    if (isValidAbstractMethod(node, prismParser)) {
+        // Method properly raises, remove body to avoid error 5019 later in the pipeline
         auto *def = down_cast<pm_def_node_t>(node);
-        if (def->body && isRaise(def->body, prismParser)) {
-            def->body = nullptr;
-            return;
-        }
+        def->body = nullptr;
+        return;
+    }
 
-        auto nodeLoc = prismParser->translateLocation(node->location);
+    auto *def = down_cast<pm_def_node_t>(node);
+    auto nodeLoc = prismParser->translateLocation(node->location);
 
-        if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSAbstractMethodNoRaises)) {
-            e.setHeader("Methods declared @abstract with an RBS comment must always raise");
-            auto autocorrect = autocorrectAbstractBody(ctx, node, prismParser, def->body);
-            e.addAutocorrect(move(autocorrect));
-        }
+    if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSAbstractMethodNoRaises)) {
+        e.setHeader("Methods declared @abstract with an RBS comment must always raise");
+        auto autocorrect = autocorrectAbstractBody(ctx, node, prismParser, def->body);
+        e.addAutocorrect(move(autocorrect));
     }
 }
 
 pm_node_t *handleAnnotations(core::MutableContext ctx, pm_node_t *node, pm_node_t *sigBuilder,
                              absl::Span<const Comment> annotations, const parser::Prism::Parser *prismParser,
                              const parser::Prism::Factory &prism) {
+    static constexpr string_view OVERRIDE_ALLOW_INCOMPATIBLE_PREFIX = "override(allow_incompatible: ";
+
     for (auto &annotation : annotations) {
         if (annotation.string == "final") {
             // no-op, `final` is handled in the `sig()` call later
@@ -144,16 +153,28 @@ pm_node_t *handleAnnotations(core::MutableContext ctx, pm_node_t *node, pm_node_
             sigBuilder = prism.Call0(annotation.typeLoc, sigBuilder, core::Names::overridable().show(ctx.state));
         } else if (annotation.string == "override") {
             sigBuilder = prism.Call0(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state));
-        } else if (annotation.string == "override(allow_incompatible: true)" ||
-                   annotation.string == "override(allow_incompatible: :visibility)") {
-            auto key = prism.Symbol(annotation.typeLoc, core::Names::allowIncompatible().show(ctx.state));
-            auto value = (annotation.string == "override(allow_incompatible: true)")
-                             ? prism.True(annotation.typeLoc)
-                             : prism.Symbol(annotation.typeLoc, core::Names::visibility().show(ctx.state));
-            auto pair = prism.AssocNode(annotation.typeLoc, key, value);
-            auto hashElements = array{pair};
-            auto hash = prism.KeywordHash(annotation.typeLoc, absl::MakeSpan(hashElements));
-            sigBuilder = prism.Call1(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state), hash);
+        } else if (annotation.string.find(OVERRIDE_ALLOW_INCOMPATIBLE_PREFIX) == 0 && annotation.string.back() == ')') {
+            auto valueStr =
+                annotation.string.substr(OVERRIDE_ALLOW_INCOMPATIBLE_PREFIX.size(),
+                                         annotation.string.size() - OVERRIDE_ALLOW_INCOMPATIBLE_PREFIX.size() - 1);
+
+            pm_node_t *value = nullptr;
+            if (valueStr == "true") {
+                value = prism.True(annotation.typeLoc);
+            } else if (valueStr == "false") {
+                value = prism.False(annotation.typeLoc);
+            } else if (valueStr == ":visibility") {
+                value = prism.Symbol(annotation.typeLoc, core::Names::visibility().show(ctx.state));
+            }
+
+            if (value) {
+                auto key = prism.Symbol(annotation.typeLoc, core::Names::allowIncompatible().show(ctx.state));
+                auto pair = prism.AssocNode(annotation.typeLoc, key, value);
+                auto hashElements = array{pair};
+                auto hash = prism.KeywordHash(annotation.typeLoc, absl::MakeSpan(hashElements));
+                sigBuilder =
+                    prism.Call1(annotation.typeLoc, sigBuilder, core::Names::override_().show(ctx.state), hash);
+            }
         }
     }
     return sigBuilder;
@@ -331,7 +352,7 @@ void collectKeywordParams(const RBSDeclaration &declaration, rbs_hash_t *field, 
         return;
     }
 
-    for (rbs_hash_node_t *hash_node = field->head; hash_node != nullptr; hash_node = hash_node->next) {
+    for (auto *hash_node = field->head; hash_node != nullptr; hash_node = hash_node->next) {
         ENFORCE(hash_node->key->type == RBS_AST_SYMBOL,
                 "Unexpected node type `{}` in keyword argument name, expected `{}`", rbs_node_type_name(hash_node->key),
                 "Symbol");
@@ -585,28 +606,23 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
 
     auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
 
-    vector<pm_node_t *> sigParams;
-    sigParams.reserve(args.size());
-
-    // Check if methodParams is empty once before the loop (loop invariant)
-    if (methodParams.empty() && !args.empty()) {
+    if (methodParams.size() != args.size()) {
         if (auto e = ctx.beginIndexerError(fullTypeLoc, core::errors::Rewriter::RBSParameterMismatch)) {
-            e.setHeader("RBS signature has more parameters than in the method definition");
+            if (methodParams.size() < args.size()) {
+                e.setHeader("RBS signature has more parameters than in the method definition");
+            } else {
+                e.setHeader("RBS signature has fewer parameters than in the method definition");
+            }
         }
         return nullptr;
     }
 
+    vector<pm_node_t *> sigParams;
+    sigParams.reserve(args.size());
+
     for (size_t i = 0; i < args.size(); i++) {
         const auto &arg = args[i];
         pm_node_t *typeNode = typeToPrismNode.toPrismNode(arg.type, declaration);
-
-        if (i >= methodParams.size()) {
-            if (auto e = ctx.beginIndexerError(fullTypeLoc, core::errors::Rewriter::RBSParameterMismatch)) {
-                e.setHeader("RBS signature has more parameters than in the method definition");
-            }
-
-            return nullptr;
-        }
 
         pm_node_t *methodParam = methodParams[i];
         if (!checkParameterKindMatch(arg, methodParam)) {
