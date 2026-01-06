@@ -92,38 +92,37 @@ bool isValidAbstractMethod(pm_node_t *node, const parser::Prism::Parser *prismPa
 
     auto *def = down_cast<pm_def_node_t>(node);
 
-    // Check if body is a single raise call
-    if (def->body) {
-        pm_node_t *bodyNode = def->body;
-
-        // Unwrap statements node if it contains exactly one statement
-        if (PM_NODE_TYPE_P(bodyNode, PM_STATEMENTS_NODE)) {
-            auto *stmts = down_cast<pm_statements_node_t>(bodyNode);
-            if (stmts->body.size == 1) {
-                bodyNode = stmts->body.nodes[0];
-            } else {
-                return false; // Multiple statements, not just a raise
-            }
-        }
-
-        // Check if it's a raise call
-        if (bodyNode && PM_NODE_TYPE_P(bodyNode, PM_CALL_NODE)) {
-            auto *call = down_cast<pm_call_node_t>(bodyNode);
-            auto methodName = prismParser->resolveConstant(call->name);
-
-            if (methodName == "raise" && (call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser))) {
-                return true;
-            }
-        }
+    if (def->body == nullptr) {
+        return false;
     }
 
-    return false;
+    pm_node_t *bodyNode = def->body;
+
+    // Unwrap statements node if it contains exactly one statement
+    if (PM_NODE_TYPE_P(bodyNode, PM_STATEMENTS_NODE)) {
+        auto *stmts = down_cast<pm_statements_node_t>(bodyNode);
+        if (stmts->body.size != 1) {
+            return false; // Multiple statements, not just a raise
+        }
+        bodyNode = stmts->body.nodes[0];
+    }
+
+    if (!PM_NODE_TYPE_P(bodyNode, PM_CALL_NODE)) {
+        return false;
+    }
+
+    auto *call = down_cast<pm_call_node_t>(bodyNode);
+    auto methodName = prismParser->resolveConstant(call->name);
+
+    // Check if it's a raise call with no receiver or self/Kernel receiver
+    return methodName == "raise" && (call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser));
 }
 
-void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, const parser::Prism::Parser *prismParser) {
+void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, parser::Prism::Parser *prismParser) {
     if (isValidAbstractMethod(node, prismParser)) {
         // Method properly raises, remove body to avoid error 5019 later in the pipeline
         auto *def = down_cast<pm_def_node_t>(node);
+        prismParser->destroyNode(def->body);
         def->body = nullptr;
         return;
     }
@@ -139,7 +138,7 @@ void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, const
 }
 
 pm_node_t *handleAnnotations(core::MutableContext ctx, pm_node_t *node, pm_node_t *sigBuilder,
-                             absl::Span<const Comment> annotations, const parser::Prism::Parser *prismParser,
+                             absl::Span<const Comment> annotations, parser::Prism::Parser *prismParser,
                              const parser::Prism::Factory &prism) {
     static constexpr string_view OVERRIDE_ALLOW_INCOMPATIBLE_PREFIX = "override(allow_incompatible: ";
 
