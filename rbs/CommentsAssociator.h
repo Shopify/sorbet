@@ -52,7 +52,7 @@ private:
     std::optional<uint32_t> locateTargetLine(parser::Node *node);
 
     int maybeInsertStandalonePlaceholders(parser::NodeVec &nodes, int index, int lastLine, int currentLine);
-    bool nestingAllowsTypeAlias();
+    bool contextAllowsTypeAlias();
 };
 
 } // namespace sorbet::rbs

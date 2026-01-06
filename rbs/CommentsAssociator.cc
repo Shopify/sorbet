@@ -18,6 +18,10 @@ const string_view CommentsAssociator::BIND_PREFIX = "#: self as ";
 
 const regex TYPE_ALIAS_PATTERN("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*([^\\n]*)$");
 
+bool CommentsAssociator::contextAllowsTypeAlias() {
+    return !contextAllowingTypeAlias.empty() && contextAllowingTypeAlias.back().first;
+}
+
 // Static regex pattern to avoid recompilation
 static const regex HEREDOC_PATTERN("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
 
@@ -226,17 +230,16 @@ int CommentsAssociator::maybeInsertStandalonePlaceholders(parser::NodeVec &nodes
         std::smatch matches;
         auto str = string(it->second.string);
         if (std::regex_match(str, matches, TYPE_ALIAS_PATTERN)) {
-            if (!contextAllowingTypeAlias.empty()) {
-                if (auto [allow, loc] = contextAllowingTypeAlias.back(); !allow) {
-                    if (auto e = ctx.beginError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
-                        e.setHeader("Unexpected RBS type alias comment");
-                        e.addErrorLine(ctx.locAt(loc),
-                                       "RBS type aliases are only allowed in class and module bodies. Found in:");
-                    }
-
-                    it = commentByLine.erase(it);
-                    continue;
+            if (!contextAllowsTypeAlias()) {
+                auto loc = contextAllowingTypeAlias.back().second;
+                if (auto e = ctx.beginError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
+                    e.setHeader("Unexpected RBS type alias comment");
+                    e.addErrorLine(ctx.locAt(loc),
+                                   "RBS type aliases are only allowed in class and module bodies. Found in:");
                 }
+
+                it = commentByLine.erase(it);
+                continue;
             }
 
             auto nameStr = "type " + matches[1].str();
@@ -279,12 +282,7 @@ void CommentsAssociator::processTrailingComments(parser::Node *node, parser::Nod
 }
 
 unique_ptr<parser::Node> CommentsAssociator::walkBody(parser::Node *node, unique_ptr<parser::Node> body) {
-    bool allowTypeAlias = false;
-    if (!contextAllowingTypeAlias.empty()) {
-        allowTypeAlias = contextAllowingTypeAlias.back().first;
-    }
-
-    if (allowTypeAlias && body == nullptr) {
+    if (contextAllowsTypeAlias() && body == nullptr) {
         int endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
         auto nodes = parser::NodeVec();
 
