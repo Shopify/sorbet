@@ -252,12 +252,12 @@ void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t *body) {
 CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
     auto comments = CommentsPrism{};
 
-    if (commentsByNode == nullptr || node == nullptr) {
+    if (node == nullptr) {
         return comments;
     }
 
-    auto it = commentsByNode->find(node);
-    if (it == commentsByNode->end()) {
+    auto it = commentsByNode.find(node);
+    if (it == commentsByNode.end()) {
         return comments;
     }
 
@@ -280,8 +280,7 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
 
         if (absl::StartsWith(commentNode.string, "#:")) {
             if (state == SignatureState::Multiline) {
-                if (auto e = ctx.beginIndexerError(commentNode.loc,
-                                                   core::errors::Rewriter::RBSMultilineMisformatted)) {
+                if (auto e = ctx.beginIndexerError(commentNode.loc, core::errors::Rewriter::RBSMultilineMisformatted)) {
                     e.setHeader("Signature start (\"#:\") cannot appear after a multiline signature (\"#|\")");
                     return comments;
                 }
@@ -305,8 +304,7 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
 
         if (absl::StartsWith(commentNode.string, "#|")) {
             if (state == SignatureState::None) {
-                if (auto e = ctx.beginIndexerError(commentNode.loc,
-                                                   core::errors::Rewriter::RBSMultilineMisformatted)) {
+                if (auto e = ctx.beginIndexerError(commentNode.loc, core::errors::Rewriter::RBSMultilineMisformatted)) {
                     e.setHeader("Multiline signature (\"#|\") must be preceded by a signature start (\"#:\")");
                     return comments;
                 }
@@ -752,6 +750,10 @@ pm_node_t *SigsRewriterPrism::rewriteNode(pm_node_t *node) {
 }
 
 pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
+    // If there are no signature comments to process, we can skip the entire tree walk.
+    if (commentsByNode.empty()) {
+        return node;
+    }
     return rewriteBody(node);
 }
 
