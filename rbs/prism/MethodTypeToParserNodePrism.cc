@@ -605,13 +605,11 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
 
     auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
 
-    if (methodParams.size() != args.size()) {
+    // Only error if RBS has more parameters than the method.
+    // If RBS has fewer, generate a partial sig and let the resolver error on missing types.
+    if (args.size() > methodParams.size()) {
         if (auto e = ctx.beginIndexerError(fullTypeLoc, core::errors::Rewriter::RBSParameterMismatch)) {
-            if (methodParams.size() < args.size()) {
-                e.setHeader("RBS signature has more parameters than in the method definition");
-            } else {
-                e.setHeader("RBS signature has fewer parameters than in the method definition");
-            }
+            e.setHeader("RBS signature has more parameters than in the method definition");
         }
         return nullptr;
     }
