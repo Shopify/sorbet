@@ -20,8 +20,8 @@ const string_view CommentsAssociatorPrism::BIND_PREFIX = "#: self as ";
 namespace {
 
 // Static regex patterns to avoid recompilation
-const regex TYPE_ALIAS_PATTERN_PRISM("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*([^\\n]*)$");
-const regex HEREDOC_PATTERN_PRISM("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
+const regex TYPE_ALIAS_PATTERN("^#: type\\s*([a-z][A-Za-z0-9_]*)\\s*=\\s*([^\\n]*)$");
+const regex HEREDOC_PATTERN("\\s*=?\\s*<<(-|~)[^,\\s\\n#]+(,\\s*<<(-|~)[^,\\s\\n#]+)*");
 
 constexpr std::string_view TYPE_ALIAS_PREFIX = "type ";
 
@@ -65,7 +65,7 @@ void insertNodeAtIndex(pm_node_list_t &nodes, pm_node_t *node, size_t index) {
  */
 optional<uint32_t> hasHeredocMarker(const core::Context &ctx, uint32_t fromPos, uint32_t toPos) {
     string sourceStr(ctx.file.data(ctx).source().substr(fromPos, toPos - fromPos));
-    if (regex_search(sourceStr, HEREDOC_PATTERN_PRISM)) {
+    if (regex_search(sourceStr, HEREDOC_PATTERN)) {
         return fromPos + sourceStr.length();
     }
 
@@ -291,7 +291,7 @@ int CommentsAssociatorPrism::maybeInsertStandalonePlaceholders(pm_node_list_t &n
         // This allows using `foo` as a type alias later (e.g., `#: self as foo`)
         std::smatch matches;
         auto comment = string(it->second.string);
-        if (std::regex_match(comment, matches, TYPE_ALIAS_PATTERN_PRISM)) {
+        if (std::regex_match(comment, matches, TYPE_ALIAS_PATTERN)) {
             // Type aliases are only allowed in class/module bodies
             if (!contextAllowingTypeAlias.empty()) {
                 if (auto [allow, loc] = contextAllowingTypeAlias.back(); !allow) {
@@ -555,28 +555,20 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
         case PM_BEGIN_NODE: {
             auto *begin = down_cast<pm_begin_node_t>(node);
 
-            // Differentiate between implicit and explicit begin nodes by checking if begin_keyword_loc is populated
-            // In Prism, both implicit and explicit begin constructs use PM_BEGIN_NODE, unlike Whitequark which had
-            // separate types
+            // PM_BEGIN_NODE represents both implicit begins (parenthesized expressions) and explicit begins
+            // (begin...end blocks)
             bool isExplicitBegin = begin->begin_keyword_loc.start != begin->begin_keyword_loc.end;
 
             if (isExplicitBegin) {
-                // Explicit begin...end block (was kwbegin in Whitequark)
+                // Explicit begin...end block
                 associateAssertionCommentsToNode(node);
             } else {
                 // Implicit begin node (wrapping expressions)
-                // This is a workaround that will be removed once we migrate to prism. We need to differentiate
-                // between implicit and explicit begin nodes.
-                //
-                // (let4 &&= "foo") #: Integer
-                // vs
-                // take_block { |x|
-                //   puts x
-                //   x #: as String
-                // }
                 if (begin->statements && begin->statements->body.size > 0) {
                     auto firstStmtLoc = translateLocation(begin->statements->body.nodes[0]->location);
                     auto nodeLoc = translateLocation(node->location);
+                    // Only associate assertion comments if it tightly wraps a single expression:
+                    // e.g. (x &&= "foo") #:Integer
                     if (firstStmtLoc.endPos() + 1 == nodeLoc.endPos()) {
                         associateAssertionCommentsToNode(node);
                     }
