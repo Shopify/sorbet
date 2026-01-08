@@ -280,8 +280,7 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
 
         if (absl::StartsWith(commentNode.string, "#:")) {
             if (state == SignatureState::Multiline) {
-                if (auto e = ctx.beginIndexerError(commentNode.loc,
-                                                   core::errors::Rewriter::RBSMultilineMisformatted)) {
+                if (auto e = ctx.beginIndexerError(commentNode.loc, core::errors::Rewriter::RBSMultilineMisformatted)) {
                     e.setHeader("Signature start (\"#:\") cannot appear after a multiline signature (\"#|\")");
                     return comments;
                 }
@@ -305,8 +304,7 @@ CommentsPrism SigsRewriterPrism::commentsForNode(pm_node_t *node) {
 
         if (absl::StartsWith(commentNode.string, "#|")) {
             if (state == SignatureState::None) {
-                if (auto e = ctx.beginIndexerError(commentNode.loc,
-                                                   core::errors::Rewriter::RBSMultilineMisformatted)) {
+                if (auto e = ctx.beginIndexerError(commentNode.loc, core::errors::Rewriter::RBSMultilineMisformatted)) {
                     e.setHeader("Multiline signature (\"#|\") must be preceded by a signature start (\"#:\")");
                     return comments;
                 }

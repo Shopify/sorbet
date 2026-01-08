@@ -50,8 +50,7 @@ pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declara
     return typeTranslator.toPrismNode(rbsType, declaration);
 }
 
-pm_node_t *SignatureTranslatorPrism::translateAttrSignature(pm_call_node_t *call,
-                                                            const RBSDeclaration &declaration,
+pm_node_t *SignatureTranslatorPrism::translateAttrSignature(pm_call_node_t *call, const RBSDeclaration &declaration,
                                                             absl::Span<const Comment> annotations) {
     Parser rbsParser = makeParser(declaration.string);
     rbs_node_t *rbsType = rbsParser.parseType();
@@ -79,8 +78,7 @@ pm_node_t *SignatureTranslatorPrism::translateAttrSignature(pm_call_node_t *call
     return methodTypeToParserNode.attrSignature(call, rbsType, declaration, annotations);
 }
 
-pm_node_t *SignatureTranslatorPrism::translateMethodSignature(pm_node_t *methodDef,
-                                                              const RBSDeclaration &declaration,
+pm_node_t *SignatureTranslatorPrism::translateMethodSignature(pm_node_t *methodDef, const RBSDeclaration &declaration,
                                                               absl::Span<const Comment> annotations) {
     Parser rbsParser = makeParser(declaration.string);
     rbs_method_type_t *rbsMethodType = rbsParser.parseMethodType();

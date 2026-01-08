@@ -1396,7 +1396,7 @@ class CFGCollectorAndTyper {
     const options::Options &opts;
 
 public:
-    CFGCollectorAndTyper(const options::Options &opts) : opts(opts) {};
+    CFGCollectorAndTyper(const options::Options &opts) : opts(opts){};
 
     void preTransformMethodDef(core::Context ctx, ast::ExpressionPtr &tree) {
         auto &m = ast::cast_tree_nonnull<ast::MethodDef>(tree);
