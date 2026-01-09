@@ -9,7 +9,7 @@ namespace sorbet::rbs {
 
 vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list_t *rbsTypeParams,
                                                              const RBSDeclaration &declaration) {
-    vector<pm_node_t *> result;
+    vector<pm_node_t *> result{};
     result.reserve(rbsTypeParams->length);
 
     for (auto *listNode = rbsTypeParams->head; listNode != nullptr; listNode = listNode->next) {
@@ -25,7 +25,7 @@ vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list
         auto nameStr = parser.resolveConstant(rbsTypeParam->name);
         auto nameConstant = ctx.state.enterNameConstant(nameStr);
 
-        absl::InlinedVector<pm_node_t *, 1> args;
+        absl::InlinedVector<pm_node_t *, 1> args{};
         if (rbsTypeParam->variance) {
             auto variance = parser.resolveKeyword(rbsTypeParam->variance);
             if (variance == "covariant") {
@@ -41,8 +41,8 @@ vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list
 
         pm_node_t *block = nullptr;
         if (defaultType || upperBound || lowerBound) {
-            auto typeTranslator = TypeToParserNodePrism(ctx, {}, parser, prismParser);
-            absl::InlinedVector<pm_node_t *, 3> pairs;
+            auto typeTranslator = TypeToParserNodePrism{ctx, {}, parser, prismParser};
+            absl::InlinedVector<pm_node_t *, 3> pairs{};
 
             if (defaultType) {
                 auto key = prism.Symbol(loc, core::Names::fixed().show(ctx.state));

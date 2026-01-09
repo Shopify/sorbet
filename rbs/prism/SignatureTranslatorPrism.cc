@@ -30,7 +30,7 @@ SignatureTranslatorPrism::translateAssertionType(absl::Span<pair<core::LocOffset
         return nullptr;
     }
 
-    auto typeToParserNodePrism = TypeToParserNodePrism(ctx, typeParams, move(rbsParser), *prismParser);
+    auto typeToParserNodePrism = TypeToParserNodePrism{ctx, typeParams, move(rbsParser), *prismParser};
     return typeToParserNodePrism.toPrismNode(rbsType, assertion);
 }
 
@@ -46,7 +46,7 @@ pm_node_t *SignatureTranslatorPrism::translateType(const RBSDeclaration &declara
         return nullptr;
     }
 
-    auto typeTranslator = TypeToParserNodePrism(ctx, {}, move(rbsParser), *prismParser);
+    auto typeTranslator = TypeToParserNodePrism{ctx, {}, move(rbsParser), *prismParser};
     return typeTranslator.toPrismNode(rbsType, declaration);
 }
 
@@ -74,7 +74,7 @@ pm_node_t *SignatureTranslatorPrism::translateAttrSignature(pm_call_node_t *call
         return nullptr;
     }
 
-    auto methodTypeToParserNode = MethodTypeToParserNodePrism(ctx, move(rbsParser), *prismParser);
+    auto methodTypeToParserNode = MethodTypeToParserNodePrism{ctx, move(rbsParser), *prismParser};
     return methodTypeToParserNode.attrSignature(call, rbsType, declaration, annotations);
 }
 
@@ -91,7 +91,7 @@ pm_node_t *SignatureTranslatorPrism::translateMethodSignature(pm_node_t *methodD
         return nullptr;
     }
 
-    auto methodTypeToParserNodePrism = MethodTypeToParserNodePrism(ctx, move(rbsParser), *prismParser);
+    auto methodTypeToParserNodePrism = MethodTypeToParserNodePrism{ctx, move(rbsParser), *prismParser};
     return methodTypeToParserNodePrism.methodSignature(methodDef, rbsMethodType, declaration, annotations);
 }
 
@@ -107,7 +107,7 @@ vector<pm_node_t *> SignatureTranslatorPrism::translateTypeParams(const RBSDecla
         return {};
     }
 
-    TypeParamsToParserNodesPrism typeParamsTranslator(ctx, rbsParser, *prismParser);
+    TypeParamsToParserNodesPrism typeParamsTranslator{ctx, rbsParser, *prismParser};
     return typeParamsTranslator.typeParams(rbsTypeParams, declaration);
 }
 
