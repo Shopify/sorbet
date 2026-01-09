@@ -182,6 +182,9 @@ pm_call_node_t *Factory::createCallNode(pm_node_t *receiver, pm_constant_id_t me
 }
 
 pm_node_t *Factory::SymbolFromConstant(core::LocOffsets nameLoc, pm_constant_id_t nameId) const {
+    ENFORCE(nameId != PM_CONSTANT_ID_UNSET,
+            "SymbolFromConstant called with PM_CONSTANT_ID_UNSET (anonymous parameter name). "
+            "Caller must check for PM_CONSTANT_ID_UNSET before calling.");
     auto nameView = parser.resolveConstant(nameId);
 
     pm_symbol_node_t *symbolNode = allocateNode<pm_symbol_node_t>();

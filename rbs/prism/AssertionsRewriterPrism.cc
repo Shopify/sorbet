@@ -63,7 +63,6 @@ vector<pair<core::LocOffsets, core::NameRef>>
 extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &parser, pm_node_t *block) {
     vector<pair<core::LocOffsets, core::NameRef>> typeParams;
 
-    // Do we have a block?
     if (!block || !PM_NODE_TYPE_P(block, PM_BLOCK_NODE)) {
         return typeParams;
     }
