@@ -261,9 +261,32 @@ private:
     Translator enterModuleContext() const;
     Translator enterClassContext() const;
 
+    struct LiteralBlock {
+        ast::ExpressionPtr expr;
+    };
+
+    struct BlockPassArg {
+        ast::ExpressionPtr expr;
+    };
+
+    using DesugaredBlockArgument = std::variant<std::monostate, LiteralBlock, BlockPassArg>;
+
     std::pair<core::LocOffsets, core::LocOffsets> computeMethodCallLoc(core::LocOffsets initialLoc, pm_node_t *receiver,
                                                                        absl::Span<pm_node_t *> prismArgs,
-                                                                       pm_location_t closing_loc, pm_node_t *blockNode);
+                                                                       pm_location_t closing_loc,
+                                                                       const Translator::DesugaredBlockArgument &block);
+
+    DesugaredBlockArgument desugarBlock(pm_node_t *block, pm_arguments_node *otherArgs, pm_location_t parentLoc);
+
+    LiteralBlock desugarLiteralBlock(pm_node *blockBody, pm_node *blockParameters, pm_location_t blockLoc,
+                                     pm_location_t blockNodeOpeningLoc);
+
+    DesugaredBlockArgument desugarBlockPassArgument(pm_block_argument_node *bp);
+
+    ast::ExpressionPtr desugarMethodCall(ast::ExpressionPtr receiver, core::NameRef methodName,
+                                         core::LocOffsets methodNameLoc, pm_arguments_node *argumentsNode,
+                                         pm_location_t closingLoc, DesugaredBlockArgument block,
+                                         core::LocOffsets location, bool isPrivateOk);
 };
 
 } // namespace sorbet::parser::Prism
