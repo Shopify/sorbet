@@ -838,7 +838,6 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         // Multi-assignment
         case PM_MULTI_WRITE_NODE: {
             auto *masgn = down_cast<pm_multi_write_node_t>(node);
-            // TODO: Handle target nodes (lefts/rest/rights)
             masgn->value = rewriteNode(maybeInsertCast(masgn->value));
             return node;
         }
