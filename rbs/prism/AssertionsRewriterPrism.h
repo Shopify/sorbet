@@ -29,17 +29,18 @@ struct InlineCommentPrism {
 class AssertionsRewriterPrism {
 public:
     AssertionsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
-                            std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(parser), prism(parser), commentsByNode(&commentsByNode) {};
+                            UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
+        : ctx(ctx), parser(parser), prism(parser), commentsByNode(commentsByNode) {};
     pm_node_t *run(pm_node_t *node);
 
 private:
     core::MutableContext ctx;
     parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
-    std::unordered_map<pm_node_t *, std::vector<CommentNodePrism>> *commentsByNode;
+    UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode;
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};
     std::set<std::pair<uint32_t, uint32_t>> consumedComments = {};
+    size_t totalComments = 0;
 
     void consumeComment(core::LocOffsets loc);
     bool hasConsumedComment(core::LocOffsets loc);
@@ -54,7 +55,7 @@ private:
     void rewriteArgumentsNode(pm_arguments_node_t *args);
     void rewriteNodesAsArray(pm_node_t *node, pm_node_list_t &nodes);
 
-    bool saveTypeParams(pm_node_t *call);
+    bool saveMethodTypeParams(pm_node_t *call);
     pm_node_t *maybeInsertCast(pm_node_t *node);
     pm_node_t *insertCast(pm_node_t *node, std::optional<std::pair<pm_node_t *, InlineCommentPrism::Kind>> pair);
     pm_node_t *replaceSyntheticBind(pm_node_t *node);

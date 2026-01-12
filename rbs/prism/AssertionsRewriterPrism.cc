@@ -63,7 +63,6 @@ vector<pair<core::LocOffsets, core::NameRef>>
 extractTypeParamsPrism(core::MutableContext ctx, const parser::Prism::Parser &parser, pm_node_t *block) {
     vector<pair<core::LocOffsets, core::NameRef>> typeParams;
 
-    // Do we have a block?
     if (!block || !PM_NODE_TYPE_P(block, PM_BLOCK_NODE)) {
         return typeParams;
     }
@@ -135,11 +134,6 @@ bool sameConstant(parser::Prism::Parser &parser, pm_node_t *a, pm_node_t *b) {
     pm_node_type aType = PM_NODE_TYPE(a);
     pm_node_type bType = PM_NODE_TYPE(b);
 
-    if (!((aType == PM_CONSTANT_READ_NODE || aType == PM_CONSTANT_PATH_NODE) &&
-          (bType == PM_CONSTANT_READ_NODE || bType == PM_CONSTANT_PATH_NODE))) {
-        return false;
-    }
-
     // Case 1: Both are PM_CONSTANT_READ_NODE (simple constants like `G2`)
     if (aType == PM_CONSTANT_READ_NODE && bType == PM_CONSTANT_READ_NODE) {
         auto *aConst = down_cast<pm_constant_read_node_t>(a);
@@ -189,7 +183,7 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         // Examples:
         //   - G1[Integer] -> <syntheticSquareBrackets> call
         //   - G2[T.any(Integer, String)] -> T.any() call
-        //   - Pair[T.type_parameter(:X)] -> T.type_parameter() call
+        //   - G3[T.type_parameter(:X)] -> T.type_parameter() call
         case PM_CALL_NODE: {
             auto *original = down_cast<pm_call_node_t>(node);
             auto *copy = prism.allocateNode<pm_call_node_t>();
@@ -218,10 +212,7 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
             return up_cast(prism.createArgumentsNode(absl::MakeSpan(copiedArgs), original->base.location));
         }
 
-        // Examples:
-        //   - G1[Integer] -> Integer
-        //   - G1[String] -> String
-        //   - G1[Numeric] -> Numeric
+        // Example: G1[Integer] -> Integer
         case PM_CONSTANT_READ_NODE: {
             auto *original = down_cast<pm_constant_read_node_t>(node);
             return prism.ConstantReadNode(original->name, original->base.location);
@@ -230,7 +221,6 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         // Examples:
         //   - Array[String] -> T::Array
         //   - G1[Foo::Bar] -> Foo::Bar
-        //   - G1[MyModule::MyClass] -> MyModule::MyClass
         case PM_CONSTANT_PATH_NODE: {
             auto *original = down_cast<pm_constant_path_node_t>(node);
             return prism.ConstantPathNode(original->base.location, deepCopyGenericTypeNode(parser, original->parent),
@@ -238,7 +228,7 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
         }
 
         // Examples:
-        //   - Pair[X] where X is a type parameter -> T.type_parameter(:X)
+        //   - G1[X] where X is a type parameter -> T.type_parameter(:X)
         //   - The :X symbol needs to be copied with proper string allocation
         case PM_SYMBOL_NODE: {
             auto *original = down_cast<pm_symbol_node_t>(node);
@@ -258,7 +248,18 @@ pm_node_t *deepCopyGenericTypeNode(parser::Prism::Parser &parser, pm_node_t *nod
  * If `node` is a `.new` call and `type` is a generic type instantiation of the same class,
  * replace the receiver of `.new` with the generic type.
  *
- * For example: `G1.new #: G1[Integer]` becomes `G1[Integer].new`.
+ * For example:
+ *
+ *     G1.new #: G1[Integer]
+ *
+ * becomes:
+ *
+ *     T.let(G1[Integer].new, G1[Integer])
+ *
+ * This approach avoids calling `G1[Integer]`, which would have triggered
+ * other type-checking errors about `G1::[]` not being defined
+ * (since `G1` could be typed purely in RBS, and not `extend T::Generic`).
+ * However, it requires that we clone the `G1` path, so we can use it twice.
  */
 void maybeSupplyGenericTypeArguments(core::MutableContext ctx, parser::Prism::Parser &parser, pm_node_t **node,
                                      pm_node_t **type) {
@@ -300,11 +301,14 @@ void maybeSupplyGenericTypeArguments(core::MutableContext ctx, parser::Prism::Pa
 } // namespace
 
 /**
- * Save the signature from the given block so it can be used to resolve the type parameters from the method signature.
+ * Save the type parameters from a `sig` block so they can be used to resolve type variables in method body assertions.
  *
- * Returns `true` if the block is a `sig` call, `false` otherwise.
+ * The extracted type parameters remain active until we exit the method scope (when `typeParams` is cleared in the
+ * DEF_NODE case). This allows inline RBS comments like `#: X?` to reference method type parameters like `X`.
+ *
+ * Returns `true` if the node is a `sig` call (so caller can skip further processing), `false` otherwise.
  */
-bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
+bool AssertionsRewriterPrism::saveMethodTypeParams(pm_node_t *call) {
     if (!call || !PM_NODE_TYPE_P(call, PM_CALL_NODE)) {
         return false;
     }
@@ -322,13 +326,13 @@ bool AssertionsRewriterPrism::saveTypeParams(pm_node_t *call) {
         return false;
     }
 
-    typeParams = extractTypeParamsPrism(ctx, parser, callNode->block);
+    this->typeParams = extractTypeParamsPrism(ctx, parser, callNode->block);
 
     return true;
 }
 
 /**
- * Mark the given comment location as "consumed" so it won't be picked up by subsequent calls to `commentForPos`.
+ * Mark the given comment location as "consumed" so it won't be picked up by subsequent calls to `commentForNode`.
  */
 void AssertionsRewriterPrism::consumeComment(core::LocOffsets loc) {
     consumedComments.emplace(make_pair(loc.beginPos(), loc.endPos()));
@@ -357,12 +361,12 @@ core::LocOffsets AssertionsRewriterPrism::translateLocation(pm_location_t locati
  * Returns `nullopt` if no comment is found or if the comment was already consumed.
  */
 optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(pm_node_t *node) {
-    if (commentsByNode == nullptr || node == nullptr) {
+    if (node == nullptr) {
         return nullopt;
     }
 
-    auto it = commentsByNode->find(node);
-    if (it == commentsByNode->end()) {
+    auto it = commentsByNode.find(node);
+    if (it == commentsByNode.end()) {
         return nullopt;
     }
 
@@ -433,8 +437,7 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
         return node;
     }
 
-    auto type = pair->first;
-    auto kind = pair->second;
+    auto [type, kind] = *pair;
 
     maybeSupplyGenericTypeArguments(ctx, parser, &node, &type);
 
@@ -444,24 +447,24 @@ pm_node_t *AssertionsRewriterPrism::insertCast(pm_node_t *node,
     // of the type, not the expression being wrapped.
     auto typeLoc = translateLocation(type->location);
 
-    if (kind == InlineCommentPrism::Kind::LET) {
-        return prism.TLet(typeLoc, node, type);
-    } else if (kind == InlineCommentPrism::Kind::CAST) {
-        return prism.TCast(typeLoc, node, type);
-    } else if (kind == InlineCommentPrism::Kind::MUST) {
-        return prism.TMust(typeLoc, node);
-    } else if (kind == InlineCommentPrism::Kind::UNSAFE) {
-        return prism.TUnsafe(typeLoc, node);
-    } else if (kind == InlineCommentPrism::Kind::ABSURD) {
-        return prism.TAbsurd(typeLoc, node);
-    } else if (kind == InlineCommentPrism::Kind::BIND) {
-        if (auto e = ctx.beginIndexerError(typeLoc, core::errors::Rewriter::RBSUnsupported)) {
-            e.setHeader("`{}` binding can't be used as a trailing comment", "self");
-        }
-        return node;
-    } else {
-        unreachable("Unknown assertion kind");
+    switch (kind) {
+        case InlineCommentPrism::Kind::LET:
+            return prism.TLet(typeLoc, node, type);
+        case InlineCommentPrism::Kind::CAST:
+            return prism.TCast(typeLoc, node, type);
+        case InlineCommentPrism::Kind::MUST:
+            return prism.TMust(typeLoc, node);
+        case InlineCommentPrism::Kind::UNSAFE:
+            return prism.TUnsafe(typeLoc, node);
+        case InlineCommentPrism::Kind::ABSURD:
+            return prism.TAbsurd(typeLoc, node);
+        case InlineCommentPrism::Kind::BIND:
+            if (auto e = ctx.beginIndexerError(typeLoc, core::errors::Rewriter::RBSUnsupported)) {
+                e.setHeader("`{}` binding can't be used as a trailing comment", "self");
+            }
+            return node;
     }
+    unreachable("Unknown assertion kind");
 }
 
 /**
@@ -479,10 +482,9 @@ pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
         return prism.TBindSelf(loc, prism.TUntyped(loc));
     }
 
-    auto kind = pair->second;
+    auto [type, kind] = *pair;
     ENFORCE(kind == InlineCommentPrism::Kind::BIND, "Invalid inline comment for synthetic bind");
 
-    auto type = pair->first;
     auto typeLoc = translateLocation(type->location);
 
     return prism.TBindSelf(typeLoc, type);
@@ -596,6 +598,11 @@ pm_statements_node_t *AssertionsRewriterPrism::rewriteBody(pm_statements_node_t 
  */
 pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
     if (node == nullptr) {
+        return node;
+    }
+
+    // If all comments have been consumed, we can skip the rest of the tree.
+    if (consumedComments.size() >= totalComments) {
         return node;
     }
 
@@ -831,7 +838,6 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         // Multi-assignment
         case PM_MULTI_WRITE_NODE: {
             auto *masgn = down_cast<pm_multi_write_node_t>(node);
-            // TODO: Handle target nodes (lefts/rest/rights)
             masgn->value = rewriteNode(maybeInsertCast(masgn->value));
             return node;
         }
@@ -839,19 +845,13 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
         // Calls
         case PM_CALL_NODE: {
             auto *call = down_cast<pm_call_node_t>(node);
-            if (saveTypeParams(node)) {
+            if (saveMethodTypeParams(node)) {
                 // If this is a `sig` call, we need to save the type parameters so we can use them to resolve the type
                 // parameters from the method signature.
                 return node;
             }
-            if (parser.isSafeNavigationCall(node)) {
-                call->receiver = rewriteNode(maybeInsertCast(call->receiver));
-                node = maybeInsertCast(node);
-            } else {
-                // Normal call - matches Whitequark's Send handling
-                call->receiver = rewriteNode(call->receiver);
-                node = maybeInsertCast(node);
-            }
+            call->receiver = rewriteNode(call->receiver);
+            node = maybeInsertCast(node);
             rewriteArgumentsNode(call->arguments);
             call->block = rewriteNode(call->block);
             return node;
@@ -1132,6 +1132,17 @@ pm_node_t *AssertionsRewriterPrism::rewriteNode(pm_node_t *node) {
 pm_node_t *AssertionsRewriterPrism::run(pm_node_t *node) {
     if (node == nullptr) {
         return node;
+    }
+
+    // If there are no assertion comments to process we can skip entire tree walk.
+    if (commentsByNode.empty()) {
+        return node;
+    }
+
+    // Calculate total number of comments for early termination.
+    totalComments = 0;
+    for (const auto &[_, comments] : commentsByNode) {
+        totalComments += comments.size();
     }
 
     return rewriteBody(node);
