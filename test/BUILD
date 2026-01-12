@@ -300,6 +300,7 @@ pipeline_tests(
         ],
         exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
+            "testdata/rbs/assertions_block_modified.rb",
             "testdata/rbs/assertions_heredoc_modified.rb",
             "testdata/rbs/signatures_types_modified.rb",
         ],
@@ -348,6 +349,7 @@ pipeline_tests(
             "testdata/desugar/pattern_matching_hash.rb",  # See https://github.com/Shopify/sorbet/issues/362
 
             # Minor differences in the parse tree lead to different exp files
+            "testdata/rbs/assertions_block.rb",
             "testdata/rbs/assertions_heredoc.rb",
 
             # Whitequark and Prism parsers disagree on inclusion of parentheses in the location.

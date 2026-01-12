@@ -210,8 +210,9 @@ core::NameRef anonymousParamName(core::MutableContext ctx, const pm_node_t *node
             return core::Names::starStar();
         case PM_BLOCK_PARAMETER_NODE:
             return core::Names::ampersand();
+        default:
+            unreachable("Unexpected anonymous parameter node type");
     }
-    SORBET_UNREACHABLE();
 }
 
 optional<core::AutocorrectSuggestion> autocorrectArg(core::MutableContext ctx, pm_node_t *methodArg, RBSArg arg,
