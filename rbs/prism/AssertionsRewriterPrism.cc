@@ -13,9 +13,9 @@ namespace sorbet::rbs {
 
 namespace {
 
-const regex not_nil_pattern_prism("^\\s*!nil\\s*(#.*)?$");
-const regex untyped_pattern_prism("^\\s*untyped\\s*(#.*)?$");
-const regex absurd_pattern_prism("^\\s*absurd\\s*(#.*)?$");
+const regex notNilPattern("^\\s*!nil\\s*(#.*)?$");
+const regex untypedPattern("^\\s*untyped\\s*(#.*)?$");
+const regex absurdPattern("^\\s*absurd\\s*(#.*)?$");
 
 /*
  * Parse the comment and return the type as a `pm_node_t*` and the kind of assertion we need to apply (let, cast,
@@ -390,12 +390,12 @@ optional<rbs::InlineCommentPrism> AssertionsRewriterPrism::commentForNode(pm_nod
             contentStart += 3;
             content = content.substr(3);
 
-            if (regex_match(content.begin(), content.end(), not_nil_pattern_prism)) {
+            if (regex_match(content.begin(), content.end(), notNilPattern)) {
                 kind = InlineCommentPrism::Kind::MUST;
-            } else if (regex_match(content.begin(), content.end(), untyped_pattern_prism)) {
+            } else if (regex_match(content.begin(), content.end(), untypedPattern)) {
                 kind = InlineCommentPrism::Kind::UNSAFE;
             }
-        } else if (regex_match(content.begin(), content.end(), absurd_pattern_prism)) {
+        } else if (regex_match(content.begin(), content.end(), absurdPattern)) {
             kind = InlineCommentPrism::Kind::ABSURD;
         } else if (absl::StartsWith(content, "self as ")) {
             kind = InlineCommentPrism::Kind::BIND;

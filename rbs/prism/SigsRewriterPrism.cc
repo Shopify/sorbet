@@ -81,7 +81,7 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
         return {};
     }
 
-    Factory prism(parser);
+    Factory prism{parser};
     vector<pm_node_t *> helpers;
     helpers.reserve(annotations.size());
 
@@ -124,7 +124,7 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
  * This is useful for cases where we want to insert helpers into the body of a class/module/etc.
  */
 pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, parser::Prism::Parser &parser) {
-    Factory prism(parser);
+    Factory prism{parser};
 
     if (body == nullptr) {
         return prism.StatementsNode(loc, absl::Span<pm_node_t *>{});
@@ -766,7 +766,7 @@ pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *original
     }
 
     // Build the body: signatures + original node
-    std::vector<pm_node_t *> body;
+    std::vector<pm_node_t *> body{};
     body.reserve(signatures->size() + 1);
 
     for (auto *sigCall : *signatures) {

@@ -1,13 +1,13 @@
 #ifndef SORBET_RBS_SIGS_REWRITER_PRISM_H
 #define SORBET_RBS_SIGS_REWRITER_PRISM_H
 
-#include "parser/parser.h"
+#include <memory>
+
 #include "parser/prism/Factory.h"
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include "rbs/prism/CommentsAssociatorPrism.h"
 #include "rbs/rbs_common.h"
-#include <memory>
 
 extern "C" {
 #include "prism.h"
