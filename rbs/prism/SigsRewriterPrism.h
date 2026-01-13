@@ -38,7 +38,7 @@ class SigsRewriterPrism {
 public:
     SigsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
                       UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(parser), prism(parser), commentsByNode(commentsByNode) {}
+        : ctx{ctx}, parser{parser}, prism{parser}, commentsByNode{commentsByNode} {}
     pm_node_t *run(pm_node_t *node);
 
 private:
@@ -56,6 +56,7 @@ private:
     std::unique_ptr<std::vector<pm_node_t *>> signaturesForNode(pm_node_t *node);
     CommentsPrism commentsForNode(pm_node_t *node);
     void insertTypeParams(pm_node_t *node, pm_node_t *body);
+    void processClassBody(pm_node_t *node, pm_node_t *&body, absl::Span<pm_node_t *const> helpers);
     pm_node_t *replaceSyntheticTypeAlias(pm_node_t *node);
     pm_node_t *createStatementsWithSignatures(pm_node_t *originalNode,
                                               std::unique_ptr<std::vector<pm_node_t *>> signatures);

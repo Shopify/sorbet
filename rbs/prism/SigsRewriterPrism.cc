@@ -92,9 +92,9 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
             helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "final!"sv);
         } else if (annotation.string == "sealed") {
             helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "sealed!"sv);
-        } else if (absl::StartsWith(annotation.string, "requires_ancestor:")) {
-            if (auto type = extractHelperArgument(ctx, parser, annotation, 18)) {
-                auto statementsList = std::array{type};
+        } else if (absl::StartsWith(annotation.string, "requires_ancestor:"sv)) {
+            if (auto type = extractHelperArgument(ctx, parser, annotation, "requires_ancestor:"sv.size())) {
+                auto statementsList = array{type};
                 auto *stmts = prism.StatementsNode(annotation.typeLoc, absl::MakeSpan(statementsList));
 
                 pm_node_t *callNode =
@@ -130,7 +130,7 @@ pm_node_t *maybeWrapBody(pm_node_t *body, core::LocOffsets loc, parser::Prism::P
         return body; // Already wrapped
     }
 
-    auto statementsList = std::array{body};
+    auto statementsList = array{body};
     return prism.StatementsNode(loc, absl::MakeSpan(statementsList));
 }
 
@@ -377,7 +377,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
     auto fullString = aliasDeclaration.string;
     auto typeBeginLoc = fullString.find("=");
 
-    if (typeBeginLoc == std::string::npos) {
+    if (typeBeginLoc == string::npos) {
         // No '=' found, invalid type alias
         auto loc = parser.translateLocation(node->location);
         return prism.TTypeAlias(loc, prism.TUntyped(loc));
@@ -466,6 +466,20 @@ pm_statements_node_t *SigsRewriterPrism::rewriteBody(pm_statements_node_t *stmts
     return down_cast<pm_statements_node_t>(rewriteBody(up_cast(stmts)));
 }
 
+void SigsRewriterPrism::processClassBody(pm_node_t *node, pm_node_t *&body,
+                                         absl::Span<pm_node_t *const> helpers) {
+    auto loc = body ? parser.translateLocation(body->location)
+                    : parser.translateLocation(node->location);
+
+    body = maybeWrapBody(body, loc, parser);
+    if (!helpers.empty()) {
+        maybeInsertExtendTHelpers(body, loc, parser, ctx, prism);
+        insertHelpers(body, helpers);
+    }
+
+    insertTypeParams(node, body);
+}
+
 pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
     if (node == nullptr) {
         return node;
@@ -479,48 +493,15 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
     }
 
     switch (PM_NODE_TYPE(node)) {
-        case PM_CLASS_NODE: {
-            auto *klass = down_cast<pm_class_node_t>(node);
-            auto loc = klass->body ? parser.translateLocation(klass->body->location)
-                                   : parser.translateLocation(node->location);
-
-            klass->body = maybeWrapBody(klass->body, loc, parser);
-            if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(klass->body, loc, parser, ctx, prism);
-                insertHelpers(klass->body, helpers);
-            }
-
-            insertTypeParams(node, klass->body);
+        case PM_CLASS_NODE:
+            processClassBody(node, down_cast<pm_class_node_t>(node)->body, helpers);
             break;
-        }
-        case PM_MODULE_NODE: {
-            auto *module = down_cast<pm_module_node_t>(node);
-            auto loc = module->body ? parser.translateLocation(module->body->location)
-                                    : parser.translateLocation(node->location);
-
-            module->body = maybeWrapBody(module->body, loc, parser);
-            if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(module->body, loc, parser, ctx, prism);
-                insertHelpers(module->body, helpers);
-            }
-
-            insertTypeParams(node, module->body);
+        case PM_MODULE_NODE:
+            processClassBody(node, down_cast<pm_module_node_t>(node)->body, helpers);
             break;
-        }
-        case PM_SINGLETON_CLASS_NODE: {
-            auto *sclass = down_cast<pm_singleton_class_node_t>(node);
-            auto loc = sclass->body ? parser.translateLocation(sclass->body->location)
-                                    : parser.translateLocation(node->location);
-
-            sclass->body = maybeWrapBody(sclass->body, loc, parser);
-            if (!helpers.empty()) {
-                maybeInsertExtendTHelpers(sclass->body, loc, parser, ctx, prism);
-                insertHelpers(sclass->body, helpers);
-            }
-
-            insertTypeParams(node, sclass->body);
+        case PM_SINGLETON_CLASS_NODE:
+            processClassBody(node, down_cast<pm_singleton_class_node_t>(node)->body, helpers);
             break;
-        }
         default:
             Exception::raise("Unimplemented node type for rewriteClass: {}", (int)PM_NODE_TYPE(node));
     }
@@ -756,13 +737,13 @@ pm_node_t *SigsRewriterPrism::run(pm_node_t *node) {
 
 // Helper method to create statements nodes with signatures
 pm_node_t *SigsRewriterPrism::createStatementsWithSignatures(pm_node_t *originalNode,
-                                                             std::unique_ptr<std::vector<pm_node_t *>> signatures) {
+                                                             unique_ptr<vector<pm_node_t *>> signatures) {
     if (!signatures || signatures->empty()) {
         return originalNode;
     }
 
     // Build the body: signatures + original node
-    std::vector<pm_node_t *> body{};
+    vector<pm_node_t *> body{};
     body.reserve(signatures->size() + 1);
 
     for (auto *sigCall : *signatures) {
