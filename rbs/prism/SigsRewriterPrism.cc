@@ -2,12 +2,8 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
-#include "absl/strings/str_split.h"
 #include "core/errors/rewriter.h"
-#include "parser/helper.h"
 #include "parser/prism/Helpers.h"
-#include "rbs/SignatureTranslator.h"
-#include "rbs/TypeParamsToParserNodes.h"
 
 extern "C" {
 #include "prism.h"
