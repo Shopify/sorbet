@@ -12,6 +12,8 @@ using namespace std;
 
 namespace {
 
+unique_ptr<sorbet::realmain::lsp::SingleThreadedLSPWrapper> wrapper;
+
 void typecheckString(const char *rubySrc) {
     const char *argv[] = {"sorbet", "--color=always", "--silence-dev-message", "-e", rubySrc};
     sorbet::realmain::realmain(size(argv), const_cast<char **>(reinterpret_cast<const char **>(argv)));
@@ -56,13 +58,33 @@ void EMSCRIPTEN_KEEPALIVE typecheck(const char *optionsJson) {
     sorbet::realmain::realmain(argCharStars.size(), argCharStars.data());
 }
 
-void EMSCRIPTEN_KEEPALIVE lsp(void (*respond)(const char *), const char *message) {
-    static unique_ptr<sorbet::realmain::lsp::SingleThreadedLSPWrapper> wrapper;
-    if (!wrapper) {
-        wrapper = sorbet::realmain::lsp::SingleThreadedLSPWrapper::create();
-        wrapper->enableAllExperimentalFeatures();
+void EMSCRIPTEN_KEEPALIVE initializeLsp(const char *optionsJson) {
+    rapidjson::Document options;
+
+    options.Parse(optionsJson);
+
+    if (options.HasParseError()) {
+        fmt::print(stderr, "emscripten/main.cc: Failed to parse JSON from JavaScript: '{}'\n", optionsJson);
+        fmt::print(stderr, "emscripten/main.cc: Falling back to assuming input was Ruby source.\n", optionsJson);
     }
 
+    auto opts = make_shared<sorbet::realmain::options::Options>();
+    if (options.HasMember("--enable-experimental-rbs-comments")) {
+        opts->cacheSensitiveOptions.rbsEnabled = true;
+    } else if (options.HasMember("--enable-experimental-rbs-comments=true")) {
+        opts->cacheSensitiveOptions.rbsEnabled = true;
+    } else if (options.HasMember("--enable-experimental-rbs-comments=false")) {
+        opts->cacheSensitiveOptions.rbsEnabled = false;
+    }
+
+    if (!wrapper) {
+        wrapper = sorbet::realmain::lsp::SingleThreadedLSPWrapper::create(std::string_view(), opts);
+    }
+
+    wrapper->enableAllExperimentalFeatures();
+}
+
+void EMSCRIPTEN_KEEPALIVE lsp(void (*respond)(const char *), const char *message) {
     auto responses = wrapper->getLSPResponsesFor(message);
     for (auto &response : responses) {
         respond(response->toJSON().c_str());
