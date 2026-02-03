@@ -11,7 +11,7 @@
  */
 
 // Manual configuration
-#define SORBET_VERSION "0.5"
+#define SORBET_VERSION "0.99"
 #define SORBET_CODENAME ""
 
 // Magic configuration
