@@ -44,7 +44,8 @@ void DefLocSaver::postTransformMethodDef(core::Context ctx, ast::ExpressionPtr &
         tp.type = symbolData->resultType;
         tp.origins.emplace_back(ctx.locAt(methodDef.declLoc));
         core::lsp::QueryResponse::pushQueryResponse(
-            ctx, core::lsp::MethodDefResponse(methodDef.symbol, ctx.locAt(methodDef.declLoc), methodDef.name, tp));
+            ctx, core::lsp::MethodDefResponse(methodDef.symbol, ctx.file, methodDef.loc, methodDef.declLoc,
+                                              methodDef.name, methodDef.flags.isAttrBestEffortUIOnly, tp));
     }
 }
 
@@ -174,6 +175,12 @@ void DefLocSaver::preTransformClassDef(core::Context ctx, ast::ExpressionPtr &tr
         shouldLeaveAncestorForIDE(classDef.ancestors.front())) {
         auto lit = ast::cast_tree<ast::ConstantLit>(classDef.ancestors.front());
         matchesQuery(ctx, lit, lspQuery, lit->symbol());
+    }
+
+    // declLoc == loc usually implies that this class was synthetic in some way (Class.new, <root>, etc.)
+    if (classDef.declLoc != classDef.loc && lspQuery.matchesLoc(ctx.locAt(classDef.declLoc))) {
+        core::lsp::QueryResponse::pushQueryResponse(
+            ctx, core::lsp::ClassDefResponse(classDef.symbol, ctx.locAt(classDef.loc), ctx.locAt(classDef.declLoc)));
     }
 }
 

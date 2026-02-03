@@ -332,65 +332,6 @@ ast::ExpressionPtr mergeStrings(core::MutableContext ctx, core::LocOffsets loc,
     }
 }
 
-const uint8_t *startLoc(pm_node_t *anyNode);
-const uint8_t *endLoc(pm_node_t *anyNode);
-
-// Given a `pm_multi_target_node` or `pm_multi_write_node`, return the location of the left-hand side.
-// Conceptually, the location spans from the start of the first element, to the end of the last element.
-// Determining the first/last elements is tricky, because they're split across the `lefts`, `rest`, and `rights` fields.
-// We could smush them all into a temporary array, but this implementation opts to go for an allocation-free approach.
-template <typename PrismNode> pm_location_t mlhsLocation(PrismNode *node) {
-    static_assert(
-        is_same_v<PrismNode, pm_multi_target_node> || is_same_v<PrismNode, pm_multi_write_node>,
-        "Translator::translateMultiTarget can only be used for PM_MULTI_TARGET_NODE and PM_MULTI_WRITE_NODE.");
-
-    auto lefts = absl::MakeSpan(node->lefts.nodes, node->lefts.size);
-    auto *middle = node->rest;
-    auto rights = absl::MakeSpan(node->rights.nodes, node->rights.size);
-
-    pm_node_t *left = nullptr;
-    pm_node_t *right = nullptr;
-
-    if (!lefts.empty()) {
-        left = lefts.front();
-
-        // Look for the last element, from right-to-left.
-        if (!rights.empty()) {
-            right = rights.back();
-        } else if (middle && !PM_NODE_TYPE_P(middle, PM_IMPLICIT_REST_NODE)) {
-            // Special case: implicit rest nodes (`,`) should not be included in the location:
-            //     a, = 1, 2
-            //     ^
-
-            right = middle;
-        } else {
-            right = lefts.back();
-        }
-    } else if (middle) {
-        left = middle;
-
-        // Look for the last element, from right-to-left.
-        if (!rights.empty()) {
-            right = rights.back();
-        } else {
-            right = middle;
-        }
-    } else if (!rights.empty()) {
-        left = rights.front();
-        right = rights.back();
-    } else {
-        unreachable("This multi-write node has no lefts, middle, or rights?!");
-    }
-
-    ENFORCE(left != nullptr && right != nullptr);
-
-    const uint8_t *leftStartLoc = startLoc(left);
-    const uint8_t *rightEndLoc = endLoc(right);
-    ENFORCE(leftStartLoc != nullptr && rightEndLoc != nullptr);
-
-    return (pm_location_t){.start = leftStartLoc, .end = rightEndLoc};
-}
-
 // Extract the content and location of a Symbol node.
 // This is handy for `desugarSymbolProc`, where it saves us from needing to dig and
 // cast to extract this info out of an `ast::Literal`.
@@ -478,8 +419,7 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
     bool hasSplat = lhs->rest && PM_NODE_TYPE_P(lhs->rest, PM_SPLAT_NODE);
     size_t totalSize = lefts.size() + (hasSplat ? 1 : 0) + rights.size();
 
-    auto processTarget = [this, &didSplat, &stats, &i, &after, &before, totalSize, loc, zloc,
-                          tempExpanded](pm_node_t *c) {
+    auto processTarget = [this, &didSplat, &stats, &i, &after, &before, totalSize, zloc, tempExpanded](pm_node_t *c) {
         if (PM_NODE_TYPE_P(c, PM_SPLAT_NODE)) {
             auto *splat = down_cast<pm_splat_node>(c);
             ENFORCE(!didSplat, "did splat already");
@@ -498,7 +438,7 @@ ast::ExpressionPtr Translator::desugarMlhs(core::LocOffsets loc, PrismNode *lhs,
                 auto zlhloc = lhloc.copyWithZeroLength();
                 // Calling `to_ary` is not faithful to the runtime behavior,
                 // but that it is faithful to the expected static type-checking behavior.
-                auto ary = MK::Send0(loc, MK::Local(loc, tempExpanded), core::Names::toAry(), zlhloc);
+                auto ary = MK::Send0(zloc, MK::Local(zloc, tempExpanded), core::Names::toAry(), zlhloc);
                 stats.emplace_back(MK::Assign(lhloc, move(lh), move(ary)));
             }
             i = -right;
@@ -2517,17 +2457,13 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
             auto multiTargetNode = down_cast<pm_multi_target_node>(node);
-            auto lhsLoc = translateLoc(mlhsLocation(multiTargetNode));
-            return desugarMlhs(lhsLoc, multiTargetNode, MK::EmptyTree());
+
+            return desugarMlhs(location, multiTargetNode, MK::EmptyTree());
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
             auto rhsExpr = desugar(multiWriteNode->value);
-
-            // Sorbet's legacy parser doesn't include the opening `(` (see `startLoc()` for details),
-            // so we can't just use the entire Prism location for the Masgn node.
-            location = translateLoc(startLoc(up_cast(multiWriteNode)), endLoc(multiWriteNode->value));
 
             return desugarMlhs(location, multiWriteNode, move(rhsExpr));
         }
@@ -2814,8 +2750,17 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_SUPER_NODE: { // A `super` call with explicit args, like `super()`, `super(a, b)`
             // If there's no arguments (except a literal block argument), then it's a `PM_FORWARDING_SUPER_NODE`.
-            categoryCounterInc("Prism fallback", "PM_SUPER_NODE");
-            throw PrismFallback{};
+            auto superNode = down_cast<pm_super_node>(node);
+
+            auto receiver = MK::Self(location.copyWithZeroLength());
+            auto methodName = maybeTypedSuper();
+            // Whitequark synthesizes a Send node for super where methodLoc is the full super expression,
+            // not just the `super` keyword. This matches the behavior in the legacy Desugar.cc.
+            auto methodNameLoc = location;
+            auto block = desugarBlock(superNode->block, superNode->arguments, superNode->base.location);
+            auto isPrivateOk = true; // Matches previous parser+desugar behaviour
+            return desugarMethodCall(move(receiver), methodName, methodNameLoc, superNode->arguments,
+                                     superNode->rparen_loc, move(block), location, isPrivateOk);
         }
         case PM_SYMBOL_NODE: { // A symbol literal, e.g. `:foo`, or `a:` in `{a: 1}`
             auto symNode = down_cast<pm_symbol_node>(node);
@@ -2951,46 +2896,6 @@ core::LocOffsets Translator::translateLoc(const uint8_t *start, const uint8_t *e
 
 core::LocOffsets Translator::translateLoc(pm_location_t loc) const {
     return parser.translateLocation(loc);
-}
-
-// Find the start location of a node, according to the legacy parser's logic.
-// This is *usually* the same as the start of Prism's node's location,
-// but there are some exceptions, which get handled here.
-const uint8_t *startLoc(pm_node_t *anyNode) {
-    switch (PM_NODE_TYPE(anyNode)) {
-        case PM_MULTI_TARGET_NODE: {
-            // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9630 is fixed
-            auto *node = down_cast<pm_multi_target_node>(anyNode);
-            return mlhsLocation(node).start;
-        }
-        case PM_MULTI_WRITE_NODE: {
-            // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9630 is fixed
-            auto *node = down_cast<pm_multi_write_node>(anyNode);
-            return mlhsLocation(node).start;
-        }
-        default: {
-            return anyNode->location.start;
-        }
-    }
-}
-
-// End counterpart of `startLoc()`. See its docs for details.
-const uint8_t *endLoc(pm_node_t *anyNode) {
-    switch (PM_NODE_TYPE(anyNode)) {
-        case PM_MULTI_TARGET_NODE: {
-            // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9630 is fixed
-            auto *node = down_cast<pm_multi_target_node>(anyNode);
-            return mlhsLocation(node).end;
-        }
-        case PM_MULTI_WRITE_NODE: {
-            // TODO: Delete this case when https://github.com/sorbet/sorbet/issues/9630 is fixed
-            auto *node = down_cast<pm_multi_write_node>(anyNode);
-            return endLoc(node->value);
-        }
-        default: {
-            return anyNode->location.end;
-        }
-    }
 }
 
 // Similar to `desugar()`, but it's used for pattern-matching nodes.
@@ -4426,9 +4331,7 @@ ast::ExpressionPtr Translator::desugarStatements(pm_statements_node *stmtsNode, 
         auto prismStatements = absl::MakeSpan(stmtsNode->body.nodes, stmtsNode->body.size);
 
         // Cover the locations spanned from the first to the last statements.
-        // This can be different from the `stmtsNode->base.location`,
-        // because of the special case (handled by `startLoc()` and `endLoc()`).
-        beginNodeLoc = translateLoc(startLoc(prismStatements.front()), endLoc(prismStatements.back()));
+        beginNodeLoc = translateLoc(prismStatements.front()->location.start, prismStatements.back()->location.end);
     }
 
     auto statements = nodeListToStore<ast::InsSeq::STATS_store>(stmtsNode->body);
