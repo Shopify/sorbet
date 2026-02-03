@@ -99,6 +99,7 @@ struct Printers {
 enum class Phase {
     INIT,
     PARSER,
+    RBS,
     DESUGARER,
     REWRITER,
     LOCAL_VARS,

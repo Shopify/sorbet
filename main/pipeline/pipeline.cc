@@ -280,6 +280,10 @@ parser::ParseResult runPrismParser(core::GlobalState &gs, core::FileRef file, co
             node = runPrismRBSRewrite(gs, file, node, prismResult.getCommentLocations(), print, ctx, parser);
         }
 
+        if (opts.stopAfterPhase == options::Phase::RBS) {
+            return parser::ParseResult{nullptr, prismResult.getCommentLocations()};
+        }
+
         auto translatedTree =
             parser::Prism::Translator(parser, ctx, prismResult.getParseErrors(), preserveConcreteSyntax)
                 .translate_TODO(node);
@@ -458,6 +462,10 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                         parseTree = move(parseResult.tree);
                     }
 
+                    if (opts.stopAfterPhase == options::Phase::RBS) {
+                        return emptyParsedFile(file);
+                    }
+
                     break;
                 }
                 case options::Parser::PRISM: {
@@ -482,6 +490,11 @@ ast::ParsedFile indexOne(const options::Options &opts, core::GlobalState &lgs, c
                         parseTree = runRBSRewrite(lgs, file, move(parseResult), print);
                     } else {
                         parseTree = move(parseResult.tree);
+                    }
+
+
+                    if (opts.stopAfterPhase == options::Phase::RBS) {
+                        return emptyParsedFile(file);
                     }
 
                     break;
