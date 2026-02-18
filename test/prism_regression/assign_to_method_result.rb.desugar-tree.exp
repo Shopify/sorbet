@@ -1,0 +1,25 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <assignTemp>$2 = [17, 18]
+
+  <assignTemp>$3 = ::<Magic>.<expand-splat>(<assignTemp>$2, 2, 0)
+
+  begin
+    <assignTemp>$4 = <self>
+    if ::NilClass.===(<assignTemp>$4)
+      ::<Magic>.<nil-for-safe-navigation>(<assignTemp>$4)
+    else
+      <assignTemp>$4.target1=(<assignTemp>$3.[](0))
+    end
+  end
+
+  begin
+    <assignTemp>$5 = <self>
+    if ::NilClass.===(<assignTemp>$5)
+      ::<Magic>.<nil-for-safe-navigation>(<assignTemp>$5)
+    else
+      <assignTemp>$5.target2=(<assignTemp>$3.[](1))
+    end
+  end
+
+  <assignTemp>$2
+end

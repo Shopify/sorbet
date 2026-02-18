@@ -487,10 +487,8 @@ pipeline_tests(
             # Prism desugared tree doesn't match legacy desugared tree (desugar differences)
             "testdata/desugar/case.rb",
             "testdata/desugar/destructure.rb",
-            "testdata/desugar/destructure_rest.rb",
             "testdata/desugar/multi_assign.rb",
             "testdata/desugar/splat.rb",
-            "testdata/desugar/star_in_block_arg.rb",
             "testdata/infer/arg_matching.rb",
             "testdata/infer/generics/validator.rb",
             "testdata/lsp/fast_path/alias_stub_module__*.rb",
@@ -574,7 +572,6 @@ pipeline_tests(
             "prism_regression/call_implicit_kw_args.rb",
             "prism_regression/literal_hash.rb",
             "prism_regression/multi_target.rb",
-            "prism_regression/call_block_param.rb",
         ],
     ),
     "PrismPosTests",
