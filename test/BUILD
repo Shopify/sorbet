@@ -572,7 +572,6 @@ pipeline_tests(
             "prism_regression/call_implicit_kw_args.rb",
             "prism_regression/literal_hash.rb",
             "prism_regression/multi_target.rb",
-            "prism_regression/call_block_param.rb",
         ],
     ),
     "PrismPosTests",
