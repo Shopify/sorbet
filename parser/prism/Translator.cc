@@ -2724,13 +2724,16 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
             auto multiTargetNode = down_cast<pm_multi_target_node>(node);
-
             return desugarMlhs(location, multiTargetNode, MK::EmptyTree());
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
             auto rhsExpr = desugar(multiWriteNode->value);
+
+            // Sorbet's legacy parser doesn't include the opening `(` (see `startLoc()` for details),
+            // so we can't just use the entire Prism location for the Masgn node.
+            location = translateLoc(startLoc(up_cast(multiWriteNode)), endLoc(multiWriteNode->value));
 
             return desugarMlhs(location, multiWriteNode, move(rhsExpr));
         }
@@ -3200,6 +3203,99 @@ core::LocOffsets Translator::translateLoc(const uint8_t *start, const uint8_t *e
 
 core::LocOffsets Translator::translateLoc(pm_location_t loc) const {
     return parser.translateLocation(loc);
+}
+
+// Find the start location of a node, according to the legacy parser's logic.
+// This is *usually* the same as the start of Prism's node's location,
+// but there are some exceptions, which get handled here.
+const uint8_t *startLoc(pm_node_t *anyNode) {
+    return anyNode->location.start;
+}
+
+// End counterpart of `startLoc()`. See its docs for details.
+const uint8_t *endLoc(pm_node_t *anyNode) {
+    switch (PM_NODE_TYPE(anyNode)) {
+        case PM_MULTI_WRITE_NODE: {
+            auto *node = down_cast<pm_multi_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CALL_NODE: {
+            // For call nodes with heredoc xstring arguments, Prism's location only includes the opening.
+            // Extend to include the full heredoc by checking the last argument.
+            // NOTE: Only xstrings extend the call location; regular string heredocs do not.
+            auto *node = down_cast<pm_call_node>(anyNode);
+            if (node->arguments && node->arguments->arguments.size > 0) {
+                auto *lastArg = node->arguments->arguments.nodes[node->arguments->arguments.size - 1];
+                if (PM_NODE_TYPE_P(lastArg, PM_X_STRING_NODE) ||
+                    PM_NODE_TYPE_P(lastArg, PM_INTERPOLATED_X_STRING_NODE)) {
+                    return endLoc(lastArg);
+                }
+            }
+            return anyNode->location.end;
+        }
+        case PM_STRING_NODE: {
+            // For heredoc strings, Prism's base.location only includes the opening delimiter.
+            // Use closing_loc to get the full heredoc span, excluding the trailing newline.
+            auto *node = down_cast<pm_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
+        }
+        case PM_INTERPOLATED_STRING_NODE: {
+            // Same as PM_STRING_NODE - extend to closing delimiter for heredocs.
+            auto *node = down_cast<pm_interpolated_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
+        }
+        case PM_X_STRING_NODE: {
+            // For heredoc xstrings, Prism's base.location only includes the opening delimiter.
+            // Use closing_loc to get the full heredoc span, excluding the trailing newline.
+            auto *node = down_cast<pm_x_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
+        }
+        case PM_INTERPOLATED_X_STRING_NODE: {
+            // Same as PM_X_STRING_NODE - extend to closing delimiter for heredocs.
+            auto *node = down_cast<pm_interpolated_x_string_node>(anyNode);
+            if (auto end = closingLocEnd(node->closing_loc)) {
+                return end;
+            }
+            return anyNode->location.end;
+        }
+        case PM_LOCAL_VARIABLE_WRITE_NODE: {
+            // For assignments with heredoc values, extend to the heredoc closing delimiter.
+            auto *node = down_cast<pm_local_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_INSTANCE_VARIABLE_WRITE_NODE: {
+            auto *node = down_cast<pm_instance_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CLASS_VARIABLE_WRITE_NODE: {
+            auto *node = down_cast<pm_class_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_GLOBAL_VARIABLE_WRITE_NODE: {
+            auto *node = down_cast<pm_global_variable_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CONSTANT_WRITE_NODE: {
+            auto *node = down_cast<pm_constant_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        case PM_CONSTANT_PATH_WRITE_NODE: {
+            auto *node = down_cast<pm_constant_path_write_node>(anyNode);
+            return endLoc(node->value);
+        }
+        default: {
+            return anyNode->location.end;
+        }
+    }
 }
 
 // Similar to `desugar()`, but it's used for pattern-matching nodes.
@@ -4726,7 +4822,9 @@ ast::ExpressionPtr Translator::desugarStatements(pm_statements_node *stmtsNode, 
         auto prismStatements = absl::MakeSpan(stmtsNode->body.nodes, stmtsNode->body.size);
 
         // Cover the locations spanned from the first to the last statements.
-        beginNodeLoc = translateLoc(prismStatements.front()->location.start, prismStatements.back()->location.end);
+        // This can be different from the `stmtsNode->base.location`,
+        // because of the special case (handled by `startLoc()` and `endLoc()`).
+        beginNodeLoc = translateLoc(startLoc(prismStatements.front()), endLoc(prismStatements.back()));
     }
 
     auto statements = nodeListToStore<ast::InsSeq::STATS_store>(stmtsNode->body);
