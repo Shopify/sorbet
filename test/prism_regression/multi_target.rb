@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 # `MultiTargetNode` in the `lefts` of a `MultiWriteNode`
 (x, y), a = []

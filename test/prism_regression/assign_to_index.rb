@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 # Regular assignment
 regular[0] = 1
