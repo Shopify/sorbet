@@ -1329,6 +1329,9 @@ ast::ExpressionPtr Translator::desugarSendOpAssign(pm_node_t *untypedNode) {
     }
 }
 
+const uint8_t *startLoc(pm_node_t *anyNode);
+const uint8_t *endLoc(pm_node_t *anyNode);
+
 // ----------------------------------------------------------------------------
 // Regular Assignment Desugaring
 // ----------------------------------------------------------------------------
@@ -2726,16 +2729,13 @@ ast::ExpressionPtr Translator::desugar(pm_node_t *node) {
         }
         case PM_MULTI_TARGET_NODE: { // A multi-target like the `(x2, y2)` in `p1, (x2, y2) = a`
             auto multiTargetNode = down_cast<pm_multi_target_node>(node);
+
             return desugarMlhs(location, multiTargetNode, MK::EmptyTree());
         }
         case PM_MULTI_WRITE_NODE: { // Multi-assignment, like `a, b = 1, 2`
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
             auto rhsExpr = desugar(multiWriteNode->value);
-
-            // Sorbet's legacy parser doesn't include the opening `(` (see `startLoc()` for details),
-            // so we can't just use the entire Prism location for the Masgn node.
-            location = translateLoc(startLoc(up_cast(multiWriteNode)), endLoc(multiWriteNode->value));
 
             return desugarMlhs(location, multiWriteNode, move(rhsExpr));
         }
@@ -3213,13 +3213,6 @@ core::LocOffsets Translator::translateLoc(pm_location_t loc) const {
     return parser.translateLocation(loc);
 }
 
-// Find the start location of a node, according to the legacy parser's logic.
-// This is *usually* the same as the start of Prism's node's location,
-// but there are some exceptions, which get handled here.
-const uint8_t *startLoc(pm_node_t *anyNode) {
-    return anyNode->location.start;
-}
-
 // Returns the end of a closing location, excluding any trailing newline.
 // Used for heredocs where Prism's closing_loc includes the newline after the delimiter.
 const uint8_t *closingLocEnd(pm_location_t closingLoc) {
@@ -3233,7 +3226,9 @@ const uint8_t *closingLocEnd(pm_location_t closingLoc) {
     return nullptr;
 }
 
-// End counterpart of `startLoc()`. See its docs for details.
+// Find the end location of a node, according to the legacy parser's logic.
+// This is *usually* the same as the end of Prism's node's location,
+// but there are some exceptions, which get handled here.
 const uint8_t *endLoc(pm_node_t *anyNode) {
     switch (PM_NODE_TYPE(anyNode)) {
         case PM_MULTI_WRITE_NODE: {
@@ -3317,6 +3312,11 @@ const uint8_t *endLoc(pm_node_t *anyNode) {
             return anyNode->location.end;
         }
     }
+}
+
+// Start counterpart of `endLoc()`. See its docs for details.
+const uint8_t *startLoc(pm_node_t *anyNode) {
+    return anyNode->location.start;
 }
 
 // Similar to `desugar()`, but it's used for pattern-matching nodes.
@@ -3755,6 +3755,12 @@ core::LocOffsets Translator::findItParamUsageLoc(pm_statements_node *statements)
     core::LocOffsets result;
 
     walkPrismAST(up_cast(statements), [this, &result](const pm_node_t *node) -> bool {
+        // walkPrismAST's `return false` only prevents descending into children—it does not
+        // stop visiting sibling nodes. Without this guard, a later `it` usage in the same
+        // block would overwrite `result`, giving us the *last* usage location instead of the
+        // first. This caused loc mismatches in tests like `it_param_nested_blocks` and
+        // `it_param_proc_lambda` (e.g. the outer block's `it` param loc pointed to the last
+        // `it.first` call instead of the first `it.length` call).
         if (result.exists()) {
             return false;
         }
