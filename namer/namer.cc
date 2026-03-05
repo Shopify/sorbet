@@ -406,6 +406,15 @@ public:
                     addMethodModifiers(ctx, original.fun, original.posArgs());
                 }
                 break;
+            case core::Names::abstract().rawId(): {
+                if (ownerIsMethod) {
+                    break;
+                }
+
+                addMethodModifiers(ctx, original.fun, original.posArgs());
+
+                break;
+            }
             case core::Names::privateConstant().rawId(): {
                 if (ownerIsMethod) {
                     break;
@@ -1165,6 +1174,7 @@ private:
         auto method = ctx.state.lookupMethodSymbol(owner, mod.target);
         if (method.exists()) {
             switch (mod.name.rawId()) {
+                // Visibility modifiers
                 case core::Names::private_().rawId():
                 case core::Names::privateClassMethod().rawId():
                     method.data(ctx)->flags.isPrivate = true;
@@ -1190,6 +1200,13 @@ private:
                 case core::Names::publicClassMethod().rawId():
                     method.data(ctx)->setMethodPublic();
                     break;
+
+                // Other modifiers
+                case core::Names::abstract().rawId():
+                    ENFORCE(ctx.state.experimentalMethodModifiers, "How did we get here, if this was off?");
+                    method.data(ctx)->flags.isAbstract = true;
+                    break;
+
                 default:
                     break;
             }
