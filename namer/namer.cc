@@ -406,6 +406,15 @@ public:
                     addMethodModifiers(ctx, original.fun, original.posArgs());
                 }
                 break;
+            case core::Names::abstract().rawId(): {
+                if (ownerIsMethod) {
+                    break;
+                }
+                if (original.hasPosArgs()) {
+                    addMethodModifiers(ctx, original.fun, original.posArgs());
+                }
+                break;
+            }
             case core::Names::privateConstant().rawId(): {
                 if (ownerIsMethod) {
                     break;
@@ -1170,6 +1179,9 @@ private:
                 case core::Names::public_().rawId():
                 case core::Names::publicClassMethod().rawId():
                     method.data(ctx)->setMethodPublic();
+                    break;
+                case core::Names::abstract().rawId():
+                    method.data(ctx)->flags.isAbstract = true;
                     break;
                 default:
                     break;
