@@ -1,4 +1,5 @@
 # typed: true
+# enable-experimental-method-modifiers: true
 
 module ShimForAbstractModifierSupport
   # We can't use `T::DefMods` directly (since it's not in Sorbet's payload), so we provide a no-op shim just like it.
