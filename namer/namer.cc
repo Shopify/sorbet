@@ -407,6 +407,9 @@ public:
                 }
                 break;
             case core::Names::abstract().rawId(): {
+                if (!ctx.state.experimentalMethodModifiers) {
+                    break;
+                }
                 if (ownerIsMethod) {
                     break;
                 }
@@ -535,6 +538,9 @@ public:
             // - `private abstract def foo` (`private(abstract(def foo; end))`)
             // - `abstract private def foo` (`abstract(private(def foo; end))`)
             if (send->numPosArgs() == 1 && send->fun.isMethodDefModifierName()) {
+                // Note: `ctx.state.experimentalMethodModifiers` is not checked here,
+                // so that the `private` in `private abstract def foo` is always parsed as a method def modifier,
+                // even if the `abstract` is later "ignored" by the resolver.
                 return unwrapLiteralToMethodName(ctx, send->getPosArg(0));
             }
 
