@@ -1,0 +1,18 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def various_bad_commas_in_array<<todo method>>(a, b, x, y, &<blk>)
+    begin
+      [::<ErrorNode>]
+      ::<ErrorNode>
+      x
+      ::<ErrorNode>
+      [x, y]
+      [x, ::<ErrorNode>]
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+      [x, y, ::<ErrorNode>]
+      ::<ErrorNode>
+      ::<ErrorNode>
+    end
+  end
+end

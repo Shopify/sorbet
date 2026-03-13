@@ -1,0 +1,9 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def test_method_with_multiple_stmts<<todo method>>(&<blk>)
+    begin
+      x = 1
+      x = ::<ErrorNode>
+      y = 1
+    end
+  end
+end

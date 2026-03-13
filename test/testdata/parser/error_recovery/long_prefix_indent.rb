@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 # next line is indented 101 spaces
                                                                                                      def foo # error: Hint: this "def" token is not closed before the end of the file
                                                                                                        1.times do

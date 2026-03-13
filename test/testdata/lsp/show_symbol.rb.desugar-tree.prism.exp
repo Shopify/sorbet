@@ -1,0 +1,63 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  module <emptyTree>::<C First><<C <todo sym>>> < ()
+    module <emptyTree>::<C Second><<C <todo sym>>> < ()
+      module <emptyTree>::<C Third><<C <todo sym>>> < ()
+        module <emptyTree>::<C Fourth><<C <todo sym>>> < ()
+          <self>.extend(<emptyTree>::<C T>::<C Generic>)
+
+          module <emptyTree>::<C NestedModule><<C <todo sym>>> < ()
+            <emptyTree>
+          end
+
+          <self>.puts(<emptyTree>::<C NestedModule>)
+
+          <emptyTree>::<C NestedConstant> = 1
+
+          <emptyTree>::<C NestedClassAlias> = <emptyTree>::<C Integer>
+
+          <emptyTree>::<C NestedTypeMember> = <self>.type_member()
+        end
+      end
+
+      <emptyTree>::<C NestedTypeAlias> = <emptyTree>::<C T>.type_alias() do ||
+        <emptyTree>::<C Integer>
+      end
+    end
+  end
+
+  module <emptyTree>::<C Outer><<C <todo sym>>> < ()
+    module <emptyTree>::<C Middle><<C <todo sym>>> < ()
+      module <emptyTree>::<C Inner><<C <todo sym>>> < ()
+        <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+        <self>.sig() do ||
+          <self>.void()
+        end
+
+        def self.foo<<todo method>>(&<blk>)
+          @foo = <emptyTree>::<C T>.let(@foo, <emptyTree>::<C T>.nilable(<emptyTree>::<C String>))
+        end
+
+        <self>.foo()
+
+        <self>.puts(:foo)
+
+        <self>.sig() do ||
+          <self>.params(:x, <emptyTree>::<C Integer>).void()
+        end
+
+        def bar<<todo method>>(x, &<blk>)
+          <emptyTree>::<C Kernel>.puts(x)
+        end
+      end
+    end
+  end
+
+  <emptyTree>::<C Hello>
+
+  <emptyTree>::<C Hello>.module(<emptyTree>::<C A>)
+
+  <emptyTree>::<C Goodbye> = ::<ErrorNode>
+
+  ::<ErrorNode>
+end

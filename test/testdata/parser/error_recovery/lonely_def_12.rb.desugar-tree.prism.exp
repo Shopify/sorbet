@@ -1,0 +1,5 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def self.end<<todo method>>(&<blk>)
+    ::<ErrorNode>
+  end
+end

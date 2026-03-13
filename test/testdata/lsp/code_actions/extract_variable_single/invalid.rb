@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 # selective-apply-code-action: refactor.extract
 # enable-experimental-lsp-extract-to-variable: true
 # assert-no-code-action: refactor.extract

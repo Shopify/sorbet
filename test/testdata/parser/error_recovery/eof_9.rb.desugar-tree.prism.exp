@@ -1,0 +1,19 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <assignTemp>$2 = <self>.x()
+
+  if true.===(<assignTemp>$2)
+    if <self>.x()
+      begin
+        begin
+          <assignTemp>$3 = <self>.x()
+          <emptyTree>
+        end
+        ::<ErrorNode>
+      end
+    else
+      <emptyTree>
+    end
+  else
+    <emptyTree>
+  end
+end

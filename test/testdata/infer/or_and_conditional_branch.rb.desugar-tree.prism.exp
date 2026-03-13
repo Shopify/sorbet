@@ -1,0 +1,82 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+  <self>.sig() do ||
+    <self>.params(:lines, <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C String>)).void()
+  end
+
+  def foo1<<todo method>>(lines, &<blk>)
+    min_space = begin
+      ||$2 = lines.map() do |line|
+        if line.strip().empty?()
+          nil
+        else
+          <emptyTree>::<C T>.unsafe(line)
+        end
+      end.compact().min()
+      if ||$2
+        ||$2
+      else
+        0
+      end
+    end
+  end
+
+  <self>.sig() do ||
+    <self>.params(:lines, <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C String>)).void()
+  end
+
+  def foo2<<todo method>>(lines, &<blk>)
+    min_space = begin
+      &&$2 = lines.map() do |line|
+        if line.strip().empty?()
+          nil
+        else
+          <emptyTree>::<C T>.unsafe(line)
+        end
+      end.compact().min()
+      if &&$2
+        0
+      else
+        &&$2
+      end
+    end
+  end
+
+  def dont_crash<<todo method>>(&<blk>)
+    begin
+      x = begin
+        ||$2 = nil
+        if ||$2
+          ||$2
+        else
+          nil
+        end
+      end
+      x = begin
+        &&$3 = nil
+        if &&$3
+          nil
+        else
+          &&$3
+        end
+      end
+      x = begin
+        ||$4 = nil
+        if ||$4
+          ||$4
+        else
+          nil
+        end
+      end
+      x = begin
+        &&$5 = nil
+        if &&$5
+          nil
+        else
+          &&$5
+        end
+      end
+    end
+  end
+end

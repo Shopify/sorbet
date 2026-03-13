@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # TODO(jez) Fix this test
 

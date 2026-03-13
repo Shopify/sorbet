@@ -1,0 +1,7 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  x = <emptyTree>::<C T>.let(::<Magic>.<build-range>(1, 10, false).map() do |a|
+      [a, nil]
+    end.flatten().to_a().freeze(), <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>)))
+
+  <self>.puts(x.compact().size())
+end

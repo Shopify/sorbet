@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 # Test that incomplete/malformed syntax with 'it' parameter doesn't segfault or produce confusing errors
 # Note: Tests for mixing 'it' with numbered params or explicit args are in separate files

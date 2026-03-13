@@ -1,0 +1,19 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def greater_equal<<todo method>>(&<blk>)
+      begin
+        ::<ErrorNode>
+        <self>.foo()
+      end
+    end
+  end
+
+  class <emptyTree>::<C B><<C <todo sym>>> < (::<todo sym>)
+    def less_equal<<todo method>>(&<blk>)
+      begin
+        ::<ErrorNode>
+        <self>.foo()
+      end
+    end
+  end
+end

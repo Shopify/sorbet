@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 # We intentionally deviate from Ruby syntax in these cases, namely when a
 # method call is broken across two lines between the '.' and the name of the

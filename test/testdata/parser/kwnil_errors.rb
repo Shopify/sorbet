@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 def f1(**nil, **nil); end # error: unexpected token ","
 def f2(*args, **kwargs, **nil); end # error: unexpected token ","

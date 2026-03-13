@@ -1,0 +1,17 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def example1<<todo method>>(slug:, token:, merchant: = 3, &<blk>)
+      begin
+        <self>.request(:)
+        ::<ErrorNode>
+      end
+    end
+
+    def example2<<todo method>>(slug, token:, merchant: = ::<ErrorNode>, &<blk>)
+      begin
+        ::<ErrorNode>
+        ::<ErrorNode>
+      end
+    end
+  end
+end

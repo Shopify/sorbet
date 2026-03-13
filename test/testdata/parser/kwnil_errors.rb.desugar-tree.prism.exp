@@ -1,0 +1,25 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def f1<<todo method>>(&<blk>)
+    <emptyTree>
+  end
+
+  def f2<<todo method>>(*args, *kwargs:, &<blk>)
+    <emptyTree>
+  end
+
+  def f3<<todo method>>(*args, a:, &<blk>)
+    <emptyTree>
+  end
+
+  def f4<<todo method>>(a:, &<blk>)
+    <emptyTree>
+  end
+
+  def f5<<todo method>>(&<blk>)
+    begin
+      ::<ErrorNode>
+      10
+      ::<ErrorNode>
+    end
+  end
+end

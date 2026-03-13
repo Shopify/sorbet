@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 # We don't recover from this code well as we'd like: ideally, this should parse
 # the method call to `x.if` inside the `def foo`, but instead it puts the

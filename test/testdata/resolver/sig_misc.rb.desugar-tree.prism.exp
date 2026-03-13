@@ -1,0 +1,193 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C T1><<C <todo sym>>> < (::<todo sym>)
+    <emptyTree>
+  end
+
+  class <emptyTree>::<C T2><<C <todo sym>>> < (::<todo sym>)
+    <emptyTree>
+  end
+
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <self>.extend(<emptyTree>::<C T>::<C Helpers>)
+
+    <self>.sig() do ||
+      <self>.returns(<emptyTree>::<C T>.noreturn())
+    end
+
+    def noreturn<<todo method>>(&<blk>)
+      <self>.raise("foo")
+    end
+
+    <self>.sig() do ||
+      <self>.returns(<emptyTree>::<C T1>)
+    end
+
+    def no_params<<todo method>>(&<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.params(:returns, <emptyTree>::<C T1>).returns(<emptyTree>::<C T2>).checked(false)
+    end
+
+    def test_kwargs<<todo method>>(returns, &<blk>)
+      <emptyTree>::<C T2>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.params(<self>.types()).returns(<emptyTree>::<C T1>)
+    end
+
+    def f1<<todo method>>(x, &<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C T1>).returns(<emptyTree>::<C T2>)
+    end.hithere()
+
+    def f2<<todo method>>(x, &<blk>)
+      <emptyTree>::<C T2>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    def f3<<todo method>>(&<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    <self>.private(def private<<todo method>>(x, &<blk>)
+        <emptyTree>::<C T1>.new()
+      end)
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    <self>.protected(def protected<<todo method>>(x, &<blk>)
+        <emptyTree>::<C T1>.new()
+      end)
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    <self>.public(def public<<todo method>>(x, &<blk>)
+        <emptyTree>::<C T1>.new()
+      end)
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    <self>.private_class_method(def self.static<<todo method>>(x, &<blk>)
+        <emptyTree>::<C T1>.new()
+      end)
+
+    <self>.sig() do ||
+      <self>.params(:y, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    <self>.sig() do ||
+      <self>.params(:y, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+
+    def f4<<todo method>>(y, &<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>).returns(<emptyTree>::<C Integer>)
+    end
+
+    def test_yield_no_block_type<<todo method>>(x, &<implicit yield>)
+      <implicit yield>.call(x)
+    end
+
+    <self>.abstract!()
+
+    <self>.sig() do ||
+      <self>.abstract().returns(<emptyTree>::<C T1>)
+    end
+
+    def test_abstract<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.override().void()
+    end
+
+    def test_implementation<<todo method>>(x, &<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.override().returns(<emptyTree>::<C T1>)
+    end
+
+    def test_override<<todo method>>(&<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.overridable().returns(<emptyTree>::<C T1>)
+    end
+
+    def test_overridable<<todo method>>(&<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.override().overridable().returns(<emptyTree>::<C T1>)
+    end
+
+    def test_overridable_implementation<<todo method>>(&<blk>)
+      <emptyTree>::<C T1>.new()
+    end
+
+    <self>.sig() do ||
+      <self>.abstract()
+    end
+
+    def test_abstract_untyped<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <emptyTree>
+    end
+
+    def test_standard_untyped<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.void().foo()
+    end
+
+    def test_junk_inside<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <emptyTree>::<C T>.void()
+    end
+
+    def test_junk_again<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.params(:z, <emptyTree>::<C T1>).returns(<emptyTree>::<C T1>)
+    end
+  end
+end

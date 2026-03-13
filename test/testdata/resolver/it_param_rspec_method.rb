@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # Test that 'it' block parameter can coexist with RSpec's 'it' method
 

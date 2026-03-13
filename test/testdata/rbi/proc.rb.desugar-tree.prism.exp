@@ -1,0 +1,32 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+  ::Kernel.lambda() do |x|
+    x
+  end.[](123)
+
+  my_proc = <emptyTree>::<C Proc>.new() do ||
+    <emptyTree>
+  end
+
+  <emptyTree>::<C T>.reveal_type(my_proc)
+
+  <self>.sig() do ||
+    <self>.params(:f, <emptyTree>::<C T>.proc().params(:x, <emptyTree>::<C Integer>).void()).void()
+  end
+
+  def example<<todo method>>(f, &<blk>)
+    f.call(0) do ||
+      <self>.puts("hello")
+    end
+  end
+
+  f = ::Kernel.lambda() do |x, &blk|
+    begin
+      <self>.puts(x)
+      blk.call()
+    end
+  end
+
+  <self>.example(f)
+end

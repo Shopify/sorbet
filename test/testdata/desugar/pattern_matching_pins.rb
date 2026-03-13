@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 a = nil
 b = 1

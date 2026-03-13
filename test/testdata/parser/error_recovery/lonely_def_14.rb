@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # This is an example of where our greedy heuristic can sometimes do the wrong
 # thing. If `def bar` had been properly closed, the `def foo` would have parsed

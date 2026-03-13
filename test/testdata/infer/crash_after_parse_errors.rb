@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 ->e # error: unexpected token tNL
 r=e # error: Method `e` does not exist
 r=e # error: Method `e` does not exist

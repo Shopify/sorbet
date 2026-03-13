@@ -1,0 +1,19 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def foo<<todo method>>(&<blk>)
+      if true
+        <emptyTree>
+      else
+        <emptyTree>
+      end
+    end
+
+    class <emptyTree>::<C B><<C <todo sym>>> < (::<todo sym>)
+      def bar<<todo method>>(&<blk>)
+        <emptyTree>
+      end
+    end
+
+    ::<ErrorNode>
+  end
+end

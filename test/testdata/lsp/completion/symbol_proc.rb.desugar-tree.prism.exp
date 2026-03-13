@@ -1,0 +1,24 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def value<<todo method>>(&<blk>)
+      5
+    end
+  end
+
+  <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+  <self>.sig() do ||
+    <self>.params(:avec, <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C A>)).returns(<emptyTree>::<C T>.untyped())
+  end
+
+  def sumup<<todo method>>(avec, &<blk>)
+    begin
+      avec.sum() do |*<block-pass>$2|
+        ::<Magic>.<call-with-splat>(<block-pass>$2.[](0), :val, ::<Magic>.<splat>(<block-pass>$2.[](1, 9223372036854775807)), nil)
+      end
+      avec.sum() do |*<block-pass>$3|
+        ::<Magic>.<call-with-splat>(<block-pass>$3.[](0), :, ::<Magic>.<splat>(<block-pass>$3.[](1, 9223372036854775807)), nil)
+      end
+    end
+  end
+end

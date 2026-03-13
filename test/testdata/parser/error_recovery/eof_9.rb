@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 case x # error: Hint: this "case" token is not closed before the end of the file
 when true

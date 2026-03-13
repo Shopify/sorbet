@@ -1,0 +1,12 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <assignTemp>$2 = <emptyTree>::<C T>.unsafe(nil)
+
+  if ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    begin
+       = ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+      true
+    end
+  else
+    <emptyTree>
+  end
+end

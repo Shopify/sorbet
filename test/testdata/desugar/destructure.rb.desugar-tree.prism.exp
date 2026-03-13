@@ -1,0 +1,30 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Destructure><<C <todo sym>>> < (::<todo sym>)
+    def f<<todo method>>(<destructure>$2, z, &<blk>)
+      begin
+        begin
+          <assignTemp>$3 = <destructure>$2
+          <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+          x = <assignTemp>$4.[](0)
+          y = <assignTemp>$4.[](1)
+          <assignTemp>$3
+        end
+        begin
+          x.+(y)
+          <self>.lambda() do |<destructure>$5|
+            begin
+              begin
+                <assignTemp>$6 = <destructure>$5
+                <assignTemp>$7 = ::<Magic>.<expand-splat>(<assignTemp>$6, 2, 0)
+                a = <assignTemp>$7.[](0)
+                b = <assignTemp>$7.[](1)
+                <assignTemp>$6
+              end
+              <emptyTree>
+            end
+          end
+        end
+      end
+    end
+  end
+end

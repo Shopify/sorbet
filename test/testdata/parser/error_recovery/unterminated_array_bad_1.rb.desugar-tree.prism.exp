@@ -1,0 +1,9 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <emptyTree>::<C X> = [1, <self>.sig() do ||
+        <self>.void()
+      end, def bar<<todo method>>(&<blk>)
+        <emptyTree>
+      end, ::<ErrorNode>]
+  end
+end

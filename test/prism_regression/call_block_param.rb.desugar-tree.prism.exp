@@ -1,0 +1,94 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.foo() do ||
+    <emptyTree>
+  end
+
+  <self>.foo() do ||
+    <emptyTree>
+  end
+
+  <self>.foo() do ||
+    "inline block"
+  end
+
+  <self>.foo() do ||
+    "do-end block"
+  end
+
+  <self>.foo() do |positional, kwarg:, &block|
+    "inline block with params"
+  end
+
+  <self>.foo() do |positional, kwarg:, &block|
+    "inline block with params"
+  end
+
+  <self>.foo() do |positional, <destructure>$2|
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        multi = <assignTemp>$4.[](0)
+        target = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      "block with multi-target node in parameter list"
+    end
+  end
+
+  <self>.foo() do |bar; baz, qux|
+    <emptyTree>
+  end
+
+  <self>.foo() do |positional, <destructure>$5; baz, qux|
+    begin
+      begin
+        <assignTemp>$6 = <destructure>$5
+        <assignTemp>$7 = ::<Magic>.<expand-splat>(<assignTemp>$6, 2, 0)
+        multi = <assignTemp>$7.[](0)
+        target = <assignTemp>$7.[](1)
+        <assignTemp>$6
+      end
+      "block with multi-target node in parameter list and block locals"
+    end
+  end
+
+  <self>.foo() do |bar; baz, qux|
+    <emptyTree>
+  end
+
+  ::<Magic>.<call-with-block-pass>(<self>, :foo, <emptyTree>::<C FORWARDED_BLOCK>)
+
+  ::<Magic>.<call-with-block-pass>(<self>, :foo, <emptyTree>::<C FORWARDED_BLOCK>)
+
+  ::<Magic>.<call-with-block-pass>(<self>, :foo, &)
+
+  begin
+    <assignTemp>$8 = <self>.foo()
+    if ::NilClass.===(<assignTemp>$8)
+      ::<Magic>.<nil-for-safe-navigation>(<assignTemp>$8)
+    else
+      <assignTemp>$8.bar() do ||
+        <emptyTree>
+      end
+    end
+  end
+
+  <self>.foo() do |<destructure>$9|
+    begin
+      begin
+        <assignTemp>$10 = <destructure>$9
+        <assignTemp>$11 = ::<Magic>.<expand-splat>(<assignTemp>$10, 0, 0)
+        args = <assignTemp>$11.to_ary()
+        <assignTemp>$10
+      end
+      "block with multi-target rest args"
+    end
+  end
+
+  <self>.foo() do |*args|
+    "block with rest args"
+  end
+
+  <self>.def_delegators(:foo, {<self>.local() => :thing})
+end

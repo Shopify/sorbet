@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 class A
   def example

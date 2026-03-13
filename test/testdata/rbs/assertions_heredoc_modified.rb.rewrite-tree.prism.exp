@@ -1,0 +1,57 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <emptyTree>::<C HEREDOC1> = "#: Integer\n".strip()
+
+  <emptyTree>::<C HEREDOC2> = "<<~ #: Integer".strip()
+
+  <emptyTree>::<C HEREDOC3> = "#: Integer\n"
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC3>)
+
+  <emptyTree>::<C HEREDOC4> = "foo\n"
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC4>)
+
+  <emptyTree>::<C HEREDOC5> = ::<Magic>.<string-interpolate>(42, "\n").strip().strip()
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC5>)
+
+  <emptyTree>::<C HEREDOC6> = <self>.String("foo\n".strip())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC6>)
+
+  <emptyTree>::<C HEREDOC7> = "foo\nbar\nbaz\n"
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC7>)
+
+  <emptyTree>::<C HEREDOC8> = ""
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC8>)
+
+  <emptyTree>::<C HEREDOC9> = ""
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC9>)
+
+  <emptyTree>::<C HEREDOC10> = "  foo\n"
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC10>)
+
+  <emptyTree>::<C HEREDOC11> = "  foo\n"
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC11>)
+
+  <emptyTree>::<C HEREDOC12> = "  foo\n"
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC12>)
+
+  <emptyTree>::<C HEREDOC13> = ::<Magic>.<string-interpolate>("  ", 42, "\n")
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC13>)
+
+  <emptyTree>::<C HEREDOC14> = ::<Magic>.<string-interpolate>("  ", 42, "\n  ", 42, "\n")
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC14>)
+
+  <emptyTree>::<C HEREDOC15> = ["  foo\n", "  bar\n"]
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C HEREDOC15>)
+end

@@ -1,0 +1,23 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def test_method_without_fun_name<<todo method>>(x, &<blk>)
+    begin
+      x.end()
+      def test_method_without_fun_name_plus_before<<todo method>>(x, &<blk>)
+        begin
+          before = 1
+          x.end()
+          def test_method_without_fun_name_plus_after<<todo method>>(x, &<blk>)
+            x.after=(1)
+          end
+          def test_method_without_fun_name_before_and_after<<todo method>>(x, &<blk>)
+            begin
+              before = 1
+              x.after=(1)
+            end
+          end
+          ::<ErrorNode>
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,41 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Test><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    def self.test_each<<todo method>>(arg, &blk)
+      <emptyTree>
+    end
+
+    def self.it<<todo method>>(name, &blk)
+      <emptyTree>
+    end
+
+    def self.describe<<todo method>>(name, &blk)
+      <emptyTree>
+    end
+  end
+
+  class <emptyTree>::<C Foo><<C <todo sym>>> < (<emptyTree>::<C Test>)
+    <self>.test_each([[1, 2], [3, 4]]) do |<destructure>$2|
+      begin
+        begin
+          <assignTemp>$3 = <destructure>$2
+          <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+          a = <assignTemp>$4.[](0)
+          b = <assignTemp>$4.[](1)
+          <assignTemp>$3
+        end
+        begin
+          <self>.it("it block 1") do ||
+            <emptyTree>
+          end
+          <self>.it("it block 2") do ||
+            <emptyTree>
+          end
+        end
+      end
+    end
+
+    ::<ErrorNode>
+  end
+end

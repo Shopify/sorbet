@@ -1,0 +1,9 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def foo<<todo method>>(&<blk>)
+    begin
+      <self>.x().end()
+      <self>.x().end()
+      <self>.x().if()
+    end
+  end
+end

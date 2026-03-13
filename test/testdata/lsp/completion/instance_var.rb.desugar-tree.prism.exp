@@ -1,0 +1,118 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C InstanceVariable><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      begin
+        @different_prefix = 10
+        @my_ivar = 5
+      end
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      begin
+        my = 5
+        @my
+      end
+    end
+
+    def more_method<<todo method>>(&<blk>)
+      @
+    end
+  end
+
+  class <emptyTree>::<C OtherInstanceVariable><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      @m
+    end
+  end
+
+  class <emptyTree>::<C ClassVariable><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      begin
+        @@different_prefix = 9
+        @@my_cvar = 5
+      end
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @@my
+    end
+
+    def more_method<<todo method>>(&<blk>)
+      @@
+    end
+  end
+
+  class <emptyTree>::<C OtherClassVariable><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      @@m
+    end
+  end
+
+  class <emptyTree>::<C OnlyInstanceVariables><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      begin
+        @@my_cvar = 5
+        @my
+      end
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @my
+    end
+  end
+
+  class <emptyTree>::<C OnlyClassVariables><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      begin
+        @my_ivar = 6
+        @@my
+      end
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @@my
+    end
+  end
+
+  class <emptyTree>::<C NestedClassInstanceVariables><<C <todo sym>>> < (::<todo sym>)
+    def some_method<<todo method>>(&<blk>)
+      @nciv_ivar = 6
+    end
+
+    class <emptyTree>::<C Inside><<C <todo sym>>> < (::<todo sym>)
+      def some_method<<todo method>>(&<blk>)
+        @ncivi_ivar = 7
+      end
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @nciv_ivar2 = 8
+    end
+
+    def more_method<<todo method>>(&<blk>)
+      @nciv
+    end
+  end
+
+  class <emptyTree>::<C ClassVariablesInStaticInit><<C <todo sym>>> < (::<todo sym>)
+    @@static_init_cvar = 5
+
+    @@stat
+  end
+
+  class <emptyTree>::<C Superclass><<C <todo sym>>> < (::<todo sym>)
+    @@super_cvar = 5
+
+    def some_method<<todo method>>(&<blk>)
+      @super_ivar = 6
+    end
+  end
+
+  class <emptyTree>::<C Inheriting><<C <todo sym>>> < (<emptyTree>::<C Superclass>)
+    @@s
+
+    def other_method<<todo method>>(&<blk>)
+      @super
+    end
+  end
+end

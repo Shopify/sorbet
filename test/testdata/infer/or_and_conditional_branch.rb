@@ -1,4 +1,5 @@
 # typed: strong
+# disable-parser-comparison: true
 extend T::Sig
 
 sig {params(lines: T::Array[String]).void}

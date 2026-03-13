@@ -1,0 +1,18 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.sig() do ||
+    begin
+      <self>.params({:build_group => <emptyTree>::<C String>, <self>.type() => ::<ErrorNode>})
+      <self>.filter()
+      ::<ErrorNode>
+      <emptyTree>::<C T>.nilable(<emptyTree>::<C String>)
+      ::<ErrorNode>
+      ::<ErrorNode>
+      ::<ErrorNode>
+      <self>.returns(<emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C String>))
+    end
+  end
+
+  def call<<todo method>>(build_group, filter:, &<blk>)
+    <emptyTree>
+  end
+end

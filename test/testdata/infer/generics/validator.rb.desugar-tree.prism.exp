@@ -1,0 +1,166 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Module><<C <todo sym>>> < (::<todo sym>)
+    <self>.include(<emptyTree>::<C T>::<C Sig>)
+  end
+
+  <self>.sig() do ||
+    <self>.params(:x, <emptyTree>::<C T>.anything()).void()
+  end
+
+  def example<<todo method>>(x, &<blk>)
+    begin
+      int_validator = <emptyTree>::<C Validator>::<C Cls>.make(<emptyTree>::<C Integer>)
+      res = int_validator.parse!(x)
+      <emptyTree>::<C T>.reveal_type(res)
+      str_validator = <emptyTree>::<C Validator>::<C Cls>.make(<emptyTree>::<C String>)
+      res = str_validator.parse!(x)
+      <emptyTree>::<C T>.reveal_type(res)
+      res = <emptyTree>::<C Validator>::<C Any>.make(int_validator, str_validator).parse!(x)
+      <emptyTree>::<C T>.reveal_type(res)
+    end
+  end
+
+  module <emptyTree>::<C Validator><<C <todo sym>>> < ()
+    <self>.extend(<emptyTree>::<C T>::<C Generic>)
+
+    <self>.abstract!()
+
+    <emptyTree>::<C Type> = <self>.type_member()
+
+    class <emptyTree>::<C ParseResult><<C <todo sym>>> < (<emptyTree>::<C StandardError>)
+      <self>.sig() do ||
+        <self>.params(:msg, <emptyTree>::<C T>.nilable(<emptyTree>::<C String>)).void()
+      end
+
+      def initialize<<todo method>>(msg = nil, &<blk>)
+        <self>.<super>(ZSuperArgs)
+      end
+    end
+
+    <self>.sig() do ||
+      <self>.abstract().params(:x, <emptyTree>::<C T>.anything()).returns(<emptyTree>::<C T>.any(<emptyTree>::<C Type>, <emptyTree>::<C ParseResult>))
+    end
+
+    def try_parse<<todo method>>(x, &<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig(:final) do ||
+      <self>.params(:x, <emptyTree>::<C T>.anything()).returns(<emptyTree>::<C Type>)
+    end
+
+    def parse!<<todo method>>(x, &<blk>)
+      begin
+        <assignTemp>$2 = res = <self>.try_parse(x)
+        if <emptyTree>::<C ParseResult>.===(<assignTemp>$2)
+          <emptyTree>::<C Kernel>.raise(res)
+        else
+          res
+        end
+      end
+    end
+
+    class <emptyTree>::<C Cls><<C <todo sym>>> < (::<todo sym>)
+      <self>.extend(<emptyTree>::<C T>::<C Generic>)
+
+      <self>.include(<emptyTree>::<C Validator>)
+
+      <emptyTree>::<C Type> = <self>.type_member()
+
+      <self>.sig() do ||
+        <self>.params(:klass, <emptyTree>::<C T>::<C Class>.[](<emptyTree>::<C Type>)).void()
+      end
+
+      def initialize<<todo method>>(klass, &<blk>)
+        @klass = klass
+      end
+
+      <self>.private_class_method(:new)
+
+      <self>.sig() do ||
+        <self>.type_parameters(:Type).params(:klass, <emptyTree>::<C T>::<C Class>.[](<emptyTree>::<C T>.type_parameter(:Type))).returns(<emptyTree>::<C T>.all(<emptyTree>::<C T>.attached_class(), <emptyTree>::<C Cls>.[](<emptyTree>::<C T>.type_parameter(:Type))))
+      end
+
+      def self.make<<todo method>>(klass, &<blk>)
+        <self>.new(klass)
+      end
+
+      <self>.sig() do ||
+        <self>.override().params(:x, <emptyTree>::<C T>.anything()).returns(<emptyTree>::<C T>.any(<emptyTree>::<C Type>, <emptyTree>::<C ParseResult>))
+      end
+
+      def try_parse<<todo method>>(x, &<blk>)
+        begin
+          <assignTemp>$2 = x
+          if @klass.===(<assignTemp>$2)
+            begin
+              <emptyTree>::<C T>.reveal_type(x)
+              return x
+            end
+          else
+            return <emptyTree>::<C ParseResult>.new(::<Magic>.<string-interpolate>(x, " is not an instance of ", @klass))
+          end
+        end
+      end
+    end
+
+    class <emptyTree>::<C Any><<C <todo sym>>> < (::<todo sym>)
+      <self>.extend(<emptyTree>::<C T>::<C Generic>)
+
+      <self>.include(<emptyTree>::<C Validator>)
+
+      <emptyTree>::<C TypeReal> = <self>.type_member() do ||
+        {:fixed => <emptyTree>::<C T>.any(<emptyTree>::<C Left>, <emptyTree>::<C Right>)}
+      end
+
+      <emptyTree>::<C Type> = <self>.type_member()
+
+      <emptyTree>::<C Left> = <self>.type_member()
+
+      <emptyTree>::<C Right> = <self>.type_member()
+
+      <self>.sig() do ||
+        <self>.params(:left, <emptyTree>::<C Validator>.[](<emptyTree>::<C Left>), :right, <emptyTree>::<C Validator>.[](<emptyTree>::<C Right>)).void()
+      end
+
+      def initialize<<todo method>>(left, right, &<blk>)
+        begin
+          @left = left
+          @right = right
+        end
+      end
+
+      <self>.private_class_method(:new)
+
+      <self>.sig() do ||
+        <self>.type_parameters(:Left, :Right).params(:left, <emptyTree>::<C Validator>.[](<emptyTree>::<C T>.type_parameter(:Left)), :right, <emptyTree>::<C Validator>.[](<emptyTree>::<C T>.type_parameter(:Right))).returns(<emptyTree>::<C T>.all(<emptyTree>::<C T>.attached_class(), <emptyTree>::<C Any>.[](<emptyTree>::<C T>.any(<emptyTree>::<C T>.type_parameter(:Left), <emptyTree>::<C T>.type_parameter(:Right)), <emptyTree>::<C T>.type_parameter(:Left), <emptyTree>::<C T>.type_parameter(:Right))))
+      end
+
+      def self.make<<todo method>>(left, right, &<blk>)
+        <self>.new(left, right)
+      end
+
+      <self>.sig() do ||
+        <self>.override().params(:x, <emptyTree>::<C T>.anything()).returns(<emptyTree>::<C T>.any(<emptyTree>::<C Type>, <emptyTree>::<C ParseResult>))
+      end
+
+      def try_parse<<todo method>>(x, &<blk>)
+        begin
+          <assignTemp>$2 = res = @left.try_parse(x)
+          if <emptyTree>::<C ParseResult>.===(<assignTemp>$2)
+            begin
+              res = @right.try_parse(x)
+              <emptyTree>::<C T>.reveal_type(res)
+              return <emptyTree>::<C T>.cast(res, <emptyTree>::<C T>.any(<emptyTree>::<C Type>, <emptyTree>::<C ParseResult>))
+            end
+          else
+            begin
+              <emptyTree>::<C T>.reveal_type(res)
+              return <emptyTree>::<C T>.cast(res, <emptyTree>::<C Type>)
+            end
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 def test_method_with_multiple_stmts
   x = 1

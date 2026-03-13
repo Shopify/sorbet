@@ -1,0 +1,43 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def foo<<todo method>>(*args, *kwargs:, &<blk>)
+    <emptyTree>
+  end
+
+  def various_bad_commas_in_send<<todo method>>(a, b, x, y, &<blk>)
+    begin
+      <emptyTree>
+      ::<ErrorNode>
+      x
+      ::<ErrorNode>
+      <self>.foo({:x => x, a => ::<ErrorNode>})
+      <emptyTree>
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+      <self>.foo(a, :x, ::<ErrorNode>)
+      ::<ErrorNode>
+      ::<ErrorNode>
+      <self>.foo(a, x)
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+      <self>.foo(a, :x, ::<ErrorNode>)
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+      <emptyTree>
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+      <self>.foo(a, :x, x, :y, y)
+      <self>.foo(:x, x)
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+      <self>.foo(:a, a, :x, x)
+      ::<ErrorNode>
+      y
+      ::<ErrorNode>
+    end
+  end
+end

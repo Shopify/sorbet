@@ -1,0 +1,23 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  foo = <self>.a(<self>.b())
+
+  if if @c
+      foo
+    else
+      @c
+    end
+    <self>.d()
+  else
+    <emptyTree>
+  end
+
+  if if @d
+      foo
+    else
+      @d
+    end
+    <emptyTree>
+  else
+    <emptyTree>
+  end
+end

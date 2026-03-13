@@ -1,0 +1,27 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C MyClass><<C <todo sym>>> < (::<todo sym>)
+    def my_method<<todo method>>(&<blk>)
+      a = <emptyTree>::<C T>.let(10, <emptyTree>::<C String>)
+    end
+  end
+end

@@ -1,0 +1,200 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def example<<todo method>>(x, &<blk>)
+    begin
+      xs = []
+      xs = []
+      xs.each() do |x|
+        if x.foo()
+          return x.foo()
+        else
+          <emptyTree>
+        end
+      end
+      <emptyTree>::<C T>.must(123)
+      <emptyTree>::<C T>.must(123)
+      return <emptyTree>
+    end
+  end
+
+  def extract_method_parameters<<todo method>>(x, y, &<blk>)
+    <emptyTree>
+  end
+
+  def extract_method_parameters_2<<todo method>>(x, y, &<blk>)
+    <emptyTree>
+  end
+
+  [].each() do |x, y|
+    <emptyTree>
+  end
+
+  [].each() do |x, y|
+    <emptyTree>
+  end
+
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.attr_accessor(:a)
+
+    x = 1.+(1)
+
+    x = 1.+(1)
+
+    x = 1.+(1)
+
+    def multiple_return_break_next<<todo method>>(&<blk>)
+      begin
+        1.times() do ||
+          if 1.==(2)
+            break([1, 2])
+          else
+            next([1, 2])
+          end
+        end
+        return [1, 2]
+      end
+    end
+  end
+
+  begin
+    a$2 = <emptyTree>::<C A>.new()
+    a$3 = a$2.a()
+    if a$3
+      a$2.a=(1)
+    else
+      a$3
+    end
+  end
+
+  begin
+    a$4 = <emptyTree>::<C A>.new()
+    a$5 = a$4.a()
+    if a$5
+      a$5
+    else
+      a$4.a=(1)
+    end
+  end
+
+  begin
+    a$6 = <emptyTree>::<C A>.new()
+    a$6.a=(a$6.a().*(1))
+  end
+
+  a = <emptyTree>::<C T>.let(1, <emptyTree>::<C T>.untyped())
+
+  if a
+    a = 1
+  else
+    a
+  end
+
+  if a
+    a
+  else
+    a = 1
+  end
+
+  a = a.*(1)
+
+  a = begin
+    ||$7 = <emptyTree>::<C T>.unsafe(nil)
+    if ||$7
+      ||$7
+    else
+      <emptyTree>::<C T>.unsafe(nil)
+    end
+  end
+
+  a = begin
+    &&$8 = <emptyTree>::<C T>.unsafe(nil)
+    if &&$8
+      <emptyTree>::<C T>.unsafe(nil)
+    else
+      &&$8
+    end
+  end
+
+  begin
+    <assignTemp>$9 = <emptyTree>::<C A>.new().a()
+    if ::NilClass.===(<assignTemp>$9)
+      ::<Magic>.<nil-for-safe-navigation>(<assignTemp>$9)
+    else
+      begin
+        foo$10 = <assignTemp>$9
+        foo$11 = foo$10.foo()
+        if foo$11
+          foo$10.foo=(1)
+        else
+          foo$11
+        end
+      end
+    end
+  end
+
+  begin
+    <assignTemp>$12 = <emptyTree>::<C A>.new().a()
+    if ::NilClass.===(<assignTemp>$12)
+      ::<Magic>.<nil-for-safe-navigation>(<assignTemp>$12)
+    else
+      begin
+        foo$13 = <assignTemp>$12
+        foo$14 = foo$13.foo()
+        if foo$14
+          foo$14
+        else
+          foo$13.foo=(1)
+        end
+      end
+    end
+  end
+
+  begin
+    <assignTemp>$15 = <emptyTree>::<C A>.new().a()
+    if ::NilClass.===(<assignTemp>$15)
+      ::<Magic>.<nil-for-safe-navigation>(<assignTemp>$15)
+    else
+      begin
+        foo$16 = <assignTemp>$15
+        foo$16.foo=(foo$16.foo().*(1))
+      end
+    end
+  end
+
+  [1, 2, 3].each() do |x|
+    <emptyTree>
+  end
+
+  [1, 2, 3].each() do |x|
+    begin
+      break(<emptyTree>)
+      next(<emptyTree>)
+    end
+  end
+
+  <emptyTree>
+rescue <emptyTree>::<C Errno>::<C ENOENT> => <rescueTemp>$17
+  <emptyTree>
+rescue <emptyTree>::<C ArgumentError> => e
+  <emptyTree>
+rescue <emptyTree>::<C Exception> => e
+  <emptyTree>
+
+  class <emptyTree>::<C B><<C <todo sym>>> < (<emptyTree>::<C T>::<C Struct>)
+    <self>.const(:baz, <emptyTree>::<C String>)
+  end
+
+  def endless_method<<todo method>>(&<blk>)
+    1.+(123)
+  end
+
+  def multi_stat_selection<<todo method>>(&<blk>)
+    begin
+      1.+(1)
+      2.+(2)
+    end
+  end
+
+  ::Regexp.new("W[aeiou]rd", 1)
+
+  ::Regexp.new("A[aeiou]rd", 4)
+end

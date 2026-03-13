@@ -1,0 +1,9 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Parent><<C <todo sym>>> < (::<todo sym>)
+    <emptyTree>
+  end
+
+  class <emptyTree>::<C Child><<C <todo sym>>> < (<emptyTree>::<C Pare>)
+    ::<ErrorNode>
+  end
+end

@@ -1,0 +1,43 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  module <emptyTree>::<C Foo><<C <todo sym>>> < ()
+    module <emptyTree>::<C Bar><<C <todo sym>>> < ()
+      module <emptyTree>::<C Baz><<C <todo sym>>> < ()
+        <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+        <self>.extend(<emptyTree>::<C T>::<C Helpers>)
+
+        <self>.sig() do ||
+          <self>.returns(<emptyTree>::<C T>::<C Set>.[](<emptyTree>::<C String>))
+        end
+
+        def enabled_methods<<todo method>>(&<blk>)
+          <emptyTree>::<C Set>.new()
+        end
+
+        <self>.sig() do ||
+          <self>.void()
+        end
+
+        def foo<<todo method>>(&<blk>)
+          begin
+            errors = <self>.enabled_methods().filter_map() do |<destructure>$2|
+              begin
+                begin
+                  <assignTemp>$3 = <destructure>$2
+                  <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+                  _ = <assignTemp>$4.[](0)
+                  foo = <assignTemp>$4.[](1)
+                  <assignTemp>$3
+                end
+                foo
+              end
+            end.flat_map() do |validation|
+              validation.public_send(validation)
+            end
+            errors
+          end
+        end
+      end
+    end
+  end
+end

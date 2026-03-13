@@ -1,0 +1,19 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>).void()
+    end
+
+    def self.example<<todo method>>(x, &<blk>)
+      <self>.puts(x.+(1))
+    end
+  end
+
+  begin
+    <emptyTree>::<C A>.x=(nil)
+    <emptyTree>::<C A>.end()
+    ::<ErrorNode>
+  end
+end

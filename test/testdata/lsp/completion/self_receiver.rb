@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 module
   def foo(xyz)

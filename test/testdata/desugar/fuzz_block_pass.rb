@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 next &a # error: Block argument should not be given
 next a, &b # error: Block argument should not be given
 break &a # error: Block argument should not be given

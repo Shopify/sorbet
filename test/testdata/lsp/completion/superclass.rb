@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 class Parent; end
 class Child < Pare # error: Hint: this "class" token is not closed

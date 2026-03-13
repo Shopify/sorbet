@@ -1,4 +1,5 @@
 # typed: strict
+# disable-parser-comparison: true
 class Module; include T::Sig; end
 
 sig { params(x: T.anything).void }

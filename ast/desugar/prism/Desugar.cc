@@ -4997,25 +4997,64 @@ ast::Rescue::RESCUE_CASE_store Desugarer::desugarRescueCases(pm_rescue_node *fir
         // Handle exception variable (e.g., the `e` in `rescue => e`)
         ast::ExpressionPtr varExpr;
         if (rescueNode->reference != nullptr) {
-            auto refExpr = desugar(rescueNode->reference);
-            bool isLocal = ast::isa_tree<ast::Local>(refExpr);
-            if (!isLocal) {
-                if (auto ident = ast::cast_tree<ast::UnresolvedIdent>(refExpr)) {
-                    isLocal = ident->kind == ast::UnresolvedIdent::Kind::Local;
-                }
-            }
+            auto *ref = rescueNode->reference;
 
-            if (isLocal) {
-                varExpr = move(refExpr);
-            } else {
-                // Non-local reference (e.g., @ex, @@ex, $ex) - create temp and wrap body
+            if (PM_NODE_TYPE_P(ref, PM_CALL_TARGET_NODE)) {
+                // Handle `rescue => obj.method` — a call target node that can't go through
+                // the normal `desugar()` path (which marks it as unreachable).
+                auto callTargetNode = down_cast<pm_call_target_node>(ref);
+                auto refLoc = translateLoc(ref->location);
+                auto zrefLoc = refLoc.copyWithZeroLength();
+
                 auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
-                auto varLoc = refExpr.loc();
-                varExpr = ast::MK::Local(varLoc, rescueTemp);
+                varExpr = ast::MK::Local(refLoc, rescueTemp);
+
+                auto methodName = translateConstantName(callTargetNode->name);
+                auto methodNameLoc = translateLoc(callTargetNode->message_loc);
+
+                ast::ExpressionPtr receiver;
+                if (callTargetNode->receiver == nullptr) {
+                    receiver = MK::Self(zrefLoc);
+                } else {
+                    receiver = desugar(callTargetNode->receiver);
+                }
+
+                ast::Send::Flags flags;
+                if (ast::isa_tree<ast::EmptyTree>(receiver)) {
+                    receiver = MK::Self(zrefLoc);
+                    flags.isPrivateOk = true;
+                } else {
+                    flags.isPrivateOk = PM_NODE_FLAG_P(callTargetNode, PM_CALL_NODE_FLAGS_IGNORE_VISIBILITY);
+                }
+
+                ast::Send::ARGS_store arguments;
+                arguments.emplace_back(ast::MK::Local(refLoc, rescueTemp));
 
                 ast::InsSeq::STATS_store stats;
-                stats.emplace_back(ast::MK::Assign(varLoc, move(refExpr), ast::MK::Local(varLoc, rescueTemp)));
-                rescueBodyExpr = ast::MK::InsSeq(varLoc, move(stats), move(rescueBodyExpr));
+                stats.emplace_back(
+                    MK::Send(refLoc, move(receiver), methodName, methodNameLoc, 1, move(arguments), flags));
+                rescueBodyExpr = ast::MK::InsSeq(refLoc, move(stats), move(rescueBodyExpr));
+            } else {
+                auto refExpr = desugar(ref);
+                bool isLocal = ast::isa_tree<ast::Local>(refExpr);
+                if (!isLocal) {
+                    if (auto ident = ast::cast_tree<ast::UnresolvedIdent>(refExpr)) {
+                        isLocal = ident->kind == ast::UnresolvedIdent::Kind::Local;
+                    }
+                }
+
+                if (isLocal) {
+                    varExpr = move(refExpr);
+                } else {
+                    // Non-local reference (e.g., @ex, @@ex, $ex) - create temp and wrap body
+                    auto rescueTemp = nextUniqueDesugarName(core::Names::rescueTemp());
+                    auto varLoc = refExpr.loc();
+                    varExpr = ast::MK::Local(varLoc, rescueTemp);
+
+                    ast::InsSeq::STATS_store stats;
+                    stats.emplace_back(ast::MK::Assign(varLoc, move(refExpr), ast::MK::Local(varLoc, rescueTemp)));
+                    rescueBodyExpr = ast::MK::InsSeq(varLoc, move(stats), move(rescueBodyExpr));
+                }
             }
         } else {
             // Bare rescue clause with no variable - create synthetic temp variable

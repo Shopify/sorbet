@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # // Verify `workspace/symbol` can return symbols from standard library, too
 # symbol-search: "conjugate", container="Complex", uri="complex.rbi"

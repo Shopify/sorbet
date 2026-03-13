@@ -1,0 +1,23 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <self>.sig() do ||
+      <self>.params(:arg1, <emptyTree>::<C Integer>, :arg2, <emptyTree>::<C String>, :message, <emptyTree>::<C String>).void()
+    end
+
+    def self.test<<todo method>>(arg1:, arg2: = "", message: = "", &<blk>)
+      <emptyTree>
+    end
+  end
+
+  <emptyTree>::<C A>.test(<self>.a())
+
+  <emptyTree>::<C A>.test(<self>.mess())
+
+  <emptyTree>::<C A>.test({:arg1 => 10, <self>.mess() => ::<ErrorNode>})
+
+  <emptyTree>::<C A>.test(<self>.mess())
+
+  <emptyTree>::<C A>.test({:message => "hi", <self>.ar() => ::<ErrorNode>})
+end

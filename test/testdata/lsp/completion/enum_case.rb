@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 class Module; include T::Sig; end
 
 class MyEnum < T::Enum

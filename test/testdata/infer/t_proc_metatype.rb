@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 xs = T::Array[T.proc.void].new
 T.reveal_type(xs) # error: `T::Array[T.proc.void]`

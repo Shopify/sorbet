@@ -1,0 +1,13 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  2.times() do |x|
+    <self>.raise(::<Magic>.<string-interpolate>("value: ", x))
+  rescue => e
+    <self>.puts(e.message())
+  end
+
+  2.times() do |x|
+    <self>.raise(::<Magic>.<string-interpolate>("value: ", x))
+  end
+rescue => e
+  <self>.puts(e.message())
+end

@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# disable-parser-comparison: true
 # error: File `
 # ^ We can’t assert the full pathname; see https://github.com/sorbet/sorbet/pull/3310
 # typed: true

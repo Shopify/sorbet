@@ -1,0 +1,16 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <self>.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>, :x, <emptyTree>::<C String>).void()
+    end
+
+    def initialize<<todo method>>(x:, x: = nil, &<blk>)
+      begin
+        @x = <emptyTree>::<C T>.let(x, <emptyTree>::<C T>.nilable(<emptyTree>::<C String>))
+        @x = <emptyTree>::<C T>.let(x, <emptyTree>::<C T>.nilable(<emptyTree>::<C String>))
+      end
+    end
+  end
+end

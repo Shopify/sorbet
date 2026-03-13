@@ -1,0 +1,77 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def self.test<<todo method>>(a: = nil, arg: = nil, argument: = nil, message: = nil, &<blk>)
+      <emptyTree>
+    end
+  end
+
+  arg = 10
+
+  <emptyTree>::<C A>.test(<self>.ar())
+
+  <emptyTree>::<C A>.test()
+
+  <emptyTree>::<C A>.test(:a, 10, :arg, <self>.ar(), :message, "message")
+
+  <emptyTree>::<C A>.test({:a => 10, <self>.ar() => ::<ErrorNode>})
+
+  ::<ErrorNode>
+
+  20
+
+  ::<ErrorNode>
+
+  <emptyTree>::<C A>.test({:a => 10, <self>.ar() => ::<ErrorNode>, :argument => 20})
+
+  begin
+    <emptyTree>::<C A>.end()
+    def bar<<todo method>>(other: = nil, &<blk>)
+      <emptyTree>
+    end
+    begin
+      <emptyTree>::<C A>.test(:arg, def foo<<todo method>>(x = <self>.bar(), &<blk>)
+          <emptyTree>
+        end)
+      <emptyTree>::<C A>.test(:arg, def foo<<todo method>>(x = <self>.a(), &<blk>)
+          <emptyTree>
+        end)
+    end
+    def other<<todo method>>(message:, mes:, &<blk>)
+      begin
+        <emptyTree>::<C A>.test(<self>.mess())
+        <emptyTree>::<C A>.test(mes)
+        <emptyTree>::<C A>.test({:arg => 10, mes => ::<ErrorNode>})
+        <emptyTree>::<C A>.test({:arg => 10, mes => ::<ErrorNode>})
+        ::<ErrorNode>
+        ""
+        ::<ErrorNode>
+        <emptyTree>::<C A>.test({:arg => 10, <self>.a() => ::<ErrorNode>})
+        ::<ErrorNode>
+        ""
+        ::<ErrorNode>
+        <emptyTree>::<C A>.test({:arg => 10, mes => ::<ErrorNode>, :message => ""})
+        <emptyTree>::<C A>.test({:arg => 10, <self>.a() => ::<ErrorNode>, :message => ""})
+      end
+    end
+    class <emptyTree>::<C B><<C <todo sym>>> < (::<todo sym>)
+      def self.foo<<todo method>>(foo_arg: = nil, &blk)
+        begin
+          ::<Magic>.<call-with-block-pass>(<self>, :bar, blk)
+          ::<Magic>.<call-with-block-pass>(<self>, :bar, blk)
+          ::<Magic>.<call-with-block-pass>(<self>, :bar, blk, :bar_arg, foo_arg)
+        end
+      end
+
+      def self.bar<<todo method>>(bar_arg: = nil, &blk)
+        <emptyTree>
+      end
+    end
+    <emptyTree>::<C B>.bar() do ||
+      <emptyTree>
+    end
+    <emptyTree>::<C B>.bar() do ||
+      <emptyTree>::<C B>.foo()
+    end
+    ::<ErrorNode>
+  end
+end

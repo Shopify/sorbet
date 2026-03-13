@@ -1,0 +1,11 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def f<<todo method>>(a, b, c, &<blk>)
+      if a.+(::<ErrorNode>)
+        <emptyTree>
+      else
+        <emptyTree>
+      end
+    end
+  end
+end

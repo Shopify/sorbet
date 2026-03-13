@@ -1,0 +1,32 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Module><<C <todo sym>>> < (::<todo sym>)
+    <self>.include(<emptyTree>::<C T>::<C Sig>)
+  end
+
+  class <emptyTree>::<C MyEnum><<C <todo sym>>> < (<emptyTree>::<C T>::<C Enum>)
+    <self>.enums() do ||
+      begin
+        <emptyTree>::<C X> = <self>.new()
+        <emptyTree>::<C Y> = <self>.new()
+        <emptyTree>::<C Z> = <self>.new()
+      end
+    end
+
+    def example<<todo method>>(&<blk>)
+      <self>.cas()
+    end
+  end
+
+  <self>.sig() do ||
+    <self>.params(:my_enum, <emptyTree>::<C MyEnum>).void()
+  end
+
+  def example<<todo method>>(my_enum, &<blk>)
+    begin
+      my_enum.cas()
+      x = my_enum.case()
+      my_enum.end()
+      ::<ErrorNode>
+    end
+  end
+end

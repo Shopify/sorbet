@@ -1,0 +1,287 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.regular().[]=(0, 1)
+
+  begin
+    []$2 = <self>.bitwise_and()
+    []$3 = 0
+    []$2.[]=([]$3, []$2.[]([]$3).&(2))
+  end
+
+  begin
+    []$4 = <self>.bitwise_or()
+    []$5 = 0
+    []$4.[]=([]$5, []$4.[]([]$5).|(3))
+  end
+
+  begin
+    []$6 = <self>.bitwise_xor()
+    []$7 = 0
+    []$6.[]=([]$7, []$6.[]([]$7).^(4))
+  end
+
+  begin
+    []$8 = <self>.shift_right()
+    []$9 = 0
+    []$8.[]=([]$9, []$8.[]([]$9).>>(5))
+  end
+
+  begin
+    []$10 = <self>.shift_left()
+    []$11 = 0
+    []$10.[]=([]$11, []$10.[]([]$11).<<(6))
+  end
+
+  begin
+    []$12 = <self>.add_assign()
+    []$13 = 0
+    []$12.[]=([]$13, []$12.[]([]$13).+(7))
+  end
+
+  begin
+    []$14 = <self>.subtract_assign()
+    []$15 = 0
+    []$14.[]=([]$15, []$14.[]([]$15).-(8))
+  end
+
+  begin
+    []$16 = <self>.modulo_assign()
+    []$17 = 0
+    []$16.[]=([]$17, []$16.[]([]$17).%(9))
+  end
+
+  begin
+    []$18 = <self>.divide_assign()
+    []$19 = 0
+    []$18.[]=([]$19, []$18.[]([]$19)./(10))
+  end
+
+  begin
+    []$20 = <self>.multiply_assign()
+    []$21 = 0
+    []$20.[]=([]$21, []$20.[]([]$21).*(11))
+  end
+
+  begin
+    []$22 = <self>.exponentiate_assign()
+    []$23 = 0
+    []$22.[]=([]$23, []$22.[]([]$23).**(12))
+  end
+
+  begin
+    []$24 = <self>.lazy_and_assign()
+    []$25 = 0
+    []$26 = []$24.[]([]$25)
+    if []$26
+      []$24.[]=([]$25, 13)
+    else
+      []$26
+    end
+  end
+
+  begin
+    []$27 = <self>.lazy_or_assign()
+    []$28 = 0
+    []$29 = []$27.[]([]$28)
+    if []$29
+      []$29
+    else
+      []$27.[]=([]$28, 14)
+    end
+  end
+
+  <self>.regular().[]=(0, 101)
+
+  begin
+    []$30 = <self>.bitwise_and()
+    []$31 = 0
+    []$32 = 1
+    []$30.[]=([]$31, []$32, []$30.[]([]$31, []$32).&(102))
+  end
+
+  begin
+    []$33 = <self>.bitwise_or()
+    []$34 = 0
+    []$35 = 1
+    []$33.[]=([]$34, []$35, []$33.[]([]$34, []$35).|(103))
+  end
+
+  begin
+    []$36 = <self>.bitwise_xor()
+    []$37 = 0
+    []$38 = 1
+    []$36.[]=([]$37, []$38, []$36.[]([]$37, []$38).^(104))
+  end
+
+  begin
+    []$39 = <self>.shift_right()
+    []$40 = 0
+    []$41 = 1
+    []$39.[]=([]$40, []$41, []$39.[]([]$40, []$41).>>(105))
+  end
+
+  begin
+    []$42 = <self>.shift_left()
+    []$43 = 0
+    []$44 = 1
+    []$42.[]=([]$43, []$44, []$42.[]([]$43, []$44).<<(106))
+  end
+
+  begin
+    []$45 = <self>.add_assign()
+    []$46 = 0
+    []$47 = 1
+    []$45.[]=([]$46, []$47, []$45.[]([]$46, []$47).+(107))
+  end
+
+  begin
+    []$48 = <self>.subtract_assign()
+    []$49 = 0
+    []$50 = 1
+    []$48.[]=([]$49, []$50, []$48.[]([]$49, []$50).-(108))
+  end
+
+  begin
+    []$51 = <self>.modulo_assign()
+    []$52 = 0
+    []$53 = 1
+    []$51.[]=([]$52, []$53, []$51.[]([]$52, []$53).%(109))
+  end
+
+  begin
+    []$54 = <self>.divide_assign()
+    []$55 = 0
+    []$56 = 1
+    []$54.[]=([]$55, []$56, []$54.[]([]$55, []$56)./(110))
+  end
+
+  begin
+    []$57 = <self>.multiply_assign()
+    []$58 = 0
+    []$59 = 1
+    []$57.[]=([]$58, []$59, []$57.[]([]$58, []$59).*(111))
+  end
+
+  begin
+    []$60 = <self>.exponentiate_assign()
+    []$61 = 0
+    []$62 = 1
+    []$60.[]=([]$61, []$62, []$60.[]([]$61, []$62).**(112))
+  end
+
+  begin
+    []$63 = <self>.lazy_and_assign()
+    []$64 = 0
+    []$65 = 1
+    []$66 = []$63.[]([]$64, []$65)
+    if []$66
+      []$63.[]=([]$64, []$65, 113)
+    else
+      []$66
+    end
+  end
+
+  begin
+    []$67 = <self>.lazy_or_assign()
+    []$68 = 0
+    []$69 = 1
+    []$70 = []$67.[]([]$68, []$69)
+    if []$70
+      []$70
+    else
+      []$67.[]=([]$68, []$69, 114)
+    end
+  end
+
+  begin
+    <assignTemp>$71 = [115, 116]
+    <assignTemp>$72 = ::<Magic>.<expand-splat>(<assignTemp>$71, 2, 0)
+    <self>.target().[]=(2, 3, <assignTemp>$72.[](0))
+    <self>.target().[]=(4, 5, <assignTemp>$72.[](1))
+    <assignTemp>$71
+  end
+
+  <self>.target().[]=(17)
+
+  begin
+    []$73 = <self>.bitwise_and()
+    []$73.[]=([]$73.[]().&(202))
+  end
+
+  begin
+    []$74 = <self>.bitwise_or()
+    []$74.[]=([]$74.[]().|(203))
+  end
+
+  begin
+    []$75 = <self>.bitwise_xor()
+    []$75.[]=([]$75.[]().^(204))
+  end
+
+  begin
+    []$76 = <self>.shift_right()
+    []$76.[]=([]$76.[]().>>(205))
+  end
+
+  begin
+    []$77 = <self>.shift_left()
+    []$77.[]=([]$77.[]().<<(206))
+  end
+
+  begin
+    []$78 = <self>.add_assign()
+    []$78.[]=([]$78.[]().+(207))
+  end
+
+  begin
+    []$79 = <self>.subtract_assign()
+    []$79.[]=([]$79.[]().-(208))
+  end
+
+  begin
+    []$80 = <self>.modulo_assign()
+    []$80.[]=([]$80.[]().%(209))
+  end
+
+  begin
+    []$81 = <self>.divide_assign()
+    []$81.[]=([]$81.[]()./(200))
+  end
+
+  begin
+    []$82 = <self>.multiply_assign()
+    []$82.[]=([]$82.[]().*(201))
+  end
+
+  begin
+    []$83 = <self>.exponentiate_assign()
+    []$83.[]=([]$83.[]().**(202))
+  end
+
+  begin
+    []$84 = <self>.lazy_and_assign()
+    []$85 = []$84.[]()
+    if []$85
+      []$84.[]=(203)
+    else
+      []$85
+    end
+  end
+
+  begin
+    []$86 = <self>.lazy_or_assign()
+    []$87 = []$86.[]()
+    if []$87
+      []$87
+    else
+      []$86.[]=(204)
+    end
+  end
+
+  begin
+    <assignTemp>$88 = 205
+    <assignTemp>$89 = ::<Magic>.<expand-splat>(<assignTemp>$88, 2, 0)
+    <self>.target().[]=(<assignTemp>$89.[](0))
+    <self>.target().[]=(1, <assignTemp>$89.[](1))
+    <assignTemp>$88
+  end
+end

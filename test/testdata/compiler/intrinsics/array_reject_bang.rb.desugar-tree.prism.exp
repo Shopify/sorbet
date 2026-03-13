@@ -1,0 +1,72 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def test_blk<<todo method>>(&<blk>)
+    begin
+      arr = [1, 2, 3, 4, 5]
+      arr.reject!() do |x|
+        x.%(2).==(0)
+      end
+      <self>.p(arr)
+      <self>.p(arr.length())
+    end
+  end
+
+  <self>.test_blk()
+
+  def test_blk_raise<<todo method>>(&<blk>)
+    begin
+      arr = [1, 2, 3, 4, 5]
+      arr.reject!() do |x|
+        begin
+          if x.>(3)
+            <self>.raise("whoops")
+          else
+            <emptyTree>
+          end
+          x.%(2).==(0)
+        end
+      end
+    rescue => e
+      <self>.puts(e)
+      <self>.p(arr)
+      <self>.p(arr.length())
+    end
+  end
+
+  <self>.test_blk_raise()
+
+  def test_blk_break<<todo method>>(&<blk>)
+    begin
+      arr = [1, 2, 3, 4, 5]
+      arr.reject!() do |x|
+        begin
+          if x.>(3)
+            break(<emptyTree>)
+          else
+            <emptyTree>
+          end
+          x.%(2).==(0)
+        end
+      end
+      <self>.p(arr)
+      <self>.p(arr.length())
+    end
+  end
+
+  <self>.test_blk_break()
+
+  def test_no_blk<<todo method>>(&<blk>)
+    begin
+      arr = [1, 2, 3, 4, 5]
+      e = arr.reject!()
+      <self>.p(arr)
+      <self>.p(arr.length())
+      e.each() do |x|
+        x.%(2).==(0)
+      end
+      <self>.p(arr)
+      <self>.p(arr.length())
+    end
+  end
+
+  <self>.test_no_blk()
+end

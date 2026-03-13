@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 foo(x: 0)
 foo({x: 0})

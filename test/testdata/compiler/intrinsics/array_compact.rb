@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 # frozen_string_literal: true
 # compiled: true
 

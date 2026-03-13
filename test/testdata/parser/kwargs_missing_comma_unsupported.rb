@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # In some cases, but not all, we are able to recover from parse errors if the comma between keyword args is missing.
 # This test contains some unsupported cases, along with their current behavior.

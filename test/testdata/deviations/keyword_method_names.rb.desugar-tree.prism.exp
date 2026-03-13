@@ -1,0 +1,275 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def method_named_alias<<todo method>>(x, &<blk>)
+    begin
+      x.alias()
+      x.alias()
+      x.alias()
+      <self>.foo(<self>.bar())
+    end
+  end
+
+  def method_named_and<<todo method>>(x, &<blk>)
+    begin
+      x.and()
+      x.and()
+      x.and()
+    end
+  end
+
+  def method_named_begin<<todo method>>(x, &<blk>)
+    begin
+      x.begin()
+      x.begin()
+      x.begin()
+    end
+  end
+
+  ::<ErrorNode>
+
+  def method_named_break<<todo method>>(x, &<blk>)
+    begin
+      x.break()
+      x.break()
+      x.break()
+    end
+  end
+
+  def method_named_case<<todo method>>(x, &<blk>)
+    begin
+      x.case()
+      x.case()
+      x.case()
+    end
+  end
+
+  def method_named_class<<todo method>>(x, &<blk>)
+    begin
+      x.class()
+      x.class()
+      x.class()
+    end
+  end
+
+  def method_named_defined?<<todo method>>(x, &<blk>)
+    begin
+      x.defined?()
+      x.defined?()
+      x.defined?()
+    end
+  end
+
+  def method_named_do<<todo method>>(x, &<blk>)
+    begin
+      x.do()
+      x.do()
+      x.do()
+    end
+  end
+
+  def method_named_else<<todo method>>(x, &<blk>)
+    begin
+      x.else()
+      x.else()
+    end
+  end
+
+  def method_named_elsif<<todo method>>(x, &<blk>)
+    begin
+      x.elsif()
+      x.elsif()
+      x.elsif()
+    end
+  end
+
+  def method_named_ensure<<todo method>>(x, &<blk>)
+    begin
+      x.ensure()
+      x.ensure()
+      x.ensure()
+    end
+  end
+
+  def method_named_false<<todo method>>(x, &<blk>)
+    begin
+      x.false()
+      x.false()
+      x.false()
+    end
+  end
+
+  def method_named_for<<todo method>>(x, &<blk>)
+    begin
+      x.for()
+      x.for()
+      x.for()
+    end
+  end
+
+  def method_named_if<<todo method>>(x, &<blk>)
+    begin
+      x.if()
+      x.if()
+      x.if()
+    end
+  end
+
+  def method_named_in<<todo method>>(x, &<blk>)
+    begin
+      x.in()
+      x.in()
+      x.in()
+    end
+  end
+
+  def method_named_module<<todo method>>(x, &<blk>)
+    begin
+      x.module()
+      x.module()
+      x.module()
+    end
+  end
+
+  def method_named_next<<todo method>>(x, &<blk>)
+    begin
+      x.next()
+      x.next()
+      x.next()
+    end
+  end
+
+  def method_named_nil<<todo method>>(x, &<blk>)
+    begin
+      x.nil()
+      x.nil()
+      x.nil()
+    end
+  end
+
+  def method_named_not<<todo method>>(x, &<blk>)
+    begin
+      x.not()
+      x.not()
+      x.not()
+    end
+  end
+
+  def method_named_or<<todo method>>(x, &<blk>)
+    begin
+      x.or()
+      x.or()
+      x.or()
+    end
+  end
+
+  def method_named_redo<<todo method>>(x, &<blk>)
+    begin
+      x.redo()
+      x.redo()
+      x.redo()
+    end
+  end
+
+  def method_named_rescue<<todo method>>(x, &<blk>)
+    begin
+      x.rescue()
+      x.rescue()
+      x.rescue()
+    end
+  end
+
+  def method_named_retry<<todo method>>(x, &<blk>)
+    begin
+      x.retry()
+      x.retry()
+      x.retry()
+    end
+  end
+
+  def method_named_return<<todo method>>(x, &<blk>)
+    begin
+      x.return()
+      x.return()
+      x.return()
+    end
+  end
+
+  def method_named_self<<todo method>>(x, &<blk>)
+    begin
+      x.self()
+      x.self()
+      x.self()
+    end
+  end
+
+  def method_named_super<<todo method>>(x, &<blk>)
+    begin
+      x.super()
+      x.super()
+      x.super()
+    end
+  end
+
+  def method_named_then<<todo method>>(x, &<blk>)
+    begin
+      x.then()
+      x.then()
+      x.then()
+    end
+  end
+
+  def method_named_true<<todo method>>(x, &<blk>)
+    begin
+      x.true()
+      x.true()
+      x.true()
+    end
+  end
+
+  def method_named_unless<<todo method>>(x, &<blk>)
+    begin
+      x.unless()
+      x.unless()
+      x.unless()
+    end
+  end
+
+  def method_named_until<<todo method>>(x, &<blk>)
+    begin
+      x.until()
+      x.until()
+      x.until()
+    end
+  end
+
+  def method_named_when<<todo method>>(x, &<blk>)
+    begin
+      x.when()
+      x.when()
+      x.when()
+    end
+  end
+
+  def method_named_while<<todo method>>(x, &<blk>)
+    begin
+      x.while()
+      x.while()
+      x.while()
+    end
+  end
+
+  def method_named_yield<<todo method>>(x, &<blk>)
+    begin
+      x.yield()
+      x.yield()
+      x.yield()
+    end
+  end
+
+  def method_named_end<<todo method>>(x, &<blk>)
+    begin
+      x.end()
+      x.end()
+      x.end()
+    end
+  end
+end

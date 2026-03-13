@@ -1,0 +1,13 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  module <emptyTree>::<C A>::<C B><<C <todo sym>>> < ()
+    class <emptyTree>::<C C1><<C <todo sym>>> < (::<todo sym>)
+      def foo<<todo method>>(&<blk>)
+        if ::<ErrorNode>
+          <emptyTree>
+        else
+          <emptyTree>
+        end
+      end
+    end
+  end
+end

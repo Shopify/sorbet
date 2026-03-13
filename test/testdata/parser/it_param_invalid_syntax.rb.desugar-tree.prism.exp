@@ -1,0 +1,16 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  [1, 2, 3].map() do |it|
+    it.+(::<ErrorNode>)
+  end
+
+  [1, 2].map() do |it|
+    it.()
+  end
+
+  <self>.foo() do |it|
+    begin
+      <self>.puts(it)
+      ::<ErrorNode>.!().!()
+    end
+  end
+end

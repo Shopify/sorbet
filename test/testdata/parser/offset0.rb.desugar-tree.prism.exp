@@ -1,0 +1,10 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  module <emptyTree>::<C Model><<C <todo sym>>> < ()
+    def a<<todo method>>(&<blk>)
+      begin
+        ::<ErrorNode>
+        <self>.b()
+      end
+    end
+  end
+end

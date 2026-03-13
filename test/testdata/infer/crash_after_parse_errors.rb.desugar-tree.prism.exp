@@ -1,0 +1,14 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  ::Kernel.lambda() do |e|
+    begin
+      r = e
+      r = e
+      if r
+        <self>.o()
+      else
+        r
+      end
+      ::<ErrorNode>
+    end
+  end
+end

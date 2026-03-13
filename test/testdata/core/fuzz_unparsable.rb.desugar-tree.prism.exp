@@ -1,0 +1,9 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  ::<Magic>.<call-with-splat>(<self>, :r, ::<Magic>.<splat>([1]), nil)
+
+  <self>.g()
+
+  <self>.m() do ||
+    ::<ErrorNode>
+  end
+end

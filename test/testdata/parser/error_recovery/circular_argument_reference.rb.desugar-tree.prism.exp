@@ -1,0 +1,8 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  [1, 2, 3].each() do |x = x|
+    begin
+      ::<ErrorNode>
+      1.|(::<ErrorNode>)
+    end
+  end
+end

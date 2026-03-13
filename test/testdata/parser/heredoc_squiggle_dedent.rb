@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 LOG_HEADER = 'Hello!'
 str = <<~DESC

@@ -1,4 +1,5 @@
 # typed: strict
+# disable-parser-comparison: true
 
 # This file tests that we can produce completion results for instance
 # variables and class variables that have declared types.  For cases where

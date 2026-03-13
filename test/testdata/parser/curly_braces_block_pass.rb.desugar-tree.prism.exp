@@ -1,0 +1,34 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def f<<todo method>>(&<blk>)
+      <self>.f() do ||
+        begin
+          ::<ErrorNode>
+          :foo
+        end
+      end
+    end
+
+    def g<<todo method>>(&<blk>)
+      <self>.g() do ||
+        begin
+          ::<ErrorNode>
+          1.+(1)
+        end
+      end
+    end
+
+    def h<<todo method>>(&<blk>)
+      <self>.h() do ||
+        begin
+          ::<ErrorNode>
+          if <emptyTree>::<C T>.unsafe(true)
+            :sneeze
+          else
+            :cough
+          end
+        end
+      end
+    end
+  end
+end

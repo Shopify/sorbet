@@ -1,0 +1,28 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C MyTest><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <self>.it("processes items") do ||
+      [1, 2, 3].map() do |it|
+        it.*(2)
+      end
+    end
+
+    <self>.it("handles nested blocks") do ||
+      begin
+        [[1, 2], [3, 4]].map() do |it|
+          it.sum()
+        end
+        [5, 6, 7].each() do |it|
+          <self>.puts(it)
+        end
+      end
+    end
+
+    <self>.it("uses it in lambda") do ||
+      <self>.lambda() do |it|
+        it.+(1)
+      end.call(5)
+    end
+  end
+end

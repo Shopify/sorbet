@@ -1,0 +1,37 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+  <self>.sig() do ||
+    <self>.type_parameters(:).void()
+  end
+
+  def ex1<<todo method>>(&<blk>)
+    <emptyTree>
+  end
+
+  <self>.sig() do ||
+    <self>.type_parameters(<self>.x()).void()
+  end
+
+  def ex2<<todo method>>(&<blk>)
+    <emptyTree>
+  end
+
+  <self>.sig() do ||
+    <self>.type_parameters(<emptyTree>::<C X>).void()
+  end
+
+  def ex3<<todo method>>(&<blk>)
+    <emptyTree>
+  end
+
+  y = nil
+
+  <self>.sig() do ||
+    <self>.type_parameters(y).void()
+  end
+
+  def ex4<<todo method>>(&<blk>)
+    <emptyTree>
+  end
+end

@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 class A
   def self.test(a: nil, arg: nil, argument: nil, message: nil)

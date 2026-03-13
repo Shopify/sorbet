@@ -1,0 +1,55 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def test0<<todo method>>(&<blk>)
+      begin
+        x = nil
+        if <self>.puts("after")
+          <emptyTree>
+        else
+          <emptyTree>
+        end
+        def test1<<todo method>>(&<blk>)
+          begin
+            x = nil
+            if x
+              <self>.puts("after")
+            else
+              <emptyTree>
+            end
+            def test2<<todo method>>(&<blk>)
+              begin
+                x = nil
+                if x.puts("after")
+                  <emptyTree>
+                else
+                  <emptyTree>
+                end
+                def test3<<todo method>>(&<blk>)
+                  begin
+                    x = nil
+                    if x.f()
+                      <self>.puts("after")
+                    else
+                      <emptyTree>
+                    end
+                    def test4<<todo method>>(&<blk>)
+                      begin
+                        x = nil
+                        if x.f()
+                          <self>.puts("after")
+                        else
+                          <emptyTree>
+                        end
+                      end
+                    end
+                    ::<ErrorNode>
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end

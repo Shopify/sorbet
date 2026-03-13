@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 def foo
   really_long_method_________________________________________________________________________________________________________ do
   #                                                                                                                           ^^ error: Hint: this "do" token might not be properly closed

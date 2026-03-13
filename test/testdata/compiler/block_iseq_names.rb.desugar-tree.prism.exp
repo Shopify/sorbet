@@ -1,0 +1,145 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def self.class_func_toplevel_block<<todo method>>(&<blk>)
+      1.times() do ||
+        <self>.raise("exception!")
+      end
+    end
+
+    def self.class_func_deep_block<<todo method>>(&<blk>)
+      1.times() do ||
+        1.times() do ||
+          1.times() do ||
+            <self>.raise("exception!")
+          end
+        end
+      end
+    end
+
+    def instance_func_toplevel_block<<todo method>>(&<blk>)
+      1.times() do ||
+        <self>.raise("exception!")
+      end
+    end
+
+    def instance_func_deep_block<<todo method>>(&<blk>)
+      1.times() do ||
+        1.times() do ||
+          1.times() do ||
+            <self>.raise("exception!")
+          end
+        end
+      end
+    end
+  end
+
+  def standalone_func_toplevel_block<<todo method>>(&<blk>)
+    1.times() do ||
+      <self>.raise("exception!")
+    end
+  end
+
+  def standalone_func_deep_block<<todo method>>(&<blk>)
+    1.times() do ||
+      1.times() do ||
+        1.times() do ||
+          <self>.raise("exception!")
+        end
+      end
+    end
+  end
+
+  def check<<todo method>>(&blk)
+    blk.call()
+  rescue => e
+    <self>.p(<emptyTree>::<C T>.must(e.backtrace_locations()).fetch(0).label())
+  end
+
+  <self>.check() do ||
+    <emptyTree>::<C A>.class_func_toplevel_block()
+  end
+
+  <self>.check() do ||
+    <emptyTree>::<C A>.class_func_deep_block()
+  end
+
+  <self>.check() do ||
+    <emptyTree>::<C A>.new().instance_func_toplevel_block()
+  end
+
+  <self>.check() do ||
+    <emptyTree>::<C A>.new().instance_func_deep_block()
+  end
+
+  <self>.check() do ||
+    <self>.standalone_func_toplevel_block()
+  end
+
+  <self>.check() do ||
+    <self>.standalone_func_deep_block()
+  end
+
+  <self>.check() do ||
+    module <emptyTree>::<C X><<C <todo sym>>> < ()
+      1.times() do ||
+        <self>.raise("exception!")
+      end
+    end
+  end
+
+  <self>.check() do ||
+    module <emptyTree>::<C X><<C <todo sym>>> < ()
+      1.times() do ||
+        1.times() do ||
+          <self>.raise("exception!")
+        end
+      end
+    end
+  end
+
+  <self>.check() do ||
+    class <emptyTree>::<C Y><<C <todo sym>>> < (::<todo sym>)
+      1.times() do ||
+        <self>.raise("exception!")
+      end
+    end
+  end
+
+  <self>.check() do ||
+    class <emptyTree>::<C Y><<C <todo sym>>> < (::<todo sym>)
+      1.times() do ||
+        1.times() do ||
+          <self>.raise("exception!")
+        end
+      end
+    end
+  end
+
+  1.times() do ||
+    <self>.raise("exception!")
+  end
+rescue => e
+  <self>.p(<emptyTree>::<C T>.must(e.backtrace_locations()).fetch(0).label())
+
+  1.times() do ||
+    1.times() do ||
+      1.times() do ||
+        <self>.raise("exception!")
+      end
+    end
+  end
+rescue => e
+  <self>.p(<emptyTree>::<C T>.must(e.backtrace_locations()).fetch(0).label())
+
+  <self>.check() do ||
+    <self>.raise("exception!")
+  end
+
+  <self>.check() do ||
+    1.times() do ||
+      1.times() do ||
+        <self>.raise("exception!")
+      end
+    end
+  end
+end

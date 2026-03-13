@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 def test_method_without_fun_name(x)
   x.

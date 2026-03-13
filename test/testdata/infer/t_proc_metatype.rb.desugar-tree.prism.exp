@@ -1,0 +1,74 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().void()).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().returns(<emptyTree>::<C Integer>)).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  <emptyTree>::<C T>.reveal_type(xs.fetch(0).call())
+
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().params(:x, <emptyTree>::<C String>).returns(<emptyTree>::<C Integer>)).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().params(<emptyTree>::<C String>).void()).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().params(:x, <emptyTree>::<C String>, :y, <self>.y()).void()).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().params(:y, ::<ErrorNode>))
+
+  ::<ErrorNode>
+
+  <emptyTree>::<C String>
+
+  ::<ErrorNode>
+
+  ::<ErrorNode>
+
+  <self>.void()
+
+  ::<ErrorNode>
+
+  ::<ErrorNode>
+
+  <self>.new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  args = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.untyped()).new()
+
+  xs = <emptyTree>::<C T>::<C Array>.[](::<Magic>.<call-with-splat>(<emptyTree>::<C T>.proc(), :params, ::<Magic>.<splat>(args), nil).void()).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  opts = <emptyTree>::<C T>::<C Hash>.[](<emptyTree>::<C T>.untyped(), <emptyTree>::<C T>.untyped()).new()
+
+  xs = <emptyTree>::<C T>::<C Array>.[](<emptyTree>::<C T>.proc().params(begin
+        <hashTemp>$2 = ::<Magic>.<to-hash-dup>(opts)
+        <hashTemp>$2
+      end).void()).new()
+
+  <emptyTree>::<C T>.reveal_type(xs)
+
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Sig>)
+
+    <self>.sig() do ||
+      <self>.params(:blk, <emptyTree>::<C T>.proc().void().bind(<emptyTree>::<C T>.self_type())).void()
+    end
+
+    def example<<todo method>>(&blk)
+      <emptyTree>
+    end
+  end
+
+  <emptyTree>::<C A>.new().example() do ||
+    <emptyTree>::<C T>.reveal_type(<self>)
+  end
+end

@@ -1,4 +1,5 @@
 # typed: strict
+# disable-parser-comparison: true
 
 # Discovered in https://github.com/sorbet/sorbet/issues/7969
 

@@ -1,0 +1,14 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def test0<<todo method>>(&<blk>)
+      begin
+        x = nil
+        if ::<ErrorNode>
+          <emptyTree>
+        else
+          <emptyTree>
+        end
+      end
+    end
+  end
+end

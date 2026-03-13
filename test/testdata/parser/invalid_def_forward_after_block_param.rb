@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # This parser behaviour is really bizarre, and depends on whether `#invalid` has an empty body or not.
 # It seems to replace the entire `def invalid` node with whatever comes after that line.

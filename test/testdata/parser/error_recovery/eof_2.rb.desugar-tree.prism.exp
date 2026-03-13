@@ -1,0 +1,14 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def foo<<todo method>>(&<blk>)
+    def bar<<todo method>>(&<blk>)
+      def qux<<todo method>>(&<blk>)
+        begin
+          <self>.puts("inside qux")
+          <self>.puts("inside bar")
+          <self>.puts("inside foo")
+          ::<ErrorNode>
+        end
+      end
+    end
+  end
+end

@@ -1,4 +1,5 @@
 # typed: strict
+# disable-parser-comparison: true
 
 module First
   module Second

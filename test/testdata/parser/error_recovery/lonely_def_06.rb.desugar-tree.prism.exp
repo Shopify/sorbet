@@ -1,0 +1,20 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def self<<todo method>>(&<blk>)
+      begin
+        <self>.sig() do ||
+          <self>.void()
+        end
+        def example<<todo method>>(&<blk>)
+          <emptyTree>
+        end
+      end
+    end
+
+    ::<ErrorNode>
+  end
+end

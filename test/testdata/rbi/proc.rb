@@ -1,4 +1,5 @@
 # typed: strict
+# disable-parser-comparison: true
 extend T::Sig
 
 -> (x) { x }[123]

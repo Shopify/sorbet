@@ -1,0 +1,344 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  begin
+    <assignTemp>$2 = []
+    <assignTemp>$3 = ::<Magic>.<expand-splat>(<assignTemp>$2, 2, 0)
+    begin
+      <assignTemp>$4 = <assignTemp>$3.[](0)
+      <assignTemp>$5 = ::<Magic>.<expand-splat>(<assignTemp>$4, 2, 0)
+      x = <assignTemp>$5.[](0)
+      y = <assignTemp>$5.[](1)
+      <assignTemp>$4
+    end
+    a = <assignTemp>$3.[](1)
+    <assignTemp>$2
+  end
+
+  begin
+    <assignTemp>$6 = []
+    <assignTemp>$7 = ::<Magic>.<expand-splat>(<assignTemp>$6, 2, 0)
+    a = <assignTemp>$7.[](0)
+    begin
+      <assignTemp>$8 = <assignTemp>$7.[](1)
+      <assignTemp>$9 = ::<Magic>.<expand-splat>(<assignTemp>$8, 2, 0)
+      x = <assignTemp>$9.[](0)
+      y = <assignTemp>$9.[](1)
+      <assignTemp>$8
+    end
+    <assignTemp>$6
+  end
+
+  begin
+    <assignTemp>$10 = []
+    <assignTemp>$11 = ::<Magic>.<expand-splat>(<assignTemp>$10, 0, 2)
+    head = <assignTemp>$11.to_ary()
+    begin
+      <assignTemp>$12 = <assignTemp>$11.[](-2)
+      <assignTemp>$13 = ::<Magic>.<expand-splat>(<assignTemp>$12, 2, 0)
+      x = <assignTemp>$13.[](0)
+      y = <assignTemp>$13.[](1)
+      <assignTemp>$12
+    end
+    a = <assignTemp>$11.[](-1)
+    <assignTemp>$10
+  end
+
+  begin
+    <assignTemp>$14 = []
+    <assignTemp>$15 = ::<Magic>.<expand-splat>(<assignTemp>$14, 0, 2)
+    head = <assignTemp>$15.to_ary()
+    a = <assignTemp>$15.[](-2)
+    begin
+      <assignTemp>$16 = <assignTemp>$15.[](-1)
+      <assignTemp>$17 = ::<Magic>.<expand-splat>(<assignTemp>$16, 2, 0)
+      x = <assignTemp>$17.[](0)
+      y = <assignTemp>$17.[](1)
+      <assignTemp>$16
+    end
+    <assignTemp>$14
+  end
+
+  <emptyTree>::<C Proc>.new() do |p1, <destructure>$18|
+    begin
+      begin
+        <assignTemp>$19 = <destructure>$18
+        <assignTemp>$20 = ::<Magic>.<expand-splat>(<assignTemp>$19, 2, 0)
+        x2 = <assignTemp>$20.[](0)
+        y2 = <assignTemp>$20.[](1)
+        <assignTemp>$19
+      end
+      <emptyTree>
+    end
+  end
+
+  a.each() do ||
+    begin
+      begin
+        <assignTemp>$22 = forTemp$21
+        <assignTemp>$23 = ::<Magic>.<expand-splat>(<assignTemp>$22, 2, 0)
+        p1 = <assignTemp>$23.[](0)
+        begin
+          <assignTemp>$24 = <assignTemp>$23.[](1)
+          <assignTemp>$25 = ::<Magic>.<expand-splat>(<assignTemp>$24, 2, 0)
+          x2 = <assignTemp>$25.[](0)
+          y2 = <assignTemp>$25.[](1)
+          <assignTemp>$24
+        end
+        <assignTemp>$22
+      end
+      <emptyTree>
+    end
+  end
+
+  begin
+    <assignTemp>$26 = [[1, 2], [3, 4]]
+    <assignTemp>$27 = ::<Magic>.<expand-splat>(<assignTemp>$26, 2, 0)
+    p2 = <assignTemp>$27.[](0)
+    begin
+      <assignTemp>$28 = <assignTemp>$27.[](1)
+      <assignTemp>$29 = ::<Magic>.<expand-splat>(<assignTemp>$28, 1, 0)
+      head = <assignTemp>$29.[](0)
+      <assignTemp>$28
+    end
+    <assignTemp>$26
+  end
+
+  begin
+    <assignTemp>$30 = [[1, 2], [3, 4]]
+    <assignTemp>$31 = ::<Magic>.<expand-splat>(<assignTemp>$30, 2, 0)
+    p3 = <assignTemp>$31.[](0)
+    begin
+      <assignTemp>$32 = <assignTemp>$31.[](1)
+      <assignTemp>$33 = ::<Magic>.<expand-splat>(<assignTemp>$32, 1, 0)
+      head = <assignTemp>$33.[](0)
+      tail = <assignTemp>$33.to_ary()
+      <assignTemp>$32
+    end
+    <assignTemp>$30
+  end
+
+  begin
+    <assignTemp>$34 = [[1, 2], [3, 4]]
+    <assignTemp>$35 = ::<Magic>.<expand-splat>(<assignTemp>$34, 2, 0)
+    p4 = <assignTemp>$35.[](0)
+    begin
+      <assignTemp>$36 = <assignTemp>$35.[](1)
+      <assignTemp>$37 = ::<Magic>.<expand-splat>(<assignTemp>$36, 0, 1)
+      last = <assignTemp>$37.[](-1)
+      <assignTemp>$36
+    end
+    <assignTemp>$34
+  end
+
+  begin
+    <assignTemp>$38 = [[1, 2], [3, 4]]
+    <assignTemp>$39 = ::<Magic>.<expand-splat>(<assignTemp>$38, 2, 0)
+    p5 = <assignTemp>$39.[](0)
+    begin
+      <assignTemp>$40 = <assignTemp>$39.[](1)
+      <assignTemp>$41 = ::<Magic>.<expand-splat>(<assignTemp>$40, 0, 1)
+      init = <assignTemp>$41.to_ary()
+      last = <assignTemp>$41.[](-1)
+      <assignTemp>$40
+    end
+    <assignTemp>$38
+  end
+
+  begin
+    <assignTemp>$42 = [[1, 2], [3, 4]]
+    <assignTemp>$43 = ::<Magic>.<expand-splat>(<assignTemp>$42, 2, 0)
+    p6 = <assignTemp>$43.[](0)
+    begin
+      <assignTemp>$44 = <assignTemp>$43.[](1)
+      <assignTemp>$45 = ::<Magic>.<expand-splat>(<assignTemp>$44, 1, 0)
+      x2 = <assignTemp>$45.[](0)
+      <assignTemp>$44
+    end
+    <assignTemp>$42
+  end
+
+  a.each() do ||
+    begin
+      begin
+        <assignTemp>$47 = forTemp$46
+        <assignTemp>$48 = ::<Magic>.<expand-splat>(<assignTemp>$47, 2, 0)
+        p7 = <assignTemp>$48.[](0)
+        begin
+          <assignTemp>$49 = <assignTemp>$48.[](1)
+          <assignTemp>$50 = ::<Magic>.<expand-splat>(<assignTemp>$49, 1, 0)
+          x2 = <assignTemp>$50.[](0)
+          <assignTemp>$49
+        end
+        <assignTemp>$47
+      end
+      <emptyTree>
+    end
+  end
+
+  def method_empty<<todo method>>(<destructure>$2, &<blk>)
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        x = <assignTemp>$4.[](0)
+        y = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      <emptyTree>
+    end
+  end
+
+  def method_single<<todo method>>(<destructure>$2, &<blk>)
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        x = <assignTemp>$4.[](0)
+        y = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      <self>.statement1()
+    end
+  end
+
+  def method_multi<<todo method>>(<destructure>$2, &<blk>)
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        x = <assignTemp>$4.[](0)
+        y = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      begin
+        <self>.statement1()
+        <self>.statement2()
+      end
+    end
+  end
+
+  def self.method_empty<<todo method>>(<destructure>$2, &<blk>)
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        x = <assignTemp>$4.[](0)
+        y = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      <emptyTree>
+    end
+  end
+
+  def self.method_single<<todo method>>(<destructure>$2, &<blk>)
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        x = <assignTemp>$4.[](0)
+        y = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      <self>.statement1()
+    end
+  end
+
+  def self.method_multi<<todo method>>(<destructure>$2, &<blk>)
+    begin
+      begin
+        <assignTemp>$3 = <destructure>$2
+        <assignTemp>$4 = ::<Magic>.<expand-splat>(<assignTemp>$3, 2, 0)
+        x = <assignTemp>$4.[](0)
+        y = <assignTemp>$4.[](1)
+        <assignTemp>$3
+      end
+      begin
+        <self>.statement1()
+        <self>.statement2()
+      end
+    end
+  end
+
+  <self>.block_empty() do |<destructure>$51|
+    begin
+      begin
+        <assignTemp>$52 = <destructure>$51
+        <assignTemp>$53 = ::<Magic>.<expand-splat>(<assignTemp>$52, 2, 0)
+        x = <assignTemp>$53.[](0)
+        y = <assignTemp>$53.[](1)
+        <assignTemp>$52
+      end
+      <emptyTree>
+    end
+  end
+
+  <self>.block_single() do |<destructure>$54|
+    begin
+      begin
+        <assignTemp>$55 = <destructure>$54
+        <assignTemp>$56 = ::<Magic>.<expand-splat>(<assignTemp>$55, 2, 0)
+        x = <assignTemp>$56.[](0)
+        y = <assignTemp>$56.[](1)
+        <assignTemp>$55
+      end
+      <self>.statement1()
+    end
+  end
+
+  <self>.block_multi() do |<destructure>$57|
+    begin
+      begin
+        <assignTemp>$58 = <destructure>$57
+        <assignTemp>$59 = ::<Magic>.<expand-splat>(<assignTemp>$58, 2, 0)
+        x = <assignTemp>$59.[](0)
+        y = <assignTemp>$59.[](1)
+        <assignTemp>$58
+      end
+      begin
+        <self>.statement1()
+        <self>.statement2()
+      end
+    end
+  end
+
+  ::Kernel.lambda() do |<destructure>$60|
+    begin
+      begin
+        <assignTemp>$61 = <destructure>$60
+        <assignTemp>$62 = ::<Magic>.<expand-splat>(<assignTemp>$61, 2, 0)
+        x = <assignTemp>$62.[](0)
+        y = <assignTemp>$62.[](1)
+        <assignTemp>$61
+      end
+      <emptyTree>
+    end
+  end
+
+  ::Kernel.lambda() do |<destructure>$63|
+    begin
+      begin
+        <assignTemp>$64 = <destructure>$63
+        <assignTemp>$65 = ::<Magic>.<expand-splat>(<assignTemp>$64, 2, 0)
+        x = <assignTemp>$65.[](0)
+        y = <assignTemp>$65.[](1)
+        <assignTemp>$64
+      end
+      <self>.statement1()
+    end
+  end
+
+  ::Kernel.lambda() do |<destructure>$66|
+    begin
+      begin
+        <assignTemp>$67 = <destructure>$66
+        <assignTemp>$68 = ::<Magic>.<expand-splat>(<assignTemp>$67, 2, 0)
+        x = <assignTemp>$68.[](0)
+        y = <assignTemp>$68.[](1)
+        <assignTemp>$67
+      end
+      begin
+        <self>.statement1()
+        <self>.statement2()
+      end
+    end
+  end
+end

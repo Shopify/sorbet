@@ -1,4 +1,5 @@
 # typed: strong
+# disable-parser-comparison: true
 class Module; include T::Sig; end
 
 class A

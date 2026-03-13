@@ -1,0 +1,42 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def no_block<<todo method>>(&<blk>)
+    begin
+      h1 = {:x => "foo", :q => "bar", :z => 33}
+      <self>.p(h1.merge({:x => "bar", :z => 33, :j => 96}))
+      <self>.p(h1)
+    end
+  end
+
+  def with_block<<todo method>>(&<blk>)
+    begin
+      h1 = {:x => "foo", :q => "bar", :z => 33}
+      <self>.p(h1.merge({:x => "bar", :z => 33, :j => 96}) do |key, oldval, newval|
+          ::<Magic>.<string-interpolate>("key: ", key, ", oldval: ", oldval, ", newval: ", oldval)
+        end)
+      <self>.p(h1)
+    end
+  end
+
+  <self>.with_block()
+
+  def with_block_raise<<todo method>>(&<blk>)
+    begin
+      h1 = {:x => "foo", :q => "bar", :z => 33}
+      h1.merge({:x => "bar", :z => 33, :j => 96}) do |key, oldval, newval|
+        begin
+          if key.==(:z)
+            <self>.raise("boom")
+          else
+            <emptyTree>
+          end
+          newval
+        end
+      end
+    rescue => e
+      <self>.puts(e)
+      <self>.p(h1)
+    end
+  end
+
+  <self>.with_block_raise()
+end

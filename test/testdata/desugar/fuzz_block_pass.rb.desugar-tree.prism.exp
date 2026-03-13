@@ -1,0 +1,25 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  next(<emptyTree>)
+
+  ::<ErrorNode>
+
+  <self>.a()
+
+  next(<self>.a())
+
+  break(<emptyTree>)
+
+  ::<ErrorNode>
+
+  <self>.a()
+
+  break(<self>.a())
+
+  return <emptyTree>
+
+  ::<ErrorNode>
+
+  <self>.a()
+
+  return <self>.a()
+end

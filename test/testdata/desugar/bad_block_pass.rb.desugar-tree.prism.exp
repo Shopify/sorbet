@@ -1,0 +1,15 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def a<<todo method>>(*<fwd-args>, *<fwd-kwargs>:, &<fwd-block>)
+    <emptyTree>
+  end
+
+  ::<Magic>.<call-with-block-pass>(<self>.a(), :[]=, <self>.blk(), 1)
+
+  ::<Magic>.<call-with-block-pass>(<self>.a(), :[]=, <self>.blk(), 1)
+
+  ::<Magic>.<call-with-block-pass>(<self>, :a, <self>.blk(), 1)
+
+  ::<Magic>.<call-with-block-pass>(<self>.a(), :[]=, <self>.blk(), 0, 1)
+
+  ::<Magic>.<call-with-block-pass>(<self>, :a, <self>.blk(), 0, 1)
+end

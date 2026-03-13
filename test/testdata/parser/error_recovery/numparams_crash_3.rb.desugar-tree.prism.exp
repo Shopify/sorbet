@@ -1,0 +1,10 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.foo() do ||
+    begin
+      ::<ErrorNode>
+      :bar
+    end
+  end
+
+  <self>._1()
+end

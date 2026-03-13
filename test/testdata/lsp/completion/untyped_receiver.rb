@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 extend T::Sig
 
 sig {params(x: T.untyped).void}

@@ -1,0 +1,13 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.attr_accessor(:foo)
+  end
+
+  def main<<todo method>>(&<blk>)
+    begin
+      a = <emptyTree>::<C A>.new()
+      a.end()
+      ::<ErrorNode>
+    end
+  end
+end

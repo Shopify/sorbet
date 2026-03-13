@@ -1,0 +1,11 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def foo<<todo method>>(x, &<blk>)
+    begin
+      <emptyTree>::<C Integer>.case(x)
+      ::<ErrorNode>
+      <emptyTree>::<C Integer>
+    end
+  end
+
+  ::<ErrorNode>
+end

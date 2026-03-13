@@ -1,0 +1,198 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class ::<root>::<C Module><<C <todo sym>>> < (::<todo sym>)
+    <self>.include(<emptyTree>::<C T>::<C Sig>)
+  end
+
+  class <emptyTree>::<C InstanceVariable><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      @my_ivar = <emptyTree>::<C T>.let(5, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      begin
+        my = 5
+        @my
+      end
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def more_method<<todo method>>(&<blk>)
+      @
+    end
+  end
+
+  class <emptyTree>::<C OtherInstanceVariable><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def initialize<<todo method>>(&<blk>)
+      @mo_ivar = <emptyTree>::<C T>.let(5, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      @m
+    end
+  end
+
+  class <emptyTree>::<C ClassVariable><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      @@my_cvar = <emptyTree>::<C T>.let(5, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @@my
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def more_method<<todo method>>(&<blk>)
+      @@
+    end
+  end
+
+  class <emptyTree>::<C OtherClassVariable><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      @@m
+    end
+  end
+
+  class <emptyTree>::<C OnlyInstanceVariables><<C <todo sym>>> < (::<todo sym>)
+    @@my_cvar = nil
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      begin
+        @@my_cvar = <emptyTree>::<C T>.let(5, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+        @my
+      end
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @my
+    end
+  end
+
+  class <emptyTree>::<C OnlyClassVariables><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      begin
+        @my_ivar = <emptyTree>::<C T>.let(6, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+        @@my
+      end
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @@my
+    end
+  end
+
+  class <emptyTree>::<C NestedClassInstanceVariables><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      @nciv_ivar = <emptyTree>::<C T>.let(6, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+    end
+
+    class <emptyTree>::<C Inside><<C <todo sym>>> < (::<todo sym>)
+      <self>.sig() do ||
+        <self>.void()
+      end
+
+      def some_method<<todo method>>(&<blk>)
+        @ncivi_ivar = <emptyTree>::<C T>.let(7, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+      end
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @nciv_ivar2 = <emptyTree>::<C T>.let(8, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+    end
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def more_method<<todo method>>(&<blk>)
+      @nciv
+    end
+  end
+
+  class <emptyTree>::<C ClassVariablesInStaticInit><<C <todo sym>>> < (::<todo sym>)
+    @@static_init_cvar = <emptyTree>::<C T>.let(5, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+
+    @@stat
+  end
+
+  class <emptyTree>::<C Superclass><<C <todo sym>>> < (::<todo sym>)
+    @@super_cvar = <emptyTree>::<C T>.let(5, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def some_method<<todo method>>(&<blk>)
+      @super_ivar = <emptyTree>::<C T>.let(6, <emptyTree>::<C T>.nilable(<emptyTree>::<C Integer>))
+    end
+  end
+
+  class <emptyTree>::<C Inheriting><<C <todo sym>>> < (<emptyTree>::<C Superclass>)
+    @@s
+
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def other_method<<todo method>>(&<blk>)
+      @super
+    end
+  end
+end

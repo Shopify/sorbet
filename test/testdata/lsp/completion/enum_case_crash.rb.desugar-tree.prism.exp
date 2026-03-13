@@ -1,0 +1,17 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C MyEnum><<C <todo sym>>> < (<emptyTree>::<C T>::<C Enum>)
+    <self>.enums() do ||
+      begin
+        <emptyTree>::<C X> = <self>.new()
+        <emptyTree>::<C Y> = <self>.new()
+      end
+    end
+  end
+
+  def example<<todo method>>(&<blk>)
+    begin
+      <emptyTree>::<C MyEnum>::<C X>.end()
+      ::<ErrorNode>
+    end
+  end
+end

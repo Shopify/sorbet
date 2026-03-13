@@ -1,4 +1,5 @@
 # typed: false
+# disable-parser-comparison: true
 
 foo {} # empty inline block
 

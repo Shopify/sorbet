@@ -1,0 +1,44 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    def example1<<todo method>>(slug:, token:, merchant: = ::<ErrorNode>, &<blk>)
+      begin
+        ::<ErrorNode>
+        ::<ErrorNode>
+      end
+    end
+
+    def example2<<todo method>>(merchant: = ::<ErrorNode>, &<blk>)
+      begin
+        ::<ErrorNode>
+        ::<ErrorNode>
+      end
+    end
+
+    def example3<<todo method>>(merchant: = ::<ErrorNode>, &<blk>)
+      begin
+        ::<ErrorNode>
+        ::<ErrorNode>
+        <self>.puts()
+      end
+    end
+
+    def example4<<todo method>>(merchant: = ::<ErrorNode>, &<blk>)
+      begin
+        ::<ErrorNode>
+        ::<ErrorNode>
+        ::<ErrorNode>
+        ::<ErrorNode>
+        <self>.puts()
+      end
+    end
+
+    def example5<<todo method>>(merchant: = ::<ErrorNode>, &<blk>)
+      begin
+        ::<ErrorNode>
+        <self>.etc(:)
+        ::<ErrorNode>
+        <self>.puts()
+      end
+    end
+  end
+end

@@ -1,0 +1,10 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def foo<<todo method>>(&<blk>)
+    begin
+      1.times() do ||
+        <emptyTree>
+      end
+      ::<ErrorNode>
+    end
+  end
+end

@@ -1,0 +1,12 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <emptyTree>
+  end
+
+  def test_constant_only_scope<<todo method>>(&<blk>)
+    begin
+      <emptyTree>::<C A>.end()
+      ::<ErrorNode>
+    end
+  end
+end

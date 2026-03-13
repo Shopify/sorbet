@@ -1,0 +1,60 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def compiled_ensure<<todo method>>(&blk)
+    begin
+      <self>.p("compiled_ensure begin")
+      blk.call()
+    end
+  ensure
+    <self>.p("compiled_ensure ensure")
+  end
+
+  def compiled_rescue<<todo method>>(&blk)
+    begin
+      <self>.p("compiled_rescue begin")
+      blk.call()
+    end
+  rescue <emptyTree>::<C TypeError> => <rescueTemp>$2
+    <self>.p("compiled_rescue rescue")
+  ensure
+    <self>.p("compiled_rescue ensure")
+  end
+
+  def compiled_noop<<todo method>>(&blk)
+    begin
+      <self>.p("compiled_noop begin")
+      blk.call()
+      <self>.p("compiled_noop end")
+    end
+  end
+
+  <self>.require_relative("raise_across_interop__2")
+end
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.p("starting test")
+
+  def interpreted_raise<<todo method>>(&blk)
+    begin
+      <self>.p("interpreted_raise")
+      <self>.raise(<emptyTree>::<C KeyError>, "throwing exception")
+    end
+  end
+
+  <self>.compiled_ensure() do ||
+    <self>.compiled_noop() do ||
+      <self>.compiled_rescue() do ||
+        <self>.compiled_ensure() do ||
+          begin
+            <self>.p("running interpreted block")
+            <self>.interpreted_raise() do ||
+              <self>.raise(<emptyTree>::<C RuntimeError>, "should not see this")
+            end
+          end
+        end
+      end
+    end
+  end
+rescue <emptyTree>::<C IndexError> => <rescueTemp>$2
+  <self>.p("outermost rescue")
+
+  <self>.p("done")
+end

@@ -1,4 +1,5 @@
 # typed: strict
+# disable-parser-comparison: true
 
 class A
   extend T::Sig

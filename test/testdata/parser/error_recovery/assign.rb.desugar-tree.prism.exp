@@ -1,0 +1,5 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  def test_bad_assign<<todo method>>(x, &<blk>)
+    x = ::<ErrorNode>
+  end
+end

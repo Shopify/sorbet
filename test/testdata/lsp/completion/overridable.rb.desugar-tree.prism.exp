@@ -1,0 +1,73 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Module><<C <todo sym>>> < (::<todo sym>)
+    <self>.include(<emptyTree>::<C T>::<C Sig>)
+  end
+
+  class <emptyTree>::<C Parent><<C <todo sym>>> < (::<todo sym>)
+    <self>.extend(<emptyTree>::<C T>::<C Helpers>)
+
+    <self>.abstract!()
+
+    <self>.sig() do ||
+      <self>.overridable().void()
+    end
+
+    def example1<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.overridable().void()
+    end
+
+    def example2<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.abstract().void()
+    end
+
+    def example_abstract<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    <self>.sig() do ||
+      <self>.overridable().void()
+    end
+
+    def self.example_on_self<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+  end
+
+  class <emptyTree>::<C Child><<C <todo sym>>> < (<emptyTree>::<C Parent>)
+    <self>.sig() do ||
+      <self>.overridable().void()
+    end
+
+    def example_same_owner_DO_NOT_SUGGEST<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+
+    def ex<<todo method>>(&<blk>)
+      begin
+        <self>.sig() do ||
+          <self>.void()
+        end
+        def example_has_sig<<todo method>>(&<blk>)
+          begin
+            def exa<<todo method>>(&<blk>)
+              <self>.puts("Hello, world!")
+            end
+            def self.exam<<todo method>>(&<blk>)
+              <emptyTree>
+            end
+            <self>.puts()
+            ::<ErrorNode>
+          end
+        end
+      end
+    end
+  end
+end

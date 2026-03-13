@@ -1,0 +1,5 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  <self>.p(<self>.`("pwd\n"))
+
+  <self>.puts(<self>.`("  a\n  rather\nlong command\n      with bad\n  indentation\n"))
+end

@@ -1,0 +1,7 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  break(1)
+
+  ::<ErrorNode>
+
+  ::<ErrorNode>
+end

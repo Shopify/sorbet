@@ -1,0 +1,85 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C Module><<C <todo sym>>> < (::<todo sym>)
+    <self>.include(<emptyTree>::<C T>::<C Sig>)
+  end
+
+  class <emptyTree>::<C A><<C <todo sym>>> < (::<todo sym>)
+    <self>.sig() do ||
+      <self>.void()
+    end
+
+    def foo<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+  end
+
+  <self>.sig() do ||
+    <self>.returns(<emptyTree>::<C T>.untyped())
+  end
+
+  def returns_untyped<<todo method>>(&<blk>)
+    <emptyTree>::<C A>.new()
+  end
+
+  <self>.sig() do ||
+    <self>.params(:x, <emptyTree>::<C Integer>).void()
+  end
+
+  def takes_integer<<todo method>>(x, &<blk>)
+    <emptyTree>
+  end
+
+  if <emptyTree>::<C T>.unsafe(nil)
+    x = <self>.returns_untyped()
+  else
+    x = 0
+  end
+
+  x.foo()
+
+  y = <emptyTree>::<C T>.let(x, <emptyTree>::<C A>)
+
+  y.foo()
+
+  <self>.takes_integer(<emptyTree>::<C T>.unsafe(0))
+
+  <self>.sig() do ||
+    <self>.params(:blk, <emptyTree>::<C T>.proc().void()).void()
+  end
+
+  def example<<todo method>>(&blk)
+    <emptyTree>
+  end
+
+  f = ::Kernel.lambda() do ||
+    <emptyTree>
+  end
+
+  ::<Magic>.<call-with-block-pass>(<self>, :example, f)
+
+  class <emptyTree>::<C Parent><<C <todo sym>>> < (::<todo sym>)
+    def foo<<todo method>>(&<blk>)
+      <emptyTree>
+    end
+  end
+
+  class <emptyTree>::<C Child><<C <todo sym>>> < (<emptyTree>::<C Parent>)
+    def foo<<todo method>>(&<blk>)
+      begin
+        <self>.<super>(ZSuperArgs)
+        nil
+      end
+    end
+  end
+
+  <self>.sig() do ||
+    <self>.params(:x, <emptyTree>::<C T>.untyped()).void()
+  end
+
+  def method_name_missing<<todo method>>(x, &<blk>)
+    begin
+      x.end()
+      ::<ErrorNode>
+    end
+  end
+end

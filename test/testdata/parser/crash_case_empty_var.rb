@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 
 # Crash with an empty string literal in a case-in expression.
 case T.unsafe(nil); in {"":} then true; end

@@ -267,10 +267,6 @@ pipeline_tests(
     "test_corpus",
     glob(
         [
-            "testdata/**/*.rb",
-            "testdata/**/*.exp",
-        ],
-        exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
             "testdata/rbs/assertions_heredoc_modified.rb",
         ],
@@ -282,12 +278,6 @@ pipeline_tests(
     "test_corpus_prism",
     glob(
         [
-            # Replace [parser] with other phases to test Prism at that level
-            # Phases: https://github.com/Shopify/sorbet/blob/prism/docs/internals.md#phases
-            "testdata/**/*.rb",
-            "testdata/**/*.exp",
-        ],
-        exclude = [
             # Prism allows a new line between `.` and `end` as a way to call a method called literally `#end`.
             # The legacy parser treats this as an incomplete call to `x.<method-name-missing>()`, which is much
             # nicer behaviour, which we eventually want to support with Prism as well.
@@ -582,10 +572,6 @@ pipeline_tests(
     "prism_regression_corpus",
     glob(
         [
-            "prism_regression/**/*.rb",
-            "prism_regression/**/*.exp",
-        ],
-        exclude = [
             # related to ruby 3.4 syntax changes
             "prism_regression/assign_to_index.rb",
             "prism_regression/multi_target.rb",

@@ -1,4 +1,5 @@
 # typed: true
+# disable-parser-comparison: true
 class T1; end
 class T2; end
 
