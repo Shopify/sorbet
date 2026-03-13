@@ -33,7 +33,25 @@ const ast::Send *findParams(const ast::ExpressionPtr *send) {
     return bodyBlock;
 }
 
-optional<pair<const ast::MethodDef *, const ast::Send *>> getInitialize(const ast::Send *send) {
+// Information about a user-defined `initialize` found inside a Data.define block.
+//
+// Both pointers are non-owning borrows into the block body of the Data.define Send node.
+// The block body's ExpressionPtr tree owns these nodes and is responsible for their
+// lifetime. They remain valid throughout `Data::run` because we read from them (to
+// extract types and check for bare `super`) before the block body is move()'d into the
+// synthesized class definition. No explicit deallocation is needed — the ExpressionPtr
+// destructor handles cleanup when the AST is eventually destroyed.
+struct InitializeInfo {
+    // The initialize method definition. Used to check whether its body is bare `super`,
+    // which is the only case where we can reliably propagate types to attribute readers.
+    const ast::MethodDef *methodDef;
+
+    // The `params(...)` Send node from the sig immediately preceding initialize, or
+    // nullptr if there was no sig. Used to extract member types.
+    const ast::Send *sigParams;
+};
+
+optional<InitializeInfo> getInitialize(const ast::Send *send) {
     if (!send->hasBlock()) {
         return nullopt;
     }
@@ -46,7 +64,7 @@ optional<pair<const ast::MethodDef *, const ast::Send *>> getInitialize(const as
             auto methodDef = ast::cast_tree<ast::MethodDef>(stat);
 
             if (methodDef && methodDef->name == core::Names::initialize()) {
-                return {{methodDef, findParams(prevStat)}};
+                return InitializeInfo{methodDef, findParams(prevStat)};
             }
 
             prevStat = &stat;
@@ -55,11 +73,11 @@ optional<pair<const ast::MethodDef *, const ast::Send *>> getInitialize(const as
         // the last expression of the block is stored separately as expr
         auto methodDef = ast::cast_tree<ast::MethodDef>(insSeq->expr);
         if (methodDef && methodDef->name == core::Names::initialize()) {
-            return {{methodDef, findParams(prevStat)}};
+            return InitializeInfo{methodDef, findParams(prevStat)};
         }
     } else if (auto methodDef = ast::cast_tree<ast::MethodDef>(block->body)) {
         if (methodDef && methodDef->name == core::Names::initialize()) {
-            return {{methodDef, nullptr}};
+            return InitializeInfo{methodDef, nullptr};
         }
     }
 
@@ -133,11 +151,9 @@ vector<ast::ExpressionPtr> Data::run(core::MutableContext ctx, ast::Assign *asgn
     bool initializeHasSig = false;
     const ast::Send *reliableSigParams = nullptr;
     if (initialize.has_value()) {
-        auto methodDef = initialize->first;
-
-        initializeHasSig = !!initialize->second;
-        if (initializeHasSig && canCreateTypedAccessors(ctx, methodDef)) {
-            reliableSigParams = initialize->second;
+        initializeHasSig = !!initialize->sigParams;
+        if (initializeHasSig && canCreateTypedAccessors(ctx, initialize->methodDef)) {
+            reliableSigParams = initialize->sigParams;
         }
     }
 
