@@ -153,6 +153,10 @@ class ExpectationHandler {
     shared_ptr<core::ErrorQueue> &errorQueue;
     shared_ptr<core::ErrorCollector> &errorCollector;
 
+    bool usePrism() const {
+        return sorbet::test::parser == realmain::options::Parser::PRISM;
+    }
+
 public:
     vector<unique_ptr<core::Error>> errors;
     UnorderedMap<string_view, string> got;
@@ -162,6 +166,9 @@ public:
         : test(test), errorQueue(errorQueue), errorCollector(errorCollector){};
 
     bool hasExpectation(string_view expectationType) {
+        if (usePrism() && test.expectations.contains(absl::StrCat(expectationType, ".prism"))) {
+            return true;
+        }
         return test.expectations.contains(expectationType);
     }
 
@@ -178,7 +185,16 @@ public:
 
     void checkExpectations(string prefix = "") const {
         for (const auto &gotPhase : got) {
-            auto expectation = test.expectations.find(gotPhase.first);
+            auto expectation = [&]() {
+                if (usePrism()) {
+                    auto it = test.expectations.find(absl::StrCat(gotPhase.first, ".prism"));
+                    if (it != test.expectations.end()) {
+                        return it;
+                    }
+                }
+                return test.expectations.find(gotPhase.first);
+            }();
+
             REQUIRE_MESSAGE(expectation != test.expectations.end(),
                             prefix << "missing expectation for " << gotPhase.first);
             REQUIRE_MESSAGE(expectation->second.size() == 1,
@@ -186,6 +202,18 @@ public:
 
             auto checker = test.folder + expectation->second.begin()->second;
             auto expect = FileOps::read(checker);
+
+            // Verify the Prism exp actually differs from the regular one (otherwise what's the point of having it?)
+            if (absl::EndsWith(expectation->first, ".prism")) {
+                auto regularExpectation = test.expectations.find(gotPhase.first);
+                if (regularExpectation != test.expectations.end()) {
+                    auto regularChecker = test.folder + regularExpectation->second.begin()->second;
+                    REQUIRE_MESSAGE(FileOps::read(regularChecker) != expect,
+                                    prefix << "the .prism.exp file " << checker
+                                           << " can be deleted because it matches the regular .exp file "
+                                           << regularChecker);
+                }
+            }
 
             CHECK_EQ_DIFF(expect, gotPhase.second,
                           fmt::format("{}Mismatch on: {}\n"
@@ -228,6 +256,10 @@ public:
 
 vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> files, ExpectationHandler &handler,
                               Expectations &test, const vector<shared_ptr<RangeAssertion>> &assertions) {
+    // Computed once outside the per-file loop since expectations don't change per-file.
+    auto hasPrismDesugarOverride =
+        test.expectations.contains("desugar-tree.prism") || test.expectations.contains("desugar-tree-raw.prism");
+
     vector<ast::ParsedFile> trees;
     for (auto file : files) {
         auto fileName = FileOps::getFileName(file.data(gs).path());
@@ -303,7 +335,7 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
             if (prismParseResult.has_value()) {
                 auto prismDirectDesugarAST = ast::Desugar::Prism::node2Tree(ctx, move(prismParseResult.value()));
 
-                if (!disableParserComparison) {
+                if (!disableParserComparison && !hasPrismDesugarOverride) {
                     ast::ExpressionPtr legacyDesugarAST = ast::desugar::node2Tree(ctx, move(legacyParseResult.tree));
                     if (!legacyDesugarAST.prismDesugarEqual(gs, prismDirectDesugarAST, file)) {
                         auto expected = legacyDesugarAST.showRawWithLocs(gs, file);
@@ -449,7 +481,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
     auto rbName = test.basename + ".rb";
 
     for (auto &exp : test.expectations) {
-        if (!knownExpectations.contains(exp.first)) {
+        auto baseKind = string_view(exp.first);
+        absl::ConsumeSuffix(&baseKind, ".prism");
+        if (!knownExpectations.contains(baseKind)) {
             FAIL_CHECK("Unknown pass: " << exp.first);
         }
     }
