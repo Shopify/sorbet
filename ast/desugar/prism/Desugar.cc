@@ -2716,7 +2716,7 @@ ast::ExpressionPtr Desugarer::desugar(pm_node_t *node) {
             auto imaginaryNode = down_cast<pm_imaginary_node>(node);
             // Create a string_view of the value without the trailing 'i'
             auto value = sliceLocation(imaginaryNode->base.location);
-            value = value.substr(0, value.size() - 1);
+            value = value.substr(0, value.size() - "i"sv.size());
 
             ENFORCE(!value.empty());
 
@@ -2731,12 +2731,29 @@ ast::ExpressionPtr Desugarer::desugar(pm_node_t *node) {
                 numberLoc = core::LocOffsets{location.beginPos() + 1, location.endPos()};
             }
 
-            // Create the desugared Complex call: `Kernel.Complex(0, unsigned_value)`
+            // Create the desugared Complex call like `::Kernel.Complex(0, unsigned_value)`
+            //
+            // The value itself might be a rational (e.g. `1ri`),
+            // which would desugar to: `::Kernel.Complex(0, Kernel.Rational("1"))`,
+            ast::ExpressionPtr imaginaryPart;
+            if (PM_NODE_TYPE_P(imaginaryNode->numeric, PM_RATIONAL_NODE)) {
+                // `value` is e.g. "5r" after stripping 'i' — strip the trailing 'r' too
+                auto rationalValue = value.substr(0, value.size() - "r"sv.size());
+                auto rKernel = MK::Constant(numberLoc, core::Symbols::Kernel());
+                core::NameRef rationalName = core::Names::Constants::Rational().dataCnst(ctx)->original;
+                core::NameRef valueName = ctx.state.enterNameUTF8(rationalValue);
+                imaginaryPart = MK::Send1(numberLoc, move(rKernel), rationalName, numberLoc.copyWithZeroLength(),
+                                          MK::String(numberLoc, valueName));
+            } else {
+                core::NameRef valueName = ctx.state.enterNameUTF8(value);
+                imaginaryPart = MK::String(numberLoc, valueName);
+            }
+
+            // Create the desugared Complex call: `Kernel.Complex(0, imaginary_part)`
             auto kernel = MK::Constant(numberLoc, core::Symbols::Kernel());
             core::NameRef complexName = core::Names::Constants::Complex().dataCnst(ctx)->original;
-            core::NameRef valueName = ctx.state.enterNameUTF8(value);
             auto complexCall = MK::Send2(numberLoc, move(kernel), complexName, numberLoc.copyWithZeroLength(),
-                                         MK::Int(numberLoc, 0), MK::String(numberLoc, valueName));
+                                         MK::Int(numberLoc, 0), move(imaginaryPart));
 
             // If there was a sign, wrap in unary operation
             // E.g. desugar `+42` to `42.+()`
@@ -3199,9 +3216,9 @@ ast::ExpressionPtr Desugarer::desugar(pm_node_t *node) {
             // The `1/` is just divison of an integer.
             auto *rationalNode = down_cast<pm_rational_node>(node);
 
-            // `-1` drops the trailing `r` end of the value
+            // Drop the trailing `r` suffix
             auto value = sliceLocation(rationalNode->base.location);
-            value = value.substr(0, value.size() - 1);
+            value = value.substr(0, value.size() - "r"sv.size());
 
             auto kernel = MK::Constant(location, core::Symbols::Kernel());
             core::NameRef rationalName = core::Names::Constants::Rational().dataCnst(ctx)->original;
