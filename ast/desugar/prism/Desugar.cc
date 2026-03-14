@@ -753,6 +753,15 @@ ast::ExpressionPtr Desugarer::desugarMlhs(core::LocOffsets loc, PrismNode *lhs, 
         }
     };
 
+    // Workaround for the legacy parser, which flattens nesting like `(((a, b)))` down to a single level.
+    // github.com/sorbet/sorbet/issues/1234567890 FIXME: fill me in
+    if constexpr (is_same_v<PrismNode, pm_multi_target_node>) {
+        while (lhs->lefts.size == 1 && lhs->rest == nullptr && lhs->rights.size == 0 &&
+               PM_NODE_TYPE_P(lhs->lefts.nodes[0], PM_MULTI_TARGET_NODE)) {
+            lhs = down_cast<pm_multi_target_node>(lhs->lefts.nodes[0]);
+        }
+    }
+
     auto lefts = absl::MakeSpan(lhs->lefts.nodes, lhs->lefts.size);
     auto rights = absl::MakeSpan(lhs->rights.nodes, lhs->rights.size);
     for (auto *c : lefts) {
@@ -3005,6 +3014,15 @@ ast::ExpressionPtr Desugarer::desugar(pm_node_t *node) {
             auto multiWriteNode = down_cast<pm_multi_write_node>(node);
 
             auto rhsExpr = desugar(multiWriteNode->value);
+
+            // Workaround for the legacy parser, which flattens nesting like `(((a, b)))` down to a single level.
+            // github.com/sorbet/sorbet/issues/1234567890 FIXME: fill me in
+            if (multiWriteNode->lefts.size == 1 && multiWriteNode->rest == nullptr &&
+                multiWriteNode->rights.size == 0 &&
+                PM_NODE_TYPE_P(multiWriteNode->lefts.nodes[0], PM_MULTI_TARGET_NODE)) {
+                auto *inner = down_cast<pm_multi_target_node>(multiWriteNode->lefts.nodes[0]);
+                return desugarMlhs(location, inner, move(rhsExpr));
+            }
 
             return desugarMlhs(location, multiWriteNode, move(rhsExpr));
         }

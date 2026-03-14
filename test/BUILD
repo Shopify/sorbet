@@ -496,7 +496,6 @@ pipeline_tests(
             # Fixing a bug in pipeline_test_runner.cc revealed that these tests
             # were not actually running because they use MLHS
             "testdata/cfg/rescue_var_expression.rb",
-            "testdata/parser/misc.rb",
 
             # Fixing a bug in pipeline_test_runner.cc revealed that these tests
             # were not actually running because they have RBS support enabled

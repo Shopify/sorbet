@@ -1,0 +1,593 @@
+Begin {
+  stmts = [
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          LVarLhs {
+            name = <U b>
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          LVarLhs {
+            name = <U b>
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          LVarLhs {
+            name = <U b>
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U a>
+              }
+            ]
+          }
+          LVarLhs {
+            name = <U c>
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U a>
+              }
+            ]
+          }
+          LVarLhs {
+            name = <U c>
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U a>
+              }
+              LVarLhs {
+                name = <U b>
+              }
+            ]
+          }
+          LVarLhs {
+            name = <U c>
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U b>
+              }
+            ]
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U b>
+              }
+            ]
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    Masgn {
+      lhs = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U b>
+              }
+              LVarLhs {
+                name = <U c>
+              }
+            ]
+          }
+        ]
+      }
+      rhs = Array {
+        elts = [
+        ]
+      }
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          LVarLhs {
+            name = <U b>
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          LVarLhs {
+            name = <U b>
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          LVarLhs {
+            name = <U b>
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U a>
+              }
+            ]
+          }
+          LVarLhs {
+            name = <U c>
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U a>
+              }
+            ]
+          }
+          LVarLhs {
+            name = <U c>
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U a>
+              }
+              LVarLhs {
+                name = <U b>
+              }
+            ]
+          }
+          LVarLhs {
+            name = <U c>
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U b>
+              }
+            ]
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U b>
+              }
+            ]
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    For {
+      vars = Mlhs {
+        exprs = [
+          LVarLhs {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              LVarLhs {
+                name = <U b>
+              }
+              LVarLhs {
+                name = <U c>
+              }
+            ]
+          }
+        ]
+      }
+      expr = Array {
+        elts = [
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f1>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U a>
+              }
+              Param {
+                name = <U b>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f2>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Mlhs {
+                exprs = [
+                  Param {
+                    name = <U a>
+                  }
+                  Param {
+                    name = <U b>
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f3>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Mlhs {
+                exprs = [
+                  Mlhs {
+                    exprs = [
+                      Param {
+                        name = <U a>
+                      }
+                      Param {
+                        name = <U b>
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f4>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Mlhs {
+                exprs = [
+                  Param {
+                    name = <U a>
+                  }
+                  Param {
+                    name = <U _>
+                  }
+                ]
+              }
+            ]
+          }
+          Param {
+            name = <U c>
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f5>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Mlhs {
+                exprs = [
+                  Mlhs {
+                    exprs = [
+                      Param {
+                        name = <U a>
+                      }
+                      Param {
+                        name = <U _>
+                      }
+                    ]
+                  }
+                ]
+              }
+              Param {
+                name = <U c>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f6>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Mlhs {
+                exprs = [
+                  Mlhs {
+                    exprs = [
+                      Param {
+                        name = <U a>
+                      }
+                      Param {
+                        name = <U b>
+                      }
+                    ]
+                  }
+                ]
+              }
+              Param {
+                name = <U c>
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f7>
+      params = Params {
+        params = [
+          Param {
+            name = <U a>
+          }
+          Mlhs {
+            exprs = [
+              Mlhs {
+                exprs = [
+                  Param {
+                    name = <U b>
+                  }
+                  Param {
+                    name = <U _>
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f8>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U a>
+              }
+              Mlhs {
+                exprs = [
+                  Mlhs {
+                    exprs = [
+                      Param {
+                        name = <U b>
+                      }
+                      Param {
+                        name = <U _>
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+    DefMethod {
+      name = <U f9>
+      params = Params {
+        params = [
+          Mlhs {
+            exprs = [
+              Param {
+                name = <U a>
+              }
+              Mlhs {
+                exprs = [
+                  Mlhs {
+                    exprs = [
+                      Param {
+                        name = <U b>
+                      }
+                      Param {
+                        name = <U c>
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+      body = NULL
+    }
+  ]
+}

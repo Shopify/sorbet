@@ -390,25 +390,6 @@ Begin {
         ]
       }
     }
-    Masgn {
-      lhs = Mlhs {
-        exprs = [
-          LVarLhs {
-            name = <U a>
-          }
-          Mlhs {
-            exprs = [
-              LVarLhs {
-                name = <U x>
-              }
-            ]
-          }
-        ]
-      }
-      rhs = Integer {
-        val = "1"
-      }
-    }
     NthRef {
       ref = 4
     }

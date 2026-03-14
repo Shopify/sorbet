@@ -151,19 +151,6 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
     end
   end
 
-  begin
-    <assignTemp>$9 = 1
-    <assignTemp>$10 = ::<Magic>.<expand-splat>(<assignTemp>$9, 2, 0)
-    a = <assignTemp>$10.[](0)
-    begin
-      <assignTemp>$11 = <assignTemp>$10.[](1)
-      <assignTemp>$12 = ::<Magic>.<expand-splat>(<assignTemp>$11, 1, 0)
-      x = <assignTemp>$12.[](0)
-      <assignTemp>$11
-    end
-    <assignTemp>$9
-  end
-
   4
 
   def optfoo<<todo method>>(x = 1, *y, &<blk>)
@@ -185,10 +172,10 @@ rescue <emptyTree>::<C E> => x
   nil
 
   begin
-    <assignTemp>$14 = ::<Magic>.<splat>(y)
-    <assignTemp>$15 = ::<Magic>.<expand-splat>(<assignTemp>$14, 0, 0)
-    x = <assignTemp>$15.to_ary()
-    <assignTemp>$14
+    <assignTemp>$10 = ::<Magic>.<splat>(y)
+    <assignTemp>$11 = ::<Magic>.<expand-splat>(<assignTemp>$10, 0, 0)
+    x = <assignTemp>$11.to_ary()
+    <assignTemp>$10
   end
 
   ::<Magic>.<string-interpolate>("foo", <self>.bar()).intern()

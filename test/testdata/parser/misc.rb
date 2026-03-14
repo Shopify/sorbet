@@ -98,9 +98,6 @@ nil until true
 begin; puts 1; end while false
 begin; puts 1; end until true
 
-# mlhs1
-a, ((x,)) = 1
-
 # nth_ref
 $4
 
