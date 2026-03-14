@@ -1531,8 +1531,8 @@ public:
     }
 
     unique_ptr<Node> rational_complex(const token *tok) {
-        // TODO(nelhage): We're losing this information that this was marked as
-        // a Rational in the source.
+        // The token view includes the 'r' suffix (e.g. "5r" for `5ri`),
+        // so the desugarer can detect it and emit `Kernel.Complex(0, Kernel.Rational("5"))`.
         return make_unique<Complex>(tokLoc(tok), tok->view());
     }
 
