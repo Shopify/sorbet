@@ -567,6 +567,38 @@ module T::Configuration
     @sealed_violation_whitelist
   end
 
+  # Set a handler for reporting runtime metrics (e.g. method wrappers created,
+  # type-checked calls, abstract method calls).
+  #
+  # @param [Lambda, Proc, Object, nil] value Proc that receives metrics
+  #   (pass nil to disable reporting)
+  #
+  # Parameters passed to value.call:
+  #
+  #  @param [Hash] counters A hash of counter names to integer values
+  #  @param [Hash] tags A hash of tag names to string values
+  #
+  # @example
+  #   T::Configuration.metrics_handler = lambda do |counters, tags|
+  #     counters.each { |name, value| StatsD.gauge(name, value, tags: tags) }
+  #   end
+  def self.metrics_handler=(value)
+    validate_lambda_given!(value)
+    T::Private::Metrics.handler = value
+  end
+
+  # Flush current metrics counters to the configured metrics handler.
+  def self.report_metrics!
+    T::Private::Metrics.report!
+  end
+
+  # Return a snapshot of the current metrics counters.
+  #
+  # @return [Hash] A hash of counter names to integer values
+  def self.metrics_counters
+    T::Private::Metrics.counters
+  end
+
   private_class_method def self.validate_lambda_given!(value)
     if !value.nil? && !value.respond_to?(:call)
       raise ArgumentError.new("Provided value must respond to :call")
