@@ -2397,11 +2397,7 @@ ast::ExpressionPtr Desugarer::desugar(pm_node_t *node) {
             }
 
             if (!statsStore.empty()) {
-                auto bodyLoc = body.loc();
-                if (!bodyLoc.exists()) {
-                    bodyLoc = location;
-                }
-                body = MK::InsSeq(bodyLoc, move(statsStore), move(body));
+                body = MK::InsSeq(location, move(statsStore), move(body));
             }
 
             // Add an implicit block parameter, if no explicit one was declared in the parameter list.
