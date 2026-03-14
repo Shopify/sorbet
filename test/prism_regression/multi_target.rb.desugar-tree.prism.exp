@@ -341,4 +341,210 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
       end
     end
   end
+
+  begin
+    <assignTemp>$69 = []
+    <assignTemp>$70 = ::<Magic>.<expand-splat>(<assignTemp>$69, 2, 0)
+    a = <assignTemp>$70.[](0)
+    b = <assignTemp>$70.[](1)
+    <assignTemp>$69
+  end
+
+  begin
+    <assignTemp>$71 = []
+    <assignTemp>$72 = ::<Magic>.<expand-splat>(<assignTemp>$71, 2, 0)
+    a = <assignTemp>$72.[](0)
+    b = <assignTemp>$72.[](1)
+    <assignTemp>$71
+  end
+
+  begin
+    <assignTemp>$73 = []
+    <assignTemp>$74 = ::<Magic>.<expand-splat>(<assignTemp>$73, 2, 0)
+    a = <assignTemp>$74.[](0)
+    b = <assignTemp>$74.[](1)
+    <assignTemp>$73
+  end
+
+  begin
+    <assignTemp>$75 = []
+    <assignTemp>$76 = ::<Magic>.<expand-splat>(<assignTemp>$75, 2, 0)
+    a = <assignTemp>$76.[](0)
+    begin
+      <assignTemp>$77 = <assignTemp>$76.[](1)
+      <assignTemp>$78 = ::<Magic>.<expand-splat>(<assignTemp>$77, 2, 0)
+      b = <assignTemp>$78.[](0)
+      c = <assignTemp>$78.[](1)
+      <assignTemp>$77
+    end
+    <assignTemp>$75
+  end
+
+  begin
+    <assignTemp>$79 = []
+    <assignTemp>$80 = ::<Magic>.<expand-splat>(<assignTemp>$79, 2, 0)
+    begin
+      <assignTemp>$81 = <assignTemp>$80.[](0)
+      <assignTemp>$82 = ::<Magic>.<expand-splat>(<assignTemp>$81, 2, 0)
+      a = <assignTemp>$82.[](0)
+      b = <assignTemp>$82.[](1)
+      <assignTemp>$81
+    end
+    c = <assignTemp>$80.[](1)
+    <assignTemp>$79
+  end
+
+  [].each() do ||
+    begin
+      begin
+        <assignTemp>$84 = forTemp$83
+        <assignTemp>$85 = ::<Magic>.<expand-splat>(<assignTemp>$84, 2, 0)
+        a = <assignTemp>$85.[](0)
+        b = <assignTemp>$85.[](1)
+        <assignTemp>$84
+      end
+      <emptyTree>
+    end
+  end
+
+  [].each() do ||
+    begin
+      begin
+        <assignTemp>$87 = forTemp$86
+        <assignTemp>$88 = ::<Magic>.<expand-splat>(<assignTemp>$87, 2, 0)
+        a = <assignTemp>$88.[](0)
+        b = <assignTemp>$88.[](1)
+        <assignTemp>$87
+      end
+      <emptyTree>
+    end
+  end
+
+  [].each() do ||
+    begin
+      begin
+        <assignTemp>$90 = forTemp$89
+        <assignTemp>$91 = ::<Magic>.<expand-splat>(<assignTemp>$90, 2, 0)
+        a = <assignTemp>$91.[](0)
+        b = <assignTemp>$91.[](1)
+        <assignTemp>$90
+      end
+      <emptyTree>
+    end
+  end
+
+  [].each() do ||
+    begin
+      begin
+        <assignTemp>$93 = forTemp$92
+        <assignTemp>$94 = ::<Magic>.<expand-splat>(<assignTemp>$93, 2, 0)
+        a = <assignTemp>$94.[](0)
+        begin
+          <assignTemp>$95 = <assignTemp>$94.[](1)
+          <assignTemp>$96 = ::<Magic>.<expand-splat>(<assignTemp>$95, 2, 0)
+          b = <assignTemp>$96.[](0)
+          c = <assignTemp>$96.[](1)
+          <assignTemp>$95
+        end
+        <assignTemp>$93
+      end
+      <emptyTree>
+    end
+  end
+
+  [].each() do ||
+    begin
+      begin
+        <assignTemp>$98 = forTemp$97
+        <assignTemp>$99 = ::<Magic>.<expand-splat>(<assignTemp>$98, 2, 0)
+        begin
+          <assignTemp>$100 = <assignTemp>$99.[](0)
+          <assignTemp>$101 = ::<Magic>.<expand-splat>(<assignTemp>$100, 2, 0)
+          a = <assignTemp>$101.[](0)
+          b = <assignTemp>$101.[](1)
+          <assignTemp>$100
+        end
+        c = <assignTemp>$99.[](1)
+        <assignTemp>$98
+      end
+      <emptyTree>
+    end
+  end
+
+  <emptyTree>
+rescue => <rescueTemp>$104
+  begin
+    begin
+      <assignTemp>$102 = <emptyTree>
+      <assignTemp>$103 = ::<Magic>.<expand-splat>(<assignTemp>$102, 2, 0)
+      a = <assignTemp>$103.[](0)
+      b = <assignTemp>$103.[](1)
+      <assignTemp>$102
+    end = <rescueTemp>$104
+    <emptyTree>
+  end
+
+  <emptyTree>
+rescue => <rescueTemp>$107
+  begin
+    begin
+      <assignTemp>$105 = <emptyTree>
+      <assignTemp>$106 = ::<Magic>.<expand-splat>(<assignTemp>$105, 2, 0)
+      a = <assignTemp>$106.[](0)
+      b = <assignTemp>$106.[](1)
+      <assignTemp>$105
+    end = <rescueTemp>$107
+    <emptyTree>
+  end
+
+  <emptyTree>
+rescue => <rescueTemp>$110
+  begin
+    begin
+      <assignTemp>$108 = <emptyTree>
+      <assignTemp>$109 = ::<Magic>.<expand-splat>(<assignTemp>$108, 2, 0)
+      a = <assignTemp>$109.[](0)
+      b = <assignTemp>$109.[](1)
+      <assignTemp>$108
+    end = <rescueTemp>$110
+    <emptyTree>
+  end
+
+  <emptyTree>
+rescue => <rescueTemp>$115
+  begin
+    begin
+      <assignTemp>$111 = <emptyTree>
+      <assignTemp>$112 = ::<Magic>.<expand-splat>(<assignTemp>$111, 2, 0)
+      a = <assignTemp>$112.[](0)
+      begin
+        <assignTemp>$113 = <assignTemp>$112.[](1)
+        <assignTemp>$114 = ::<Magic>.<expand-splat>(<assignTemp>$113, 2, 0)
+        b = <assignTemp>$114.[](0)
+        c = <assignTemp>$114.[](1)
+        <assignTemp>$113
+      end
+      <assignTemp>$111
+    end = <rescueTemp>$115
+    <emptyTree>
+  end
+
+  <emptyTree>
+rescue => <rescueTemp>$120
+  begin
+    begin
+      <assignTemp>$116 = <emptyTree>
+      <assignTemp>$117 = ::<Magic>.<expand-splat>(<assignTemp>$116, 2, 0)
+      begin
+        <assignTemp>$118 = <assignTemp>$117.[](0)
+        <assignTemp>$119 = ::<Magic>.<expand-splat>(<assignTemp>$118, 2, 0)
+        a = <assignTemp>$119.[](0)
+        b = <assignTemp>$119.[](1)
+        <assignTemp>$118
+      end
+      c = <assignTemp>$117.[](1)
+      <assignTemp>$116
+    end = <rescueTemp>$120
+    <emptyTree>
+  end
 end

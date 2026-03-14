@@ -82,3 +82,24 @@ end
 -> ((x, y)) {}
 -> ((x, y)) { statement1() }
 -> ((x, y)) { statement1(); statement2() }
+
+# Redundant nesting in multi-write
+((a, b)) = []
+(((a, b))) = []
+((((a, b)))) = []
+(a, ((b, c))) = []
+(((a, b)), c) = []
+
+# Redundant nesting in for
+for ((a, b)) in []; end
+for (((a, b))) in []; end
+for ((((a, b)))) in []; end
+for (a, ((b, c))) in []; end
+for (((a, b)), c) in []; end
+
+# Redundant nesting in rescue
+begin; rescue => ((a, b)); end
+begin; rescue => (((a, b))); end
+begin; rescue => ((((a, b)))); end
+begin; rescue => (a, ((b, c))); end
+begin; rescue => (((a, b)), c); end
