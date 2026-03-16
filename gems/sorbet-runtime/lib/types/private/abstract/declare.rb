@@ -34,8 +34,10 @@ module T::Private::Abstract::Declare
       # define_method because of the guard above
 
       mod.send(:define_singleton_method, :new) do |*args, &blk|
+        T::Private::Metrics.increment('sorbet.runtime.abstract_class_instantiations')
         result = super(*args, &blk)
         if result.instance_of?(mod)
+          T::Private::Metrics.increment('sorbet.runtime.abstract_class_raises')
           raise "#{mod} is declared as abstract; it cannot be instantiated"
         end
         result
