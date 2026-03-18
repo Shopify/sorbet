@@ -59,3 +59,10 @@ end
 
 42 if ARGV.any? #: Integer?
 42 unless ARGV.empty? #: Integer?
+
+# Assertion on `end` of if/else
+if ARGV.empty?
+  1
+else
+  2
+end #: Integer
