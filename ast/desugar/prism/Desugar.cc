@@ -32,6 +32,7 @@ enum class OpAssignKind { And, Or, Operator };
 
 class Desugarer final {
     const Parser &parser;
+    const UnorderedMap<const pm_node_t *, core::SymbolRef> &resolvedConstants;
     // This context holds a reference to the GlobalState allocated up the call stack, which is why we don't allow
     // Desugarer objects to be copied or moved.
     core::MutableContext ctx;
@@ -66,12 +67,12 @@ class Desugarer final {
     Desugarer &operator=(Desugarer &&) = delete;      // Move assignment
     Desugarer &operator=(const Desugarer &) = delete; // Copy assignment
 public:
-    Desugarer(const Parser &parser, core::MutableContext ctx, absl::Span<const ParseError> parseErrors,
-              bool preserveConcreteSyntax, core::LocOffsets &enclosingBlockParamLoc,
-              core::NameRef &enclosingBlockParamName)
-        : parser(parser), ctx(ctx), parseErrors(parseErrors), preserveConcreteSyntax(preserveConcreteSyntax),
-          parserUniqueCounterStorage(1), desugarUniqueCounterStorage(1),
-          parserUniqueCounter(this->parserUniqueCounterStorage),
+    Desugarer(const Parser &parser, const UnorderedMap<const pm_node_t *, core::SymbolRef> &resolvedConstants,
+              core::MutableContext ctx, absl::Span<const ParseError> parseErrors, bool preserveConcreteSyntax,
+              core::LocOffsets &enclosingBlockParamLoc, core::NameRef &enclosingBlockParamName)
+        : parser(parser), resolvedConstants(resolvedConstants), ctx(ctx), parseErrors(parseErrors),
+          preserveConcreteSyntax(preserveConcreteSyntax), parserUniqueCounterStorage(1),
+          desugarUniqueCounterStorage(1), parserUniqueCounter(this->parserUniqueCounterStorage),
           desugarUniqueCounter(this->desugarUniqueCounterStorage), enclosingBlockParamLoc(enclosingBlockParamLoc),
           enclosingBlockParamName(enclosingBlockParamName) {}
 
@@ -84,7 +85,8 @@ private:
     Desugarer(const Desugarer &parent, bool resetDesugarUniqueCounter, core::NameRef enclosingMethodName,
               core::LocOffsets &enclosingBlockParamLoc, core::NameRef &enclosingBlockParamName, bool isInModule,
               bool isInAnyBlock)
-        : parser(parent.parser), ctx(parent.ctx), parseErrors(parent.parseErrors),
+        : parser(parent.parser), resolvedConstants(parent.resolvedConstants), ctx(parent.ctx),
+          parseErrors(parent.parseErrors),
           preserveConcreteSyntax(parent.preserveConcreteSyntax), parserUniqueCounterStorage(9999),
           desugarUniqueCounterStorage(resetDesugarUniqueCounter ? 1 : 999999),
           parserUniqueCounter(parent.parserUniqueCounter),
@@ -5198,65 +5200,17 @@ ast::ExpressionPtr Desugarer::translateConst(pm_node_t *anyNode) {
                                     is_same_v<PrismLhsNode, pm_constant_path_write_node> ||
                                     is_same_v<PrismLhsNode, pm_constant_path_node>;
 
+    // Check if this constant was pre-resolved by the RBS rewriter.
+    {
+        auto it = resolvedConstants.find(up_cast(const_cast<PrismLhsNode *>(node)));
+        if (it != resolvedConstants.end()) {
+            return MK::Constant(location, it->second);
+        }
+    }
+
     ast::ExpressionPtr parentExpr;
 
     if constexpr (isConstantPath) { // Handle constant paths, has a parent node that needs translation.
-        // Resolve well-known root-anchored constant paths that the RBS rewriter injects.
-        // The legacy RBS rewriter emits these as pre-resolved `parser::ResolvedConst` nodes,
-        // but the Prism RBS rewriter inserts raw constant path nodes. Resolving them here
-        // ensures the desugared AST matches the legacy parser output.
-        //
-        // Matches: ::Sorbet::Private::Static, ::T::Sig::WithoutRuntime, ::Sorbet::Private::Static::Void
-        //
-        // Only enabled when RBS is active, since these constants only appear in RBS-rewritten ASTs.
-        if (ctx.state.cacheSensitiveOptions.rbsEnabled) {
-            pm_node_t *current = up_cast(const_cast<PrismLhsNode *>(node));
-            bool isRootAnchored = false;
-            // Max size of 4, to fit the longest path we're searching for (`Sorbet::Private::Static::Void`).
-            // Segments collected innermost-first.
-            InlinedVector<std::string_view, 4> segments;
-
-            while (current != nullptr && segments.size() < 4) {
-                switch (PM_NODE_TYPE(current)) {
-                    case PM_CONSTANT_PATH_NODE: {
-                        auto *p = down_cast<pm_constant_path_node>(current);
-                        segments.push_back(parser.resolveConstant(p->name));
-                        current = p->parent;
-                        if (current == nullptr) {
-                            isRootAnchored = true;
-                        }
-                        break;
-                    }
-                    case PM_CONSTANT_READ_NODE: {
-                        auto *r = down_cast<pm_constant_read_node>(current);
-                        segments.push_back(parser.resolveConstant(r->name));
-                        current = nullptr;
-                        break;
-                    }
-                    default:
-                        current = nullptr;
-                        break;
-                }
-            }
-
-            // Only match root-anchored paths that were fully resolved (no remaining parent).
-            if (isRootAnchored) {
-                // segments: [innermost, ..., outermost]
-                if (segments.size() == 3 && segments[2] == "Sorbet" && segments[1] == "Private" &&
-                    segments[0] == "Static") {
-                    return MK::Constant(location, core::Symbols::Sorbet_Private_Static());
-                }
-                if (segments.size() == 3 && segments[2] == "T" && segments[1] == "Sig" &&
-                    segments[0] == "WithoutRuntime") {
-                    return MK::Constant(location, core::Symbols::T_Sig_WithoutRuntime());
-                }
-                if (segments.size() == 4 && segments[3] == "Sorbet" && segments[2] == "Private" &&
-                    segments[1] == "Static" && segments[0] == "Void") {
-                    return MK::Constant(location, core::Symbols::void_());
-                }
-            }
-        }
-
         if (auto *prismParentNode = node->parent) {
             // This constant reference is chained onto another constant reference.
             // E.g. given `A::B::C`, if `node` is pointing to the root, `A::B` is the `parent`, and `C` is the
@@ -5477,8 +5431,9 @@ void Desugarer::reportError(core::LocOffsets loc, const string &message) const {
 ExpressionPtr node2Tree(core::MutableContext ctx, parser::Prism::ParseResult parseResult, bool preserveConcreteSyntax) {
     auto enclosingBlockParamLoc = core::LocOffsets::none();
     auto enclosingBlockParamName = core::NameRef::noName();
-    auto expr = Desugarer(parseResult.getParser(), ctx, parseResult.getParseErrors(), preserveConcreteSyntax,
-                          enclosingBlockParamLoc, enclosingBlockParamName)
+    auto expr = Desugarer(parseResult.getParser(), parseResult.resolvedConstants(), ctx,
+                          parseResult.getParseErrors(), preserveConcreteSyntax, enclosingBlockParamLoc,
+                          enclosingBlockParamName)
                     .desugar(parseResult.getRawNodePointer());
     return Verifier::run(ctx, move(expr));
 }

@@ -478,7 +478,7 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(pm_call_node_t *call, cons
         return nullptr;
     }
 
-    auto typeTranslator = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
+    auto typeTranslator = TypeToParserNodePrism(ctx, typeParams, parser, prismParser, parseResult);
 
     auto methodName = prismParser.resolveConstant(call->name);
 
@@ -521,7 +521,8 @@ pm_node_t *MethodTypeToParserNodePrism::attrSignature(pm_call_node_t *call, cons
         sigArgs.push_back(prism.Symbol(finalAnnotation->typeLoc, "final"sv));
     }
 
-    pm_node_t *sigReceiver = prism.TSigWithoutRuntime(firstLineTypeLoc);
+    auto *sigReceiver = parseResult.markResolved(prism.TSigWithoutRuntime(firstLineTypeLoc),
+                                                  core::Symbols::T_Sig_WithoutRuntime());
     pm_node_t *block = prism.Block(commentLoc, sigBuilder);
     return prism.Call(fullTypeLoc, sigReceiver, "sig"sv, absl::MakeSpan(sigArgs), block);
 }
@@ -599,7 +600,8 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
     auto firstLineTypeLoc = declaration.firstLineTypeLoc();
     auto commentLoc = declaration.commentLoc();
 
-    pm_node_t *receiver = prism.TSigWithoutRuntime(firstLineTypeLoc);
+    auto *receiver = parseResult.markResolved(prism.TSigWithoutRuntime(firstLineTypeLoc),
+                                              core::Symbols::T_Sig_WithoutRuntime());
 
     vector<pm_node_t *> methodParams;
     if (PM_NODE_TYPE_P(methodDef, PM_DEF_NODE)) {
@@ -607,7 +609,7 @@ pm_node_t *MethodTypeToParserNodePrism::methodSignature(pm_node_t *methodDef, co
         methodParams = getMethodParams(def);
     }
 
-    auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser);
+    auto typeToPrismNode = TypeToParserNodePrism(ctx, typeParams, parser, prismParser, parseResult);
 
     // Only error if RBS has more parameters than the method.
     // If RBS has fewer, generate a partial sig and let the resolver error on missing types.

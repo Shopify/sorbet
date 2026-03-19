@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "core/LocOffsets.h"
+#include "core/SymbolRef.h"
 #include "parser/Node.h" // To clarify: these are Sorbet Parser nodes, not Prism ones.
 
 namespace sorbet::parser::Prism {
@@ -90,6 +91,7 @@ class ParseResult final {
     pm_node_t *node;
     std::vector<ParseError> parseErrors;
     std::vector<core::LocOffsets> commentLocations;
+    UnorderedMap<const pm_node_t *, core::SymbolRef> resolvedConstants_;
 
 public:
     ParseResult(std::unique_ptr<Parser> parser, pm_node_t *node, std::vector<ParseError> parseErrors,
@@ -105,7 +107,8 @@ public:
 
     ParseResult(ParseResult &&other) noexcept
         : parser{std::move(other.parser)}, node{other.node}, parseErrors{std::move(other.parseErrors)},
-          commentLocations{std::move(other.commentLocations)} {
+          commentLocations{std::move(other.commentLocations)},
+          resolvedConstants_{std::move(other.resolvedConstants_)} {
         other.node = nullptr;
     }
 
@@ -115,6 +118,7 @@ public:
         other.node = nullptr;
         this->parseErrors = std::move(other.parseErrors);
         this->commentLocations = std::move(other.commentLocations);
+        this->resolvedConstants_ = std::move(other.resolvedConstants_);
         return *this;
     }
 
@@ -145,6 +149,20 @@ public:
 
     Parser &getParser() {
         return *parser;
+    }
+
+    pm_node_t *markResolved(pm_node_t *node, core::SymbolRef symbol) {
+        resolvedConstants_[node] = symbol;
+        return node;
+    }
+
+    core::SymbolRef getResolvedSymbol(const pm_node_t *node) const {
+        auto it = resolvedConstants_.find(node);
+        return it != resolvedConstants_.end() ? it->second : core::SymbolRef{};
+    }
+
+    const UnorderedMap<const pm_node_t *, core::SymbolRef> &resolvedConstants() const {
+        return resolvedConstants_;
     }
 };
 

@@ -41,7 +41,7 @@ vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list
 
         pm_node_t *block = nullptr;
         if (defaultType || upperBound || lowerBound) {
-            auto typeTranslator = TypeToParserNodePrism{ctx, {}, parser, prismParser};
+            auto typeTranslator = TypeToParserNodePrism{ctx, {}, parser, prismParser, parseResult};
             absl::InlinedVector<pm_node_t *, 3> pairs{};
 
             if (defaultType) {
@@ -65,7 +65,9 @@ vector<pm_node_t *> TypeParamsToParserNodesPrism::typeParams(const rbs_node_list
             block = prism.Block(loc, prism.Hash(loc, absl::MakeSpan(pairs)));
         }
 
-        auto typeCall = prism.Call(loc, prism.SorbetPrivateStatic(loc), "type_member"sv, absl::MakeSpan(args), block);
+        auto *sorbetPrivateStatic = parseResult.markResolved(prism.SorbetPrivateStatic(loc),
+                                                             core::Symbols::Sorbet_Private_Static());
+        auto typeCall = prism.Call(loc, sorbetPrivateStatic, "type_member"sv, absl::MakeSpan(args), block);
         auto assign = prism.ConstantWriteNode(loc, prism.addConstantToPool(nameConstant.show(ctx.state)), typeCall);
         result.push_back(assign);
     }

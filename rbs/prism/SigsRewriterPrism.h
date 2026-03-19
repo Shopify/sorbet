@@ -37,8 +37,9 @@ struct CommentsPrism {
 class SigsRewriterPrism {
 public:
     SigsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
-                      UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode)
-        : ctx{ctx}, parser{parser}, prism{parser}, commentsByNode{commentsByNode} {}
+                      UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode,
+                      parser::Prism::ParseResult &parseResult)
+        : ctx{ctx}, parser{parser}, prism{parser}, commentsByNode{commentsByNode}, parseResult{parseResult} {}
     pm_node_t *run(pm_node_t *node);
 
 private:
@@ -46,6 +47,7 @@ private:
     parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
     UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode;
+    parser::Prism::ParseResult &parseResult;
 
     pm_node_t *rewriteBody(pm_node_t *node);
     pm_statements_node_t *rewriteBody(pm_statements_node_t *stmts);

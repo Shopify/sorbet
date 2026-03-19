@@ -271,10 +271,7 @@ parser::Prism::ParseResult runPrismRBSRewrite(core::GlobalState &gs, core::FileR
         core::MutableContext ctx(gs, core::Symbols::root(), file);
         core::UnfreezeNameTable nameTableAccess(gs);
 
-        auto &parser = parseResult.getParser();
-        auto node = rbs::runPrismRBSRewrite(gs, file, parseResult.getRawNodePointer(),
-                                            parseResult.getCommentLocations(), ctx, parser);
-        parseResult.replaceRootNode(node);
+        rbs::runPrismRBSRewrite(gs, file, ctx, parseResult);
     }
 
     if (print.RBSRewriteTree.enabled) {

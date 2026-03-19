@@ -16,10 +16,12 @@ class MethodTypeToParserNodePrism {
     Parser parser;
     parser::Prism::Parser &prismParser; // For Prism node creation
     const parser::Prism::Factory prism;
+    parser::Prism::ParseResult &parseResult;
 
 public:
-    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser, parser::Prism::Parser &prismParser)
-        : ctx(ctx), parser(parser), prismParser(prismParser), prism(prismParser) {}
+    MethodTypeToParserNodePrism(core::MutableContext ctx, Parser parser, parser::Prism::Parser &prismParser,
+                                parser::Prism::ParseResult &parseResult)
+        : ctx(ctx), parser(parser), prismParser(prismParser), prism(prismParser), parseResult(parseResult) {}
 
     /**
      * Create a Prism signature node from RBS method signature.

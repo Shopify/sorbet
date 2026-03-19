@@ -17,10 +17,12 @@ class TypeParamsToParserNodesPrism {
     const Parser &parser;
     parser::Prism::Parser &prismParser;
     const parser::Prism::Factory prism;
+    parser::Prism::ParseResult &parseResult;
 
 public:
-    TypeParamsToParserNodesPrism(core::MutableContext ctx, const Parser &parser, parser::Prism::Parser &prismParser)
-        : ctx(ctx), parser(parser), prismParser(prismParser), prism{prismParser} {}
+    TypeParamsToParserNodesPrism(core::MutableContext ctx, const Parser &parser, parser::Prism::Parser &prismParser,
+                                 parser::Prism::ParseResult &parseResult)
+        : ctx(ctx), parser(parser), prismParser(prismParser), prism{prismParser}, parseResult(parseResult) {}
 
     std::vector<pm_node_t *> typeParams(const rbs_node_list_t *rbsTypeParams, const RBSDeclaration &declaration);
 };

@@ -15,12 +15,14 @@ class TypeToParserNodePrism {
     rbs::Parser parser;
     parser::Prism::Parser &prismParser;
     parser::Prism::Factory prism;
+    parser::Prism::ParseResult &parseResult;
 
 public:
     TypeToParserNodePrism(core::MutableContext ctx,
                           absl::Span<const std::pair<core::LocOffsets, core::NameRef>> typeParams, Parser parser,
-                          parser::Prism::Parser &prismParser)
-        : ctx(ctx), typeParams(typeParams), parser(parser), prismParser(prismParser), prism(prismParser) {}
+                          parser::Prism::Parser &prismParser, parser::Prism::ParseResult &parseResult)
+        : ctx(ctx), typeParams(typeParams), parser(parser), prismParser(prismParser), prism(prismParser),
+          parseResult(parseResult) {}
 
     /**
      * Convert an RBS type to a Prism `pm_node_t`.

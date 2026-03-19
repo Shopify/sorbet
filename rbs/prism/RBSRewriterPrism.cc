@@ -9,21 +9,23 @@ using namespace std;
 
 namespace sorbet::rbs {
 
-pm_node_t *runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *node,
-                              const vector<core::LocOffsets> &commentLocations, core::MutableContext &ctx,
-                              parser::Prism::Parser &parser) {
+void runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, core::MutableContext &ctx,
+                        parser::Prism::ParseResult &parseResult) {
     Timer timeit(gs.tracer(), "runPrismRBSRewrite", {{"file", string(file.data(gs).path())}});
 
-    auto associator = CommentsAssociatorPrism(ctx, parser, commentLocations);
+    auto &parser = parseResult.getParser();
+    auto *node = parseResult.getRawNodePointer();
+
+    auto associator = CommentsAssociatorPrism(ctx, parser, parseResult.getCommentLocations());
     auto commentMap = associator.run(node);
 
-    auto sigsRewriter = SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode);
+    auto sigsRewriter = SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode, parseResult);
     node = sigsRewriter.run(node);
 
-    auto assertionsRewriter = AssertionsRewriterPrism(ctx, parser, commentMap.assertionsForNode);
+    auto assertionsRewriter = AssertionsRewriterPrism(ctx, parser, commentMap.assertionsForNode, parseResult);
     node = assertionsRewriter.run(node);
 
-    return node;
+    parseResult.replaceRootNode(node);
 }
 
 } // namespace sorbet::rbs

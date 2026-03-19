@@ -16,9 +16,9 @@ namespace sorbet::rbs {
 
 class SignatureTranslatorPrism final {
 public:
-    SignatureTranslatorPrism(core::MutableContext ctx) : ctx(ctx), prismParser{nullptr} {}
-    SignatureTranslatorPrism(core::MutableContext ctx, parser::Prism::Parser &prismParser)
-        : ctx(ctx), prismParser{&prismParser} {}
+    SignatureTranslatorPrism(core::MutableContext ctx, parser::Prism::Parser &prismParser,
+                             parser::Prism::ParseResult &parseResult)
+        : ctx(ctx), prismParser(prismParser), parseResult(parseResult) {}
 
     pm_node_t *translateMethodSignature(pm_node_t *methodDef, const RBSDeclaration &declaration,
                                         absl::Span<const Comment> annotations);
@@ -35,7 +35,8 @@ public:
 
 private:
     core::MutableContext ctx;
-    parser::Prism::Parser *prismParser; // For Prism node creation
+    parser::Prism::Parser &prismParser;
+    parser::Prism::ParseResult &parseResult;
 };
 
 } // namespace sorbet::rbs
