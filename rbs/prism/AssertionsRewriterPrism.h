@@ -29,8 +29,9 @@ struct InlineCommentPrism {
 class AssertionsRewriterPrism {
 public:
     AssertionsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
-                            UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode)
-        : ctx(ctx), parser(parser), prism(parser), commentsByNode(commentsByNode){};
+                            UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> &commentsByNode,
+                            parser::Prism::ParseResult &parseResult)
+        : ctx(ctx), parser(parser), prism(parser), commentsByNode(commentsByNode), parseResult(parseResult){};
     pm_node_t *run(pm_node_t *node);
 
 private:
@@ -41,6 +42,7 @@ private:
     std::vector<std::pair<core::LocOffsets, core::NameRef>> typeParams = {};
     std::set<std::pair<uint32_t, uint32_t>> consumedComments = {};
     size_t totalComments = 0;
+    parser::Prism::ParseResult &parseResult;
 
     void consumeComment(core::LocOffsets loc);
     bool hasConsumedComment(core::LocOffsets loc);

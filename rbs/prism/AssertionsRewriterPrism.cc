@@ -26,8 +26,8 @@ const regex absurdPattern("^\\s*absurd\\s*(#.*)?$");
  * Returns `nullopt` if the comment is not a valid RBS expression (an error is produced).
  */
 optional<pair<pm_node_t *, InlineCommentPrism::Kind>>
-parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineCommentPrism comment,
-             absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams) {
+parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, parser::Prism::ParseResult &parseResult,
+             InlineCommentPrism comment, absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams) {
     Factory prism{parser};
 
     if (comment.kind == InlineCommentPrism::Kind::MUST || comment.kind == InlineCommentPrism::Kind::UNSAFE ||
@@ -36,7 +36,7 @@ parseComment(core::MutableContext ctx, parser::Prism::Parser &parser, InlineComm
         return pair{prism.Nil(comment.comment.typeLoc), comment.kind};
     }
 
-    auto type = rbs::SignatureTranslatorPrism(ctx, parser)
+    auto type = rbs::SignatureTranslatorPrism(ctx, parser, parseResult)
                     .translateAssertionType(absl::MakeSpan(typeParams), RBSDeclaration({comment.comment}));
 
     if (type == nullptr) {
@@ -473,7 +473,7 @@ pm_node_t *AssertionsRewriterPrism::replaceSyntheticBind(pm_node_t *node) {
     auto inlineComment = commentForNode(node);
     ENFORCE(inlineComment, "No inline comment found for synthetic bind");
 
-    auto pair = parseComment(ctx, parser, inlineComment.value(), absl::MakeSpan(typeParams));
+    auto pair = parseComment(ctx, parser, parseResult, inlineComment.value(), absl::MakeSpan(typeParams));
 
     if (!pair) {
         // We already raised an error while parsing the comment, so we just bind to `T.untyped`
@@ -498,7 +498,7 @@ pm_node_t *AssertionsRewriterPrism::maybeInsertCast(pm_node_t *node) {
     }
 
     if (auto inlineComment = commentForNode(node)) {
-        if (auto type = parseComment(ctx, parser, inlineComment.value(), absl::MakeSpan(typeParams))) {
+        if (auto type = parseComment(ctx, parser, parseResult, inlineComment.value(), absl::MakeSpan(typeParams))) {
             return insertCast(node, type);
         }
     }
@@ -542,7 +542,7 @@ void AssertionsRewriterPrism::rewriteNodesAsArray(pm_node_t *node, pm_node_list_
             nodes = (pm_node_list){.size = 1, .capacity = 1, .nodes = buffer};
         }
 
-        if (auto type = parseComment(ctx, parser, inlineComment.value(), absl::MakeSpan(typeParams))) {
+        if (auto type = parseComment(ctx, parser, parseResult, inlineComment.value(), absl::MakeSpan(typeParams))) {
             nodes.nodes[0] = insertCast(nodes.nodes[0], type);
         }
     }

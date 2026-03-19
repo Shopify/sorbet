@@ -359,13 +359,14 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
         case RBS_TYPES_BASES_INSTANCE:
             return prism.TAttachedClass(nodeLoc);
         case RBS_TYPES_BASES_NIL:
-            return prism.ConstantReadNode("NilClass"sv, nodeLoc);
+            return parseResult.markResolved(prism.ConstantReadNode("NilClass"sv, nodeLoc),
+                                            core::Symbols::NilClass());
         case RBS_TYPES_BASES_SELF:
             return prism.TSelfType(nodeLoc);
         case RBS_TYPES_BASES_TOP:
             return prism.TAnything(nodeLoc);
         case RBS_TYPES_BASES_VOID:
-            return prism.SorbetPrivateStaticVoid(nodeLoc);
+            return parseResult.markResolved(prism.SorbetPrivateStaticVoid(nodeLoc), core::Symbols::void_());
         case RBS_TYPES_BLOCK:
             return blockType((rbs_types_block_t *)node, nodeLoc, declaration);
         case RBS_TYPES_CLASS_INSTANCE:

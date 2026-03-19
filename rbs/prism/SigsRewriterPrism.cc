@@ -47,8 +47,8 @@ bool canHaveSignature(pm_node_t *node, const parser::Prism::Parser &parser) {
  *
  * We do not error if the node is not a constant, we just insert it as is and let the pipeline error down the line.
  */
-pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser &parser, const Comment &annotation,
-                                 int offset) {
+pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser &parser,
+                                 parser::Prism::ParseResult &parseResult, const Comment &annotation, int offset) {
     while (annotation.string[offset] == ' ') {
         offset++;
     }
@@ -59,7 +59,7 @@ pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser
         annotation.string.substr(offset),
     };
 
-    return rbs::SignatureTranslatorPrism(ctx, parser).translateType(RBSDeclaration{vector<Comment>{comment}});
+    return rbs::SignatureTranslatorPrism(ctx, parser, parseResult).translateType(RBSDeclaration{vector<Comment>{comment}});
 }
 
 /**
@@ -76,7 +76,8 @@ pm_node_t *extractHelperArgument(core::MutableContext ctx, parser::Prism::Parser
  * It doesn't insert them into the body of the class/module/etc.
  */
 vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Comment> annotations,
-                                   parser::Prism::Parser &parser) {
+                                   parser::Prism::Parser &parser,
+                                   parser::Prism::ParseResult &parseResult) {
     if (annotations.empty()) {
         return {};
     }
@@ -97,7 +98,7 @@ vector<pm_node_t *> extractHelpers(core::MutableContext ctx, absl::Span<const Co
         } else if (annotation.string == "sealed") {
             helperNode = prism.Call0(annotation.typeLoc, prism.Self(annotation.typeLoc), "sealed!"sv);
         } else if (absl::StartsWith(annotation.string, "requires_ancestor:"sv)) {
-            if (auto type = extractHelperArgument(ctx, parser, annotation, "requires_ancestor:"sv.size())) {
+            if (auto type = extractHelperArgument(ctx, parser, parseResult, annotation, "requires_ancestor:"sv.size())) {
                 auto statementsList = array{type};
                 auto *stmts = prism.StatementsNode(annotation.typeLoc, absl::MakeSpan(statementsList));
 
@@ -234,7 +235,7 @@ void SigsRewriterPrism::insertTypeParams(pm_node_t *node, pm_node_t *body) {
     }
 
     auto signature = comments.signatures[0];
-    auto typeParamsTranslator = SignatureTranslatorPrism{ctx, parser};
+    auto typeParamsTranslator = SignatureTranslatorPrism{ctx, parser, parseResult};
     auto typeParams = typeParamsTranslator.translateTypeParams(signature);
 
     if (typeParams.empty()) {
@@ -336,7 +337,7 @@ unique_ptr<vector<pm_node_t *>> SigsRewriterPrism::signaturesForNode(pm_node_t *
     }
 
     auto signatures = make_unique<vector<pm_node_t *>>();
-    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser};
+    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser, parseResult};
 
     for (auto &declaration : comments.signatures) {
         if (PM_NODE_TYPE_P(node, PM_DEF_NODE)) {
@@ -394,7 +395,7 @@ pm_node_t *SigsRewriterPrism::replaceSyntheticTypeAlias(pm_node_t *node) {
         .string = fullString.substr(typeBeginLoc + 1),
     }}};
 
-    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser};
+    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser, parseResult};
     absl::Span<pair<core::LocOffsets, core::NameRef>> typeParams; // Empty for type aliases
     auto type = signatureTranslator.translateAssertionType(typeParams, typeDeclaration);
 
@@ -488,7 +489,7 @@ pm_node_t *SigsRewriterPrism::rewriteClass(pm_node_t *node) {
     }
 
     auto comments = commentsForNode(node);
-    auto helpers = extractHelpers(ctx, comments.annotations, parser);
+    auto helpers = extractHelpers(ctx, comments.annotations, parser, parseResult);
 
     if (comments.signatures.empty() && helpers.empty()) {
         return node;
