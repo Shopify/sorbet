@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "core/LocOffsets.h"
+#include "core/SymbolRef.h"
 #include "parser/Node.h" // To clarify: these are Sorbet Parser nodes, not Prism ones.
 
 namespace sorbet::parser::Prism {
@@ -34,6 +35,10 @@ class Parser final {
 
     pm_parser_t parser;
     pm_options_t options;
+
+    // Tracks Prism constant nodes that the RBS rewriter has pre-resolved to a known Sorbet `SymbolRef`,
+    // so the desugarer can emit a resolved `Constant` directly instead of relying on namer/resolver.
+    UnorderedMap<const pm_node_t *, core::SymbolRef> resolvedConstants_;
 
     friend class ParseResult;
     friend class Factory;
@@ -73,6 +78,18 @@ public:
     bool isAttrAccessorCall(pm_node_t *node) const;
 
     void destroyNode(pm_node_t *node);
+
+    // Record that `node` should desugar to `symbol` (used by the RBS rewriter for synthetic constants).
+    pm_node_t *markResolved(pm_node_t *node, core::SymbolRef symbol) {
+        resolvedConstants_[node] = symbol;
+        return node;
+    }
+
+    // Returns the resolved symbol for `node` if one was recorded, or an empty `SymbolRef` otherwise.
+    core::SymbolRef getResolvedSymbol(const pm_node_t *node) const {
+        auto it = resolvedConstants_.find(node);
+        return it != resolvedConstants_.end() ? it->second : core::SymbolRef{};
+    }
 
 private:
     std::vector<ParseError> collectErrors();
