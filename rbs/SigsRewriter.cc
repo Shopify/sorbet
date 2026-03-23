@@ -485,6 +485,7 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         node.get(),
         // Using the same order as Desugar.cc
         [&](parser::Block *block) {
+            maybeSynthesizeDataDefineVirtualInit(block, node.get());
             block->body = rewriteBody(move(block->body));
             result = move(node);
         },
@@ -587,6 +588,66 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         [&](parser::Node *other) { result = move(node); });
 
     return result;
+}
+
+// For Data.define blocks with an orphan RBS signature associated with the
+// Block node, synthesize a virtual def initialize with keyword args matching
+// the Data.define members and translate the RBS comment into a sig node.
+void SigsRewriter::maybeSynthesizeDataDefineVirtualInit(parser::Block *block, parser::Node *node) {
+    auto *send = parser::MK::isDataDefineBlock(block);
+    if (!send) {
+        return;
+    }
+
+    auto comments = commentsForNode(node);
+    if (comments.signatures.empty()) {
+        return;
+    }
+
+    auto loc = block->send->loc;
+
+    // Build keyword args from Data.define symbol arguments
+    parser::NodeVec kwargs;
+    for (auto &arg : send->args) {
+        auto *sym = parser::cast_node<parser::Symbol>(arg.get());
+        if (sym != nullptr) {
+            kwargs.emplace_back(make_unique<parser::Kwarg>(sym->loc, sym->val));
+        }
+    }
+
+    // Create: def initialize(x:, y:) = super
+    auto params = make_unique<parser::Params>(loc, move(kwargs));
+    auto body = make_unique<parser::ZSuper>(loc);
+    auto initDef =
+        make_unique<parser::DefMethod>(loc, loc, core::Names::initialize(), move(params), move(body));
+
+    // Translate the RBS comment into a sig node
+    auto signatureTranslator = rbs::SignatureTranslator(ctx);
+    auto sig =
+        signatureTranslator.translateMethodSignature(initDef.get(), comments.signatures[0], comments.annotations);
+
+    if (sig == nullptr) {
+        return;
+    }
+
+    // Insert sig + def initialize into the block body
+    parser::NodeVec newStmts;
+    newStmts.emplace_back(move(sig));
+    newStmts.emplace_back(move(initDef));
+
+    if (block->body != nullptr) {
+        if (auto *begin = parser::cast_node<parser::Begin>(block->body.get())) {
+            for (auto &stmt : begin->stmts) {
+                newStmts.emplace_back(move(stmt));
+            }
+            begin->stmts = move(newStmts);
+        } else {
+            newStmts.emplace_back(move(block->body));
+            block->body = make_unique<parser::Begin>(loc, move(newStmts));
+        }
+    } else {
+        block->body = make_unique<parser::Begin>(loc, move(newStmts));
+    }
 }
 
 unique_ptr<parser::Node> SigsRewriter::run(unique_ptr<parser::Node> node) {

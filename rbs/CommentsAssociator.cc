@@ -441,6 +441,9 @@ void CommentsAssociator::walkNode(parser::Node *node) {
             associateAssertionCommentsToNode(node);
             walkNode(block->send.get());
             consumeCommentsUntilLine(beginLine);
+
+            maybeExtractDataDefineOrphanComments(block, node, beginLine);
+
             block->body = walkBody(block, move(block->body));
             auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
             consumeCommentsBetweenLines(beginLine, endLine, "block");
@@ -735,6 +738,94 @@ void CommentsAssociator::walkNode(parser::Node *node) {
             associateAssertionCommentsToNode(node);
             consumeCommentsInsideNode(node, "other");
         });
+}
+
+// For Data.define blocks without an explicit def initialize, extract leading
+// orphan RBS signature comments and associate them with the Block node so the
+// SigsRewriter can synthesize a virtual initialize from them.
+//
+// A comment is considered "orphan" (intended for the virtual initialize) if:
+// - The block body is empty (null), OR
+// - There is a gap (at least one blank line) between the last comment line
+//   and the first DefMethod in the body
+void CommentsAssociator::maybeExtractDataDefineOrphanComments(parser::Block *block, parser::Node *node,
+                                                              int beginLine) {
+    if (!parser::MK::isDataDefineBlock(block)) {
+        return;
+    }
+
+    // Check if the block body already contains a def initialize
+    auto checkInit = [](parser::Node *n) {
+        auto *def = parser::cast_node<parser::DefMethod>(n);
+        return def != nullptr && def->name == core::Names::initialize();
+    };
+    if (block->body != nullptr) {
+        if (checkInit(block->body.get())) {
+            return;
+        }
+        if (auto *begin = parser::cast_node<parser::Begin>(block->body.get())) {
+            for (auto &stmt : begin->stmts) {
+                if (checkInit(stmt.get())) {
+                    return;
+                }
+            }
+        }
+    }
+
+    auto endLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
+
+    // Determine the line of the first DefMethod in the body
+    int firstDefLine = endLine;
+    if (block->body != nullptr) {
+        auto checkDef = [&](parser::Node *n) -> int {
+            auto *def = parser::cast_node<parser::DefMethod>(n);
+            if (def != nullptr) {
+                return core::Loc::pos2Detail(ctx.file.data(ctx), def->loc.beginPos()).line;
+            }
+            return endLine;
+        };
+        if (auto *begin = parser::cast_node<parser::Begin>(block->body.get())) {
+            for (auto &stmt : begin->stmts) {
+                int line = checkDef(stmt.get());
+                if (line < firstDefLine) {
+                    firstDefLine = line;
+                    break;
+                }
+            }
+        } else {
+            firstDefLine = checkDef(block->body.get());
+        }
+    }
+
+    // Extract orphan RBS comments: collect consecutive #: / #| comments that
+    // have a gap before the first DefMethod. Stop as soon as we find a comment
+    // that is adjacent to the first def (not orphan).
+    vector<CommentNode> comments;
+    for (auto it = commentByLine.begin(); it != commentByLine.end();) {
+        if (it->first <= beginLine) {
+            ++it;
+            continue;
+        }
+        if (it->first >= endLine) {
+            break;
+        }
+        if (absl::StartsWith(it->second.string, RBS_PREFIX) ||
+            absl::StartsWith(it->second.string, MULTILINE_RBS_PREFIX)) {
+            bool isOrphan = (block->body == nullptr) || (it->first + 1 < firstDefLine);
+            if (isOrphan) {
+                comments.emplace_back(it->second);
+                it = commentByLine.erase(it);
+                continue;
+            }
+            // This comment is adjacent to a def — stop extracting
+            break;
+        }
+        ++it;
+    }
+
+    if (!comments.empty()) {
+        signaturesForNode[node] = move(comments);
+    }
 }
 
 CommentMap CommentsAssociator::run(unique_ptr<parser::Node> &node) {

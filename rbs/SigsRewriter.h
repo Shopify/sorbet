@@ -46,6 +46,7 @@ private:
     Comments commentsForNode(parser::Node *node);
     void insertTypeParams(parser::Node *node, std::unique_ptr<parser::Node> *body);
     std::unique_ptr<parser::Node> replaceSyntheticTypeAlias(std::unique_ptr<parser::Node> node);
+    void maybeSynthesizeDataDefineVirtualInit(parser::Block *block, parser::Node *node);
 };
 
 } // namespace sorbet::rbs
