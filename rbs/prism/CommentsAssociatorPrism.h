@@ -71,6 +71,8 @@ private:
     void consumeCommentsBetweenLines(int startLine, int endLine, std::string_view kind);
     void consumeOrphanedSignatureComments(int startLine, int endLine);
     void consumeCommentsUntilLine(int line);
+    bool isDataDefineCall(pm_call_node_t *call);
+    void maybeExtractDataDefineOrphanComments(pm_node_t *blockNode, int beginLine);
     std::optional<uint32_t> locateTargetLine(pm_node_t *node);
     core::LocOffsets translateLocation(pm_location_t location);
     uint32_t posToLine(uint32_t pos);

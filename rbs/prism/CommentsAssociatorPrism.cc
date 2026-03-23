@@ -254,6 +254,98 @@ bool CommentsAssociatorPrism::typeAliasAllowedInContext() const {
     return !contextAllowingTypeAlias.empty() && contextAllowingTypeAlias.back().first;
 }
 
+bool CommentsAssociatorPrism::isDataDefineCall(pm_call_node_t *call) {
+    if (parser.resolveConstant(call->name) != "define"sv || call->receiver == nullptr) {
+        return false;
+    }
+
+    if (auto *constantRead = down_cast<pm_constant_read_node_t>(call->receiver)) {
+        return parser.resolveConstant(constantRead->name) == "Data"sv;
+    }
+
+    if (auto *constantPath = down_cast<pm_constant_path_node_t>(call->receiver)) {
+        return constantPath->parent == nullptr && parser.resolveConstant(constantPath->name) == "Data"sv;
+    }
+
+    return false;
+}
+
+void CommentsAssociatorPrism::maybeExtractDataDefineOrphanComments(pm_node_t *blockNode, int beginLine) {
+    ENFORCE(blockNode != nullptr && PM_NODE_TYPE_P(blockNode, PM_BLOCK_NODE));
+    auto *block = down_cast_nonnull<pm_block_node_t>(blockNode);
+
+    auto checkInit = [&](pm_node_t *node) {
+        auto *def = down_cast<pm_def_node_t>(node);
+        return def != nullptr && parser.resolveConstant(def->name) == "initialize"sv;
+    };
+
+    if (block->body != nullptr) {
+        if (checkInit(block->body)) {
+            return;
+        }
+        if (auto *statements = down_cast<pm_statements_node_t>(block->body)) {
+            for (size_t i = 0; i < statements->body.size; i++) {
+                if (checkInit(statements->body.nodes[i])) {
+                    return;
+                }
+            }
+        }
+    }
+
+    auto endLine = posToLine(translateLocation(blockNode->location).endPos());
+
+    int firstDefLine = endLine;
+    if (block->body != nullptr) {
+        auto checkDef = [&](pm_node_t *node) -> int {
+            if (isa_node<pm_def_node_t>(node)) {
+                return posToLine(translateLocation(node->location).beginPos());
+            }
+            return endLine;
+        };
+        if (auto *statements = down_cast<pm_statements_node_t>(block->body)) {
+            for (size_t i = 0; i < statements->body.size; i++) {
+                int line = checkDef(statements->body.nodes[i]);
+                if (line < firstDefLine) {
+                    firstDefLine = line;
+                    break;
+                }
+            }
+        } else {
+            firstDefLine = checkDef(block->body);
+        }
+    }
+
+    // Extract orphan RBS comments for Data.define's virtual initialize. Comments
+    // adjacent to a method are left alone so the normal signature associator can
+    // attach them to that method; comments with a blank-line gap before the first
+    // method are considered virtual-initialize comments.
+    vector<CommentNodePrism> comments;
+    for (auto it = commentByLine.begin(); it != commentByLine.end();) {
+        if (it->first <= beginLine) {
+            ++it;
+            continue;
+        }
+        if (it->first >= endLine) {
+            break;
+        }
+        if (absl::StartsWith(it->second.string, RBS_PREFIX) ||
+            absl::StartsWith(it->second.string, MULTILINE_RBS_PREFIX)) {
+            bool isOrphan = (block->body == nullptr) || (it->first + 1 < firstDefLine);
+            if (isOrphan) {
+                comments.emplace_back(it->second);
+                it = commentByLine.erase(it);
+                continue;
+            }
+            break;
+        }
+        ++it;
+    }
+
+    if (!comments.empty()) {
+        signaturesForNode[blockNode] = move(comments);
+    }
+}
+
 // Finds standalone RBS comments (not attached to any Ruby code) between lastLine and currentLine,
 // and inserts synthetic placeholder nodes into the AST. 2 types of placeholders are created:
 // 1. Bind comments (#: self as Type): placeholders later replaced with T.bind(self, Type)
@@ -750,6 +842,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 associateAssertionCommentsToNode(node);
                 walkNode(call->receiver);
                 walkArgumentsNode(call->arguments);
+                if (call->block && PM_NODE_TYPE_P(call->block, PM_BLOCK_NODE) && isDataDefineCall(call)) {
+                    auto blockLoc = translateLocation(call->block->location);
+                    auto beginLine = posToLine(blockLoc.beginPos());
+                    maybeExtractDataDefineOrphanComments(call->block, beginLine);
+                }
                 walkNode(call->block);
             }
             break;
