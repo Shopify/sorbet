@@ -36,9 +36,12 @@ struct CommentsPrism {
 
 class SigsRewriterPrism {
 public:
-    SigsRewriterPrism(core::MutableContext ctx, parser::Prism::Parser &parser,
-                      UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode)
-        : ctx{ctx}, parser{parser}, prism{parser}, commentsByNode{commentsByNode} {}
+    SigsRewriterPrism(
+        core::MutableContext ctx, parser::Prism::Parser &parser,
+        UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode,
+        UnorderedMap<pm_node_t *, std::vector<rbs::CommentMapPrism::DataDefineMember>> &dataDefineMembersByNode)
+        : ctx{ctx}, parser{parser}, prism{parser}, commentsByNode{commentsByNode},
+          dataDefineMembersByNode{dataDefineMembersByNode} {}
 
     // Rewrite the RBS signatures in the Prism AST, in-place.
     void run(pm_node_t *node);
@@ -47,7 +50,10 @@ private:
     core::MutableContext ctx;
     parser::Prism::Parser &parser;
     parser::Prism::Factory prism;
+    // Non-owning references to CommentMapPrism fields. The CommentMapPrism is owned by
+    // runPrismRBSRewrite and outlives this rewriter.
     UnorderedMap<pm_node_t *, std::vector<rbs::CommentNodePrism>> &commentsByNode;
+    UnorderedMap<pm_node_t *, std::vector<rbs::CommentMapPrism::DataDefineMember>> &dataDefineMembersByNode;
 
     pm_node_t *rewriteBody(pm_node_t *node);
     void rewriteBody(pm_statements_node_t *stmts);
@@ -60,6 +66,10 @@ private:
     CommentsPrism commentsForNode(pm_node_t *node);
     void insertTypeParams(pm_node_t *node, pm_node_t *body);
     void processClassBody(pm_node_t *node, pm_node_t *&body, absl::Span<pm_node_t *const> helpers);
+    bool maybeRewriteDataDefine(pm_call_node_t *call);
+    std::vector<pm_node_t *> synthesizeDataDefineMembers(
+        pm_call_node_t *call, std::vector<rbs::CommentMapPrism::DataDefineMember> &members);
+    bool blockHasInitialize(pm_block_node_t *block);
     pm_node_t *replaceSyntheticTypeAlias(pm_node_t *node);
     pm_node_t *createStatementsWithSignatures(pm_node_t *originalNode,
                                               std::unique_ptr<std::vector<pm_node_t *>> signatures);

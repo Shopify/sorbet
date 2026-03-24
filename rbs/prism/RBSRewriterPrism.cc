@@ -17,7 +17,8 @@ void runPrismRBSRewrite(core::GlobalState &gs, core::FileRef file, pm_node_t *no
     auto associator = CommentsAssociatorPrism(ctx, parser, commentLocations);
     auto commentMap = associator.run(node);
 
-    auto sigsRewriter = SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode);
+    auto sigsRewriter =
+        SigsRewriterPrism(ctx, parser, commentMap.signaturesForNode, commentMap.dataDefineMembersForNode);
     sigsRewriter.run(node);
 
     auto assertionsRewriter = AssertionsRewriterPrism(ctx, parser, commentMap.assertionsForNode);
