@@ -134,6 +134,61 @@ void CommentsAssociator::consumeCommentsUntilLine(int line) {
     commentByLine.erase(commentByLine.begin(), it);
 }
 
+// Detect `Data.define(...)` or `::Data.define(...)` in the parser tree.
+// This mirrors the AST-level check in rewriter/Data.cc (isRootScopedSyntacticConstant)
+// but operates on parser nodes. Keep these two in sync.
+bool CommentsAssociator::isDataDefineSend(parser::Send *send) {
+    if (send->method != core::Names::define()) {
+        return false;
+    }
+
+    auto *recv = send->receiver.get();
+    if (recv == nullptr) {
+        return false;
+    }
+
+    auto *constant = parser::cast_node<parser::Const>(recv);
+    if (constant == nullptr) {
+        return false;
+    }
+
+    if (constant->name != core::Names::Constants::Data()) {
+        return false;
+    }
+
+    // Accept `Data.define(...)` (scope == nil) or `::Data.define(...)` (scope == Cbase)
+    return constant->scope == nullptr || parser::isa_node<parser::Cbase>(constant->scope.get());
+}
+
+void CommentsAssociator::associateDataDefineMemberTypes(parser::Send *send) {
+    vector<CommentMap::DataDefineMember> members;
+    bool hasAnyType = false;
+
+    for (auto &arg : send->args) {
+        auto *sym = parser::cast_node<parser::Symbol>(arg.get());
+        if (sym == nullptr) {
+            // Not a symbol arg; bail out — Data.define only takes symbols
+            return;
+        }
+
+        auto symLoc = sym->loc;
+        auto symLine = core::Loc::pos2Detail(ctx.file.data(ctx), symLoc.endPos()).line;
+
+        auto it = commentByLine.find(symLine);
+        if (it != commentByLine.end() && absl::StartsWith(it->second.string, RBS_PREFIX)) {
+            members.push_back(CommentMap::DataDefineMember{sym->val, symLoc, it->second});
+            commentByLine.erase(it);
+            hasAnyType = true;
+        } else {
+            members.push_back(CommentMap::DataDefineMember{sym->val, symLoc, nullopt});
+        }
+    }
+
+    if (hasAnyType) {
+        dataDefineMembersForNode[send] = move(members);
+    }
+}
+
 void CommentsAssociator::associateAssertionCommentsToNode(parser::Node *node, bool adjustLocForHeredoc = false) {
     uint32_t targetLine = core::Loc::pos2Detail(ctx.file.data(ctx), node->loc.endPos()).line;
     if (adjustLocForHeredoc) {
@@ -685,6 +740,17 @@ void CommentsAssociator::walkNode(parser::Node *node) {
                 }
                 walkNode(send->receiver.get());
                 consumeCommentsInsideNode(node, "send");
+            } else if (isDataDefineSend(send)) {
+                // Data.define(:x, #: Integer, :y, #: String)
+                // Collect inline type comments on each symbol argument before consuming
+                // comments inside the node. Walk remaining args afterwards to handle
+                // any assertion comments on non-symbol expressions if the member type
+                // collection bailed early.
+                associateDataDefineMemberTypes(send);
+                associateAssertionCommentsToNode(send);
+                walkNode(send->receiver.get());
+                walkNodes(send->args);
+                consumeCommentsInsideNode(node, "send");
             } else {
                 associateAssertionCommentsToNode(send);
 
@@ -761,7 +827,8 @@ CommentMap CommentsAssociator::run(unique_ptr<parser::Node> &node) {
         }
     }
 
-    return CommentMap{signaturesForNode, assertionsForNode};
+    return CommentMap{std::move(signaturesForNode), std::move(assertionsForNode),
+                     std::move(dataDefineMembersForNode)};
 }
 
 CommentsAssociator::CommentsAssociator(core::MutableContext ctx, vector<core::LocOffsets> commentLocations)

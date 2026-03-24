@@ -14,9 +14,28 @@ struct CommentNode {
     std::string_view string;
 };
 
+// Maps from parser tree nodes to their associated RBS comments.
+//
+// All `parser::Node *` keys are non-owning pointers into the parser tree passed to
+// CommentsAssociator::run(). They remain valid as long as the parser tree is alive.
+// The pipeline holds the tree via `unique_ptr<parser::Node>` and passes it through
+// SigsRewriter and AssertionsRewriter before the tree is consumed by the desugarer.
 struct CommentMap {
+    // A member of a Data.define call, optionally annotated with an inline `#:` type.
+    // The `typeComment` field, when present, contains a CommentNode whose `string`
+    // is a string_view into the file source buffer (owned by GlobalState). It remains
+    // valid for the lifetime of the file data.
+    struct DataDefineMember {
+        core::NameRef name;
+        core::LocOffsets nameLoc;
+        std::optional<CommentNode> typeComment;
+    };
+
     std::map<parser::Node *, std::vector<CommentNode>> signaturesForNode;
     std::map<parser::Node *, std::vector<CommentNode>> assertionsForNode;
+    // Maps Data.define Send nodes to their members with inline type annotations.
+    // Populated only when at least one symbol argument has a `#:` type comment.
+    std::map<parser::Node *, std::vector<DataDefineMember>> dataDefineMembersForNode;
 };
 
 class CommentsAssociator {
@@ -36,9 +55,12 @@ private:
     std::map<int, CommentNode> commentByLine;
     std::map<parser::Node *, std::vector<CommentNode>> signaturesForNode;
     std::map<parser::Node *, std::vector<CommentNode>> assertionsForNode;
+    std::map<parser::Node *, std::vector<CommentMap::DataDefineMember>> dataDefineMembersForNode;
     std::vector<std::pair<bool, core::LocOffsets>> contextAllowingTypeAlias;
     int lastLine;
 
+    bool isDataDefineSend(parser::Send *send);
+    void associateDataDefineMemberTypes(parser::Send *send);
     void walkNode(parser::Node *node);
     void walkNodes(parser::NodeVec &nodes);
     void walkStatements(parser::NodeVec &nodes);

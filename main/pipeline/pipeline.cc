@@ -297,7 +297,8 @@ unique_ptr<parser::Node> runRBSRewrite(core::GlobalState &gs, core::FileRef file
         auto associator = rbs::CommentsAssociator(ctx, commentLocations);
         auto commentMap = associator.run(node);
 
-        auto sigsRewriter = rbs::SigsRewriter(ctx, commentMap.signaturesForNode);
+        auto sigsRewriter =
+            rbs::SigsRewriter(ctx, commentMap.signaturesForNode, commentMap.dataDefineMembersForNode);
         node = sigsRewriter.run(move(node));
 
         auto assertionsRewriter = rbs::AssertionsRewriter(ctx, commentMap.assertionsForNode);

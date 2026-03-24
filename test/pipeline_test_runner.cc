@@ -269,7 +269,8 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
                         auto associator = rbs::CommentsAssociator(ctx, legacyParseResult.commentLocations);
                         auto commentMap = associator.run(nodes);
 
-                        auto rbsSignatures = rbs::SigsRewriter(ctx, commentMap.signaturesForNode);
+                        auto rbsSignatures = rbs::SigsRewriter(ctx, commentMap.signaturesForNode,
+                                                                commentMap.dataDefineMembersForNode);
                         nodes = rbsSignatures.run(std::move(nodes));
 
                         auto rbsAssertions = rbs::AssertionsRewriter(ctx, commentMap.assertionsForNode);
@@ -797,7 +798,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                     auto associator = rbs::CommentsAssociator(ctx, parseResult.commentLocations);
                     auto commentMap = associator.run(parseResult.tree);
 
-                    auto rbsSignatures = rbs::SigsRewriter(ctx, commentMap.signaturesForNode);
+                    auto rbsSignatures = rbs::SigsRewriter(ctx, commentMap.signaturesForNode,
+                                                            commentMap.dataDefineMembersForNode);
                     parseResult.tree = rbsSignatures.run(std::move(parseResult.tree));
 
                     auto rbsAssertions = rbs::AssertionsRewriter(ctx, commentMap.assertionsForNode);

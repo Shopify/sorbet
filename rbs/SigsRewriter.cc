@@ -474,6 +474,176 @@ unique_ptr<parser::Node> SigsRewriter::rewriteClass(unique_ptr<parser::Node> nod
     return node;
 }
 
+parser::NodeVec SigsRewriter::synthesizeDataDefineMembers(parser::Send *send,
+                                                          vector<CommentMap::DataDefineMember> &members) {
+    auto loc = send->loc;
+    auto signatureTranslator = rbs::SignatureTranslator(ctx);
+    parser::NodeVec synthesized;
+
+    // Build sig params for initialize: {member_name: Type, ...}
+    // The sig + bare-super initialize is what Data.cc reads to produce typed readers.
+    parser::NodeVec sigParams;
+
+    for (auto &member : members) {
+        unique_ptr<parser::Node> typeNode;
+        auto memberLoc = member.nameLoc;
+
+        if (member.typeComment) {
+            auto &comment = *member.typeComment;
+            // Strip the "#:" prefix, matching the pattern in commentsForNode().
+            // The RBS parser handles any remaining leading whitespace.
+            auto typeComment = Comment{
+                .commentLoc = comment.loc,
+                .typeLoc = core::LocOffsets{comment.loc.beginPos() + 2, comment.loc.endPos()},
+                .string = comment.string.substr(2),
+            };
+
+            auto declaration = RBSDeclaration{vector<Comment>{typeComment}};
+            typeNode = signatureTranslator.translateType(declaration);
+        }
+
+        if (typeNode == nullptr) {
+            typeNode = parser::MK::TUntyped(memberLoc);
+        }
+
+        // Build param for initialize sig: {member_name: Type}
+        sigParams.emplace_back(
+            make_unique<parser::Pair>(memberLoc, parser::MK::Symbol(memberLoc, member.name), move(typeNode)));
+    }
+
+    // Synthesize initialize sig: sig {params(x: Type, y: Type).void}
+    {
+        auto sigBuilder = parser::MK::Self(loc);
+        if (!sigParams.empty()) {
+            auto hash = parser::MK::Hash(loc, true, move(sigParams));
+            auto args = NodeVec1(move(hash));
+            sigBuilder = parser::MK::Send(loc, move(sigBuilder), core::Names::params(), loc, move(args));
+        }
+        sigBuilder = parser::MK::Send0(loc, move(sigBuilder), core::Names::void_(), loc);
+
+        auto sig = parser::MK::Send0(loc, parser::MK::T_Sig_WithoutRuntime(loc), core::Names::sig(), loc);
+        auto sigBlock = make_unique<parser::Block>(loc, move(sig), nullptr, move(sigBuilder));
+        synthesized.emplace_back(move(sigBlock));
+    }
+
+    // Synthesize initialize method: def initialize(member:, ...) = super
+    // This MUST be bare super (ZSuper) for Data.cc's canCreateTypedAccessors() to
+    // propagate types to member readers.
+    {
+        parser::NodeVec kwArgs;
+        for (auto &member : members) {
+            kwArgs.emplace_back(make_unique<parser::Kwarg>(member.nameLoc, member.name));
+        }
+        auto params = make_unique<parser::Params>(loc, move(kwArgs));
+        auto body = make_unique<parser::ZSuper>(loc);
+        auto def =
+            make_unique<parser::DefMethod>(loc, loc, core::Names::initialize(), move(params), move(body));
+        synthesized.emplace_back(move(def));
+    }
+
+    return synthesized;
+}
+
+// Check if the block body already contains a `def initialize` method.
+// When the user provides an explicit initialize, we don't synthesize another one.
+bool blockHasInitialize(parser::Block *block) {
+    if (block == nullptr || block->body == nullptr) {
+        return false;
+    }
+
+    auto checkNode = [](parser::Node *node) -> bool {
+        auto *def = parser::cast_node<parser::DefMethod>(node);
+        return def != nullptr && def->name == core::Names::initialize();
+    };
+
+    if (checkNode(block->body.get())) {
+        return true;
+    }
+
+    if (auto *begin = parser::cast_node<parser::Begin>(block->body.get())) {
+        for (auto &stmt : begin->stmts) {
+            if (checkNode(stmt.get())) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// Try to rewrite a Data.define node by synthesizing a typed initialize.
+// Returns nullptr if the node is not a Data.define with typed members,
+// in which case the caller should proceed with normal rewriting.
+unique_ptr<parser::Node> SigsRewriter::maybeRewriteDataDefine(unique_ptr<parser::Node> &node) {
+    // Non-owning pointers into `node`. `send` and `block` borrow from the
+    // unique_ptr and are only used to look up the dataDefineMembersByNode map
+    // and to append synthesized nodes to the block body. Ownership of the tree
+    // stays with `node` throughout.
+    parser::Send *send = nullptr;
+    parser::Block *block = nullptr;
+
+    if (auto *b = parser::cast_node<parser::Block>(node.get())) {
+        send = parser::cast_node<parser::Send>(b->send.get());
+        block = b;
+    } else {
+        send = parser::cast_node<parser::Send>(node.get());
+    }
+
+    if (send == nullptr) {
+        return nullptr;
+    }
+
+    auto it = dataDefineMembersByNode.find(send);
+    if (it == dataDefineMembersByNode.end()) {
+        return nullptr;
+    }
+
+    // If the block already contains an explicit `def initialize`, the user's
+    // initialize takes precedence over inline type comments. Data.cc will
+    // extract types from the user's sig if it has one.
+    if (block != nullptr && blockHasInitialize(block)) {
+        block->body = rewriteBody(move(block->body));
+        return move(node);
+    }
+
+    auto &members = it->second;
+    auto synthesized = synthesizeDataDefineMembers(send, members);
+
+    if (synthesized.empty()) {
+        return move(node);
+    }
+
+    if (block != nullptr) {
+        // Append synthesized methods to the existing block body
+        if (block->body == nullptr) {
+            block->body = make_unique<parser::Begin>(block->loc, move(synthesized));
+        } else if (auto *begin = parser::cast_node<parser::Begin>(block->body.get())) {
+            for (auto &stmt : synthesized) {
+                begin->stmts.emplace_back(move(stmt));
+            }
+        } else {
+            // Single-node body — wrap in Begin with existing + synthesized
+            parser::NodeVec stmts;
+            stmts.emplace_back(move(block->body));
+            for (auto &stmt : synthesized) {
+                stmts.emplace_back(move(stmt));
+            }
+            block->body = make_unique<parser::Begin>(block->loc, move(stmts));
+        }
+        // Continue with normal rewriting of the block body
+        block->body = rewriteBody(move(block->body));
+        return move(node);
+    } else {
+        // No block — wrap the Send in a Block with the synthesized body.
+        // Run rewriteBody for symmetry with the block case (e.g., if the synthesized
+        // body contained RBS comments, though currently it doesn't).
+        auto loc = send->loc;
+        unique_ptr<parser::Node> body = make_unique<parser::Begin>(loc, move(synthesized));
+        body = rewriteBody(move(body));
+        return make_unique<parser::Block>(loc, move(node), nullptr, move(body));
+    }
+}
+
 unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node) {
     if (node == nullptr) {
         return node;
@@ -485,6 +655,10 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
         node.get(),
         // Using the same order as Desugar.cc
         [&](parser::Block *block) {
+            if (auto rewritten = maybeRewriteDataDefine(node)) {
+                result = move(rewritten);
+                return;
+            }
             block->body = rewriteBody(move(block->body));
             result = move(node);
         },
@@ -574,6 +748,10 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
             result = move(node);
         },
         [&](parser::Send *send) {
+            if (auto rewritten = maybeRewriteDataDefine(node)) {
+                result = move(rewritten);
+                return;
+            }
             send->args = rewriteNodes(move(send->args));
             result = move(node);
         },
@@ -590,8 +768,9 @@ unique_ptr<parser::Node> SigsRewriter::rewriteNode(unique_ptr<parser::Node> node
 }
 
 unique_ptr<parser::Node> SigsRewriter::run(unique_ptr<parser::Node> node) {
-    // If there are no signature comments to process, we can skip the entire tree walk.
-    if (commentsByNode.empty()) {
+    // If there are no signature comments or Data.define member types to process,
+    // we can skip the entire tree walk.
+    if (commentsByNode.empty() && dataDefineMembersByNode.empty()) {
         return node;
     }
     return rewriteBody(move(node));
