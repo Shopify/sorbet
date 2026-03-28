@@ -806,6 +806,27 @@ optional<TypeSyntax::ResultType> interpretTCombinator(core::Context ctx, const a
                                                       TypeSyntaxArgs args) {
     auto &recvi = ast::cast_tree_nonnull<ast::ConstantLit>(send.recv);
 
+    // T::Symbol(:sym) creates a symbol literal type.
+    // We can't use a well-known name here because the UTF8 name "Symbol" is already
+    // implicitly created by the constant name registration for the Symbol class.
+    if (send.fun.shortName(ctx) == "Symbol") {
+        if (send.numPosArgs() != 1 || send.hasKwArgs()) {
+            checkTypeFunArity(ctx, send, 1, 1);
+            checkUnexpectedKwargs(ctx, send);
+            return TypeSyntax::ResultType{core::Types::untypedUntracked(), core::Symbols::noClassOrModule()};
+        }
+        auto lit = ast::cast_tree<ast::Literal>(send.getPosArg(0));
+        if (!lit || !lit->isSymbol()) {
+            if (auto e = ctx.beginError(send.loc, core::errors::Resolver::InvalidTypeDeclaration)) {
+                e.setHeader("`{}` requires a symbol literal argument", "T::Symbol");
+            }
+            return TypeSyntax::ResultType{core::Types::untypedUntracked(), core::Symbols::noClassOrModule()};
+        }
+        auto name = lit->asSymbol();
+        return TypeSyntax::ResultType{core::make_type<core::NamedLiteralType>(core::Symbols::Symbol(), name),
+                                      core::Symbols::noClassOrModule()};
+    }
+
     switch (send.fun.rawId()) {
         case core::Names::nilable().rawId(): {
             if (send.numPosArgs() != 1 || send.hasKwArgs()) {

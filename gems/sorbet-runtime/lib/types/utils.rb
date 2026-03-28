@@ -5,6 +5,7 @@ module T::Utils
   module Private
     def self.coerce_and_check_module_types(val, check_val, check_module_type)
       # rubocop:disable Style/CaseLikeIf
+      # We intentionally call `is_a?` instead of using a `case` expression, because it's often overridden by users.
       if val.is_a?(T::Types::Base)
         if val.is_a?(T::Private::Types::TypeAlias)
           val.aliased_type
@@ -25,12 +26,14 @@ module T::Utils
         T::Private::Methods.finalize_proc(val.decl)
       elsif val.is_a?(::T::Enum)
         T::Types::TEnum.new(val)
+      elsif val.is_a?(::Symbol)
+        T::Types::LiteralValue.new(val)
       elsif val.is_a?(::String)
         raise "Invalid String literal for type constraint. Must be an #{T::Types::Base}, a " \
-              "class/module, or an array. Got a String with value `#{val}`."
+              "class/module, a symbol, or an array. Got a String with value `#{val}`."
       else
         raise "Invalid value for type constraint. Must be an #{T::Types::Base}, a " \
-              "class/module, or an array. Got a `#{val.class}`."
+              "class/module, a symbol, or an array. Got a `#{val.class}`."
       end
       # rubocop:enable Style/CaseLikeIf
     end

@@ -278,6 +278,12 @@ module T
     end
   end
 
+  ### Literal types ###
+
+  def self.Symbol(sym)
+    T::Types::LiteralValue.new(sym)
+  end
+
   ### Generic classes ###
 
   module Array

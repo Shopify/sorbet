@@ -166,6 +166,9 @@ module T
   # For more information, see https://sorbet.org/docs/generics#generic-methods
   def self.type_parameter(name); end
 
+  # Type syntax to declare a symbol literal type.
+  def self.Symbol(sym); end
+
   # Type syntax to declare a type equivalent to the receiver of the method
   # (i.e., the type of the `self` keyword).
   #

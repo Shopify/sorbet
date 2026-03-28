@@ -86,6 +86,7 @@ require_relative 'types/boolean'
 
 # Depends on types/utils
 require_relative 'types/types/typed_array'
+require_relative 'types/types/literal_value'
 require_relative 'types/types/typed_module'
 require_relative 'types/types/typed_class'
 

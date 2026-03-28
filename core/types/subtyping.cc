@@ -435,6 +435,8 @@ TypePtr Types::lub(const GlobalState &gs, const TypePtr &t1, const TypePtr &t2) 
                         if (class1.symbol == class2.symbol) {
                             if (l1.equals(l2)) {
                                 result = t1;
+                            } else if (l1.kind == NamedLiteralType::Kind::Symbol) {
+                                result = OrType::make_shared(t1, t2);
                             } else {
                                 result = l1.underlying(gs);
                             }
