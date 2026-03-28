@@ -404,6 +404,10 @@ pm_node_t *TypeToParserNodePrism::toPrismNode(const rbs_node_t *node, const RBSD
                     // * `false` -> `FalseClass`
                     return boolNode->value ? prism.TrueClass(nodeLoc) : prism.FalseClass(nodeLoc);
                 }
+                case RBS_AST_SYMBOL: {
+                    auto *symNode = rbs_down_cast<rbs_ast_symbol_t>(literalNode->literal);
+                    return prism.Symbol(nodeLoc, parser.resolveConstant(symNode));
+                }
                 default: {
                     // We don't have a good way to represent other literal types, so we just return T.untyped for them.
                     if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSUnsupported)) {
