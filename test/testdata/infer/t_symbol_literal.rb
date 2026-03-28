@@ -22,3 +22,29 @@ else
   :tails
 end
 T.reveal_type(x) # error: Revealed type: `T.any(Symbol(:heads), Symbol(:tails))`
+
+# Bare symbol literals in type syntax
+sig {params(x: :foo).void}
+def takes_foo_bare(x); end
+
+takes_foo_bare(:foo)
+takes_foo_bare(:bar) # error: Expected `Symbol(:foo)` but found `Symbol(:bar)`
+
+sig {returns(:ok)}
+def returns_ok
+  :ok
+end
+
+T.assert_type!(returns_ok, T::Symbol(:ok))
+
+# Bare symbols in T.any
+y = T.let(:heads, T.any(:heads, :tails))
+T.reveal_type(y) # error: Revealed type: `T.any(Symbol(:heads), Symbol(:tails))`
+
+# Bare symbol in T.let
+z = T.let(:foo, :foo)
+T.reveal_type(z) # error: Revealed type: `Symbol(:foo)`
+
+# Bare symbol in T.nilable
+w = T.let(nil, T.nilable(:foo))
+T.reveal_type(w) # error: Revealed type: `T.nilable(Symbol(:foo))`

@@ -1041,6 +1041,12 @@ TypePtr Types::unwrapType(const GlobalState &gs, Loc loc, const TypePtr &tp) {
         return make_type<TupleType>(move(unwrappedElems));
     }
 
+    // Symbol literals are allowed in type syntax: sig {returns(:ok)}
+    if (isa_type<NamedLiteralType>(tp) &&
+        cast_type_nonnull<NamedLiteralType>(tp).kind == NamedLiteralType::Kind::Symbol) {
+        return tp;
+    }
+
     if (auto e = gs.beginError(loc, errors::Infer::BareTypeUsage)) {
         e.setHeader("Unexpected bare `{}` value found in type position", tp.show(gs));
     }

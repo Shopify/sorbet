@@ -65,8 +65,6 @@ class A
       #              ^^^  error: Unexpected bare `String("a")` value found in type position
       k3: T.class_of(:b),
       #   ^^^^^^^^^^^^^^ error: `T.class_of` needs a class or module as its argument
-      #              ^^  error: Unsupported literal in type syntax
-      #              ^^  error: Unexpected bare `Symbol(:b)` value found in type position
       l: {[] => String}, # error: Shape keys must be literals
       m: {foo: 0}, # error: Unsupported literal in type syntax
       n: T.all, # error: Not enough arguments provided for method

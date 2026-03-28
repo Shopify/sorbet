@@ -1552,6 +1552,13 @@ optional<TypeSyntax::ResultType> getResultTypeAndBindWithSelfTypeParamsImpl(core
         result.type = core::Types::untypedUntracked();
     } else if (ast::isa_tree<ast::Literal>(expr)) {
         const auto &lit = ast::cast_tree_nonnull<ast::Literal>(expr);
+
+        // Bare symbol literals are allowed in type syntax: sig {returns(:ok)}
+        if (lit.isSymbol()) {
+            result.type = lit.value;
+            return result;
+        }
+
         core::TypePtr underlying;
         if (core::isa_type<core::NamedLiteralType>(lit.value)) {
             underlying = lit.value.underlying(ctx);

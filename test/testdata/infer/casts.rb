@@ -32,7 +32,6 @@ class TestCasts
     str = T.cast("x", "y") # error: `T.cast` is useless
                     # ^^^ error: Unsupported literal in type syntax
 
-    sym = T.cast(:x, :y) # error: `T.cast` is useless
-                   # ^^ error: Unsupported literal in type syntax
+    sym = T.cast(:x, :y)
   end
 end

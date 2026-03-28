@@ -104,9 +104,9 @@ bb0[firstDead=63]():
     keep_for_ide$60: Symbol(:y) = :y
     keep_for_ide$60: T.untyped = <keep-alive> keep_for_ide$60
     <castTemp>$61: Symbol(:x) = :x
-    sym: Symbol = cast(<castTemp>$61: Symbol(:x), Symbol);
-    <returnMethodTemp>$2: Symbol = sym
-    <finalReturn>: T.noreturn = return <returnMethodTemp>$2: Symbol
+    sym: Symbol(:y) = cast(<castTemp>$61: Symbol(:x), Symbol(:y));
+    <returnMethodTemp>$2: Symbol(:y) = sym
+    <finalReturn>: T.noreturn = return <returnMethodTemp>$2: Symbol(:y)
     <unconditional> -> bb1
 
 # backedges

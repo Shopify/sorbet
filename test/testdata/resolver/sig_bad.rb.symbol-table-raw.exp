@@ -1,9 +1,9 @@
 class <C <U <root>>> < <C <U Object>> ()
   class <S <C <U <root>>> $1>[<C <U <AttachedClass>>>] < <S <C <U Object>> $1> ()
-    method <S <C <U <root>>> $1>#<N <U <static-init>> $CENSORED> (<blk>) @ Loc {file=test/testdata/resolver/sig_bad.rb start=2:1 end=80:4}
+    method <S <C <U <root>>> $1>#<N <U <static-init>> $CENSORED> (<blk>) @ Loc {file=test/testdata/resolver/sig_bad.rb start=2:1 end=78:4}
       argument <blk><block> @ Loc {file=test/testdata/resolver/sig_bad.rb start=??? end=???}
   class <C <U A>> < <C <U Object>> () @ Loc {file=test/testdata/resolver/sig_bad.rb start=10:1 end=10:8}
-    method <C <U A>>#<U bad> (a, b, c, c1, c2, c3, d, e, b1, c11, c12, c13, c14, d1, e1, f, g, h, i, j, k, k1, k2, k3, l, m, n, o, <blk>) -> T2 @ Loc {file=test/testdata/resolver/sig_bad.rb start=77:3 end=77:111}
+    method <C <U A>>#<U bad> (a, b, c, c1, c2, c3, d, e, b1, c11, c12, c13, c14, d1, e1, f, g, h, i, j, k, k1, k2, k3, l, m, n, o, <blk>) -> T2 @ Loc {file=test/testdata/resolver/sig_bad.rb start=75:3 end=75:111}
       argument a<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=17:7 end=17:8}
       argument b<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=18:7 end=18:8}
       argument c<> -> Object @ Loc {file=test/testdata/resolver/sig_bad.rb start=20:7 end=20:8}
@@ -28,14 +28,14 @@ class <C <U <root>>> < <C <U Object>> ()
       argument k1<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=58:7 end=58:9}
       argument k2<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=62:7 end=62:9}
       argument k3<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=66:7 end=66:9}
-      argument l<> -> {} @ Loc {file=test/testdata/resolver/sig_bad.rb start=70:7 end=70:8}
-      argument m<> -> {foo: Integer} @ Loc {file=test/testdata/resolver/sig_bad.rb start=71:7 end=71:8}
-      argument n<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=72:7 end=72:8}
-      argument o<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=73:7 end=73:8}
+      argument l<> -> {} @ Loc {file=test/testdata/resolver/sig_bad.rb start=68:7 end=68:8}
+      argument m<> -> {foo: Integer} @ Loc {file=test/testdata/resolver/sig_bad.rb start=69:7 end=69:8}
+      argument n<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=70:7 end=70:8}
+      argument o<> -> T.untyped @ Loc {file=test/testdata/resolver/sig_bad.rb start=71:7 end=71:8}
       argument <blk><block> -> T.noreturn @ Loc {file=test/testdata/resolver/sig_bad.rb start=??? end=???}
   class <S <C <U A>> $1>[<C <U <AttachedClass>>>] < <S <C <U Object>> $1> (<C <U Sig>>) @ Loc {file=test/testdata/resolver/sig_bad.rb start=10:1 end=10:8}
     type-member(+) <S <C <U A>> $1>::<C <U <AttachedClass>>> -> LambdaParam(<S <C <U A>> $1>::<C <U <AttachedClass>>>, lower=T.noreturn, upper=A) @ Loc {file=test/testdata/resolver/sig_bad.rb start=10:1 end=10:8}
-    method <S <C <U A>> $1>#<U <static-init>> (<blk>) @ Loc {file=test/testdata/resolver/sig_bad.rb start=10:1 end=80:4}
+    method <S <C <U A>> $1>#<U <static-init>> (<blk>) @ Loc {file=test/testdata/resolver/sig_bad.rb start=10:1 end=78:4}
       argument <blk><block> @ Loc {file=test/testdata/resolver/sig_bad.rb start=??? end=???}
     method <S <C <U A>> $1>#<U unsupported> (<blk>) @ Loc {file=test/testdata/resolver/sig_bad.rb start=13:3 end=13:23}
       argument <blk><block> @ Loc {file=test/testdata/resolver/sig_bad.rb start=??? end=???}

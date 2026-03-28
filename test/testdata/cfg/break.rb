@@ -36,4 +36,4 @@ T.reveal_type(b) # error: Revealed type: `T.nilable(String)`
 c = while 1.to_s == ""
       break :abc if 1.to_s == ""
     end
-T.reveal_type(c) # error: Revealed type: `T.nilable(Symbol)`
+T.reveal_type(c) # error: Revealed type: `T.nilable(Symbol(:abc))`

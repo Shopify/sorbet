@@ -22,7 +22,7 @@ class <emptyTree><<C <root>>> < (::<todo sym>)
         s.+(3)
         f = <cast:cast>(6.000000, Float, 7.000000)
         str = <cast:cast>("x", String, "y")
-        sym = <cast:cast>(:x, Symbol, :y)
+        sym = <cast:cast>(:x, Symbol(:y), :y)
       end
     end
 

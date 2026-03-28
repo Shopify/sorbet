@@ -29,8 +29,6 @@ class TestProc
       #                                      ^ error: Unexpected bare `Integer(0)` value found in type position
       #  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ error: `params` expects keyword arguments
       w: T.proc.params(x: :f).returns(Integer),
-      #                   ^^ error: Unsupported literal in type syntax
-      #                   ^^ error: Unexpected bare `Symbol(:f)` value found in type position
     ).returns(NilClass)
   end
   def bad(x, y, z, w)
