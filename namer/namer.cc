@@ -88,6 +88,13 @@ class SymbolFinder {
     // This tracks those as they appear.
     vector<optional<core::FoundModifier>> methodVisiStack = {nullopt};
 
+    // Tracks method names discovered inside nested modifier chains like `private unknown def foo`.
+    // When a known modifier wraps another send (not a literal or RuntimeMethodDefinition),
+    // we increment wrappedMethodDepth. When the inner RuntimeMethodDefinition is visited,
+    // we stash its name. Outer modifiers then consume the stashed name in postTransformSend.
+    core::NameRef wrappedMethodName;
+    int wrappedMethodDepth = 0;
+
     void findClassModifiers(core::Context ctx, core::FoundDefinitionRef klass, const ast::ExpressionPtr &line) {
         auto send = ast::cast_tree<ast::Send>(line);
         if (send == nullptr) {
@@ -361,9 +368,26 @@ public:
         }
     }
 
+    void preTransformSend(core::Context ctx, const ast::ExpressionPtr &tree) {
+        auto &original = ast::cast_tree_nonnull<ast::Send>(tree);
+        if (original.numPosArgs() == 1 && ast::isa_tree<ast::Send>(original.getPosArg(0))) {
+            wrappedMethodDepth++;
+        }
+    }
+
     void postTransformSend(core::Context ctx, const ast::ExpressionPtr &tree) {
         auto &original = ast::cast_tree_nonnull<ast::Send>(tree);
         auto ownerIsMethod = getOwnerRaw().kind() == core::FoundDefinitionRef::Kind::Method;
+
+        // Track sends in a nested chain like `private unknown def foo`.
+        // Any single-arg send wrapping another send participates in depth tracking.
+        // The inner RuntimeMethodDefinition stashes the method name via
+        // postTransformRuntimeMethodDefinition; we consume it in the switch below.
+        bool unwrapping = wrappedMethodDepth > 0 && original.numPosArgs() == 1 &&
+                          ast::isa_tree<ast::Send>(original.getPosArg(0));
+        if (unwrapping) {
+            wrappedMethodDepth--;
+        }
 
         switch (original.fun.rawId()) {
             case core::Names::privateClassMethod().rawId():
@@ -371,7 +395,11 @@ public:
                 if (ownerIsMethod) {
                     break;
                 }
-                addMethodModifiers(ctx, original.fun, original.posArgs());
+                if (unwrapping && wrappedMethodName.exists()) {
+                    addMethodModifier(ctx, original.fun, wrappedMethodName, original.loc);
+                } else {
+                    addMethodModifiers(ctx, original.fun, original.posArgs());
+                }
                 break;
             }
             case core::Names::packagePrivate().rawId():
@@ -402,6 +430,8 @@ public:
                         original.fun,
                         core::NameRef::noName(),
                     }};
+                } else if (unwrapping && wrappedMethodName.exists()) {
+                    addMethodModifier(ctx, original.fun, wrappedMethodName, original.loc);
                 } else {
                     addMethodModifiers(ctx, original.fun, original.posArgs());
                 }
@@ -423,10 +453,18 @@ public:
                 break;
             }
         }
+
+        if (unwrapping && wrappedMethodDepth == 0) {
+            wrappedMethodName = core::NameRef::noName();
+        }
     }
 
     void postTransformRuntimeMethodDefinition(core::Context, const ast::ExpressionPtr &tree) {
         auto &original = ast::cast_tree_nonnull<ast::RuntimeMethodDefinition>(tree);
+
+        if (wrappedMethodDepth > 0) {
+            wrappedMethodName = original.name;
+        }
 
         // visibility toggle doesn't look at `self.*` methods, only instance methods
         // (need to use `class << self` to use nullary private with singleton class methods)
@@ -445,14 +483,19 @@ public:
     void addMethodModifier(core::Context ctx, core::NameRef modifierName, const ast::ExpressionPtr &arg) {
         auto target = unwrapLiteralToMethodName(ctx, arg);
         if (target.exists()) {
-            foundDefs->addModifier(core::FoundModifier{
-                core::FoundModifier::Kind::Method,
-                getOwner(),
-                arg.loc(),
-                /*name*/ modifierName,
-                target,
-            });
+            addMethodModifier(ctx, modifierName, target, arg.loc());
         }
+    }
+
+    void addMethodModifier(core::Context ctx, core::NameRef modifierName, core::NameRef target,
+                           core::LocOffsets loc) {
+        foundDefs->addModifier(core::FoundModifier{
+            core::FoundModifier::Kind::Method,
+            getOwner(),
+            loc,
+            /*name*/ modifierName,
+            target,
+        });
     }
 
     void addMethodAlias(core::Context ctx, const ast::Send &send) {
@@ -516,11 +559,6 @@ public:
         } else if (auto def = ast::cast_tree<ast::RuntimeMethodDefinition>(expr)) {
             // this handles the `private def foo` case
             return def->name;
-        } else if (auto send = ast::cast_tree<ast::Send>(expr)) {
-            // recurse down through other method modifiers, so we can handle e.g. `private abstract def foo`
-            if (send->numPosArgs() == 1) {
-                return unwrapLiteralToMethodName(ctx, send->getPosArg(0));
-            }
         }
 
         ENFORCE(!ast::isa_tree<ast::MethodDef>(expr), "methods inside sends should be gone");
