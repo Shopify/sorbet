@@ -336,15 +336,21 @@ end
 # This will result in make_value returning the same object for same set of attributes always, but the values that
 # aren’t needed anymore woudn’t be sitting in the cache forever.
 class ObjectSpace::WeakKeyMap < Object
+  extend T::Generic
+
+  K = type_member
+  V = type_member
   
   # Returns the value associated with the given key if found
   # If key is not found, returns nil
-  def [](_); end
+  sig {params(key: K).returns(T.nilable(V))}
+  def [](key); end
   
   # Associates the given value with the given key
   # The reference to key is weak, so when there is no other reference to key it may be garbage collected
   # If the given key exists, replaces its value with the given value; the ordering is not affected
-  def []=(_,_); end
+  sig {params(key: K, value: V).returns(V)}
+  def []=(key, value); end
   
   # Removes all map entries; returns self.
   sig {returns(T.self_type)}
@@ -352,17 +358,19 @@ class ObjectSpace::WeakKeyMap < Object
   
   # Deletes the entry for the given key and returns its associated value
   # If no block is given and key is found, deletes the entry and returns the associated value
-  def delete(_); end
+  sig {params(key: K).returns(T.nilable(V))}
+  def delete(key); end
   
   # Returns the existing equal key if it exists, otherwise returns nil.
   # This might be useful for implementing caches, so that only one copy of some object would be used everywhere in the program
-  def getkey(_); end
+  sig {params(key: K).returns(T.nilable(K))}
+  def getkey(key); end
   
   # Returns a new String containing informations about the map
   sig {returns(String)}
   def inspect; end
   
   # Returns true if key is a key in self, otherwise false.
-  sig {params(key: T.untyped).returns(T::Boolean)}
+  sig {params(key: K).returns(T::Boolean)}
   def key?(key); end
 end
