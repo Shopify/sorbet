@@ -529,6 +529,11 @@ pipeline_tests(
             "testdata/**/*.rbi",
             "testdata/**/*.exp",
         ],
+        exclude = [
+            # Top level RBS type alias comments are only supported in Prism
+            "testdata/rbs/signatures_type_aliases_top_level.rb",
+            "testdata/rbs/signatures_type_aliases_empty_file.rb",
+        ],
     ),
     "LSPTests",
     extra_files = ["testdata/lsp/rubyfmt-stub/rubyfmt"],
@@ -600,6 +605,10 @@ pipeline_tests(
         exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
             "testdata/rbs/assertions_heredoc_modified.rb",
+
+            # Top level RBS type alias comments are only supported in Prism
+            "testdata/rbs/signatures_type_aliases_top_level.rb",
+            "testdata/rbs/signatures_type_aliases_empty_file.rb",
         ],
     ),
     "PosTests",
