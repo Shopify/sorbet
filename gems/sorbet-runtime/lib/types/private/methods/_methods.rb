@@ -236,6 +236,7 @@ module T::Private::Methods
     # (or unwrap back to the original method).
     key = method_owner_and_name_to_key(mod, method_name)
     unless current_declaration.raw
+      T::Private::Metrics.increment('sorbet.runtime.method_wrappers_created')
       T::Private::ClassUtils.replace_method(mod, method_name, true) do |*args, &blk|
         method_sig = T::Private::Methods.maybe_run_sig_block_for_key(key)
         method_sig ||= T::Private::Methods._handle_missing_method_signature(
@@ -247,15 +248,18 @@ module T::Private::Methods
         # Should be the same logic as CallValidation.wrap_method_if_needed but we
         # don't want that extra layer of indirection in the callstack
         if method_sig.mode == T::Private::Methods::Modes.abstract
+          T::Private::Metrics.increment('sorbet.runtime.abstract_method_calls')
           # We're in an interface method, keep going up the chain
           if defined?(super)
             super(*args, &blk)
           else
+            T::Private::Metrics.increment('sorbet.runtime.abstract_method_raises')
             raise NotImplementedError.new("The method `#{method_sig.method_name}` on #{mod} is declared as `abstract`. It does not have an implementation.")
           end
         # Note, this logic is duplicated (intentionally, for micro-perf) at `CallValidation.wrap_method_if_needed`,
         # make sure to keep changes in sync.
         elsif method_sig.check_level == :always || (method_sig.check_level == :tests && T::Private::RuntimeLevels.check_tests?)
+          T::Private::Metrics.increment('sorbet.runtime.type_checked_calls')
           CallValidation.validate_call(self, original_method, method_sig, args, blk)
         else
           original_method.bind_call(self, *args, &blk)
