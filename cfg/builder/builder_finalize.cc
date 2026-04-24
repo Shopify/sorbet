@@ -228,6 +228,8 @@ void CFGBuilder::dealias(core::Context ctx, CFG &cfg) {
         for (Binding &bind : bb->exprs) {
             if (auto i = cast_instruction<Ident>(bind.value)) {
                 i->what = maybeDealias(ctx, cfg, i->what, current);
+            } else if (auto lf = cast_instruction<LoadIvar>(bind.value)) {
+                lf->fallbackLocal = maybeDealias(ctx, cfg, lf->fallbackLocal, current);
             }
             if (mayHaveAlias.contains(bind.bind.variable.id())) {
                 /* invalidate a stale record (uncommon) */
@@ -255,6 +257,8 @@ void CFGBuilder::dealias(core::Context ctx, CFG &cfg) {
                     v->what = maybeDealias(ctx, cfg, v->what.variable, current);
                 } else if (auto v = cast_instruction<Return>(bind.value)) {
                     v->what = maybeDealias(ctx, cfg, v->what.variable, current);
+                } else if (auto v = cast_instruction<LoadIvar>(bind.value)) {
+                    v->fallbackLocal = maybeDealias(ctx, cfg, v->fallbackLocal, current);
                 }
             }
 
@@ -309,7 +313,8 @@ void CFGBuilder::removeDeadAssigns(core::Context ctx, const CFG::ReadsAndWrites 
                               // adding more instruction types in the future.
                               if (isa_instruction<Ident>(bind.value) || isa_instruction<Literal>(bind.value) ||
                                   isa_instruction<LoadSelf>(bind.value) || isa_instruction<LoadArg>(bind.value) ||
-                                  isa_instruction<LoadYieldParams>(bind.value)) {
+                                  isa_instruction<LoadYieldParams>(bind.value) ||
+                                  isa_instruction<LoadIvar>(bind.value)) {
                                   return true;
                               }
                           }

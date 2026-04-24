@@ -195,6 +195,13 @@ class Environment {
     core::TypeAndOrigins getTypeFromRebind(core::Context ctx, const core::DispatchComponent &main,
                                            cfg::LocalRef fallback);
 
+    core::TypeAndOrigins resolveIvarFromRebind(core::Context ctx, const cfg::Binding &bind,
+                                              const cfg::LoadIvar &insn) const;
+
+    std::optional<core::TypeAndOrigins> resolveIvarOnSelfType(core::Context ctx, const cfg::Binding &bind,
+                                                             const cfg::LoadIvar &insn,
+                                                             const core::TypePtr &selfType) const;
+
 public:
     Environment(core::Loc ownerLoc);
     Environment(const Environment &rhs) = delete;

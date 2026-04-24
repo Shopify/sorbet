@@ -441,7 +441,22 @@ BasicBlock *CFGBuilder::walk(CFGContext cctx, ast::ExpressionPtr &what, BasicBlo
                 auto isAssign = false;
                 auto [loc, _foundError] = unresolvedIdent2Local(cctx, id, isAssign);
                 ENFORCE(loc.exists());
-                current->exprs.emplace_back(cctx.target, id.loc, make_insn<Ident>(loc));
+
+                // Inside a block, emit LoadIvar for ivar reads to defer resolution
+                // to inference time. This mirrors the LoadSelf pattern: the
+                // instruction carries the block's SendAndBlockLink so inference can
+                // check if self was rebound (e.g., via T.proc.bind(X)). When self
+                // is not rebound, the fallbackLocal (same local Ident would use)
+                // is returned, preserving flow-sensitive narrowing and all existing
+                // behavior.
+                if (cctx.isInsideRubyBlock && id.kind == ast::UnresolvedIdent::Kind::Instance &&
+                    cctx.link != nullptr) {
+                    current->exprs.emplace_back(
+                        cctx.target, id.loc,
+                        make_insn<LoadIvar>(id.name, loc, cctx.link));
+                } else {
+                    current->exprs.emplace_back(cctx.target, id.loc, make_insn<Ident>(loc));
+                }
 
                 ret = current;
             },

@@ -198,6 +198,11 @@ UnorderedMap<core::NameRef, core::TypePtr> guessArgumentTypes(core::Context ctx,
                 if (fnd != blockLocals.end()) {
                     newInsert.insert(newInsert.end(), fnd->second.begin(), fnd->second.end());
                 }
+            } else if (auto lf = cfg::cast_instruction<cfg::LoadIvar>(bind.value)) {
+                auto fnd = blockLocals.find(lf->fallbackLocal);
+                if (fnd != blockLocals.end()) {
+                    newInsert.insert(newInsert.end(), fnd->second.begin(), fnd->second.end());
+                }
             } else if (auto snd = cfg::cast_instruction<cfg::Send>(bind.value)) {
                 // see if we have at least a single call argument that is a method argument
                 bool shouldFindArgumentTypes = false;

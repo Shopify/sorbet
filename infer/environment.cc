@@ -95,6 +95,11 @@ KnowledgeFilter::KnowledgeFilter(core::Context ctx, cfg::CFG &cfg) {
                         used_vars[id->what.id()] = true;
                         changed = true;
                     }
+                } else if (auto lf = cfg::cast_instruction<cfg::LoadIvar>(bind.value)) {
+                    if (isNeeded(bind.bind.variable) && !isNeeded(lf->fallbackLocal)) {
+                        used_vars[lf->fallbackLocal.id()] = true;
+                        changed = true;
+                    }
                 } else if (auto send = cfg::cast_instruction<cfg::Send>(bind.value)) {
                     if (send->fun == core::Names::bang()) {
                         if (send->args.empty()) {
@@ -1237,6 +1242,35 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
 
                 ENFORCE(!tp.origins.empty(), "Inferencer did not assign location");
             },
+            [&](cfg::LoadIvar &insn) {
+                ENFORCE(insn.link);
+                // Check for rebind via the sig (T.proc.bind(X)), like LoadSelf.
+                auto rebind = insn.link->result->main.rebind;
+                if (rebind.exists()) {
+                    // Sig-based rebind — resolve via dispatch result (handles
+                    // OR/AND combinators for multi-dispatch).
+                    tp = resolveIvarFromRebind(ctx, bind, insn);
+                } else {
+                    // No sig-based rebind. Check if self was rebound in the block
+                    // body via T.bind(self, X) by inspecting the environment's
+                    // current self type.
+                    auto selfType = getTypeAndOrigin(cfg::LocalRef::selfVariable()).type;
+                    auto resolved = resolveIvarOnSelfType(ctx, bind, insn, selfType);
+                    if (resolved.has_value()) {
+                        tp = std::move(resolved.value());
+                    } else {
+                        // No rebind at all — behave exactly like Ident.
+                        const core::TypeAndOrigins &typeAndOrigin = getTypeAndOrigin(insn.fallbackLocal);
+                        tp.type = typeAndOrigin.type;
+                        if (bind.bind.variable.isSyntheticTemporary(inWhat)) {
+                            tp.origins = typeAndOrigin.origins;
+                        } else {
+                            tp.origins.emplace_back(ctx.locAt(bind.loc));
+                        }
+                    }
+                }
+                ENFORCE(!tp.origins.empty(), "Inferencer did not assign location");
+            },
             [&](cfg::Alias &a) {
                 core::SymbolRef symbol = a.what.dealias(ctx);
                 if (symbol.isClassOrModule()) {
@@ -1859,6 +1893,14 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
             updateKnowledge(ctx, bind.bind.variable, ctx.locAt(bind.loc), send, knowledgeFilter);
         } else if (auto i = cfg::cast_instruction<cfg::Ident>(bind.value)) {
             propagateKnowledge(ctx, bind.bind.variable, i->what, knowledgeFilter);
+        } else if (auto lf = cfg::cast_instruction<cfg::LoadIvar>(bind.value)) {
+            // Only propagate knowledge when self was not rebound. When rebound,
+            // the result type comes from the rebound class's field declaration,
+            // not from fallbackLocal, so knowledge about the lexical field's
+            // type tests would be stale.
+            if (!lf->link->result->main.rebind.exists()) {
+                propagateKnowledge(ctx, bind.bind.variable, lf->fallbackLocal, knowledgeFilter);
+            }
         } else if (auto l = cfg::cast_instruction<cfg::LoadArg>(bind.value)) {
             const auto &argInfo = l->argument(ctx);
             if (argInfo.flags.isBlock && argInfo.type == nullptr && knowledgeFilter.isNeeded(bind.bind.variable)) {
@@ -1886,6 +1928,140 @@ void Environment::cloneFrom(const Environment &rhs) {
     this->bb = rhs.bb;
     this->pinnedTypes = rhs.pinnedTypes;
     this->typeTestsWithVar.cloneFrom(rhs.typeTestsWithVar);
+}
+
+// Resolve an ivar when self was rebound in the block body via T.bind(self, X).
+// Returns nullopt if self matches the lexical owner (no rebind happened).
+std::optional<core::TypeAndOrigins> Environment::resolveIvarOnSelfType(core::Context ctx, const cfg::Binding &bind,
+                                                                      const cfg::LoadIvar &insn,
+                                                                      const core::TypePtr &selfType) const {
+    core::ClassOrModuleRef effectiveClass;
+    const std::vector<core::TypePtr> *effectiveTargs = nullptr;
+
+    if (core::isa_type<core::ClassType>(selfType)) {
+        effectiveClass = core::cast_type_nonnull<core::ClassType>(selfType).symbol;
+    } else if (auto at = core::cast_type<core::AppliedType>(selfType)) {
+        effectiveClass = at->klass;
+        effectiveTargs = &at->targs;
+    } else {
+        categoryCounterInc("infer.loadIvar", "unhandledSelfType");
+        return std::nullopt;
+    }
+
+    // Check if self differs from the lexical owner. If the effective class is
+    // the lexical class or a subclass of it, the lexical resolution (in
+    // fallbackLocal) is correct — subclasses inherit their parent's ivars.
+    // If the effective class is an unrelated class or a *superclass* of the
+    // lexical owner (e.g., T.bind(self, Object) inside Foo < Object), the
+    // lexical ivar doesn't exist on the effective class at runtime.
+    auto lexicalOwner = ctx.owner.owner(ctx).asClassOrModuleRef();
+    if (effectiveClass == lexicalOwner || effectiveClass.data(ctx)->derivesFrom(ctx, lexicalOwner)) {
+        return std::nullopt;
+    }
+
+    // Self was rebound to a different class — resolve the ivar there.
+    auto sym = effectiveClass.data(ctx)->findMemberTransitive(ctx, insn.name);
+    if (sym.exists() && sym.isField(ctx)) {
+        auto field = sym.asFieldRef();
+        const auto &targs = effectiveTargs != nullptr
+                                ? *effectiveTargs
+                                : effectiveClass.data(ctx)->selfTypeArgs(ctx);
+        auto type = core::Types::resultTypeAsSeenFrom(
+            ctx, field.data(ctx)->resultType,
+            field.data(ctx)->owner, effectiveClass, targs);
+        if (type == nullptr) {
+            type = core::Types::untypedUntracked();
+        }
+        return core::TypeAndOrigins{type, {field.data(ctx)->loc()}};
+    }
+
+    // Ivar not found on the rebound class — untyped.
+    return core::TypeAndOrigins{core::Types::untypedUntracked(), {ctx.locAt(bind.loc)}};
+}
+
+// Resolve an ivar against the class that self was rebound to via a sig.
+// Walks the dispatch result's main and secondary components (mirroring LoadSelf).
+core::TypeAndOrigins Environment::resolveIvarFromRebind(core::Context ctx, const cfg::Binding &bind,
+                                                       const cfg::LoadIvar &insn) const {
+    // Helper: resolve an ivar on a single dispatch component's rebound class.
+    auto resolveOnComponent = [&](const core::DispatchComponent &comp) -> core::TypeAndOrigins {
+        // Not every component in a multi-dispatch chain has a rebind.
+        if (!comp.rebind.exists()) {
+            return getTypeAndOrigin(insn.fallbackLocal);
+        }
+
+        // Get the rebound self type. Delegates to the same rebind symbols
+        // that getTypeFromRebind handles for LoadSelf.
+        core::TypePtr selfType;
+        if (comp.rebind == core::Symbols::MagicBindToSelfType()) {
+            selfType = comp.receiver;
+        } else if (comp.rebind == core::Symbols::MagicBindToAttachedClass()) {
+            auto appliedType = core::cast_type<core::AppliedType>(comp.receiver);
+            if (!appliedType) {
+                return getTypeAndOrigin(insn.fallbackLocal);
+            }
+            auto attachedClass = appliedType->klass.data(ctx)->findMember(ctx, core::Names::Constants::AttachedClass());
+            if (!attachedClass.exists()) {
+                return getTypeAndOrigin(insn.fallbackLocal);
+            }
+            auto lambdaParam = core::cast_type<core::LambdaParam>(attachedClass.asTypeMemberRef().data(ctx)->resultType);
+            if (!lambdaParam) {
+                return getTypeAndOrigin(insn.fallbackLocal);
+            }
+            selfType = lambdaParam->upperBound;
+        } else {
+            selfType = comp.rebind.data(ctx)->selfType(ctx);
+        }
+
+        // Extract class and targs from the rebound self type.
+        core::ClassOrModuleRef effectiveClass;
+        const std::vector<core::TypePtr> *effectiveTargs = nullptr;
+
+        if (core::isa_type<core::ClassType>(selfType)) {
+            effectiveClass = core::cast_type_nonnull<core::ClassType>(selfType).symbol;
+        } else if (auto at = core::cast_type<core::AppliedType>(selfType)) {
+            effectiveClass = at->klass;
+            effectiveTargs = &at->targs;
+        } else {
+            categoryCounterInc("infer.loadIvar", "unhandledSelfType");
+        }
+
+        if (effectiveClass.exists()) {
+            auto sym = effectiveClass.data(ctx)->findMemberTransitive(ctx, insn.name);
+            if (sym.exists() && sym.isField(ctx)) {
+                auto field = sym.asFieldRef();
+                const auto &targs = effectiveTargs != nullptr
+                                        ? *effectiveTargs
+                                        : effectiveClass.data(ctx)->selfTypeArgs(ctx);
+                auto type = core::Types::resultTypeAsSeenFrom(
+                    ctx, field.data(ctx)->resultType,
+                    field.data(ctx)->owner, effectiveClass, targs);
+                if (type == nullptr) {
+                    type = core::Types::untypedUntracked();
+                }
+                return {type, {field.data(ctx)->loc()}};
+            }
+        }
+
+        // Ivar not found on the rebound class — fall back to untyped.
+        return {core::Types::untypedUntracked(), {ctx.locAt(bind.loc)}};
+    };
+
+    auto tp = resolveOnComponent(insn.link->result->main);
+
+    // Walk secondary dispatch components. For ivar reads, both OR and AND
+    // combinators produce a union (any) of the resolved types: the ivar could
+    // come from any of the dispatch targets at runtime.
+    auto *it = insn.link->result->secondary.get();
+    while (it != nullptr) {
+        auto secondaryTp = resolveOnComponent(it->main);
+        tp.type = core::Types::any(ctx, tp.type, secondaryTp.type);
+        tp.origins.insert(tp.origins.begin(), make_move_iterator(secondaryTp.origins.begin()),
+                          make_move_iterator(secondaryTp.origins.end()));
+        it = it->secondary.get();
+    }
+
+    return tp;
 }
 
 core::TypeAndOrigins Environment::getTypeFromRebind(core::Context ctx, const core::DispatchComponent &main,

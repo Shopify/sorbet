@@ -131,6 +131,8 @@ CFG::ReadsAndWrites CFG::findAllReadsAndWrites(core::Context ctx) {
                 blockReads.add(v->yieldParam.variable.id());
             } else if (auto v = cast_instruction<KeepAlive>(bind.value)) {
                 blockReads.add(v->what.id());
+            } else if (auto v = cast_instruction<LoadIvar>(bind.value)) {
+                blockReads.add(v->fallbackLocal.id());
             }
 
             if (!blockReads.contains(bind.bind.variable.id())) {
