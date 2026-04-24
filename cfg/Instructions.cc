@@ -45,6 +45,7 @@ string spacesForTabLevel(int tabs) {
         CASE_STATEMENT(body, Cast)                \
         CASE_STATEMENT(body, TAbsurd)             \
         CASE_STATEMENT(body, KeepAlive)           \
+        CASE_STATEMENT(body, LoadIvar)           \
     }
 
 string InstructionPtr::toString(const core::GlobalState &gs, const CFG &cfg) const {
@@ -314,6 +315,15 @@ string KeepAlive::toString(const core::GlobalState &gs, const CFG &cfg) const {
 string KeepAlive::showRaw(const core::GlobalState &gs, const CFG &cfg, int tabs) const {
     return fmt::format("KeepAlive {{\n{0}&nbsp;what = {1},\n{0}}}", spacesForTabLevel(tabs),
                        this->what.showRaw(gs, cfg));
+}
+
+string LoadIvar::toString(const core::GlobalState &gs, const CFG &cfg) const {
+    return fmt::format("load_ivar {}", this->name.show(gs));
+}
+
+string LoadIvar::showRaw(const core::GlobalState &gs, const CFG &cfg, int tabs) const {
+    return fmt::format("LoadIvar {{\n{0}&nbsp;name = {1},\n{0}&nbsp;fallbackLocal = {2},\n{0}}}",
+                       spacesForTabLevel(tabs), this->name.show(gs), this->fallbackLocal.showRaw(gs, cfg));
 }
 
 string VariableUseSite::toString(const core::GlobalState &gs, const CFG &cfg) const {

@@ -95,6 +95,11 @@ KnowledgeFilter::KnowledgeFilter(core::Context ctx, cfg::CFG &cfg) {
                         used_vars[id->what.id()] = true;
                         changed = true;
                     }
+                } else if (auto lf = cfg::cast_instruction<cfg::LoadIvar>(bind.value)) {
+                    if (isNeeded(bind.bind.variable) && !isNeeded(lf->fallbackLocal)) {
+                        used_vars[lf->fallbackLocal.id()] = true;
+                        changed = true;
+                    }
                 } else if (auto send = cfg::cast_instruction<cfg::Send>(bind.value)) {
                     if (send->fun == core::Names::bang()) {
                         if (send->args.empty()) {
@@ -1237,6 +1242,12 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
 
                 ENFORCE(!tp.origins.empty(), "Inferencer did not assign location");
             },
+            [&](cfg::LoadIvar &insn) {
+                // LoadIvar is only emitted when lexical resolution failed (ivar not
+                // found on the lexical owner's class). Try to resolve against the
+                // current self type, which may have been rebound by LoadSelf.
+                tp = resolveIvarOnSelfType(ctx, bind, insn, pinnedTypes);
+            },
             [&](cfg::Alias &a) {
                 core::SymbolRef symbol = a.what.dealias(ctx);
                 if (symbol.isClassOrModule()) {
@@ -1859,6 +1870,8 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
             updateKnowledge(ctx, bind.bind.variable, ctx.locAt(bind.loc), send, knowledgeFilter);
         } else if (auto i = cfg::cast_instruction<cfg::Ident>(bind.value)) {
             propagateKnowledge(ctx, bind.bind.variable, i->what, knowledgeFilter);
+        } else if (auto lf = cfg::cast_instruction<cfg::LoadIvar>(bind.value)) {
+            propagateKnowledge(ctx, bind.bind.variable, lf->fallbackLocal, knowledgeFilter);
         } else if (auto l = cfg::cast_instruction<cfg::LoadArg>(bind.value)) {
             const auto &argInfo = l->argument(ctx);
             if (argInfo.flags.isBlock && argInfo.type == nullptr && knowledgeFilter.isNeeded(bind.bind.variable)) {
@@ -1886,6 +1899,56 @@ void Environment::cloneFrom(const Environment &rhs) {
     this->bb = rhs.bb;
     this->pinnedTypes = rhs.pinnedTypes;
     this->typeTestsWithVar.cloneFrom(rhs.typeTestsWithVar);
+}
+
+core::TypeAndOrigins Environment::resolveIvarOnSelfType(core::Context ctx, cfg::Binding &bind, cfg::LoadIvar &insn,
+                                                        UnorderedMap<cfg::LocalRef, core::TypeAndOrigins> &pinnedTypes) {
+    // Extract the effective class and type args from the current self type.
+    auto selfType = getTypeAndOrigin(cfg::LocalRef::selfVariable()).type;
+    core::ClassOrModuleRef effectiveClass;
+    const std::vector<core::TypePtr> *effectiveTargs = nullptr;
+
+    if (core::isa_type<core::ClassType>(selfType)) {
+        effectiveClass = core::cast_type_nonnull<core::ClassType>(selfType).symbol;
+    } else if (auto appliedType = core::cast_type<core::AppliedType>(selfType)) {
+        effectiveClass = appliedType->klass;
+        effectiveTargs = &appliedType->targs;
+    } else {
+        // OrType, AndType, SelfTypeParam, etc. — can't extract a single class.
+        // Track this so telemetry catches real-world triggers.
+        categoryCounterInc("infer.loadIvar", "unhandledSelfType");
+    }
+
+    // Try to resolve the ivar on the effective (possibly rebound) class.
+    if (effectiveClass.exists()) {
+        auto sym = effectiveClass.data(ctx)->findMemberTransitive(ctx, insn.name);
+        if (sym.exists() && sym.isField(ctx)) {
+            auto field = sym.asFieldRef();
+            // When self is a generic applied type (e.g., Box[Integer]), use the
+            // concrete targs so type members resolve to their actual bindings.
+            const auto &targs = effectiveTargs != nullptr
+                                    ? *effectiveTargs
+                                    : effectiveClass.data(ctx)->selfTypeArgs(ctx);
+            auto type = core::Types::resultTypeAsSeenFrom(
+                ctx, field.data(ctx)->resultType,
+                field.data(ctx)->owner, effectiveClass,
+                targs);
+            if (type == nullptr) {
+                type = core::Types::untypedUntracked();
+            }
+            core::TypeAndOrigins tp;
+            tp.type = type;
+            tp.origins.emplace_back(field.data(ctx)->loc());
+            return tp;
+        }
+    }
+
+    // Fallback: use the undeclared-field temporary (T.untyped).
+    core::TypeAndOrigins tp = getTypeAndOrigin(insn.fallbackLocal);
+    if (tp.origins.empty()) {
+        tp.origins.emplace_back(ctx.locAt(bind.loc));
+    }
+    return tp;
 }
 
 core::TypeAndOrigins Environment::getTypeFromRebind(core::Context ctx, const core::DispatchComponent &main,

@@ -195,6 +195,9 @@ class Environment {
     core::TypeAndOrigins getTypeFromRebind(core::Context ctx, const core::DispatchComponent &main,
                                            cfg::LocalRef fallback);
 
+    core::TypeAndOrigins resolveIvarOnSelfType(core::Context ctx, cfg::Binding &bind, cfg::LoadIvar &insn,
+                                               UnorderedMap<cfg::LocalRef, core::TypeAndOrigins> &pinnedTypes);
+
 public:
     Environment(core::Loc ownerLoc);
     Environment(const Environment &rhs) = delete;

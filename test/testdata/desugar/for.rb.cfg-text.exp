@@ -285,7 +285,7 @@ bb19[firstDead=-1](<block-pre-call-temp>$92: Sorbet::Private::Static::Void, <sel
 
 # backedges
 # - bb18
-bb21[firstDead=40](<self>: T.class_of(Main), <block-pre-call-temp>$92: Sorbet::Private::Static::Void, <selfRestore>$93: T.class_of(Main), @a$104: T.untyped, @@b$114: T.untyped, $c$124: T.untyped):
+bb21[firstDead=41](<self>: T.class_of(Main), <block-pre-call-temp>$92: Sorbet::Private::Static::Void, <selfRestore>$93: T.class_of(Main), @a$104: T.untyped, @@b$114: T.untyped, $c$124: T.untyped):
     # outerLoops: 1
     <self>: T.class_of(Main) = loadSelf(each)
     <cfgAlias>$99: T.class_of(<Magic>) = alias <C <Magic>>
@@ -314,7 +314,8 @@ bb21[firstDead=40](<self>: T.class_of(Main), <block-pre-call-temp>$92: Sorbet::P
     <statTemp>$135: Integer(4) = 4
     <statTemp>$133: NilClass = <assignTemp>$8$5: [NilClass, NilClass, NilClass, NilClass, NilClass].[](<statTemp>$135: Integer(4))
     <statTemp>$130: NilClass = <cfgAlias>$132: T.class_of(E).e=(<statTemp>$133: NilClass)
-    <statTemp>$138: T.untyped = @a$104: NilClass.inspect()
+    <statTemp>$139: NilClass = load_ivar @a
+    <statTemp>$138: T.untyped = <statTemp>$139: NilClass.inspect()
     <statTemp>$136: NilClass = <self>: T.class_of(Main).puts(<statTemp>$138: T.untyped)
     <statTemp>$142: T.untyped = @@b$114: NilClass.inspect()
     <statTemp>$140: NilClass = <self>: T.class_of(Main).puts(<statTemp>$142: T.untyped)
@@ -345,7 +346,7 @@ bb23[firstDead=2](<block-pre-call-temp>$160: Sorbet::Private::Static::Void, <sel
 
 # backedges
 # - bb22
-bb25[firstDead=44](<self>: T.class_of(Main), @a$104: T.untyped, @@b$114: T.untyped, $c$124: T.untyped, <block-pre-call-temp>$160: Sorbet::Private::Static::Void, <selfRestore>$161: T.class_of(Main)):
+bb25[firstDead=45](<self>: T.class_of(Main), @a$104: T.untyped, @@b$114: T.untyped, $c$124: T.untyped, <block-pre-call-temp>$160: Sorbet::Private::Static::Void, <selfRestore>$161: T.class_of(Main)):
     # outerLoops: 1
     <self>: T.class_of(Main) = loadSelf(each)
     <blk>$162: T.untyped = load_yield_params(each)
@@ -378,7 +379,8 @@ bb25[firstDead=44](<self>: T.class_of(Main), @a$104: T.untyped, @@b$114: T.untyp
     <statTemp>$204: Integer(4) = 4
     <statTemp>$202: T.untyped = <assignTemp>$10$6: T.untyped.[](<statTemp>$204: Integer(4))
     <statTemp>$199: T.untyped = <cfgAlias>$201: T.class_of(E).e=(<statTemp>$202: T.untyped)
-    <statTemp>$207: T.untyped = @a$104: T.untyped.inspect()
+    <statTemp>$208: T.untyped = load_ivar @a
+    <statTemp>$207: T.untyped = <statTemp>$208: T.untyped.inspect()
     <statTemp>$205: NilClass = <self>: T.class_of(Main).puts(<statTemp>$207: T.untyped)
     <statTemp>$211: T.untyped = @@b$114: T.untyped.inspect()
     <statTemp>$209: NilClass = <self>: T.class_of(Main).puts(<statTemp>$211: T.untyped)

@@ -49,6 +49,7 @@ enum class Tag : uint8_t {
     Cast,
     TAbsurd,
     KeepAlive,
+    LoadIvar,
 };
 
 // A mapping from instruction type to its corresponding tag.
@@ -294,6 +295,26 @@ public:
     std::string showRaw(const core::GlobalState &gs, const CFG &cfg, int tabs = 0) const;
 };
 CheckSize(KeepAlive, 8, 8);
+
+// LoadIvar defers instance variable resolution to inference time.
+// Emitted only when an ivar read inside a block cannot be resolved against the
+// lexical owner's class. During inference, if self has been rebound (e.g., via
+// T.proc.bind(X) or [self: instance]), the ivar is resolved against the rebound
+// class instead.
+INSN(LoadIvar) : public Instruction {
+public:
+    core::NameRef name;           // The ivar name, e.g., @some_ivar
+    LocalRef fallbackLocal;       // Temporary local (typed as T.untyped)
+
+    LoadIvar(core::NameRef name, LocalRef fallbackLocal)
+        : name(name), fallbackLocal(fallbackLocal) {
+        categoryCounterInc("cfg", "loadIvar");
+    }
+
+    std::string toString(const core::GlobalState &gs, const CFG &cfg) const;
+    std::string showRaw(const core::GlobalState &gs, const CFG &cfg, int tabs = 0) const;
+};
+CheckSize(LoadIvar, 8, 8);
 
 class InstructionPtr final {
     using tagged_storage = uint64_t;

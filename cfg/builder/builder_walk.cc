@@ -438,11 +438,34 @@ BasicBlock *CFGBuilder::walk(CFGContext cctx, ast::ExpressionPtr &what, BasicBlo
                 ret = current;
             },
             [&](const ast::UnresolvedIdent &id) {
+                // Normal resolution path — handles errors, discoveredUndeclaredFields, etc.
                 auto isAssign = false;
                 auto [loc, _foundError] = unresolvedIdent2Local(cctx, id, isAssign);
                 ENFORCE(loc.exists());
-                current->exprs.emplace_back(cctx.target, id.loc, make_insn<Ident>(loc));
 
+                // When inside a block and the ivar couldn't be resolved against the
+                // lexical owner, emit LoadIvar instead of Ident to defer resolution
+                // to inference time. This allows blocks with a bound self (e.g.,
+                // T.proc.bind(X) or [self: instance]) to resolve ivars against the
+                // rebound class.
+                //
+                // When the ivar DOES resolve lexically, the normal Ident path is
+                // used — preserving flow-sensitive narrowing and avoiding overhead
+                // for the vast majority of blocks.
+                if (cctx.isInsideRubyBlock && id.kind == ast::UnresolvedIdent::Kind::Instance) {
+                    ENFORCE(cctx.ctx.owner.isMethod());
+                    auto klass = cctx.ctx.owner.owner(cctx.ctx).asClassOrModuleRef();
+                    auto sym = klass.data(cctx.ctx)->findMemberTransitive(cctx.ctx, id.name);
+                    if (!sym.exists()) {
+                        current->exprs.emplace_back(
+                            cctx.target, id.loc,
+                            make_insn<LoadIvar>(id.name, loc));
+                        ret = current;
+                        return;
+                    }
+                }
+
+                current->exprs.emplace_back(cctx.target, id.loc, make_insn<Ident>(loc));
                 ret = current;
             },
             [&](const ast::UnresolvedConstantLit &a) {
