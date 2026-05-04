@@ -77,6 +77,7 @@ void setGlobalStateOptions(core::GlobalState &gs, const options::Options &opts) 
     }
     gs.parseWithPrism = opts.cacheSensitiveOptions.usePrismParser;
     gs.experimentalMethodModifiers = opts.experimentalMethodModifiers;
+    gs.experimentalBoolishType = opts.experimentalBoolishType;
     gs.ruby3KeywordArgs = opts.ruby3KeywordArgs;
     gs.suppressPayloadSuperclassRedefinitionFor = opts.suppressPayloadSuperclassRedefinitionFor;
     if (!opts.uniquelyDefinedBehavior) {

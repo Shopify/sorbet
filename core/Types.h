@@ -128,6 +128,9 @@ public:
     static TypePtr Symbol();
     static TypePtr Float();
     static TypePtr Boolean();
+    static TypePtr Trueish();
+    static TypePtr Falseish();
+    static TypePtr Boolish();
     static TypePtr Object();
     static TypePtr BasicObject();
     static TypePtr arrayOfUntyped(sorbet::core::SymbolRef blame);
@@ -805,6 +808,7 @@ private:
     friend TypePtr Types::nilableProcClass();
     friend TypePtr Types::falsyTypes();
     friend TypePtr Types::Boolean();
+    friend TypePtr Types::Boolish();
     friend class NameSubstitution;
     friend class serialize::SerializerImpl;
     template <class T>

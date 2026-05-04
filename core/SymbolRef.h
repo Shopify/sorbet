@@ -1091,6 +1091,15 @@ public:
         return ClassOrModuleRef::fromRaw(92);
     }
 
+    // Synthetic modules for the restrictive `T::Boolish` type. See `--enable-experimental-boolish-type`.
+    static ClassOrModuleRef T_Trueish() {
+        return ClassOrModuleRef::fromRaw(93);
+    }
+
+    static ClassOrModuleRef T_Falseish() {
+        return ClassOrModuleRef::fromRaw(94);
+    }
+
     static FieldRef ErrorNode() {
         return FieldRef::fromRaw(3);
     }

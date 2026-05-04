@@ -638,6 +638,8 @@ realmain::options::Options RangeAssertion::parseOptions(vector<shared_ptr<RangeA
         BooleanPropertyAssertion::getValue("enable-experimental-method-modifiers", assertions);
     opts.experimentalMethodModifiers = experimentalMethodModifiers.has_value() ? experimentalMethodModifiers.value()
                                                                                : opts.cacheSensitiveOptions.rbsEnabled;
+    opts.experimentalBoolishType =
+        BooleanPropertyAssertion::getValue("enable-experimental-boolish-type", assertions).value_or(false);
     opts.ruby3KeywordArgs =
         BooleanPropertyAssertion::getValue("experimental-ruby3-keyword-args", assertions).value_or(false);
     opts.cacheSensitiveOptions.typedSuper =

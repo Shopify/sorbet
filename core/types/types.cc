@@ -94,6 +94,19 @@ TypePtr Types::Boolean() {
     return res;
 }
 
+TypePtr Types::Trueish() {
+    return make_type<ClassType>(Symbols::T_Trueish());
+}
+
+TypePtr Types::Falseish() {
+    return make_type<ClassType>(Symbols::T_Falseish());
+}
+
+TypePtr Types::Boolish() {
+    static auto res = OrType::make_shared(Trueish(), Falseish());
+    return res;
+}
+
 TypePtr Types::Integer() {
     return make_type<ClassType>(Symbols::Integer());
 }
@@ -173,12 +186,14 @@ TypePtr Types::BasicObject() {
 }
 
 TypePtr Types::falsyTypes() {
-    static auto res = OrType::make_shared(Types::nilClass(), Types::falseClass());
+    static auto res = OrType::make_shared(OrType::make_shared(Types::nilClass(), Types::falseClass()),
+                                          Types::Falseish());
     return res;
 }
 
 absl::Span<const ClassOrModuleRef> Types::falsySymbols() {
-    static InlinedVector<ClassOrModuleRef, 2> res{Symbols::NilClass(), Symbols::FalseClass()};
+    static InlinedVector<ClassOrModuleRef, 3> res{Symbols::NilClass(), Symbols::FalseClass(),
+                                                  Symbols::T_Falseish()};
     return res;
 }
 
@@ -297,12 +312,14 @@ bool Types::canBeTruthy(const GlobalState &gs, const TypePtr &what) {
         [&](const ClassType &c) {
             auto sym = c.symbol;
             isTruthy = sym == core::Symbols::untyped() ||
-                       (sym != core::Symbols::FalseClass() && sym != core::Symbols::NilClass());
+                       (sym != core::Symbols::FalseClass() && sym != core::Symbols::NilClass() &&
+                        sym != core::Symbols::T_Falseish());
         },
         [&](const AppliedType &c) {
             auto sym = c.klass;
             isTruthy = sym == core::Symbols::untyped() ||
-                       (sym != core::Symbols::FalseClass() && sym != core::Symbols::NilClass());
+                       (sym != core::Symbols::FalseClass() && sym != core::Symbols::NilClass() &&
+                        sym != core::Symbols::T_Falseish());
         },
         [&](const TypePtr &) {
             if (is_proxy_type(what)) {

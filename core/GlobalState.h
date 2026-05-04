@@ -655,6 +655,9 @@ public:
     // Enable support experimental method modifiers, such as `abstract def foo; end`
     bool experimentalMethodModifiers = false;
 
+    // Whether to enable the experimental `T::Boolish` type (with `T::Trueish` / `T::Falseish`).
+    bool experimentalBoolishType = false;
+
     // Some options change the behavior of things that might be cached, including ASTs, the file
     // table, the name table, the symbol table, etc.
     //

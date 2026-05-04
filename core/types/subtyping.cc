@@ -1078,7 +1078,22 @@ TypePtr Types::glb(const GlobalState &gs, const TypePtr &t1, const TypePtr &t2) 
 }
 
 bool classSymbolIsAsGoodAs(const GlobalState &gs, ClassOrModuleRef c1, ClassOrModuleRef c2) {
-    return c1 == c2 || c1.data(gs)->derivesFrom(gs, c2);
+    if (c1 == c2) {
+        return true;
+    }
+    // Synthetic parents of the experimental `T::Boolish` type. These relationships are hardcoded
+    // because `T::Trueish` / `T::Falseish` aren't inserted into the real inheritance chain of
+    // `TrueClass` / `FalseClass` / `NilClass` (doing so would leak `Object`'s methods onto them).
+    if (c2 == Symbols::T_Trueish()) {
+        if (c1 == Symbols::TrueClass()) {
+            return true;
+        }
+    } else if (c2 == Symbols::T_Falseish()) {
+        if (c1 == Symbols::FalseClass() || c1 == Symbols::NilClass()) {
+            return true;
+        }
+    }
+    return c1.data(gs)->derivesFrom(gs, c2);
 }
 
 bool isModuleSingletonClass(const GlobalState &gs, ClassOrModuleRef sym) {

@@ -748,6 +748,10 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
     options.add_options(section)("enable-experimental-method-modifiers",
                                  "Enable experimental support for method def modifiers like `abstract def foo; end`.\n"
                                  "Implicitly enabled if you enable RBS support.");
+    options.add_options(section)(
+        "enable-experimental-boolish-type",
+        "Enable the experimental `T::Boolish` type (with `T::Trueish` / `T::Falseish`), a stricter boolean type that "
+        "only permits truthiness checks and logical negation.");
     // }}}
 
     // ----- OTHER -------------------------------------------------------- {{{
@@ -1007,6 +1011,8 @@ void readOptions(Options &opts,
             // so we default to enabling the option unless it's explicitly disabled.
             opts.experimentalMethodModifiers = opts.cacheSensitiveOptions.rbsEnabled;
         }
+
+        opts.experimentalBoolishType = raw["enable-experimental-boolish-type"].as<bool>();
 
         opts.cacheSensitiveOptions.requiresAncestorEnabled = raw["enable-experimental-requires-ancestor"].as<bool>();
         opts.cacheSensitiveOptions.rspecRewriterEnabled = raw["enable-experimental-rspec"].as<bool>();

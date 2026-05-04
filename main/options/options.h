@@ -223,6 +223,9 @@ struct Options {
     // Enable support experimental method modifiers, such as `abstract def foo; end`
     bool experimentalMethodModifiers = false;
 
+    // Enable experimental support for the restrictive `T::Boolish` type (and `T::Trueish` / `T::Falseish`).
+    bool experimentalBoolishType = false;
+
     bool packageAttributedErrors = false;
     bool packageDirected = false;
     bool testPackages = false;

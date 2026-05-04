@@ -906,6 +906,19 @@ void GlobalState::initEmpty() {
     field = enterFieldSymbol(Loc::none(), Symbols::Magic_UntypedSource(), core::Names::Constants::LoadYieldParams());
     ENFORCE_NO_TIMER(field == Symbols::Magic_UntypedSource_LoadYieldParams());
 
+    // Synthetic modules backing the experimental `T::Boolish` type. They are declared as modules
+    // with no superclass so `findMethodTransitive` returns nothing for any method that isn't
+    // explicitly defined on them in `rbi/sorbet/boolish.rbi` — this is what makes `T::Boolish`
+    // restrictive (only `!` and truthiness checks). See `core/types/subtyping.cc` for the
+    // hardcoded subtype relationships (`TrueClass <: T::Trueish`, etc).
+    klass = enterClassSymbol(Loc::none(), Symbols::T(), core::Names::Constants::Trueish());
+    klass.data(*this)->setIsModule(true);
+    ENFORCE_NO_TIMER(klass == Symbols::T_Trueish());
+
+    klass = enterClassSymbol(Loc::none(), Symbols::T(), core::Names::Constants::Falseish());
+    klass.data(*this)->setIsModule(true);
+    ENFORCE_NO_TIMER(klass == Symbols::T_Falseish());
+
     int reservedCount = 0;
 
     // Set the correct resultTypes for all synthesized classes
@@ -965,6 +978,8 @@ void GlobalState::initEmpty() {
     Symbols::untyped().data(*this)->resultType = Types::untypedUntracked();
     Symbols::FalseClass().data(*this)->resultType = Types::falseClass();
     Symbols::TrueClass().data(*this)->resultType = Types::trueClass();
+    Symbols::T_Trueish().data(*this)->resultType = Types::Trueish();
+    Symbols::T_Falseish().data(*this)->resultType = Types::Falseish();
     Symbols::Integer().data(*this)->resultType = Types::Integer();
     Symbols::String().data(*this)->resultType = Types::String();
     Symbols::Symbol().data(*this)->resultType = Types::Symbol();
@@ -1992,6 +2007,7 @@ void GlobalState::copyOptions(const core::GlobalState &other) {
     this->ruby3KeywordArgs = other.ruby3KeywordArgs;
     this->parseWithPrism = other.parseWithPrism;
     this->experimentalMethodModifiers = other.experimentalMethodModifiers;
+    this->experimentalBoolishType = other.experimentalBoolishType;
     this->suppressPayloadSuperclassRedefinitionFor = other.suppressPayloadSuperclassRedefinitionFor;
     this->trackUntyped = other.trackUntyped;
     this->highlightUntypedDiagnosticSeverity = other.highlightUntypedDiagnosticSeverity;
