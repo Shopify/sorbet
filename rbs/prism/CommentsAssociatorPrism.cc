@@ -675,18 +675,18 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *cls = down_cast<pm_class_node_t>(node);
 
             auto classKeywordLoc = translateLocation(cls->class_keyword_loc);
-            contextAllowingTypeAlias.push_back(make_pair(true, classKeywordLoc));
-            associateSignatureCommentsToNode(node);
+            withTypeAliasesAllowed(classKeywordLoc, [&] {
+                associateSignatureCommentsToNode(node);
 
-            auto classLoc = translateLocation(node->location);
-            auto beginLine = posToLine(classLoc.beginPos());
-            consumeCommentsUntilLine(beginLine);
+                auto classLoc = translateLocation(node->location);
+                auto beginLine = posToLine(classLoc.beginPos());
+                consumeCommentsUntilLine(beginLine);
 
-            cls->body = walkBody(up_cast(cls), cls->body);
+                cls->body = walkBody(up_cast(cls), cls->body);
 
-            auto endLine = posToLine(classLoc.endPos());
-            consumeCommentsBetweenLines(beginLine, endLine, "class");
-            contextAllowingTypeAlias.pop_back();
+                auto endLine = posToLine(classLoc.endPos());
+                consumeCommentsBetweenLines(beginLine, endLine, "class");
+            });
             break;
         }
         case PM_CALL_NODE: {
@@ -762,15 +762,15 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *def = down_cast<pm_def_node_t>(node);
 
             auto defKeywordLoc = translateLocation(def->def_keyword_loc);
-            contextAllowingTypeAlias.push_back(make_pair(false, defKeywordLoc));
-            associateSignatureCommentsToNode(node);
+            withTypeAliasesDisallowed(defKeywordLoc, [&] {
+                associateSignatureCommentsToNode(node);
 
-            // This is a singleton method definition (def obj.method) if receiver exists
-            walkNode(def->receiver);
-            def->body = walkBody(up_cast(def), def->body);
+                // This is a singleton method definition (def obj.method) if receiver exists
+                walkNode(def->receiver);
+                def->body = walkBody(up_cast(def), def->body);
 
-            consumeCommentsInsideNode(node, "method");
-            contextAllowingTypeAlias.pop_back();
+                consumeCommentsInsideNode(node, "method");
+            });
             break;
         }
         case PM_ELSE_NODE: {
@@ -848,18 +848,18 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *mod = down_cast<pm_module_node_t>(node);
 
             auto moduleKeywordLoc = translateLocation(mod->module_keyword_loc);
-            contextAllowingTypeAlias.push_back(make_pair(true, moduleKeywordLoc));
-            associateSignatureCommentsToNode(node);
+            withTypeAliasesAllowed(moduleKeywordLoc, [&] {
+                associateSignatureCommentsToNode(node);
 
-            auto modLoc = translateLocation(node->location);
-            auto beginLine = posToLine(modLoc.beginPos());
-            consumeCommentsUntilLine(beginLine);
+                auto modLoc = translateLocation(node->location);
+                auto beginLine = posToLine(modLoc.beginPos());
+                consumeCommentsUntilLine(beginLine);
 
-            mod->body = walkBody(up_cast(mod), mod->body);
+                mod->body = walkBody(up_cast(mod), mod->body);
 
-            auto endLine = posToLine(modLoc.endPos());
-            consumeCommentsBetweenLines(beginLine, endLine, "module");
-            contextAllowingTypeAlias.pop_back();
+                auto endLine = posToLine(modLoc.endPos());
+                consumeCommentsBetweenLines(beginLine, endLine, "module");
+            });
             break;
         }
         case PM_NEXT_NODE: {
@@ -956,18 +956,18 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
             auto *sclass = down_cast<pm_singleton_class_node_t>(node);
 
             auto classKeywordLoc = translateLocation(sclass->class_keyword_loc);
-            contextAllowingTypeAlias.push_back(make_pair(true, classKeywordLoc));
-            associateSignatureCommentsToNode(node);
+            withTypeAliasesAllowed(classKeywordLoc, [&] {
+                associateSignatureCommentsToNode(node);
 
-            auto sclassLoc = translateLocation(node->location);
-            auto beginLine = posToLine(sclassLoc.beginPos());
-            consumeCommentsUntilLine(beginLine);
+                auto sclassLoc = translateLocation(node->location);
+                auto beginLine = posToLine(sclassLoc.beginPos());
+                consumeCommentsUntilLine(beginLine);
 
-            sclass->body = walkBody(up_cast(sclass), sclass->body);
+                sclass->body = walkBody(up_cast(sclass), sclass->body);
 
-            auto endLine = posToLine(sclassLoc.endPos());
-            consumeCommentsBetweenLines(beginLine, endLine, "sclass");
-            contextAllowingTypeAlias.pop_back();
+                auto endLine = posToLine(sclassLoc.endPos());
+                consumeCommentsBetweenLines(beginLine, endLine, "sclass");
+            });
             break;
         }
         case PM_SPLAT_NODE: {
@@ -1043,11 +1043,9 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
 
             // A program may contain top level RBS type alias comments
             auto programLoc = translateLocation(node->location);
-            contextAllowingTypeAlias.push_back(make_pair(true, programLoc));
-
-            program->statements = down_cast<pm_statements_node_t>(walkBody(node, up_cast(program->statements)));
-
-            contextAllowingTypeAlias.pop_back();
+            withTypeAliasesAllowed(programLoc, [&] {
+                program->statements = down_cast<pm_statements_node_t>(walkBody(node, up_cast(program->statements)));
+            });
             break;
         }
         case PM_STATEMENTS_NODE: {

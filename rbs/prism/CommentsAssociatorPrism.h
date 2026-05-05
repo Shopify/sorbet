@@ -77,6 +77,18 @@ private:
     bool typeAliasAllowedInContext() const;
     int maybeInsertStandalonePlaceholders(pm_node_list_t &nodes, int index, int lastLine, int currentLine);
     pm_node_t *createSyntheticPlaceholder(const CommentNodePrism &comment, pm_constant_id_t marker);
+
+    template <typename F> void withTypeAliasesAllowed(core::LocOffsets loc, F &&fn) {
+        contextAllowingTypeAlias.push_back(std::make_pair(true, loc));
+        fn();
+        contextAllowingTypeAlias.pop_back();
+    }
+
+    template <typename F> void withTypeAliasesDisallowed(core::LocOffsets loc, F &&fn) {
+        contextAllowingTypeAlias.push_back(std::make_pair(false, loc));
+        fn();
+        contextAllowingTypeAlias.pop_back();
+    }
 };
 
 } // namespace sorbet::rbs
