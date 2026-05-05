@@ -51,7 +51,11 @@ private:
     std::map<int, CommentNodePrism> commentByLine;
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
-    std::vector<std::pair<bool, core::LocOffsets>> contextAllowingTypeAlias;
+
+    // A stack of contexts tracking whether type aliases should be allowed or not,
+    // along with the location of the node defining that context.
+    std::vector<std::pair<bool, core::LocOffsets>> typeAliasContextStack;
+
     int lastLine;
 
     void walkNode(pm_node_t *node);
@@ -79,15 +83,15 @@ private:
     pm_node_t *createSyntheticPlaceholder(const CommentNodePrism &comment, pm_constant_id_t marker);
 
     template <typename F> void withTypeAliasesAllowed(core::LocOffsets loc, F &&fn) {
-        contextAllowingTypeAlias.push_back(std::make_pair(true, loc));
+        typeAliasContextStack.push_back(std::make_pair(true, loc));
         fn();
-        contextAllowingTypeAlias.pop_back();
+        typeAliasContextStack.pop_back();
     }
 
     template <typename F> void withTypeAliasesDisallowed(core::LocOffsets loc, F &&fn) {
-        contextAllowingTypeAlias.push_back(std::make_pair(false, loc));
+        typeAliasContextStack.push_back(std::make_pair(false, loc));
         fn();
-        contextAllowingTypeAlias.pop_back();
+        typeAliasContextStack.pop_back();
     }
 };
 
