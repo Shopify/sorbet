@@ -610,6 +610,11 @@ pipeline_tests(
         exclude = [
             # Specific test that is modified for Prism, contains minor differences in the exp file
             "testdata/rbs/assertions_heredoc_modified.rb",
+
+            # These test require support for RBS boolean literal types,
+            # which will not be back-ported to the whitequark-based RBS rewriter.
+            "testdata/rbs/annotations_literal_types.rb",
+            "testdata/rbs/signatures_types.rb",
         ],
     ),
     "PosTests",

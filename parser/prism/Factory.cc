@@ -89,6 +89,9 @@ pm_node_t *Factory::ConstantWriteNode(core::LocOffsets loc, pm_constant_id_t nam
     return up_cast(node);
 }
 
+// Create a constant named `name` under `parent`. To create non-qualified constants, use `ConstantReadNode`, e.g.
+// * ConstantPathNode(loc, nullptr, "Foo") -> `::Foo`
+// * ConstantPathNode(loc, ConstantReadNode("Foo"), "Bar") -> `Foo::Bar`
 pm_node_t *Factory::ConstantPathNode(core::LocOffsets loc, pm_node_t *parent, string_view name) const {
     pm_constant_id_t nameId = addConstantToPool(name);
     pm_location_t pmLoc = parser.convertLocOffsets(loc);
@@ -339,6 +342,14 @@ pm_node_t *Factory::Call(core::LocOffsets loc, pm_node_t *receiver, string_view 
 
 pm_node_t *Factory::NilClass(core::LocOffsets loc) const {
     return parser.markResolved(ConstantReadNode("NilClass"sv, loc), core::Symbols::NilClass());
+}
+
+pm_node_t *Factory::TrueClass(core::LocOffsets loc) const {
+    return parser.markResolved(ConstantPathNode(loc, nullptr, "TrueClass"sv), core::Symbols::TrueClass());
+}
+
+pm_node_t *Factory::FalseClass(core::LocOffsets loc) const {
+    return parser.markResolved(ConstantPathNode(loc, nullptr, "FalseClass"sv), core::Symbols::FalseClass());
 }
 
 pm_node_t *Factory::T(core::LocOffsets loc) const {
