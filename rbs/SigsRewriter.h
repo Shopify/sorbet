@@ -29,13 +29,17 @@ struct Comments {
 
 class SigsRewriter {
 public:
-    SigsRewriter(core::MutableContext ctx, std::map<parser::Node *, std::vector<rbs::CommentNode>> &commentsByNode)
-        : ctx(ctx), commentsByNode(commentsByNode){};
+    SigsRewriter(core::MutableContext ctx, std::map<parser::Node *, std::vector<rbs::CommentNode>> &commentsByNode,
+                 std::map<parser::Node *, std::vector<rbs::CommentMap::DataDefineMember>> &dataDefineMembersByNode)
+        : ctx(ctx), commentsByNode(commentsByNode), dataDefineMembersByNode(dataDefineMembersByNode){};
     std::unique_ptr<parser::Node> run(std::unique_ptr<parser::Node> tree);
 
 private:
     core::MutableContext ctx;
+    // Non-owning references to CommentMap fields. The CommentMap is owned by the
+    // pipeline caller (runRBSRewrite) and outlives the SigsRewriter.
     std::map<parser::Node *, std::vector<rbs::CommentNode>> &commentsByNode;
+    std::map<parser::Node *, std::vector<rbs::CommentMap::DataDefineMember>> &dataDefineMembersByNode;
 
     std::unique_ptr<parser::Node> rewriteBegin(std::unique_ptr<parser::Node> tree);
     std::unique_ptr<parser::Node> rewriteBody(std::unique_ptr<parser::Node> tree);
@@ -46,6 +50,9 @@ private:
     Comments commentsForNode(parser::Node *node);
     void insertTypeParams(parser::Node *node, std::unique_ptr<parser::Node> *body);
     std::unique_ptr<parser::Node> replaceSyntheticTypeAlias(std::unique_ptr<parser::Node> node);
+    std::unique_ptr<parser::Node> maybeRewriteDataDefine(std::unique_ptr<parser::Node> &node);
+    parser::NodeVec synthesizeDataDefineMembers(parser::Send *send,
+                                                std::vector<rbs::CommentMap::DataDefineMember> &members);
 };
 
 } // namespace sorbet::rbs

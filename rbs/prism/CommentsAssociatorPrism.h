@@ -29,6 +29,8 @@ struct CommentNodePrism {
 struct CommentMapPrism {
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
+    // TODO: Add dataDefineMembersForNode for inline RBS type comments on Data.define args.
+    // See rbs/CommentsAssociator.h CommentMap::DataDefineMember for the legacy parser implementation.
 };
 
 class CommentsAssociatorPrism {
