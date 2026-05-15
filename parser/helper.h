@@ -406,6 +406,28 @@ public:
                (send->method == core::Names::attrReader() || send->method == core::Names::attrWriter() ||
                 send->method == core::Names::attrAccessor());
     }
+
+    /**
+     * Is `block` a `Data.define(...)` or `::Data.define(...)` block?
+     *
+     * Returns a non-owning pointer to the Send node inside the block if true,
+     * nullptr otherwise. The returned pointer borrows from `block->send` and
+     * remains valid as long as the Block node is alive.
+     */
+    static const parser::Send *isDataDefineBlock(const parser::Block *block) {
+        auto *send = parser::cast_node<parser::Send>(block->send.get());
+        if (send == nullptr || send->method != core::Names::define()) {
+            return nullptr;
+        }
+        auto *recv = parser::cast_node<parser::Const>(send->receiver.get());
+        if (recv == nullptr || recv->name != core::Names::Constants::Data()) {
+            return nullptr;
+        }
+        if (recv->scope != nullptr && !parser::isa_node<parser::Cbase>(recv->scope.get())) {
+            return nullptr;
+        }
+        return send;
+    }
 };
 
 } // namespace sorbet::parser

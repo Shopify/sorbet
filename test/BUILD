@@ -628,6 +628,9 @@ pipeline_tests(
 
             # Prism output differs from legacy for constant resolution.
             "testdata/rbs/signatures_types.rb",
+
+            # TODO(jcosta): Data.define RBS virtual initialize not yet implemented for Prism.
+            "testdata/rbs/signatures_data_define.rb",
         ],
     ),
     "PrismPosTests",

@@ -54,6 +54,7 @@ private:
 
     int maybeInsertStandalonePlaceholders(parser::NodeVec &nodes, int index, int lastLine, int currentLine);
     bool typeAliasAllowedInContext();
+    void maybeExtractDataDefineOrphanComments(parser::Block *block, parser::Node *node, int beginLine);
 };
 
 } // namespace sorbet::rbs
