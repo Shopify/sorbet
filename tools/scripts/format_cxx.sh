@@ -3,11 +3,15 @@
 set -e
 
 mode="fix"
+show_diff=false
 
-while getopts 't' opt; do
+while getopts 'td' opt; do
     case "$opt" in
         t)
             mode="test"
+            ;;
+        d)
+            show_diff=true
             ;;
         *)
             break
@@ -19,7 +23,12 @@ shift $((OPTIND - 1))
 
 cd "$(dirname "$0")/../.."
 
-./bazel build --config=dbg //tools:clang-format &> /dev/null
+bazel_args=(
+  "--ui_event_filters=-info,-stdout,-stderr"
+  "--noshow_progress"
+  "--config=dbg"
+)
+./bazel build "${bazel_args[@]}" //tools:clang-format >&2
 
 if [ "$#" -ne 0 ]; then
     cxx_src=("$@")
@@ -33,7 +42,10 @@ else
 fi
 
 misformatted=()
+diffs=""
 
+# Shellcheck can't see that this is called by trap I guess?
+# shellcheck disable=SC2329
 cleanup() {
     for src in "${cxx_src[@]}"; do
         rm -f "$src.formatted"
@@ -51,6 +63,8 @@ for src in "${cxx_src[@]}"; do
         misformatted=("${misformatted[@]}" "$src")
         if [ "$mode" = "fix" ]; then
             cp "$src.formatted" "$src"
+        elif [ "$show_diff" = "true" ]; then
+            diffs+=$'\n'"$(diff -u --label "a/$src" --label "b/$src" "$src" "$src.formatted" | head -n 200 || true)"
         fi
     fi
 
@@ -93,6 +107,13 @@ else
         done
     fi
     echo '```'
+    if [ -n "$diffs" ]; then
+        diff_lines="$(wc -l <<< "$diffs")"
+        if [ "$diff_lines" -le 20 ]; then
+            echo ""
+            echo '```diff'"$diffs"$'\n''```'
+        fi
+    fi
 fi
 
 

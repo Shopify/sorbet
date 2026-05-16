@@ -22,12 +22,8 @@ namespace sorbet::realmain::lsp {
 class MarkupContent;
 class LSPInput;
 class LSPConfiguration;
-class LSPQueuePreemptionTask;
 
 class LSPLoop {
-    friend class LSPWrapper;
-    friend class LSPQueuePreemptionTask;
-
     /** Encapsulates the active configuration for the language server. */
     const std::shared_ptr<const LSPConfiguration> config;
     /** Protects outgoingQueue. */
@@ -75,10 +71,6 @@ public:
      * Processes a batch of requests. Performs pre-processing to avoid unnecessary work.
      */
     void processRequests(std::vector<std::unique_ptr<LSPMessage>> messages);
-    /**
-     * (For tests only) Retrieve the number of times typechecking has run.
-     */
-    int getTypecheckCount();
 
     /**
      * (For tests only) Set a flag that forces the slow path to block indefinitely after saving undo state. Setting

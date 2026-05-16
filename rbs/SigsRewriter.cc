@@ -20,7 +20,7 @@ parser::Node *signaturesTarget(parser::Node *node) {
     }
 
     if (auto send = parser::cast_node<parser::Send>(node)) {
-        if (parser::MK::isAttrAccessorSend(send) || parser::MK::isVisibilitySend(send)) {
+        if (parser::MK::isAttrAccessorSend(send) || parser::MK::isMethodDefModifierSend(send)) {
             return node;
         }
     }
@@ -47,7 +47,7 @@ unique_ptr<parser::Node> extractHelperArgument(core::MutableContext ctx, Comment
         annotation.string.substr(offset),
     };
 
-    return rbs::SignatureTranslator(ctx).translateType(RBSDeclaration{vector<Comment>{comment}});
+    return rbs::SignatureTranslator(ctx).translateType(RBSDeclaration{{comment}});
 }
 
 /**
@@ -226,7 +226,7 @@ Comments SigsRewriter::commentsForNode(parser::Node *node) {
 
     if (auto commentsNodesEntry = commentsByNode.find(node); commentsNodesEntry != commentsByNode.end()) {
         auto commentsNodes = commentsNodesEntry->second;
-        auto declaration_comments = vector<Comment>();
+        auto declaration_comments = RBSDeclaration::CommentsVector();
 
         for (auto &commentNode : commentsNodes) {
             // If the comment starts with `# @`, it's an annotation
@@ -317,7 +317,7 @@ unique_ptr<parser::NodeVec> SigsRewriter::signaturesForNode(parser::Node *node) 
 
             signatures->emplace_back(move(sig));
         } else if (auto send = parser::cast_node<parser::Send>(node)) {
-            if (parser::MK::isVisibilitySend(send)) {
+            if (parser::MK::isMethodDefModifierSend(send)) {
                 auto sig = signatureTranslator.translateMethodSignature(send->args[0].get(), declaration,
                                                                         comments.annotations);
                 signatures->emplace_back(move(sig));
@@ -354,7 +354,7 @@ unique_ptr<parser::Node> SigsRewriter::replaceSyntheticTypeAlias(unique_ptr<pars
     auto aliasDeclaration = comments.signatures[0];
     auto typeBeginLoc = (uint32_t)aliasDeclaration.string.find("=");
 
-    auto typeDeclaration = RBSDeclaration{vector<Comment>{Comment{
+    auto typeDeclaration = RBSDeclaration{{Comment{
         .commentLoc = aliasDeclaration.commentLoc(),
         .typeLoc = core::LocOffsets{aliasDeclaration.fullTypeLoc().beginPos() + typeBeginLoc + 1,
                                     aliasDeclaration.fullTypeLoc().endPos()},

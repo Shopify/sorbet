@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "core/LocOffsets.h"
+#include "core/SymbolRef.h"
 #include "parser/Node.h" // To clarify: these are Sorbet Parser nodes, not Prism ones.
 
 namespace sorbet::parser::Prism {
@@ -35,6 +36,10 @@ class Parser final {
     pm_parser_t parser;
     pm_options_t options;
 
+    // Tracks Prism constant nodes that the RBS rewriter has pre-resolved to a known Sorbet `SymbolRef`,
+    // so the desugarer can emit a resolved `Constant` directly instead of relying on namer/resolver.
+    UnorderedMap<const pm_node_t *, core::SymbolRef> resolvedConstants_;
+
     friend class ParseResult;
     friend class Factory;
 
@@ -56,8 +61,6 @@ public:
     Parser &operator=(Parser &&) = delete;
 
     static Prism::ParseResult run(core::MutableContext ctx, bool preserveConcreteSyntax = false);
-
-    static ParseResult parseWithoutTranslation(std::string_view source, bool collectComments = false);
     core::LocOffsets translateLocation(pm_location_t location) const;
     core::LocOffsets translateLocation(const uint8_t *start, const uint8_t *end) const;
     std::string_view resolveConstant(pm_constant_id_t constantId) const;
@@ -71,10 +74,22 @@ public:
     bool isT(pm_node_t *node) const;
     bool isSetterCall(pm_node_t *node) const;
     bool isSafeNavigationCall(pm_node_t *node) const;
-    bool isVisibilityCall(pm_node_t *node) const;
+    bool isMethodDefModifierCall(pm_node_t *node, const core::GlobalState &gs) const;
     bool isAttrAccessorCall(pm_node_t *node) const;
 
     void destroyNode(pm_node_t *node);
+
+    // Record that `node` should desugar to `symbol` (used by the RBS rewriter for synthetic constants).
+    pm_node_t *markResolved(pm_node_t *node, core::SymbolRef symbol) {
+        resolvedConstants_[node] = symbol;
+        return node;
+    }
+
+    // Returns the resolved symbol for `node` if one was recorded, or an empty `SymbolRef` otherwise.
+    core::SymbolRef getResolvedSymbol(const pm_node_t *node) const {
+        auto it = resolvedConstants_.find(node);
+        return it != resolvedConstants_.end() ? it->second : core::SymbolRef{};
+    }
 
 private:
     std::vector<ParseError> collectErrors();
@@ -86,16 +101,17 @@ class ParseResult final {
     friend class Parser;
     friend class Translator;
 
+    // The parser instance needs to outlive the AST, so we keep it together with the node in this parse result.
     std::unique_ptr<Parser> parser;
+
+    // The root node, allocated by the parser.
     pm_node_t *node;
-    std::vector<ParseError> parseErrors;
+
     std::vector<core::LocOffsets> commentLocations;
 
 public:
-    ParseResult(std::unique_ptr<Parser> parser, pm_node_t *node, std::vector<ParseError> parseErrors,
-                std::vector<core::LocOffsets> commentLocations)
-        : parser{std::move(parser)}, node{node}, parseErrors{std::move(parseErrors)}, commentLocations{std::move(
-                                                                                          commentLocations)} {}
+    ParseResult(std::unique_ptr<Parser> parser, pm_node_t *node, std::vector<core::LocOffsets> commentLocations)
+        : parser{std::move(parser)}, node{node}, commentLocations{std::move(commentLocations)} {}
 
     ~ParseResult() {
         if (node != nullptr && parser != nullptr) {
@@ -104,8 +120,7 @@ public:
     }
 
     ParseResult(ParseResult &&other) noexcept
-        : parser{std::move(other.parser)}, node{other.node}, parseErrors{std::move(other.parseErrors)},
-          commentLocations{std::move(other.commentLocations)} {
+        : parser{std::move(other.parser)}, node{other.node}, commentLocations{std::move(other.commentLocations)} {
         other.node = nullptr;
     }
 
@@ -113,7 +128,6 @@ public:
         this->parser = std::move(other.parser);
         this->node = std::move(other.node);
         other.node = nullptr;
-        this->parseErrors = std::move(other.parseErrors);
         this->commentLocations = std::move(other.commentLocations);
         return *this;
     }
@@ -125,22 +139,12 @@ public:
         return node;
     }
 
-    // Replace the root node, e.g. after RBS rewriting.
-    void replaceRootNode(pm_node_t *newNode) {
-        // Does not destroy the old node, since the rewriter mutates the tree in-place.
-        node = newNode;
-    }
-
     std::string prettyPrint() const {
         return parser->prettyPrint(node);
     }
 
     const std::vector<core::LocOffsets> &getCommentLocations() const {
         return commentLocations;
-    }
-
-    const std::vector<ParseError> &getParseErrors() const {
-        return parseErrors;
     }
 
     Parser &getParser() {

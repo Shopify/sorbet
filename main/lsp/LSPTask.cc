@@ -261,10 +261,6 @@ bool LSPRequestTask::cancel(const MessageId &id) {
     return false;
 }
 
-bool LSPTask::needsMultithreading(const LSPIndexer &indexer) const {
-    return false;
-}
-
 bool LSPTask::isDelayable() const {
     return false;
 }
@@ -274,8 +270,7 @@ bool LSPTask::cancel(const MessageId &id) {
 }
 
 bool LSPTask::canPreempt(const LSPIndexer &indexer) const {
-    // A task that can preempt cannot be multithreaded.
-    return !needsMultithreading(indexer);
+    return true;
 }
 
 vector<unique_ptr<Location>>
@@ -353,40 +348,6 @@ void LSPTask::addLocIfExists(const core::GlobalState &gs, vector<unique_ptr<Loca
     if (location != nullptr) {
         locs.push_back(std::move(location));
     }
-}
-
-LSPQueuePreemptionTask::LSPQueuePreemptionTask(const LSPConfiguration &config, absl::Notification &finished,
-                                               TaskQueue &taskQueue, LSPIndexer &indexer)
-    : LSPTask(config, LSPMethod::SorbetError), finished(finished), taskQueue(taskQueue), indexer(indexer) {}
-
-void LSPQueuePreemptionTask::run(LSPTypecheckerDelegate &tc) {
-    for (;;) {
-        unique_ptr<LSPTask> task;
-        {
-            absl::MutexLock lck(taskQueue.getMutex());
-            if (taskQueue.tasks().empty() || !taskQueue.tasks().front()->canPreempt(indexer)) {
-                break;
-            }
-            task = move(taskQueue.tasks().front());
-            taskQueue.tasks().pop_front();
-
-            {
-                Timer timeit(config.logger, "LSPTask::index");
-                timeit.setTag("method", task->methodString());
-                // Index while holding lock to prevent races with processing thread.
-                task->index(indexer);
-            }
-        }
-        prodCategoryCounterInc("lsp.messages.processed", task->methodString());
-
-        if (task->finalPhase() == Phase::INDEX) {
-            continue;
-        }
-        Timer timeit(config.logger, "LSPTask::run");
-        timeit.setTag("method", task->methodString());
-        task->run(tc);
-    }
-    finished.Notify();
 }
 
 LSPDangerousTypecheckerTask::LSPDangerousTypecheckerTask(const LSPConfiguration &config, LSPMethod method)

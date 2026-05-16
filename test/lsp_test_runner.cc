@@ -9,6 +9,7 @@
 #include "common/strings/formatting.h"
 #include "common/web_tracer_framework/tracing.h"
 #include "main/lsp/LSPConfiguration.h"
+#include "main/options/options.h"
 #include "test/helpers/expectations.h"
 #include "test/helpers/lsp.h"
 #include "test/helpers/position_assertions.h"
@@ -353,7 +354,7 @@ void testQuickFixCodeActions(LSPWrapper &lspWrapper, Expectations &test, const v
     transform(ignoredCodeActionAssertions.begin(), ignoredCodeActionAssertions.end(),
               back_inserter(ignoredCodeActionKinds), getCodeActionKind);
 
-    auto errors = RangeAssertion::getErrorAssertions(assertions);
+    auto errors = RangeAssertion::getAssertions<ErrorAssertion>(assertions);
     UnorderedMap<string, vector<shared_ptr<RangeAssertion>>> errorsByFilename;
     for (auto &error : errors) {
         errorsByFilename[error->filename].emplace_back(error);
@@ -557,6 +558,7 @@ TEST_CASE("LSPTest") {
         // this edge case. If you change this number, `fast_path/{too_many_files,not_enough_files,initialize}` will
         // need to be changed as well.
         opts.lspMaxFilesOnFastPath = 10;
+        opts.cacheSensitiveOptions.usePrismParser = (parser == realmain::options::Parser::PRISM);
         lspWrapper = SingleThreadedLSPWrapper::create("", make_shared<realmain::options::Options>(move(opts)));
         lspWrapper->enableAllExperimentalFeatures();
     }
@@ -564,7 +566,7 @@ TEST_CASE("LSPTest") {
     if (test.expectations.contains("autogen")) {
         // Some autogen tests assume that some errors will occur from the resolver step, others assume the resolver
         // won't run.
-        if (!RangeAssertion::getErrorAssertions(assertions).empty()) {
+        if (!RangeAssertion::getAssertions<ErrorAssertion>(assertions).empty()) {
             // ...and stop after the resolver phase if there are errors
             lspWrapper->opts->stopAfterPhase = realmain::options::Phase::RESOLVER;
         } else {
@@ -636,11 +638,12 @@ TEST_CASE("LSPTest") {
             auto responses = getLSPResponsesFor(*lspWrapper, move(updates));
             updateDiagnostics(config, testFileUris, responses, diagnostics);
             bool errorAssertionsPassed = ErrorAssertion::checkAll(
-                test.sourceFileContents, RangeAssertion::getErrorAssertions(assertions), diagnostics, errorPrefixes[i]);
+                test.sourceFileContents, RangeAssertion::getAssertions<ErrorAssertion>(assertions), diagnostics,
+                errorPrefixes[i]);
 
-            bool untypedAssertionsPassed =
-                UntypedAssertion::checkAll(test.sourceFileContents, RangeAssertion::getUntypedAssertions(assertions),
-                                           diagnostics, errorPrefixes[i]);
+            bool untypedAssertionsPassed = UntypedAssertion::checkAll(
+                test.sourceFileContents, RangeAssertion::getAssertions<UntypedAssertion>(assertions), diagnostics,
+                errorPrefixes[i]);
 
             slowPathPassed = errorAssertionsPassed && untypedAssertionsPassed;
         }
@@ -948,8 +951,9 @@ TEST_CASE("LSPTest") {
                 testDocumentSymbols(*lspWrapper, test, nextId, testFileUris[originalFile], updateFile);
             }
 
-            const bool passed = ErrorAssertion::checkAll(
-                updatesAndContents, RangeAssertion::getErrorAssertions(assertions), diagnostics, errorPrefix);
+            const bool passed =
+                ErrorAssertion::checkAll(updatesAndContents, RangeAssertion::getAssertions<ErrorAssertion>(assertions),
+                                         diagnostics, errorPrefix);
 
             if (!passed) {
                 // Abort if an update fails its assertions, as subsequent updates will likely fail as well.
@@ -975,6 +979,9 @@ int main(int argc, char *argv[]) {
     cxxopts::Options options("lsp_test_corpus", "Test corpus for Sorbet's language server");
     options.allow_unrecognised_options().add_options()("single_test", "run over single test.",
                                                        cxxopts::value<string>()->default_value(""), "testpath");
+    options.allow_unrecognised_options().add_options()("parser", "The parser to use while testing.",
+                                                       cxxopts::value<string>()->default_value("original"),
+                                                       "{original, prism}");
     options.add_options("advanced")("web-trace-file", "Web trace file. For use with chrome about://tracing",
                                     cxxopts::value<string>()->default_value(""), "file");
     auto res = options.parse(argc, argv);
@@ -986,6 +993,13 @@ int main(int argc, char *argv[]) {
 
     sorbet::test::singleTest = res["single_test"].as<string>();
     sorbet::test::webTraceFile = res["web-trace-file"].as<string>();
+
+    auto logger = spdlog::stderr_color_mt("lsp_test_runner");
+    auto parser = sorbet::realmain::options::extractParser(res["parser"].as<string>(), logger);
+    if (!parser) {
+        return 1;
+    }
+    sorbet::test::parser = *parser;
 
     doctest::Context context(argc, argv);
     return context.run();

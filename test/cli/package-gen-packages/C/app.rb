@@ -7,6 +7,7 @@ module C
       puts E::CONSTANT_FROM_E
       puts F::CONSTANT_FROM_F
       puts G::CONSTANT_FROM_G
+      puts AnotherPackage::CONSTANT
 
       puts B::CONSTANT_FROM_B
       puts E::CONSTANT_FROM_E
@@ -15,6 +16,8 @@ module C
       puts D::ClassFromD
       puts D::ClassFromD::CONSTANT_FROM_D_CLASS
       puts D::EnumFromD::Variant
+
+      D::AlreadyExportedClass.new
     end
   end
 end

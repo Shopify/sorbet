@@ -116,6 +116,33 @@ void CommentsAssociator::consumeCommentsBetweenLines(int startLine, int endLine,
     commentByLine.erase(startIt, it);
 }
 
+void CommentsAssociator::consumeOrphanedSignatureComments(int startLine, int endLine) {
+    auto source = ctx.file.data(ctx).source();
+    for (auto it = commentByLine.begin(); it != commentByLine.end();) {
+        if (it->first <= startLine) {
+            ++it;
+            continue;
+        }
+        if (it->first >= endLine) {
+            break;
+        }
+        auto commentBegin = it->second.loc.beginPos();
+        auto detail = core::Loc::pos2Detail(ctx.file.data(ctx), commentBegin);
+        auto lineStart = source.substr(commentBegin - (detail.column - 1), detail.column - 1);
+        if (lineStart.find_first_not_of(" \t") != string_view::npos) {
+            ++it;
+            continue;
+        }
+        if (absl::StartsWith(it->second.string, RBS_PREFIX) ||
+            absl::StartsWith(it->second.string, MULTILINE_RBS_PREFIX)) {
+            if (auto e = ctx.beginIndexerError(it->second.loc, core::errors::Rewriter::RBSUnusedComment)) {
+                e.setHeader("Unused RBS signature comment. No method definition found after it");
+            }
+        }
+        it = commentByLine.erase(it);
+    }
+}
+
 void CommentsAssociator::consumeCommentsUntilLine(int line) {
     auto it = commentByLine.begin();
     while (it != commentByLine.end()) {
@@ -377,7 +404,9 @@ void CommentsAssociator::walkStatements(parser::NodeVec &nodes) {
         auto inserted = maybeInsertStandalonePlaceholders(nodes, i, lastLine, beginLine);
         i += inserted;
 
+        auto prevLastLine = lastLine;
         walkNode(stmt);
+        consumeOrphanedSignatureComments(prevLastLine, beginLine);
 
         lastLine = core::Loc::pos2Detail(ctx.file.data(ctx), stmt->loc.endPos()).line;
     }
@@ -666,7 +695,7 @@ void CommentsAssociator::walkNode(parser::Node *node) {
             contextAllowingTypeAlias.pop_back();
         },
         [&](parser::Send *send) {
-            if (parser::MK::isVisibilitySend(send) || parser::MK::isAttrAccessorSend(send)) {
+            if (parser::MK::isMethodDefModifierSend(send) || parser::MK::isAttrAccessorSend(send)) {
                 associateSignatureCommentsToNode(send);
                 associateAssertionCommentsToNode(send);
                 walkNode(send->receiver.get());

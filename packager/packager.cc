@@ -43,11 +43,6 @@ string buildValidLayersStr(const core::GlobalState &gs) {
 // If the __package.rb file itself is a test file, then the whole package is a test-only package.
 // For example, `test/__package.rb` is a test-only package (e.g. Critic in Stripe's codebase).
 bool isTestOnlyPackage(const core::GlobalState &gs, const PackageInfo &pkg) {
-    // If test packages are enabled, this is determined by the package having a `test!` annotation.
-    if (gs.packageDB().testPackages()) {
-        return pkg.testPackage();
-    }
-
     return pkg.file.data(gs).isPackagedTest();
 }
 
@@ -214,7 +209,8 @@ class EnforcePackagePrefix final {
 
 public:
     EnforcePackagePrefix(core::Context ctx, const PackageInfo &pkg)
-        : pkg(pkg), mustUseTestNamespace(ctx.file.data(ctx).isPackagedTest() && !isTestOnlyPackage(ctx, pkg)),
+        : pkg(pkg), mustUseTestNamespace(!ctx.state.packageDB().testPackages() && ctx.file.data(ctx).isPackagedTest() &&
+                                         !isTestOnlyPackage(ctx, pkg)),
           maybeTestNamespace(core::Symbols::root().data(ctx)->findMember(ctx, PackageDB::TEST_NAMESPACE)) {
         ENFORCE(pkg.exists());
     }
@@ -803,7 +799,9 @@ struct PackageSpecBodyWalk {
             }
         } else {
             // Extra directives
-            info.extraDirectives_.push_back(send.loc);
+            if (send.fun != core::Names::star()) {
+                info.extraDirectives_.push_back(send.loc);
+            }
         }
     }
 
@@ -1148,6 +1146,12 @@ void validatePackagedFile(core::Context ctx, const ast::ExpressionPtr &tree) {
         //
         // We normally skip running the packager when building in sorbet-orig mode, which computes
         // the stored state, but payload files can be retypechecked by the fast path during LSP.
+        return;
+    }
+
+    if (file.source().size() == 0) {
+        // Either this is an empty file, or it's a file that was deleted. In both cases, we don't need to validate it.
+        // TODO(neil): we might want to move this logic to skip files like this somewhere higher up.
         return;
     }
 

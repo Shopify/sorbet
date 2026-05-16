@@ -1,6 +1,5 @@
 #ifndef SORBET_GLOBAL_STATE_H
 #define SORBET_GLOBAL_STATE_H
-#include "absl/synchronization/mutex.h"
 
 #include "common/StableStringStorage.h"
 #include "core/Error.h"
@@ -33,7 +32,6 @@ class ErrorQueue;
 struct LocalSymbolTableHashes;
 
 namespace lsp {
-class Task;
 class TypecheckEpochManager;
 } // namespace lsp
 
@@ -426,7 +424,6 @@ public:
     FileRef enterFile(std::shared_ptr<File> file);
     FileRef reserveFileRef(std::string path);
     std::shared_ptr<File> replaceFile(FileRef whatFile, std::shared_ptr<File> withWhat);
-    static std::unique_ptr<GlobalState> markFileAsTombStone(std::unique_ptr<GlobalState>, FileRef fref);
     FileRef findFileByPath(std::string_view path) const {
         return this->files->findFileByPath(path);
     }
@@ -439,8 +436,9 @@ public:
                             const std::vector<std::string> &packageSkipRBIExportEnforcementDirs,
                             const std::vector<std::string> &skipImportVisibilityCheckFor,
                             const std::vector<std::string> &updateVisibilityFor,
-                            const std::vector<std::string> &packagerLayers, std::string errorHint, bool genPackages,
-                            bool allowRelaxingTestVisibility, bool packageAttributedErrors, bool testPackages);
+                            const std::vector<std::string> &packagerLayers, std::string errorHint,
+                            packages::GenPackagesMode genPackagesMode, bool allowRelaxingTestVisibility,
+                            bool packageAttributedErrors, bool testPackages);
     packages::UnfreezePackages unfreezePackages();
 
     NameRef nextMangledName(ClassOrModuleRef owner, NameRef origName);
@@ -507,6 +505,11 @@ public:
 
     int totalErrors() const;
     bool wasNameTableModified() const;
+    void markNameTableAsCached();
+
+    uint32_t getNameTableDiffCount() const;
+    void setNameTableDiffCount(uint32_t count);
+    void incrementNameTableDiffCount();
 
     int globalStateId;
     bool silenceErrors = false;
@@ -552,16 +555,15 @@ public:
     // have no overlap.
     // NOTE: this very intentionally will not copy the symbol or name tables. The symbol tables aren't used or populated
     // during indexing, and the name tables will only be written to.
-    std::unique_ptr<GlobalState>
-    copyForIndexThread(const bool packagerEnabled,
-                       const std::vector<std::string> &extraPackageFilesDirectoryUnderscorePrefixes,
-                       const std::vector<std::string> &extraPackageFilesDirectorySlashDeprecatedPrefixes,
-                       const std::vector<std::string> &extraPackageFilesDirectorySlashPrefixes,
-                       const std::vector<std::string> &packageSkipRBIExportEnforcementDirs,
-                       const std::vector<std::string> &allowRelaxedPackagerChecksFor,
-                       const std::vector<std::string> &updateVisibilityFor,
-                       const std::vector<std::string> &packagerLayers, std::string errorHint, bool genPackages,
-                       bool allowRelaxingTestVisibility, bool packageAttributedErrors, bool testPackages) const;
+    std::unique_ptr<GlobalState> copyForIndexThread(
+        const bool packagerEnabled, const std::vector<std::string> &extraPackageFilesDirectoryUnderscorePrefixes,
+        const std::vector<std::string> &extraPackageFilesDirectorySlashDeprecatedPrefixes,
+        const std::vector<std::string> &extraPackageFilesDirectorySlashPrefixes,
+        const std::vector<std::string> &packageSkipRBIExportEnforcementDirs,
+        const std::vector<std::string> &allowRelaxedPackagerChecksFor,
+        const std::vector<std::string> &updateVisibilityFor, const std::vector<std::string> &packagerLayers,
+        std::string errorHint, packages::GenPackagesMode genPackagesMode, bool allowRelaxingTestVisibility,
+        bool packageAttributedErrors, bool testPackages) const;
 
     // Minimally copy the global state, including the file table, to initialize the LSPTypechecker.
     // NOTE: this very intentionally will not copy the symbol or name tables. The symbol tables aren't used or populated
@@ -573,7 +575,8 @@ public:
         const std::vector<std::string> &packageSkipRBIExportEnforcementDirs,
         const std::vector<std::string> &allowRelaxedPackagerChecksFor,
         const std::vector<std::string> &updateVisibilityFor, const std::vector<std::string> &packagerLayers,
-        std::string errorHint, bool genPackages, bool allowRelaxingTestVisibility, bool testPackages) const;
+        std::string errorHint, packages::GenPackagesMode genPackagesMode, bool allowRelaxingTestVisibility,
+        bool testPackages) const;
 
     // Copy the name table, file table and other parts of GlobalState that are required to start the slow path.
     // NOTE: this very intentionally will not copy the symbol table, and the expectation is that the symbol table will
@@ -585,7 +588,7 @@ public:
                     const std::vector<std::string> &packageSkipRBIExportEnforcementDirs,
                     const std::vector<std::string> &allowRelaxedPackagerChecksFor,
                     const std::vector<std::string> &updateVisibilityFor, const std::vector<std::string> &packagerLayers,
-                    std::string errorHint, bool genPackages, bool allowRelaxingTestVisibility,
+                    std::string errorHint, packages::GenPackagesMode genPackagesMode, bool allowRelaxingTestVisibility,
                     bool packageAttributedErrors, bool testPackages) const;
 
     // Contains a path prefix that should be stripped from all printed paths.
@@ -602,9 +605,6 @@ public:
 
     FlowId creation; // used to track flow of global states
 
-    // Indicates the number of times LSP has run the type checker with this global state.
-    // Used to ensure GlobalState is in the correct state to process requests.
-    unsigned int lspTypecheckCount = 0;
     // [LSP] Manages typechecking epochs and cancelation.
     std::shared_ptr<lsp::TypecheckEpochManager> epochManager;
 
@@ -619,7 +619,7 @@ public:
     // find all references. For example, if a file references A::B::C::D, then only A::B::C::D will be in set returned,
     // and not A, A::B, A::B::C.
     const UnorderedSet<core::SymbolRef> &getSymbolsReferencedByFile(core::FileRef fref) const {
-        ENFORCE(packageDB().genPackages());
+        ENFORCE(packageDB().genPackagesMode() != packages::GenPackagesMode::Disabled);
         ENFORCE(symbolsReferencedByFile.size() == this->files->size(),
                 "mismatch in files.size ({}) and symbolsReferencedByFile.size(): ({})", files->size(),
                 symbolsReferencedByFile.size());
@@ -703,27 +703,27 @@ public:
 
     // ClassOrModules that have been introduced in the current stratum of files.
     SymbolRange<ClassOrModuleRef> newClassOrModules() const {
-        return this->symbolOffsets.classOrModuleRefs(*this);
+        return this->newSymbols().classOrModuleRefs(*this);
     }
 
     // Methods that have been introduced in the current stratum of files.
     SymbolRange<MethodRef> newMethods() const {
-        return this->symbolOffsets.methodRefs(*this);
+        return this->newSymbols().methodRefs(*this);
     }
 
     // Fields that have been introduced in the current stratum of files.
     SymbolRange<FieldRef> newFields() const {
-        return this->symbolOffsets.fieldRefs(*this);
+        return this->newSymbols().fieldRefs(*this);
     }
 
     // Type members that have been introduced in the current stratum of files.
     SymbolRange<TypeMemberRef> newTypeMemberRefs() const {
-        return this->symbolOffsets.typeMemberRefs(*this);
+        return this->newSymbols().typeMemberRefs(*this);
     }
 
     // Type parameters that have been introduced in the current stratum of files.
     SymbolRange<TypeParameterRef> newTypeParameterRefs() const {
-        return this->symbolOffsets.typeParameterRefs(*this);
+        return this->newSymbols().typeParameterRefs(*this);
     }
 
     void updateSymbolTableOffsets() {
@@ -731,6 +731,8 @@ public:
     }
 
 private:
+    uint32_t nameTableDiffCount = 0;
+
     struct DeepCloneHistoryEntry {
         int globalStateId;
         unsigned int lastUTF8NameKnownByParentGlobalState;
@@ -756,7 +758,9 @@ private:
     UnorderedSet<int> onlyErrorClasses;
     std::shared_ptr<FileTable> files;
     std::vector<UnorderedSet<core::SymbolRef>> symbolsReferencedByFile;
-    bool wasNameTableModified_ = false;
+    unsigned int utf8NamesWritten_ = 0;
+    unsigned int constantNamesWritten_ = 0;
+    unsigned int uniqueNamesWritten_ = 0;
 
     core::packages::PackageDB packageDB_;
 

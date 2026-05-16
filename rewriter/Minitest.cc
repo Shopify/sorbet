@@ -168,7 +168,7 @@ string to_s(core::Context ctx, const ast::ExpressionPtr &arg) {
     }
     auto argConstant = ast::cast_tree<ast::UnresolvedConstantLit>(arg);
     if (argConstant != nullptr) {
-        return argConstant->cnst.show(ctx);
+        return string(ctx.locAt(argConstant->loc).source(ctx).value_or("<unknown>"));
     }
     return arg.toString(ctx);
 }
@@ -330,7 +330,28 @@ ast::ExpressionPtr makeSharedExamplesConstant(core::MutableContext ctx, const as
     // because they are uniquely identified by the string argument (not which method alias was used
     // to create the module)
     auto name = fmt::format("<shared_examples '{}'>", to_s(ctx, arg));
-    return ast::MK::UnresolvedConstantParts(arg.loc(), {ctx.state.enterNameConstant(name)});
+    // Use root scope so that shared examples are globally accessible regardless of where they are
+    // defined. This matches RSpec's semantics: shared example names are stored in a global registry
+    // and must be unique across the entire test suite.
+    auto rootScope = ast::MK::Constant(arg.loc(), core::Symbols::root());
+    return ast::make_expression<ast::UnresolvedConstantLit>(arg.loc(), move(rootScope),
+                                                            ctx.state.enterNameConstant(name));
+}
+
+// Returns the appropriate superclass for a test class (e.g. from `its` or `it_behaves_like`)
+// that may be nested inside a shared_examples block. Inside a shared_examples block, `self` is
+// a module, not a class. We can't inherit from a module, so we use RSpec::Core::ExampleGroup
+// instead, mirroring what describe/context does in the same situation.
+ast::ExpressionPtr makeTestClassAncestor(core::LocOffsets loc, const ast::ExpressionPtr &maybeSharedExamplesName) {
+    if (maybeSharedExamplesName == nullptr) {
+        return ast::MK::Self(loc);
+    }
+    static const core::NameRef rspecParts[3] = {
+        core::Names::Constants::RSpec(),
+        core::Names::Constants::Core(),
+        core::Names::Constants::ExampleGroup(),
+    };
+    return ast::MK::UnresolvedConstantParts(loc, rspecParts);
 }
 
 bool isSharedExamplesName(core::NameRef name) {
@@ -344,10 +365,25 @@ bool isSharedExamplesName(core::NameRef name) {
     }
 }
 
+// Rewrites include_examples/include_context to include(ConstantName), or returns EmptyTree to
+// silently drop the call if the argument is not a string/symbol literal (e.g. a block parameter
+// that can't be resolved at compile time). Must only be called after a numPosArgs >= 1 check.
+ast::ExpressionPtr rewriteIncludeExamples(core::MutableContext ctx, ast::Send *send) {
+    ENFORCE(send->numPosArgs() > 0);
+    if (!ast::isa_tree<ast::Literal>(send->getPosArg(0))) {
+        return ast::MK::EmptyTree();
+    }
+    auto name = makeSharedExamplesConstant(ctx, send->getPosArg(0));
+    return ast::MK::Send1(send->loc, move(send->recv), core::Names::include(), send->funLoc, move(name));
+}
+
 ast::ExpressionPtr prepareParameterizedBody(core::MutableContext ctx, core::NameRef eachName, ast::ExpressionPtr body,
                                             const ast::MethodDef::PARAMS_store &args,
                                             absl::Span<const ast::ExpressionPtr> destructuringStmts,
                                             ast::ExpressionPtr &iteratee, bool insideDescribe);
+
+ast::ExpressionPtr runSingle(core::MutableContext ctx, bool isClass, const ast::ExpressionPtr &maybeSharedExamplesName,
+                             ast::Send *send, bool insideDescribe);
 
 ast::ExpressionPtr invalidUnderParameterizedBody(core::MutableContext ctx, core::NameRef eachName,
                                                  ast::ExpressionPtr stmt) {
@@ -384,7 +420,11 @@ ast::ExpressionPtr runUnderParameterized(core::MutableContext ctx, core::NameRef
     }
 
     if (send->hasBlock() && send->block()->params.size() != 0) {
-        return invalidUnderParameterizedBody(ctx, eachName, move(stmt));
+        // Allow RSpec.shared_examples/shared_context with block params to pass through to the
+        // switch below, where they'll be handled by runSingle if the receiver is RSpec.
+        if (!isSharedExamplesName(send->fun) || !isRSpec(ctx, send->recv)) {
+            return invalidUnderParameterizedBody(ctx, eachName, move(stmt));
+        }
     }
 
     // test_each is a Sorbet-specific DSL, not RSpec, so use minitest-style strict arity
@@ -467,8 +507,18 @@ ast::ExpressionPtr runUnderParameterized(core::MutableContext ctx, core::NameRef
         case core::Names::sharedExamples().rawId():
         case core::Names::sharedContext().rawId():
         case core::Names::sharedExamplesFor().rawId(): {
-            // We don't handle RSpec's SharedExampleGroup inside test_each, because it's not clear
-            // what that should do and whether anyone actually uses it.
+            // When called with the RSpec. prefix (e.g. `RSpec.shared_context 'name' do`),
+            // these are standalone global definitions independent of the block params.
+            // Delegate to runSingle so they get registered as root-scoped constants.
+            if (ctx.state.cacheSensitiveOptions.rspecRewriterEnabled && isRSpec(ctx, send->recv)) {
+                auto result =
+                    runSingle(ctx, /* isClass */ false, /* maybeSharedExamplesName */ nullptr, send, insideDescribe);
+                if (result != nullptr) {
+                    return result;
+                }
+            }
+            // For bare shared_examples inside parameterized blocks we don't handle them,
+            // because it's not clear what that should do and whether anyone actually uses it.
             //
             // We can revisit this choice if people complain about Sorbet lacking support for this.
             break;
@@ -481,8 +531,7 @@ ast::ExpressionPtr runUnderParameterized(core::MutableContext ctx, core::NameRef
                 break;
             }
 
-            auto name = makeSharedExamplesConstant(ctx, send->getPosArg(0));
-            return ast::MK::Send1(send->loc, move(send->recv), core::Names::include(), send->funLoc, move(name));
+            return rewriteIncludeExamples(ctx, send);
         }
     }
 
@@ -564,9 +613,6 @@ ast::ExpressionPtr prepareParameterizedBody(core::MutableContext ctx, core::Name
 
     return body;
 }
-
-ast::ExpressionPtr runSingle(core::MutableContext ctx, bool isClass, const ast::ExpressionPtr &maybeSharedExamplesName,
-                             ast::Send *send, bool insideDescribe);
 
 ast::ExpressionPtr tryRunSingleOnSend(core::MutableContext ctx, bool isClass,
                                       const ast::ExpressionPtr &maybeSharedExamplesName, ast::ExpressionPtr body,
@@ -844,7 +890,7 @@ ast::ExpressionPtr runSingle(core::MutableContext ctx, bool isClass, const ast::
             describeBody.emplace_back(std::move(itMethod));
 
             ast::ClassDef::ANCESTORS_store ancestors;
-            ancestors.emplace_back(ast::MK::Self(arg.loc()));
+            ancestors.emplace_back(makeTestClassAncestor(arg.loc(), maybeSharedExamplesName));
 
             auto describeDeclLoc = declLocForSendWithBlock(*send);
             return ast::MK::Class(send->loc, describeDeclLoc, std::move(describeName), std::move(ancestors),
@@ -945,8 +991,7 @@ ast::ExpressionPtr runSingle(core::MutableContext ctx, bool isClass, const ast::
                 return nullptr;
             }
 
-            auto name = makeSharedExamplesConstant(ctx, send->getPosArg(0));
-            return ast::MK::Send1(send->loc, move(send->recv), core::Names::include(), send->funLoc, move(name));
+            return rewriteIncludeExamples(ctx, send);
         }
 
         case core::Names::itBehavesLike().rawId(): {
@@ -965,16 +1010,19 @@ ast::ExpressionPtr runSingle(core::MutableContext ctx, bool isClass, const ast::
             auto isolatedClassName = ast::MK::UnresolvedConstantParts(send->loc.copyWithZeroLength(),
                                                                       {ctx.state.enterNameConstant(testName)});
 
-            // Inherit from self to maintain access to outer context
             ast::ClassDef::ANCESTORS_store ancestors;
-            ancestors.emplace_back(ast::MK::Self(send->loc.copyWithZeroLength()));
+            ast::ClassDef::RHS_store rhs;
+            ancestors.emplace_back(makeTestClassAncestor(send->loc.copyWithZeroLength(), maybeSharedExamplesName));
+            if (maybeSharedExamplesName != nullptr) {
+                // Also include the parent shared_examples module so its helpers are available.
+                rhs.emplace_back(ast::MK::Send1(send->loc, ast::MK::Self(send->recv.loc()), core::Names::include(),
+                                                send->loc.copyWithZeroLength(), maybeSharedExamplesName.deepCopy()));
+            }
 
             // Include the shared examples module in this isolated context
             auto sharedExamplesName = makeSharedExamplesConstant(ctx, arg);
             auto includeStmt = ast::MK::Send1(send->loc, ast::MK::Self(send->recv.loc()), core::Names::include(),
                                               arg.loc(), move(sharedExamplesName));
-
-            ast::ClassDef::RHS_store rhs;
             rhs.emplace_back(move(includeStmt));
 
             auto declLoc = send->loc.copyWithZeroLength();
@@ -991,6 +1039,36 @@ ast::ExpressionPtr runSingle(core::MutableContext ctx, bool isClass, const ast::
 vector<ast::ExpressionPtr> Minitest::run(core::MutableContext ctx, bool isClass, ast::Send *send) {
     vector<ast::ExpressionPtr> stats;
     if (ctx.state.cacheSensitiveOptions.runningUnderAutogen) {
+        return stats;
+    }
+
+    // Handle RSpec.local_context do ... end: scan the body for RSpec.shared_examples /
+    // shared_context / shared_examples_for calls and hoist them to the top-level scope,
+    // making them resolvable via include_examples / include_context in any describe block.
+    if (ctx.state.cacheSensitiveOptions.rspecRewriterEnabled && send->fun == core::Names::localContext() &&
+        isRSpec(ctx, send->recv) && send->hasBlock()) {
+        auto *block = send->block();
+
+        // Note: only direct Send children of the block body are scanned.
+        // Shared examples nested inside conditionals or other blocks are not hoisted.
+        auto processStmt = [&](ast::ExpressionPtr &stmt) {
+            if (auto bodySend = ast::cast_tree<ast::Send>(stmt)) {
+                auto result = runSingle(ctx, /* isClass */ false, /* maybeSharedExamplesName */ nullptr, bodySend,
+                                        /* insideDescribe */ false);
+                if (result != nullptr) {
+                    stats.emplace_back(std::move(result));
+                }
+            }
+        };
+
+        if (auto bodySeq = ast::cast_tree<ast::InsSeq>(block->body)) {
+            for (auto &exp : bodySeq->stats) {
+                processStmt(exp);
+            }
+            processStmt(bodySeq->expr);
+        } else {
+            processStmt(block->body);
+        }
         return stats;
     }
 

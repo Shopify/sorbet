@@ -331,7 +331,7 @@ public:
 
         // After flatten, method defs have been hoisted and reordered, so instead we look for the
         // keep_def / keep_self_def calls, which will still be ordered correctly relative to
-        // visibility modifiers.
+        // method def modifiers.
         ownerStack.emplace_back(def);
         methodVisiStack.emplace_back(nullopt);
     }
@@ -421,6 +421,11 @@ public:
                 }
                 addMethodAlias(ctx, original);
                 break;
+            }
+
+            default: {
+                ENFORCE(!original.fun.isMethodDefModifierName(), "Unhandled method def modifier: {}",
+                        original.fun.show(ctx));
             }
         }
     }
@@ -675,6 +680,18 @@ public:
                     fillAssign(ctx, asgn);
                     break;
             }
+        }
+    }
+
+    void postTransformUnresolvedConstantLit(core::Context ctx, ast::ExpressionPtr &tree) {
+        auto &scope = ast::cast_tree_nonnull<ast::UnresolvedConstantLit>(tree).scope;
+        ast::TreeWalk::apply(ctx, *this, scope);
+    }
+
+    void postTransformConstantLit(core::Context ctx, ast::ExpressionPtr &tree) {
+        auto original = ast::cast_tree_nonnull<ast::ConstantLit>(tree).original();
+        if (original != nullptr) {
+            ast::TreeWalk::apply(ctx, *this, original->scope);
         }
     }
 };
@@ -1570,8 +1587,7 @@ private:
                 alias.data(ctx)->addLoc(ctx, ctx.locAt(typeMember.asgnLoc));
             } else {
                 auto oldSym = context.data(ctx)->findMemberNoDealias(typeTemplateAliasName);
-                if (oldSym.exists() &&
-                    !(oldSym.loc(ctx) == ctx.locAt(typeMember.asgnLoc) || oldSym.loc(ctx).isTombStoned(ctx))) {
+                if (oldSym.exists() && oldSym.loc(ctx) != ctx.locAt(typeMember.asgnLoc)) {
                     emitRedefinedConstantError(ctx, typeMember.nameLoc, typeMemberName,
                                                core::SymbolRef::Kind::TypeMember, oldSym);
                     typeTemplateAliasName = ctx.state.nextMangledName(context, typeTemplateAliasName);

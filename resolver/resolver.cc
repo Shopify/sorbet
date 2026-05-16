@@ -440,7 +440,8 @@ private:
         if (job.resolutionFailed) {
             // we only set this when a job has failed for other reasons and we've already reported an error, and
             // continuing on will only redundantly report that we can't resolve the constant, so bail early here
-            job.out->setSymbol(core::Symbols::untyped());
+            job.out->markUnresolved();
+            job.out->resolutionScopes()->emplace_back(core::Symbols::noSymbol());
             return;
         }
 
@@ -481,7 +482,31 @@ private:
         // This name is an artifact of parser recovery--no need to leak the parser implementation to the user,
         // because an error will have already been reported.
         auto constantNameMissing = original.cnst == core::Names::Constants::ConstantNameMissing();
-        if (!constantNameMissing && !alreadyReported) {
+        auto suggestScope = job.out->resolutionScopes()->front();
+        auto isPackage = ctx.file.data(ctx).isPackage(gs);
+        auto isExport = false;
+        auto isImport = false;
+        if (isPackage) {
+            // In the case the file is a __package.rb file, and the scope is a PackageSpec-scoped symbol,
+            // the resolution error must be in an import statement. Otherwise, it is in an export statement.
+
+            // TODO (aadi-stripe) Find a less brittle way of ascertaining whether the error comes from an
+            // export statement. Currently (1/9/23) this happens to work because export statements are the
+            // only part of the packager DSL that do not prepend PackageSpec to the relevant constant.
+            isImport = suggestScope.asClassOrModuleRef().isPackageSpecSymbol(ctx.state);
+            isExport = !suggestScope.asClassOrModuleRef().isPackageSpecSymbol(ctx.state);
+        }
+        bool silenceError = false;
+        if (constantNameMissing || alreadyReported) {
+            silenceError = true;
+        }
+        if (isImport && gs.packageDB().genPackagesMode() != core::packages::GenPackagesMode::Disabled) {
+            // The user has added an import for a package that does not exist. However, in gen-packages mode, we'll
+            // delete this import and add the correct import, so no need to report an error here.
+            // TODO(neil): Should we add an autocorrect to delete this import outside of gen-packages mode?
+            silenceError = true;
+        }
+        if (!silenceError) {
             if (auto e = ctx.beginError(original.loc, core::errors::Resolver::StubConstant)) {
                 e.setHeader("Unable to resolve constant `{}`", original.cnst.show(ctx));
                 auto foundCommonTypo = false;
@@ -495,7 +520,6 @@ private:
                     }
                 }
 
-                auto suggestScope = job.out->resolutionScopes()->front();
                 if (!foundCommonTypo && suggestionCount < MAX_SUGGESTION_COUNT && suggestScope.exists() &&
                     suggestScope.isClassOrModule()) {
                     suggestionCount++;
@@ -503,16 +527,10 @@ private:
                     auto suggested =
                         suggestScope.asClassOrModuleRef().data(ctx)->findMemberFuzzyMatch(ctx, original.cnst);
 
-                    if (ctx.file.data(ctx).isPackage(gs) &&
-                        !suggestScope.asClassOrModuleRef().isPackageSpecSymbol(ctx.state)) {
-                        // In case the file is a __package.rb file, and the scope is not a PackageSpec-scoped symbol,
-                        // the resolution error must be in an export statement. In this case, suggestions must be
-                        // restricted to within the current package only. They must not cross package boundaries as
-                        // out-of-package suggestions would be inherently invalid.
-
-                        // TODO (aadi-stripe) Find a less brittle way of ascertaining whether the error comes from an
-                        // export statement. Currently (1/9/23) this happens to work because export statements are the
-                        // only part of the packager DSL that do not prepend PackageSpec to the relevant constant.
+                    if (isExport) {
+                        // If the resolution error is for an export, suggestions must be restricted to within the
+                        // current package only. They must not cross package boundaries as out-of-package suggestions
+                        // would be inherently invalid.
                         auto enclosingPackage = ctx.state.packageDB().getPackageNameForFile(ctx.file);
                         if (enclosingPackage.exists()) {
                             auto it = std::remove_if(
@@ -1678,8 +1696,6 @@ public:
         bool progress = true;
         bool first = true; // we need to run at least once to force class aliases and type aliases
 
-        // If the constant didn't immediately resolve during the initial treewalk, and we're not
-        // allowed to mutate GlobalState, it will never resolve. Let's just skip to the error phase.
         while (progress && (first || !todo.empty() || !todoAncestors.empty())) {
             first = false;
             counterInc("resolve.constants.retries");
@@ -1836,9 +1852,6 @@ public:
                 }
             }
 
-            // Only purpose of resolveAncestorJob is to mutate the symbol table, not the tree, so
-            // in non-mutating resolver mode we don't have to do anything (because we don't care
-            // about errors).
             for (auto &job : todoAncestors) {
                 core::MutableContext ctx(gs, core::Symbols::root(), job.file);
                 for (auto &item : job.items) {
@@ -2261,6 +2274,10 @@ class ResolveTypeMembersAndFieldsWalk {
                 }
             },
             [&](const ast::Send &send) {
+                if (send.fun == core::Names::stringInterpolate()) {
+                    result = core::Types::String();
+                    return;
+                }
                 if (send.fun != core::Names::freeze() || send.hasNonBlockArgs() || send.hasBlock() ||
                     !(ast::isa_tree<ast::Array>(send.recv) || ast::isa_tree<ast::Hash>(send.recv))) {
                     return;
@@ -3706,11 +3723,7 @@ private:
                     return;
                 }
 
-                if (send.numPosArgs() == 1 &&
-                    (send.fun == core::Names::public_() || send.fun == core::Names::private_() ||
-                     send.fun == core::Names::privateClassMethod() || send.fun == core::Names::protected_() ||
-                     send.fun == core::Names::packagePrivateClassMethod() ||
-                     send.fun == core::Names::packagePrivate())) {
+                if (send.numPosArgs() == 1 && send.fun.isMethodDefModifierName()) {
                     processStatement(ctx, send.getPosArg(0), lastSigs);
                     return;
                 }

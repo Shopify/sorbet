@@ -55,12 +55,6 @@ struct Import {
     Import(MangledName mangledName, ImportType type, core::LocOffsets loc)
         : mangledName(mangledName), type(type), loc(loc) {}
 
-    // Generate a prelude import, with the given origin.
-    // NOTE: the origin must point to something to hang any errors related to the implicit import off of. Currently this
-    // is the declLoc_ of the package that is getting the implicit import, and because of this it's important to not use
-    // these locs when computing locations for autocorrects.
-    static Import prelude(MangledName mangledName, core::LocOffsets implicitLoc);
-
     Import(Import &&other) = default;
     Import(const Import &other) = default;
     Import &operator=(Import &&other) = default;
@@ -335,8 +329,11 @@ public:
     std::optional<core::AutocorrectSuggestion> aggregateMissingExports(const core::GlobalState &gs,
                                                                        std::vector<core::SymbolRef> &toExport) const;
     std::optional<core::AutocorrectSuggestion>
-    aggregateMissingVisibleTo(const core::GlobalState &gs, std::vector<core::packages::MangledName> &visibleTos,
+    aggregateMissingVisibleTo(const core::GlobalState &gs, UnorderedSet<core::packages::MangledName> &visibleTos,
                               bool visibleToTests) const;
+
+    std::string renderPackageRbContents(const core::GlobalState &gs, std::vector<Import> newImports,
+                                        std::vector<core::SymbolRef> newExports) const;
 };
 CheckSize(PackageInfo, 256, 8);
 

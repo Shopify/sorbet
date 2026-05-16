@@ -1,4 +1,5 @@
 #include "parser/prism/Factory.h"
+#include "core/Symbols.h"
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include <array>
@@ -174,7 +175,7 @@ pm_call_node_t *Factory::createCallNode(pm_node_t *receiver, pm_constant_id_t me
                              .name = methodId,
                              .message_loc = messageLoc,
                              .opening_loc = tinyLoc,
-                             .arguments = down_cast<pm_arguments_node_t>(arguments),
+                             .arguments = down_cast_nonnull<pm_arguments_node_t>(arguments),
                              .closing_loc = tinyLoc,
                              .block = block};
 
@@ -274,19 +275,20 @@ pm_node_t *Factory::SorbetPrivateStatic(core::LocOffsets loc) const {
     // Build a root-anchored constant path ::Sorbet::Private::Static
     pm_node_t *sorbet = ConstantPathNode(loc, nullptr, "Sorbet"sv);
     pm_node_t *sorbetPrivate = ConstantPathNode(loc, sorbet, "Private"sv);
-    return ConstantPathNode(loc, sorbetPrivate, "Static"sv);
+    return parser.markResolved(ConstantPathNode(loc, sorbetPrivate, "Static"sv),
+                               core::Symbols::Sorbet_Private_Static());
 }
 
 pm_node_t *Factory::SorbetPrivateStaticVoid(core::LocOffsets loc) const {
     // Build a root-anchored constant path ::Sorbet::Private::Static::Void
-    return ConstantPathNode(loc, SorbetPrivateStatic(loc), "Void"sv);
+    return parser.markResolved(ConstantPathNode(loc, SorbetPrivateStatic(loc), "Void"sv), core::Symbols::void_());
 }
 
 pm_node_t *Factory::TSigWithoutRuntime(core::LocOffsets loc) const {
     // Build a root-anchored constant path ::T::Sig::WithoutRuntime
     pm_node_t *tConst = ConstantPathNode(loc, nullptr, "T"sv);
     pm_node_t *tSig = ConstantPathNode(loc, tConst, "Sig"sv);
-    return ConstantPathNode(loc, tSig, "WithoutRuntime"sv);
+    return parser.markResolved(ConstantPathNode(loc, tSig, "WithoutRuntime"sv), core::Symbols::T_Sig_WithoutRuntime());
 }
 
 pm_node_t *Factory::Symbol(core::LocOffsets nameLoc, string_view name) const {
@@ -463,7 +465,7 @@ pm_node_t *Factory::TTypeAlias(core::LocOffsets loc, pm_node_t *type) const {
 
     pm_node_t *block = Block(loc, StatementsNode(loc, absl::Span<pm_node_t *>{&type, 1}));
 
-    auto *call = down_cast<pm_call_node_t>(typeAliasCall);
+    auto *call = down_cast_nonnull<pm_call_node_t>(typeAliasCall);
     call->block = block;
 
     return typeAliasCall;

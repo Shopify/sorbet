@@ -131,19 +131,11 @@ const vector<PrintOptions> print_options({
     {"symbol-table", &Printers::SymbolTable},
     {"symbol-table-raw", &Printers::SymbolTableRaw},
     {"symbol-table-json", &Printers::SymbolTableJson},
-    {"symbol-table-proto", &Printers::SymbolTableProto},
-    {"symbol-table-messagepack", &Printers::SymbolTableMessagePack, true, false},
     {"symbol-table-full", &Printers::SymbolTableFull},
     {"symbol-table-full-raw", &Printers::SymbolTableFullRaw},
     {"symbol-table-full-json", &Printers::SymbolTableFullJson},
-    {"symbol-table-full-proto", &Printers::SymbolTableFullProto},
-    {"symbol-table-full-messagepack", &Printers::SymbolTableFullMessagePack, true, false},
     {"file-table-json", &Printers::FileTableJson, true, true, true},
-    {"file-table-proto", &Printers::FileTableProto, true, true, true},
-    {"file-table-messagepack", &Printers::FileTableMessagePack, true, false, true},
     {"file-table-full-json", &Printers::FileTableFullJson, true, true, true},
-    {"file-table-full-proto", &Printers::FileTableFullProto, true, true, true},
-    {"file-table-full-messagepack", &Printers::FileTableFullMessagePack, true, false, true},
     {"missing-constants", &Printers::MissingConstants, true, true, true},
     {"autogen", &Printers::Autogen},
     {"autogen-msgpack", &Printers::AutogenMsgPack},
@@ -218,17 +210,11 @@ vector<reference_wrapper<PrinterConfig>> Printers::printers() {
         CFGRaw,
         SymbolTable,
         SymbolTableRaw,
-        SymbolTableProto,
-        SymbolTableMessagePack,
         SymbolTableJson,
         SymbolTableFull,
-        SymbolTableFullProto,
-        SymbolTableFullMessagePack,
         SymbolTableFullJson,
         SymbolTableFullRaw,
         FileTableJson,
-        FileTableProto,
-        FileTableMessagePack,
         MissingConstants,
         Autogen,
         AutogenMsgPack,
@@ -426,7 +412,8 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
                                  "Remove the provided <prefix> from all printed paths. Defaults to the input "
                                  "directory passed to Sorbet, if any.",
                                  cxxopts::value<string>()->default_value(empty.pathPrefix), "<prefix>");
-    options.add_options(section)("gen-packages", "Generate package information", cxxopts::value<bool>());
+    options.add_options(section)("gen-packages", "Generate package information (normal or strict)",
+                                 cxxopts::value<string>()->implicit_value("normal"), "{normal,strict}");
     // }}}
 
     // ----- AUTOCORRECTS ------------------------------------------------- {{{
@@ -493,7 +480,7 @@ buildOptions(const vector<pipeline::semantic_extension::SemanticExtensionProvide
                                  cxxopts::value<vector<string>>(), "<counter>");
     options.add_options(section)(
         "track-untyped",
-        "Include a per-file counter of untyped usages in the `--print=file-table-<format>` output. "
+        "Include a per-file counter of untyped usages in the `--print=file-table-json` output. "
         "This is in addition to the codebase-wide `types.input.untyped.usages` counter.",
         cxxopts::value<string>()->implicit_value("everywhere"), "{[nowhere],everywhere,everywhere-but-tests}");
     options.add_options(section)("metrics-file", "Report counters and some timers to <file>, in JSON format.",
@@ -1058,6 +1045,12 @@ void readOptions(Options &opts,
 
         auto parser = extractParser(raw["parser"].as<string>(), logger).value_or(Parser::ORIGINAL);
         opts.cacheSensitiveOptions.usePrismParser = (parser == Parser::PRISM);
+        if (opts.cacheSensitiveOptions.rbsEnabled && !opts.cacheSensitiveOptions.usePrismParser) {
+            logger->warn(
+                "⚠️ Going forward, Sorbet will only support RBS mode when parsing with Prism.\n"
+                "Please add `--parser=prism` to your Sorbet config. This will become an error at the end of May 2026.");
+        }
+
         opts.silenceErrors = raw["quiet"].as<bool>();
         opts.autocorrect = raw["autocorrect"].as<bool>();
         opts.didYouMean = raw["did-you-mean"].as<bool>();
@@ -1301,14 +1294,34 @@ void readOptions(Options &opts,
             }
         }
 
-        opts.genPackages = raw["gen-packages"].as<bool>();
-        if (opts.genPackages && !opts.cacheSensitiveOptions.sorbetPackages) {
-            logger->error("--gen-packages can only be can only be used in --sorbet-packages mode");
+        if (raw.count("gen-packages")) {
+            auto genPackagesMode = raw["gen-packages"].as<string>();
+            if (genPackagesMode == "normal") {
+                opts.genPackagesMode = core::packages::GenPackagesMode::Normal;
+            } else if (genPackagesMode == "strict") {
+                opts.genPackagesMode = core::packages::GenPackagesMode::Strict;
+            } else {
+                logger->error("--gen-packages must be 'normal' or 'strict', got '{}'", genPackagesMode);
+                throw EarlyReturnWithCode(1);
+            }
+        }
+        auto genPackagesEnabled = opts.genPackagesMode != core::packages::GenPackagesMode::Disabled;
+        if (genPackagesEnabled && !opts.cacheSensitiveOptions.sorbetPackages) {
+            logger->error("--gen-packages can only be used in --sorbet-packages mode");
             throw EarlyReturnWithCode(1);
         }
-        if (opts.genPackages && opts.runLSP) {
+        if (genPackagesEnabled && opts.runLSP) {
             logger->error("--gen-packages can not be used when --lsp is also enabled");
             throw EarlyReturnWithCode(1);
+        }
+        if (opts.genPackagesMode == core::packages::GenPackagesMode::Strict) {
+            if (raw.count("gen-packages-update-visibility-for")) {
+                // TODO(neil): These 2 together are disabled for now so we don't have to think about how they interact.
+                // It's possible it makes sense to run them together, in which case, we can remove this restriction.
+                logger->error(
+                    "--gen-packages=strict can not be used when --gen-packages-update-visibility-for is also enabled");
+                throw EarlyReturnWithCode(1);
+            }
         }
         if (raw.count("allow-relaxed-packager-checks-for")) {
             if (!opts.cacheSensitiveOptions.sorbetPackages) {
@@ -1332,7 +1345,7 @@ void readOptions(Options &opts,
                 logger->error("--gen-packages-update-visibility-for can only be specified in --sorbet-packages mode");
                 throw EarlyReturnWithCode(1);
             }
-            if (!opts.genPackages) {
+            if (!genPackagesEnabled) {
                 logger->error("--gen-packages-update-visibility-for can only be specified in --gen-packages mode");
                 throw EarlyReturnWithCode(1);
             }
@@ -1348,7 +1361,7 @@ void readOptions(Options &opts,
         }
         opts.allowRelaxingTestVisibility = raw["gen-packages-allow-relaxing-test-visibility"].as<bool>();
         if (opts.allowRelaxingTestVisibility) {
-            if (!opts.genPackages) {
+            if (!genPackagesEnabled) {
                 logger->error("--gen-packages-allow-relaxing-test-visibility can only be used in --gen-packages mode");
                 throw EarlyReturnWithCode(1);
             }
@@ -1425,9 +1438,10 @@ void readOptions(Options &opts,
             throw EarlyReturnWithCode(1);
         }
 
-        if (raw.count("e") == 0 && opts.inputFileNames.empty() && !raw["version"].as<bool>() && !opts.runLSP &&
-            opts.storeState.empty() && !opts.print.PayloadSources.enabled) {
-            logger->error("You must pass either `{}` or at least one folder or ruby file.\n\n{}", "-e",
+        if (raw.count("e") == 0 && raw.count("e-rbi") == 0 && opts.inputFileNames.empty() &&
+            !raw["version"].as<bool>() && !opts.runLSP && opts.storeState.empty() &&
+            !opts.print.PayloadSources.enabled) {
+            logger->error("You must pass `{}`, `{}`, or at least one folder or ruby file.\n\n{}", "-e", "--e-rbi",
                           options.help({groupToString(Group::INPUT)}));
             throw EarlyReturnWithCode(1);
         }

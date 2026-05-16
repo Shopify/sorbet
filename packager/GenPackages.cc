@@ -35,8 +35,7 @@ void exportClassOrModule(const core::GlobalState &gs,
                          core::ClassOrModuleRef symbol, vector<core::FileRef> &referencingFiles) {
     auto data = symbol.data(gs);
     auto owningPackage = data->package;
-    if (!owningPackage.exists() || gs.packageDB().getPackageInfo(owningPackage).locs.exportAll.exists() ||
-        data->flags.isExported) {
+    if (!owningPackage.exists() || gs.packageDB().getPackageInfo(owningPackage).locs.exportAll.exists()) {
         return;
     }
 
@@ -61,8 +60,7 @@ void exportField(const core::GlobalState &gs,
                  vector<core::FileRef> &referencingFiles) {
     auto data = symbol.data(gs);
     auto owningPackage = data->owner.data(gs)->package;
-    if (!owningPackage.exists() || gs.packageDB().getPackageInfo(owningPackage).locs.exportAll.exists() ||
-        data->flags.isExported) {
+    if (!owningPackage.exists() || gs.packageDB().getPackageInfo(owningPackage).locs.exportAll.exists()) {
         return;
     }
 
@@ -88,26 +86,71 @@ void exportField(const core::GlobalState &gs,
         break;
     }
 }
-}; // namespace
 
-void GenPackages::run(core::GlobalState &gs) {
-    Timer timeit(gs.tracer(), "gen_packages.run");
-    auto referencingFiles = UnorderedMap<core::SymbolRef, vector<core::FileRef>>{};
-    {
-        // symbolsReferencedByFile is a map from file -> [symbol] referenced in that file
-        // This loop computes the inverse: referencingFiles is a map from symbol -> [file] that reference that symbol
-        Timer timeit(gs.tracer(), "gen_packages.run.build_referencing_files");
-        auto numFiles = gs.getFiles().size();
-        for (auto i = 1; i < numFiles; i++) {
-            core::FileRef fref(i);
-            auto referencedSymbols = gs.getSymbolsReferencedByFile(fref);
-            for (auto &symbol : referencedSymbols) {
-                referencingFiles[symbol].push_back(fref);
+vector<core::packages::Import> computeNewImports(const core::GlobalState &gs,
+                                                 const core::packages::PackageInfo &pkgInfo) {
+    UnorderedMap<core::packages::MangledName, core::packages::ImportType> importMap;
+    for (auto &import : pkgInfo.importedPackageNames) {
+        auto &impPkgInfo = gs.packageDB().getPackageInfo(import.mangledName);
+        if (impPkgInfo.exists() && impPkgInfo.isPreludePackage()) {
+            // If the `__package.rb` already imports a prelude package, we should keep that import, even if it's not
+            // referenced anywhere.
+            importMap[import.mangledName] = import.type;
+        }
+    }
+
+    // TODO(neil): this loop is very similar to the loop in aggregateMissingImports, should find a way to deduplicate.
+    // Can't deduplicate trivially because the loop in aggregateMissingImports skips entries where
+    // !packageReferenceInfo.importNeeded or packageReferenceInfo.causesModularityError, as well if the import would
+    // cause a visibility error. Maybe the common helper could take a function that filters?
+    for (auto &[file, referencedPackages] : pkgInfo.packagesReferencedByFile) {
+        auto importType = core::packages::PackageInfo::fileToImportType(gs, file);
+        for (auto &[packageName, packageReferenceInfo] : referencedPackages) {
+            auto &pkgInfo = gs.packageDB().getPackageInfo(packageName);
+            if (!pkgInfo.exists()) {
+                continue;
+            }
+            // TODO(neil): this ignores strict dependencies/visibility violations and unconditionally adds an import.
+            // Should we skip imports that would cause a strict dependencies/visibility error instead?
+            auto [it, inserted] = importMap.insert({packageName, importType});
+            if (!inserted) {
+                if (importType < it->second) {
+                    it->second = importType;
+                }
             }
         }
     }
 
+    vector<core::packages::Import> newImports;
+    newImports.reserve(importMap.size());
+    for (auto &[mangledName, importType] : importMap) {
+        newImports.emplace_back(mangledName, importType, core::LocOffsets::none());
+    }
+
+    return newImports;
+}
+
+UnorderedMap<core::SymbolRef, vector<core::FileRef>> computeReferencingFiles(const core::GlobalState &gs) {
+    auto referencingFiles = UnorderedMap<core::SymbolRef, vector<core::FileRef>>{};
+    // symbolsReferencedByFile is a map from file -> [symbol] referenced in that file
+    // This loop computes the inverse: referencingFiles is a map from symbol -> [file] that reference that symbol
+    Timer timeit(gs.tracer(), "gen_packages.compute_referencing_files");
+    auto numFiles = gs.getFiles().size();
+    for (auto i = 1; i < numFiles; i++) {
+        core::FileRef fref(i);
+        auto referencedSymbols = gs.getSymbolsReferencedByFile(fref);
+        for (auto &symbol : referencedSymbols) {
+            referencingFiles[symbol].push_back(fref);
+        }
+    }
+    return referencingFiles;
+}
+
+UnorderedMap<core::packages::MangledName, vector<core::SymbolRef>> computeToExport(const core::GlobalState &gs) {
+    Timer timeit(gs.tracer(), "gen_packages.compute_to_export");
+    auto referencingFiles = computeReferencingFiles(gs);
     auto toExport = UnorderedMap<core::packages::MangledName, vector<core::SymbolRef>>{};
+
     for (uint32_t i = 1; i < gs.classAndModulesUsed(); ++i) {
         auto classOrModuleRef = core::ClassOrModuleRef(gs, i);
         exportClassOrModule(gs, toExport, classOrModuleRef, referencingFiles[classOrModuleRef]);
@@ -117,7 +160,16 @@ void GenPackages::run(core::GlobalState &gs) {
         exportField(gs, toExport, fieldRef, referencingFiles[fieldRef]);
     }
 
-    auto neededVisibleTo = UnorderedMap<core::packages::MangledName, vector<core::packages::MangledName>>{};
+    return toExport;
+}
+}; // namespace
+
+void GenPackages::run(core::GlobalState &gs) {
+    Timer timeit(gs.tracer(), "gen_packages.run");
+
+    auto toExport = computeToExport(gs);
+
+    auto neededVisibleTo = UnorderedMap<core::packages::MangledName, UnorderedSet<core::packages::MangledName>>{};
     auto neededVisibleToTests = UnorderedMap<core::packages::MangledName, bool>{};
     if (gs.packageDB().anyUpdateVisibilityFor()) {
         Timer timeit(gs.tracer(), "gen_packages.run.build_needed_visible_to");
@@ -146,7 +198,7 @@ void GenPackages::run(core::GlobalState &gs) {
                                 neededVisibleToTests[referencedPackageName] = true;
                             } else {
                                 // Otherwise, add `visible_to pkgName`
-                                neededVisibleTo[referencedPackageName].push_back(pkgName);
+                                neededVisibleTo[referencedPackageName].insert(pkgName);
                             }
                         }
                     }
@@ -231,6 +283,33 @@ void GenPackages::run(core::GlobalState &gs) {
         //   import OtherPkg
         // because e < i
         // TODO(neil): we should also delete imports that are unused but have a modularity error here
+    }
+}
+
+void GenPackages::runStrict(core::GlobalState &gs) {
+    Timer timeit(gs.tracer(), "gen_packages.run_strict");
+
+    auto toExport = computeToExport(gs);
+
+    for (auto pkgName : gs.packageDB().packages()) {
+        auto &pkgInfo = gs.packageDB().getPackageInfo(pkgName);
+        ENFORCE(pkgInfo.exists());
+
+        auto existingContentsLoc = core::Loc(pkgInfo.file, pkgInfo.locs.loc)
+                                       .adjust(gs, pkgInfo.locs.declLoc.length() + 1, -1 * (int32_t) "end"sv.size());
+        auto existingContents = existingContentsLoc.source(gs);
+        ENFORCE(existingContents.has_value());
+
+        auto newContents = pkgInfo.renderPackageRbContents(gs, computeNewImports(gs, pkgInfo), move(toExport[pkgName]));
+
+        if (existingContents.value() != newContents) {
+            if (auto e = gs.beginError(pkgInfo.declLoc(), core::errors::Packager::IncorrectPackageRB)) {
+                e.setHeader("`{}` has changes", pkgInfo.show(gs));
+                bool isDidYouMean = false;
+                bool hideEdit = true;
+                e.addAutocorrect({"Update __package.rb", {{existingContentsLoc, newContents}}, isDidYouMean, hideEdit});
+            }
+        }
     }
 }
 

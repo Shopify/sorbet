@@ -75,8 +75,6 @@ public:
 
     virtual bool canPreempt(const LSPIndexer &) const;
 
-    virtual bool needsMultithreading(const LSPIndexer &) const;
-
     // Returns the phase at which the task is complete. Some tasks only need to interface with the preprocessor or the
     // indexer. The default implementation returns RUN.
     virtual Phase finalPhase() const;
@@ -134,24 +132,6 @@ public:
     virtual void runSpecial(LSPTypechecker &typechecker, WorkerPool &worker) = 0;
     // Tells the scheduler how long to wait before it can schedule more tasks.
     virtual void schedulerWaitUntilReady() = 0;
-};
-
-class LSPIndexer;
-class TaskQueue;
-
-/**
- * Represents a preemption task. When run, it will run all tasks at the head of `taskQueue` that can preempt.
- */
-class LSPQueuePreemptionTask final : public LSPTask {
-    absl::Notification &finished;
-    TaskQueue &taskQueue;
-    LSPIndexer &indexer;
-
-public:
-    LSPQueuePreemptionTask(const LSPConfiguration &config, absl::Notification &finished, TaskQueue &taskQueue,
-                           LSPIndexer &indexer);
-
-    void run(LSPTypecheckerDelegate &tc) override;
 };
 
 } // namespace sorbet::realmain::lsp

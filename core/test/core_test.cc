@@ -139,7 +139,7 @@ struct FileIsTypedCase {
     StrictLevel strict;
 };
 
-TEST_CASE("FileIsTyped") { // NOLINT
+TEST_CASE("FileIsTyped") {
     vector<FileIsTypedCase> cases = {
         {"", StrictLevel::None},
         {"# typed: true", StrictLevel::True},
@@ -164,7 +164,7 @@ TEST_CASE("FileIsTyped") { // NOLINT
     }
 }
 
-TEST_CASE("Substitute") { // NOLINT
+TEST_CASE("Substitute") {
     GlobalState gs1(errorQueue);
     gs1.initEmpty();
 
@@ -338,7 +338,7 @@ TEST_CASE("isPackageSpecSymbol") {
 
     {
         auto unfrezePackages = gs.packageDB().unfreeze();
-        gs.setPackagerOptions({}, {}, {}, {}, {}, {}, {}, "", false, false, false, false);
+        gs.setPackagerOptions({}, {}, {}, {}, {}, {}, {}, "", packages::GenPackagesMode::Disabled, false, false, false);
     }
 
     CHECK_FALSE(Symbols::root().isPackageSpecSymbol(gs));

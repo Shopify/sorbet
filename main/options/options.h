@@ -6,6 +6,7 @@
 #include "common/strings/ConstExprStr.h"
 #include "core/StrictLevel.h"
 #include "core/TrackUntyped.h"
+#include "core/packages/PackageDB.h"
 #include "main/pipeline/semantic_extension/SemanticExtension.h"
 #include "spdlog/spdlog.h"
 #include <optional>
@@ -68,20 +69,12 @@ struct Printers {
     PrinterConfig TypedSource;
     PrinterConfig SymbolTable;
     PrinterConfig SymbolTableRaw;
-    PrinterConfig SymbolTableProto;
-    PrinterConfig SymbolTableMessagePack;
     PrinterConfig SymbolTableJson;
     PrinterConfig SymbolTableFull;
     PrinterConfig SymbolTableFullRaw;
-    PrinterConfig SymbolTableFullProto;
-    PrinterConfig SymbolTableFullMessagePack;
     PrinterConfig SymbolTableFullJson;
     PrinterConfig FileTableJson;
-    PrinterConfig FileTableProto;
-    PrinterConfig FileTableMessagePack;
     PrinterConfig FileTableFullJson;
-    PrinterConfig FileTableFullProto;
-    PrinterConfig FileTableFullMessagePack;
     PrinterConfig MissingConstants;
     PrinterConfig Autogen;
     PrinterConfig AutogenMsgPack;
@@ -266,7 +259,7 @@ struct Options {
 
     std::string dumpPackageInfo = "";
     std::vector<std::string> packageSkipRBIExportEnforcementDirs;
-    bool genPackages = false;
+    core::packages::GenPackagesMode genPackagesMode = core::packages::GenPackagesMode::Disabled;
     bool allowRelaxingTestVisibility = false;
 
     // Contains the allowed extensions Sorbet can parse.

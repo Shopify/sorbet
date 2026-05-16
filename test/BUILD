@@ -55,6 +55,7 @@ cc_binary(
     deps = [
         "//common",
         "//main/lsp",
+        "//main/options",
         "//payload",
         "//test/helpers",
         "@cxxopts",
@@ -316,6 +317,7 @@ pipeline_tests(
             "testdata/parser/error_recovery/constant_only_scope.rb",
             "testdata/parser/error_recovery/def_missing_end_1.rb",
             "testdata/parser/error_recovery/def_missing_end_2.rb",
+            "testdata/parser/error_recovery/def_reswords.rb",
             "testdata/parser/error_recovery/defn_indent_1.rb",
             "testdata/parser/error_recovery/defn_indent_2.rb",
             "testdata/parser/error_recovery/defn_indent_3.rb",
@@ -463,9 +465,9 @@ pipeline_tests(
             "testdata/resolver/it_param_rspec_method.rb",
             "testdata/resolver/sig_misc.rb",
             "testdata/rewriter/initializer_no_arg_with_local.rb",
+            "testdata/desugar/op_asgn_kw_block.rb",
 
             # Prism desugared tree doesn't match legacy desugared tree (desugar differences)
-            "testdata/desugar/destructure.rb",
             "testdata/desugar/destructure_rest.rb",
             "testdata/desugar/splat.rb",
             "testdata/desugar/star_in_block_arg.rb",
@@ -528,9 +530,57 @@ pipeline_tests(
             "testdata/**/*.rbi",
             "testdata/**/*.exp",
         ],
+        # package-directed is known to be incompatible with the LSP tests for now
+        # todo(gdritter): fix this!
+        exclude = [
+            "testdata/packager/directed-*/**/*",
+        ],
     ),
     "LSPTests",
     extra_files = ["testdata/lsp/rubyfmt-stub/rubyfmt"],
+)
+
+pipeline_tests(
+    "test_corpus_lsp_prism",
+    glob(
+        [
+            "testdata/**/*.rb",
+            "testdata/**/*.rbi",
+            "testdata/**/*.exp",
+        ],
+        exclude = [
+            # Prism LSP known failures: completion differences
+            "testdata/lsp/completion/bad_arguments.rb",
+            "testdata/lsp/completion/bad_list_elems.rb",
+            "testdata/lsp/completion/case_1.rb",
+            "testdata/lsp/completion/error_recovery_binop_unop.rb",
+            "testdata/lsp/completion/instance_var.rb",
+            "testdata/lsp/completion/method_kwargs.rb",
+            "testdata/lsp/completion/method_kwargs_extra.rb",
+            "testdata/lsp/completion/missing_assign_rhs.rb",
+            "testdata/lsp/completion/missing_const_name.rb",
+            "testdata/lsp/completion/overridable.rb",
+            "testdata/lsp/completion/symbol_proc.rb",
+            "testdata/lsp/completion/untyped_parse_errors.rb",
+
+            # Prism LSP known failures: fast path
+            "testdata/lsp/fast_path/static_field_type.rb",
+
+            # Tests that are also disabled in the pipeline test
+            "testdata/cfg/rescue_var_expression.rb",
+
+            # Prism LSP known failures: hover with RBS
+            "testdata/lsp/hover_rbs.rb",
+            "testdata/lsp/hover_rbs_assertions_let.rb",
+
+            # package-directed is known to be incompatible with the LSP tests for now
+            # todo(gdritter): fix this!
+            "testdata/packager/directed-*/**/*",
+        ],
+    ),
+    "PrismLSPTests",
+    extra_files = ["testdata/lsp/rubyfmt-stub/rubyfmt"],
+    parser = "prism",
 )
 
 pipeline_tests(
@@ -543,7 +593,6 @@ pipeline_tests(
         exclude = [
             # related to ruby 3.4 syntax changes
             "prism_regression/assign_to_index.rb",
-            "prism_regression/multi_target.rb",
             "prism_regression/call_block_param.rb",
         ],
     ),

@@ -813,7 +813,7 @@ private:
     friend TypePtr lubGround(const GlobalState &gs, const TypePtr &t1, const TypePtr &t2);
     friend TypePtr Types::lub(const GlobalState &gs, const TypePtr &t1, const TypePtr &t2);
     friend TypePtr Types::glb(const GlobalState &gs, const TypePtr &t1, const TypePtr &t2);
-    friend TypePtr filterOrComponents(const TypePtr &originalType, const InlinedVector<TypePtr, 4> &typeFilter);
+    friend TypePtr filterOrComponents(const TypePtr &originalType, absl::Span<const TypePtr> typeFilter);
     friend TypePtr Types::dropSubtypesOf(const GlobalState &gs, const TypePtr &from,
                                          absl::Span<const ClassOrModuleRef> klasses);
     friend TypePtr Types::unwrapSelfTypeParam(Context ctx, const TypePtr &t1);
@@ -897,10 +897,10 @@ public:
     bool derivesFrom(const GlobalState &gs, core::ClassOrModuleRef klass) const;
 
     ZippedPairSpan<TypePtr, TypePtr> kviter() {
-        return ZippedPairSpan<TypePtr, TypePtr>{absl::MakeSpan(keys), absl::MakeSpan(values)};
+        return ZipSpans(absl::MakeSpan(keys), absl::MakeSpan(values));
     }
     ZippedPairSpan<const TypePtr, const TypePtr> kviter() const {
-        return ZippedPairSpan<const TypePtr, const TypePtr>{absl::MakeSpan(keys), absl::MakeSpan(values)};
+        return ZipSpans(absl::MakeSpan(keys), absl::MakeSpan(values));
     }
 
     std::optional<size_t> indexForKey(const TypePtr &t) const;
@@ -1038,7 +1038,7 @@ struct CallLocs final {
     LocOffsets call;
     LocOffsets receiver;
     LocOffsets fun;
-    InlinedVector<LocOffsets, 2> &args;
+    absl::Span<const LocOffsets> args;
 };
 
 struct DispatchArgs {

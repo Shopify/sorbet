@@ -2,10 +2,9 @@
 // minimal build to speedup compilation. Remove extra features
 #else
 #define FULL_BUILD_ONLY(X) X;
-#include "core/proto/proto.h" // has to be included first as it violates our poisons
-// intentional comment to stop from reformatting
 #include "common/statsd/statsd.h"
 #include "common/web_tracer_framework/tracing.h"
+#include "core/json/json.h"
 #include "main/autogen/autogen.h"
 #include "main/autogen/crc_builder.h"
 #include "main/autogen/data/version.h"
@@ -479,6 +478,8 @@ int realmain(int argc, char *argv[]) {
                          "or set SORBET_SILENCE_DEV_MESSAGE=1 in your shell environment.\n");
         }
     }
+
+    prodCounterSet("worker_pool_size", opts.threads);
     unique_ptr<WorkerPool> workers = WorkerPool::create(opts.threads, *logger);
 
     auto errorFlusher = make_shared<core::ErrorFlusherStdout>();
@@ -647,7 +648,11 @@ int realmain(int argc, char *argv[]) {
         // The rest of the pipeline proceeds by strata in the package condensation graph. When stripe-packages is not
         // enabled, everything ends up in one big stratum.
         vector<ast::ParsedFile> stratumFiles;
-        for (auto &stratum : pipeline::computePackageStrata(*gs, packageIndexed, inputFilesSpan, opts)) {
+        int currentStratum = -1;
+        auto strata = pipeline::computePackageStrata(*gs, packageIndexed, inputFilesSpan, opts);
+        for (auto &stratum : strata.strata) {
+            ++currentStratum;
+
             // We can unconditionally reset (to drop the vectors) instead of having to consult
             // intentionallyLeakASTs, because if intentionallyLeakASTs, then necessarily
             // packageDirected will be false, and thus this loop will only iterate once, and since
@@ -705,11 +710,13 @@ int realmain(int argc, char *argv[]) {
                     gs->errorQueue->flushAllErrors(*gs);
                 }
 
-                if (!opts.genPackages) {
+                if (opts.genPackagesMode == core::packages::GenPackagesMode::Disabled) {
                     // In --gen-packages mode, we skip typecheck because we only want to show packaging related errors,
                     // and skipping typecheck saves a significant amount of time.
-                    pipeline::typecheck(*gs, move(stratumFiles), opts, *workers, /* cancelable */ false, nullopt,
-                                        /* presorted */ false, intentionallyLeakASTs);
+                    pipeline::sortBySize(*gs, stratumFiles);
+                    pipeline::typecheck(*gs, move(stratumFiles), opts, *workers, /* cancelable */ false,
+                                        core::packages::Stratum(currentStratum),
+                                        /* preemptionManager */ nullptr, intentionallyLeakASTs);
 
                     if (gs->hadCriticalError()) {
                         gs->errorQueue->flushAllErrors(*gs);
@@ -718,14 +725,23 @@ int realmain(int argc, char *argv[]) {
             }
         }
 
-        if (opts.genPackages) {
+        if (opts.genPackagesMode != core::packages::GenPackagesMode::Disabled) {
             // One of the things this pass does is insert missing exports. Because of this, it needs to run after
             // VisibilityChecker has been run for all strata; a symbol might be used in a strata after the strata for
             // the package that owns that symbol, and we need to be able to see that use to know that a export should be
             // generated for that symbol. Because of that, we need to put this pass outside of the loop above.
             //
             // A similar principle applies for inserting `visible_to`s with --gen-packages-update-visiblity-for
-            packager::GenPackages::run(*gs);
+            switch (opts.genPackagesMode) {
+                case core::packages::GenPackagesMode::Strict:
+                    packager::GenPackages::runStrict(*gs);
+                    break;
+                case core::packages::GenPackagesMode::Normal:
+                    packager::GenPackages::run(*gs);
+                    break;
+                case core::packages::GenPackagesMode::Disabled:
+                    ENFORCE(false);
+            }
 
             // One thing typecheck does is call flushErrorsForFile, which provides a consistent
             // ordering for errors when running in single threaded mode. To replicate that behaviour, we loop
@@ -876,7 +892,6 @@ int realmain(int argc, char *argv[]) {
     }
 
     if (!opts.metricsFile.empty()) {
-        auto metrics = core::Proto::toProto(counters, opts.metricsPrefix);
         string status;
         if (gs->hadCriticalError()) {
             status = "Error";
@@ -886,14 +901,9 @@ int realmain(int argc, char *argv[]) {
             status = "Success";
         }
 
-        metrics.set_repo(opts.metricsRepo);
-        metrics.set_branch(opts.metricsBranch);
-        metrics.set_sha(opts.metricsSha);
-        metrics.set_status(status);
+        auto json = core::JSON::metricsToJSON(counters, opts.metricsPrefix, opts.metricsRepo, opts.metricsBranch,
+                                              opts.metricsSha, status);
 
-        auto json = core::Proto::toJSON(metrics);
-
-        // Create output directory if it doesn't exist
         try {
             opts.fs->writeFile(opts.metricsFile, json);
         } catch (FileNotFoundException e) {

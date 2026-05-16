@@ -649,21 +649,23 @@ OpAsgnScaffolding copyArgsForOpAsgn(DesugarContext dctx, Send *s) {
     //
     // This means we'll always need statements for as many arguments as the send has, plus two more: one for the
     // temporary assignment and the last for the actual update we're desugaring.
-    ENFORCE(!s->hasKwArgs() && !s->hasBlock());
-    const auto numPosArgs = s->numPosArgs();
     InsSeq::STATS_store stats;
-    stats.reserve(numPosArgs + 2);
+    stats.reserve(s->numPosArgs() + 2 * s->numKwArgs() + 1);
     core::NameRef tempRecv = dctx.freshNameUnique(s->fun);
     stats.emplace_back(MK::Assign(s->loc, tempRecv, move(s->recv)));
+
     Send::ARGS_store readArgs;
     Send::ARGS_store assgnArgs;
     // these are the arguments for the first send, e.g. x.y(). The number of arguments should be identical to whatever
     // we saw on the LHS.
-    readArgs.reserve(numPosArgs);
+    auto expectedArgs = s->numNonBlockArgs() + (s->hasBlock() ? 1 : 0);
+    readArgs.reserve(expectedArgs);
     // these are the arguments for the second send, e.g. x.y=(val). That's why we need the space for the extra argument
     // here: to accommodate the call to field= instead of just field.
-    assgnArgs.reserve(numPosArgs + 1);
+    assgnArgs.reserve(expectedArgs + 1);
 
+    // TODO(jez) We could optimize this by using the same isa_reference / cpRef trick we use
+    // elsewhere to avoid creating tmp assignments for things that don't need them.
     for (auto &arg : s->posArgs()) {
         auto argLoc = arg.loc();
         core::NameRef name = dctx.freshNameUnique(s->fun);
@@ -672,7 +674,33 @@ OpAsgnScaffolding copyArgsForOpAsgn(DesugarContext dctx, Send *s) {
         assgnArgs.emplace_back(MK::Local(argLoc, name));
     }
 
-    return {tempRecv, move(stats), numPosArgs, move(readArgs), move(assgnArgs)};
+    for (const auto &[key, val] : s->kwArgPairs()) {
+        auto keyLoc = key.loc();
+        auto keyName = dctx.freshNameUnique(s->fun);
+        stats.emplace_back(MK::Assign(keyLoc, keyName, move(key)));
+        readArgs.emplace_back(MK::Local(keyLoc, keyName));
+        assgnArgs.emplace_back(MK::Local(keyLoc, keyName));
+
+        auto valLoc = val.loc();
+        auto valName = dctx.freshNameUnique(s->fun);
+        stats.emplace_back(MK::Assign(valLoc, valName, move(val)));
+        readArgs.emplace_back(MK::Local(valLoc, valName));
+        assgnArgs.emplace_back(MK::Local(valLoc, valName));
+    }
+
+    if (auto *kwsplat = s->kwSplat()) {
+        auto name = dctx.freshNameUnique(s->fun);
+        stats.emplace_back(MK::Assign(kwsplat->loc(), name, move(*kwsplat)));
+        readArgs.emplace_back(MK::Local(kwsplat->loc(), name));
+        assgnArgs.emplace_back(MK::Local(kwsplat->loc(), name));
+    }
+
+    if (s->hasBlock()) {
+        readArgs.emplace_back(s->block()->deepCopy());
+        assgnArgs.emplace_back(move(*s->rawBlock()));
+    }
+
+    return {tempRecv, move(stats), s->numPosArgs(), move(readArgs), move(assgnArgs)};
 }
 
 // while true
@@ -1262,7 +1290,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(dctx, s);
                     auto numPosAssgnArgs = numPosArgs + 1;
 
-                    assgnArgs.emplace_back(move(arg));
+                    assgnArgs.insert(assgnArgs.begin() + numPosArgs, move(arg));
                     auto cond = MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs,
                                          move(readArgs), s->flags);
                     core::NameRef tempResult = dctx.freshNameUnique(s->fun);
@@ -1300,7 +1328,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     auto sendLoc = s->loc;
                     auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(dctx, s);
                     auto numPosAssgnArgs = numPosArgs + 1;
-                    assgnArgs.emplace_back(move(arg));
+                    assgnArgs.insert(assgnArgs.begin() + numPosArgs, move(arg));
                     auto cond = MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs,
                                          move(readArgs), s->flags);
                     core::NameRef tempResult = dctx.freshNameUnique(s->fun);
@@ -1333,7 +1361,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     auto sendLoc = s->loc;
                     auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(dctx, s);
                     auto numPosAssgnArgs = numPosArgs + 1;
-                    assgnArgs.emplace_back(move(arg));
+                    assgnArgs.insert(assgnArgs.begin() + numPosArgs, move(arg));
                     auto cond = MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs,
                                          move(readArgs), s->flags);
                     core::NameRef tempResult = dctx.freshNameUnique(s->fun);
@@ -1394,7 +1422,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                     auto sendLoc = s->loc;
                     auto [tempRecv, stats, numPosArgs, readArgs, assgnArgs] = copyArgsForOpAsgn(dctx, s);
                     auto numPosAssgnArgs = numPosArgs + 1;
-                    assgnArgs.emplace_back(move(arg));
+                    assgnArgs.insert(assgnArgs.begin() + numPosArgs, move(arg));
                     auto cond = MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun, s->funLoc, numPosArgs,
                                          move(readArgs), s->flags);
                     core::NameRef tempResult = dctx.freshNameUnique(s->fun);
@@ -1429,7 +1457,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                                               move(readArgs), s->flags);
                     auto newValue = MK::Send1(sendLoc, move(prevValue), opAsgn->op, opAsgn->opLoc, move(rhs));
                     auto numPosAssgnArgs = numPosArgs + 1;
-                    assgnArgs.emplace_back(move(newValue));
+                    assgnArgs.insert(assgnArgs.begin() + numPosArgs, move(newValue));
 
                     auto res = MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun.addEq(dctx.ctx),
                                         sendLoc.copyWithZeroLength(), numPosAssgnArgs, move(assgnArgs), s->flags);
@@ -1470,7 +1498,7 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                                               move(readArgs), s->flags);
                     auto newValue = MK::Send1(sendLoc, move(prevValue), opAsgn->op, opAsgn->opLoc, move(rhs));
                     auto numPosAssgnArgs = numPosArgs + 1;
-                    assgnArgs.emplace_back(move(newValue));
+                    assgnArgs.insert(assgnArgs.begin() + numPosArgs, move(newValue));
 
                     auto res = MK::Send(sendLoc, MK::Local(sendLoc, tempRecv), s->fun.addEq(dctx.ctx),
                                         sendLoc.copyWithZeroLength(), numPosAssgnArgs, move(assgnArgs), s->flags);
@@ -1853,11 +1881,26 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 result = move(res);
             },
             [&](parser::Complex *complex) {
+                // Create the desugared Complex call like `::Kernel.Complex(0, unsigned_value)`
+                //
+                // The value itself might be a rational (e.g. `1ri`), which would desugar to:
+                //     ::Kernel.Complex(0, Kernel.Rational("1"))
+                ast::ExpressionPtr imaginaryPart;
+                if (absl::EndsWith(complex->value, "r")) {
+                    auto rationalValue = complex->value.substr(0, complex->value.size() - "r"sv.size());
+                    auto kernel = MK::Constant(loc, core::Symbols::Kernel());
+                    core::NameRef rationalName = core::Names::Constants::Rational().dataCnst(dctx.ctx)->original;
+                    core::NameRef value = dctx.ctx.state.enterNameUTF8(rationalValue);
+                    imaginaryPart = MK::Send1(loc, move(kernel), rationalName, locZeroLen, MK::String(loc, value));
+                } else {
+                    core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->value);
+                    imaginaryPart = MK::String(loc, value);
+                }
+
                 auto kernel = MK::Constant(loc, core::Symbols::Kernel());
                 core::NameRef complex_name = core::Names::Constants::Complex().dataCnst(dctx.ctx)->original;
-                core::NameRef value = dctx.ctx.state.enterNameUTF8(complex->value);
                 auto send =
-                    MK::Send2(loc, move(kernel), complex_name, locZeroLen, MK::Int(loc, 0), MK::String(loc, value));
+                    MK::Send2(loc, move(kernel), complex_name, locZeroLen, MK::Int(loc, 0), move(imaginaryPart));
                 result = move(send);
             },
             [&](parser::Rational *complex) {
@@ -2348,16 +2391,14 @@ ExpressionPtr node2TreeImplBody(DesugarContext dctx, parser::Node *what) {
                 if (auto e = dctx.ctx.beginIndexerError(what->loc, core::errors::Desugar::UndefUsage)) {
                     e.setHeader("Unsupported method: undef");
                 }
+
                 Send::ARGS_store args;
                 for (auto &expr : undef->exprs) {
                     args.emplace_back(node2TreeImpl(dctx, expr));
                 }
-                auto numPosArgs = args.size();
-                auto res = MK::Send(loc, MK::Constant(loc, core::Symbols::Kernel()), core::Names::undef(), locZeroLen,
-                                    numPosArgs, move(args));
-                // It wasn't a Send to begin with--there's no way this could result in a private
-                // method call error.
-                ast::cast_tree_nonnull<ast::Send>(res).flags.isPrivateOk = true;
+
+                // Desugar `undef :foo, :bar` to `::<Magic>.<undef>(:foo, :bar)`
+                auto res = MK::Send(loc, MK::Magic(loc), core::Names::undef(), locZeroLen, args.size(), move(args));
                 result = move(res);
             },
             [&](parser::CaseMatch *caseMatch) {

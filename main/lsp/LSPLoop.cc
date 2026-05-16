@@ -65,30 +65,6 @@ void LSPLoop::sendCountersToStatsd(chrono::time_point<chrono::steady_clock> curr
 }
 
 namespace {
-class TypecheckCountTask : public LSPTask {
-    int &count;
-
-public:
-    TypecheckCountTask(const LSPConfiguration &config, int &count)
-        : LSPTask(config, LSPMethod::SorbetError), count(count) {}
-
-    bool canPreempt(const LSPIndexer &indexer) const override {
-        return false;
-    }
-
-    void run(LSPTypecheckerDelegate &tc) override {
-        count = tc.state().lspTypecheckCount;
-    }
-};
-} // namespace
-
-int LSPLoop::getTypecheckCount() {
-    int count = 0;
-    typecheckerCoord.syncRun(make_unique<TypecheckCountTask>(*config, count));
-    return count;
-}
-
-namespace {
 class NotifyNotificationOnDestruction {
     absl::Notification &notification;
 
@@ -296,8 +272,7 @@ optional<unique_ptr<core::GlobalState>> LSPLoop::runLSP(shared_ptr<LSPInput> inp
                     frontTask->canPreempt(indexer)) {
                     absl::Notification finished;
                     string methodStr = convertLSPMethodToString(frontTask->method);
-                    auto preemptTask = make_unique<LSPQueuePreemptionTask>(*config, finished, *taskQueue, indexer);
-                    auto scheduleToken = typecheckerCoord.trySchedulePreemption(move(preemptTask));
+                    auto scheduleToken = typecheckerCoord.trySchedulePreemption(finished, *taskQueue, indexer);
 
                     if (scheduleToken != nullptr) {
                         logger->debug("[Processing] Preempting slow path for task {}", methodStr);
@@ -307,8 +282,9 @@ optional<unique_ptr<core::GlobalState>> LSPLoop::runLSP(shared_ptr<LSPInput> inp
                         // thread if a fast path edit preempts, with the `canPreempt` checks of edits in this thread.
                         auto noPreemptionTasksRemain = [&indexer = this->indexer,
                                                         &tasks = this->taskQueue->tasks()]() -> bool {
-                            // Await always holds taskQueueMutex when calling this function, but absl doesn't know that.
-                            return tasks.empty() || !tasks.front()->canPreempt(indexer);
+                            // The capture of `tasks` here is safe because the only caller of this closure is the
+                            // `Await` below, which will lock the mutex that guards `tasks` for its duration.
+                            return !indexer.preemptionPossible(tasks);
                         };
                         // Wait until the head of the queue turns into a non-preemptible task to resume processing the
                         // queue.
@@ -330,7 +306,57 @@ optional<unique_ptr<core::GlobalState>> LSPLoop::runLSP(shared_ptr<LSPInput> inp
                             logger->debug("[Processing] Canceled scheduled preemption for task {}", methodStr);
                         }
 
-                        // At this point, we are guaranteed that the scheduled task has run or has been canceled.
+                        // At this point, we know that the preemption task has either run or been cancelled. If it was
+                        // cancelled because we detected a new slow path edit in the queue, move all edits between the
+                        // front of the queue and the slow path edit to the front of the queue, and merge them together.
+                        auto &tasks = this->taskQueue->tasks();
+
+                        // If the front of the queue cannot preempt, then we ran to completion and there are no tasks to
+                        // move.
+                        if (tasks.empty() || !tasks.front()->canPreempt(indexer)) {
+                            continue;
+                        }
+
+                        // If the first task that cannot preempt is not an edit, there are no tasks to move.
+                        auto cannotPreempt = absl::c_find_if(
+                            tasks, [&indexer = this->indexer](auto &task) { return !task->canPreempt(indexer); });
+                        if (cannotPreempt == tasks.end() ||
+                            dynamic_cast<SorbetWorkspaceEditTask *>(cannotPreempt->get()) == nullptr) {
+                            continue;
+                        }
+
+                        config->logger->debug("[Processing] Promoting slow path edits");
+
+                        // As we might have more than one edit between the front of the queue and the slow path edit,
+                        // migrate all the edits to the front of the queue and preserve their order so that we can merge
+                        // them into a single edit.
+                        auto firstNonEdit = std::stable_partition(tasks.begin(), cannotPreempt + 1, [](auto &task) {
+                            return dynamic_cast<SorbetWorkspaceEditTask *>(task.get()) != nullptr;
+                        });
+
+                        // If we only moved a single edit, we're done.
+                        auto numEdits = std::distance(tasks.begin(), firstNonEdit);
+                        if (numEdits <= 1) {
+                            prodCategoryCounterInc("lsp.preemption.cancelation", "single");
+                            continue;
+                        }
+
+                        config->logger->debug("[Processing] Merging {} promoted edits", numEdits);
+                        prodCategoryCounterInc("lsp.preemption.cancelation", "merged");
+
+                        // At this point, we can assume that the front of the queue is an edit. Merge all of the
+                        // newer edits into it to ensure that the front of the queue is a single slow path edit.
+                        auto *oldestEdit = dynamic_cast<SorbetWorkspaceEditTask *>(tasks.front().get());
+                        ENFORCE(oldestEdit != nullptr);
+
+                        auto second = tasks.begin() + 1;
+                        for (auto it = second; it != firstNonEdit; ++it) {
+                            auto *newerEdit = dynamic_cast<SorbetWorkspaceEditTask *>(it->get());
+                            oldestEdit->mergeNewer(*newerEdit);
+                        }
+
+                        tasks.erase(second, firstNonEdit);
+
                         continue;
                     }
                     // If preemption scheduling failed, then the slow path probably finished just now. Continue as

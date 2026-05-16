@@ -6,6 +6,7 @@
 #include "common/concurrency/WorkerPool.h"
 #include "common/kvstore/KeyValueStore.h"
 #include "core/FileHash.h"
+#include "core/packages/Stratum.h"
 #include "main/options/options.h"
 
 namespace sorbet::core::lsp {
@@ -56,13 +57,20 @@ struct CondensationStratumInfo {
     absl::Span<core::FileRef> sourceFiles;
 };
 
+struct PackageStrata {
+    // The individual strata of the package graph traversal.
+    std::vector<CondensationStratumInfo> strata;
+
+    // The mapping of a core::FileRef to the stratum it occurs in. We identify individual strata with a uint16_t,
+    // because overflowing that value would require a dependency chain of length greater than 65535.
+    std::vector<core::packages::Stratum> fileToStratum;
+};
+
 // Using the condensation graph, sort the package and source files according to the stratum they would show up in a
 // parallel traversal of the condensation graph from its roots. The `packageFiles` vector will be mutated to include
 // non-test versions of the package files included originally.
-std::vector<CondensationStratumInfo> computePackageStrata(const core::GlobalState &gs,
-                                                          std::vector<ast::ParsedFile> &packageFiles,
-                                                          absl::Span<core::FileRef> files,
-                                                          const options::Options &opts);
+PackageStrata computePackageStrata(const core::GlobalState &gs, std::vector<ast::ParsedFile> &packageFiles,
+                                   absl::Span<core::FileRef> files, const options::Options &opts);
 
 void buildPackageDB(core::GlobalState &gs, absl::Span<ast::ParsedFile> what, absl::Span<core::FileRef> nonPackageFiles,
                     const options::Options &opts, WorkerPool &workers);
@@ -98,10 +106,11 @@ std::vector<ast::ParsedFile> incrementalResolve(
 // Note: `cancelable` and `preemption task manager` are only applicable to LSP.
 // If `intentionallyLeakASTs` is `true`, typecheck will leak the ASTs rather than pay the cost of deleting them
 // properly, which is a significant speedup on large codebases.
-void typecheck(const core::GlobalState &gs, std::vector<ast::ParsedFile> what, const options::Options &opts,
+void typecheck(const core::GlobalState &gs, std::vector<ast::ParsedFile> &&what, const options::Options &opts,
                WorkerPool &workers, bool cancelable = false,
-               std::optional<std::shared_ptr<core::lsp::PreemptionTaskManager>> preemptionManager = std::nullopt,
-               bool presorted = false, bool intentionallyLeakASTs = false);
+               core::packages::Stratum currentStratum = core::packages::Stratum(),
+               std::shared_ptr<core::lsp::PreemptionTaskManager> preemptionManager = nullptr,
+               bool intentionallyLeakASTs = false);
 
 // ----- other ----------------------------------------------------------------
 
@@ -113,6 +122,12 @@ void printUntypedBlames(const core::GlobalState &gs, const UnorderedMap<long, lo
 
 // Create a copy of `from` that has its symbol table reset to the payload.
 std::unique_ptr<core::GlobalState> copyForSlowPath(const core::GlobalState &from, const options::Options &opts);
+
+// Sort files by size, so that larger files appear earlier than smaller files.
+//
+// Makes typechecking more performant, because it becomes less likely a single large file is
+// typechecked last while other workers are idle.
+void sortBySize(const core::GlobalState &gs, std::vector<ast::ParsedFile> &trees);
 
 } // namespace sorbet::realmain::pipeline
 #endif // RUBY_TYPER_PIPELINE_H

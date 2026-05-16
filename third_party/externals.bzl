@@ -115,10 +115,10 @@ def register_sorbet_dependencies():
 
     http_archive(
         name = "jemalloc",
-        url = "https://github.com/jemalloc/jemalloc/archive/20f9802e4f25922884448d9581c66d76cc905c0c.zip",  # 5.3
-        sha256 = "1cc1ec93701868691c73b371eb87e5452257996279a42303a91caad355374439",
+        url = "https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.zip",  # 5.3.0
+        sha256 = "1f35888bad9fd331f5a03445bc1bff808a59378be61fef01e9736179d76f2fab",
         build_file = "@com_stripe_ruby_typer//third_party:jemalloc.BUILD",
-        strip_prefix = "jemalloc-20f9802e4f25922884448d9581c66d76cc905c0c",
+        strip_prefix = "jemalloc-5.3.0",
     )
 
     http_archive(
@@ -205,6 +205,15 @@ def register_sorbet_dependencies():
         url = "https://github.com/sorbet/bazel-toolchain/archive/3f912e338d79ea29ad35f20321f24d551d7d89ad.tar.gz",
         sha256 = "4c998dc3f3b0c7b31a66aa4e262191b94da93cf31698eb6ac5a751267afbe26a",
         strip_prefix = "bazel-toolchain-3f912e338d79ea29ad35f20321f24d551d7d89ad",
+    )
+
+    http_archive(
+        name = "bazel_clang_tidy",
+        url = "https://github.com/erenon/bazel_clang_tidy/archive/c4d35e0d0b838309358e57a2efed831780f85cd0.tar.gz",
+        sha256 = "96da6e935ccc91045cf928dbc57f22508a2729c51f7fb3f56178017b0deb9b3c",
+        strip_prefix = "bazel_clang_tidy-c4d35e0d0b838309358e57a2efed831780f85cd0",
+        patches = ["@com_stripe_ruby_typer//third_party:bazel_clang_tidy/clang_tidy_BUILD.patch"],
+        patch_args = ["-p1"],
     )
 
     http_archive(
@@ -302,19 +311,33 @@ def register_sorbet_dependencies():
         url = "https://github.com/aspect-build/bazel-lib/releases/download/v2.7.0/bazel-lib-v2.7.0.tar.gz",
     )
 
-    shellcheck_version = "0.8.0"
+    shellcheck_version = "0.11.0"
     http_archive(
-        name = "shellcheck_linux",
+        name = "shellcheck_linux_x86_64",
         url = "https://github.com/koalaman/shellcheck/releases/download/v{0}/shellcheck-v{0}.linux.x86_64.tar.xz".format(shellcheck_version),
         build_file = "@com_stripe_ruby_typer//third_party:shellcheck.BUILD",
-        sha256 = "ab6ee1b178f014d1b86d1e24da20d1139656c8b0ed34d2867fbb834dad02bf0a",
+        sha256 = "8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198",
         strip_prefix = "shellcheck-v{}".format(shellcheck_version),
     )
     http_archive(
-        name = "shellcheck_darwin",
+        name = "shellcheck_darwin_x86_64",
         url = "https://github.com/koalaman/shellcheck/releases/download/v{0}/shellcheck-v{0}.darwin.x86_64.tar.xz".format(shellcheck_version),
         build_file = "@com_stripe_ruby_typer//third_party:shellcheck.BUILD",
-        sha256 = "e065d4afb2620cc8c1d420a9b3e6243c84ff1a693c1ff0e38f279c8f31e86634",
+        sha256 = "3c89db4edcab7cf1c27bff178882e0f6f27f7afdf54e859fa041fca10febe4c6",
+        strip_prefix = "shellcheck-v{}".format(shellcheck_version),
+    )
+    http_archive(
+        name = "shellcheck_linux_aarch64",
+        url = "https://github.com/koalaman/shellcheck/releases/download/v{0}/shellcheck-v{0}.linux.aarch64.tar.xz".format(shellcheck_version),
+        build_file = "@com_stripe_ruby_typer//third_party:shellcheck.BUILD",
+        sha256 = "12b331c1d2db6b9eb13cfca64306b1b157a86eb69db83023e261eaa7e7c14588",
+        strip_prefix = "shellcheck-v{}".format(shellcheck_version),
+    )
+    http_archive(
+        name = "shellcheck_darwin_arm64",
+        url = "https://github.com/koalaman/shellcheck/releases/download/v{0}/shellcheck-v{0}.darwin.aarch64.tar.xz".format(shellcheck_version),
+        build_file = "@com_stripe_ruby_typer//third_party:shellcheck.BUILD",
+        sha256 = "56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79",
         strip_prefix = "shellcheck-v{}".format(shellcheck_version),
     )
 

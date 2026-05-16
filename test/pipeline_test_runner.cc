@@ -2,9 +2,6 @@
 #include <cxxopts.hpp>
 // has to go first as it violates our requirements
 
-// has to go first, as it violates poisons
-#include "core/proto/proto.h"
-
 #include "absl/strings/match.h"
 #include "absl/strings/str_split.h"
 #include "ast/ast.h"
@@ -325,9 +322,8 @@ vector<ast::ParsedFile> index(core::GlobalState &gs, absl::Span<core::FileRef> f
 
                     if (gs.cacheSensitiveOptions.rbsEnabled) {
                         auto &prismParser = prismParseResult->getParser();
-                        auto node = rbs::runPrismRBSRewrite(gs, file, prismParseResult->getRawNodePointer(),
-                                                            prismParseResult->getCommentLocations(), ctx, prismParser);
-                        prismParseResult->replaceRootNode(node);
+                        rbs::runPrismRBSRewrite(gs, file, prismParseResult->getRawNodePointer(),
+                                                prismParseResult->getCommentLocations(), ctx, prismParser);
                         disableParserComparison = true;
 
                         handler.addObserved(gs, "rbs-rewrite-tree", [&]() { return prismParseResult->prettyPrint(); });
@@ -492,7 +488,7 @@ void autogen(core::GlobalState &gs, vector<core::FileRef> files, ExpectationHand
     handler.checkExpectations();
 }
 
-TEST_CASE("PerPhaseTest") { // NOLINT
+TEST_CASE("PerPhaseTest") {
     Expectations test = Expectations::getExpectations(singleTest);
 
     auto inputPath = test.folder + test.basename;
@@ -512,8 +508,6 @@ TEST_CASE("PerPhaseTest") { // NOLINT
     }
 
     auto assertions = RangeAssertion::parseAssertions(test.sourceFileContents);
-    // TODO(jez) Make sure we add an assertion for `package-directed: true`
-    // Right now, `opts.packageDirected` is always false
     auto opts = RangeAssertion::parseOptions(assertions);
     opts.censorForSnapshotTests = true;
     opts.sorbetPackagesHint = "PACKAGE_ERROR_HINT";
@@ -578,7 +572,19 @@ TEST_CASE("PerPhaseTest") { // NOLINT
     }
 
     vector<ast::ParsedFile> stratumFiles;
-    for (auto &stratum : realmain::pipeline::computePackageStrata(*gs, trees, filesSpan, opts)) {
+    auto strata = realmain::pipeline::computePackageStrata(*gs, trees, filesSpan, opts);
+
+    for (auto &stratumAssertion : RangeAssertion::getAssertions<StratumAssertion>(assertions)) {
+        auto file = gs->findFileByPath(stratumAssertion->filename);
+        auto actualStratum = strata.fileToStratum[file.id()];
+        if (actualStratum != stratumAssertion->value) {
+            ADD_FAIL_CHECK_AT(stratumAssertion->filename.c_str(), stratumAssertion->assertionLine + 1,
+                              "Expected " << stratumAssertion->filename << " at stratum "
+                                          << stratumAssertion->value.rawId() << "; got " << actualStratum.rawId());
+        }
+    }
+
+    for (auto &stratum : strata.strata) {
         stratumFiles.clear();
         stratumFiles.reserve(stratum.packageFiles.size() + stratum.sourceFiles.size());
         absl::c_move(stratum.packageFiles, back_inserter(stratumFiles));
@@ -700,8 +706,9 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                     extension->finishTypecheckFile(ctx, file);
                 }
                 resolvedTree.tree.reset();
-                handler.drainErrors(*gs);
             }
+
+            handler.drainErrors(*gs);
         }
     }
 
@@ -789,7 +796,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
             auto path = error->loc.file().data(*gs).path();
             diagnostics[string(path.begin(), path.end())].push_back(std::move(diag));
         }
-        ErrorAssertion::checkAll(test.sourceFileContents, RangeAssertion::getErrorAssertions(assertions), diagnostics);
+        ErrorAssertion::checkAll(test.sourceFileContents, RangeAssertion::getAssertions<ErrorAssertion>(assertions),
+                                 diagnostics);
     }
 
     // Allow later phases to have errors that we didn't test for
@@ -868,9 +876,8 @@ TEST_CASE("PerPhaseTest") { // NOLINT
                 // Run the Prism-level RBS rewriter
                 if (gs->cacheSensitiveOptions.rbsEnabled) {
                     auto &prismParser = prismResult.getParser();
-                    auto node = rbs::runPrismRBSRewrite(*gs, f, prismResult.getRawNodePointer(),
-                                                        prismResult.getCommentLocations(), ctx, prismParser);
-                    prismResult.replaceRootNode(node);
+                    rbs::runPrismRBSRewrite(*gs, f, prismResult.getRawNodePointer(), prismResult.getCommentLocations(),
+                                            ctx, prismParser);
 
                     handler.addObserved(*gs, "rbs-rewrite-tree", [&]() { return prismResult.prettyPrint(); });
                 }

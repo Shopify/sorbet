@@ -4,6 +4,7 @@
 #include "ast/ast.h"
 #include "core/FileHash.h"
 #include "core/core.h"
+#include "core/packages/Stratum.h"
 
 namespace sorbet::realmain::lsp {
 class LSPConfiguration;
@@ -14,20 +15,34 @@ class LSPConfiguration;
 class UndoState final {
     // Stores the pre-slow-path global state.
     std::unique_ptr<core::GlobalState> evictedGs;
+
     // Stores index trees containing data stored in `gs` that have been evicted during the slow path operation.
     UnorderedMap<int, ast::ParsedFile> evictedIndexedFinalGS;
+
+    // The saved file-to-stratum mapping from the previous slow path.
+    std::vector<core::packages::Stratum> fileToStratum;
+
+    // The id of the last stratum in the previous slow path.
+    const core::packages::Stratum lastStratum;
+
+    // The size of the workspaceFiles vector when the slow path started. Tracked so that we can roll back additions to
+    // the vector from new files added in the canceled edit.
+    const size_t initialWorkspaceFilesSize;
 
 public:
     // Epoch of the running slow path
     const uint32_t epoch;
 
     UndoState(std::unique_ptr<core::GlobalState> evictedGs, UnorderedMap<int, ast::ParsedFile> evictedIndexedFinalGS,
-              uint32_t epoch);
+              std::vector<core::packages::Stratum> fileToStratum, core::packages::Stratum lastStratum,
+              const std::vector<core::FileRef> &workspaceFiles, uint32_t epoch);
 
     /**
      * Undoes the slow path changes represented by this class.
      */
-    void restore(std::unique_ptr<core::GlobalState> &gs, UnorderedMap<int, ast::ParsedFile> &indexedFinalGS);
+    void restore(std::unique_ptr<core::GlobalState> &gs, UnorderedMap<int, ast::ParsedFile> &indexedFinalGS,
+                 std::vector<core::packages::Stratum> &fileToStratum, core::packages::Stratum &lastStratum,
+                 std::vector<core::FileRef> &workspaceFiles);
 
     /**
      * Retrieves the evicted global state.

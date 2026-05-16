@@ -315,6 +315,58 @@ module Opus::Types::Test
         assert_empty(lines[3..-1])
       end
 
+      it "reports type errors on method's owner isn't a Class or Module" do
+        klass = Class.new do
+          extend T::Sig
+
+          sig { returns(Integer) }
+          def bad_method = "not an integer"
+        end
+
+        object = klass.new
+        def object.to_s = raise
+
+        err = assert_raises(TypeError) { klass.new.bad_method }
+
+        lines = err.message.split("\n")
+        assert_equal("Return value: Expected type Integer, got type String with value \"not an integer\"", lines[0])
+        assert_match(/\ADefinition: .+method_validation.rb:\d+ \(#<Class:0x\h+>#bad_method\)\z/, lines[2])
+      end
+
+      it "reports type errors even when the method owner's to_s returns nil" do
+        klass = Class.new do
+          extend T::Sig
+
+          def self.to_s = nil
+
+          sig { returns(Integer) }
+          def bad_method = "not an integer"
+        end
+
+        err = assert_raises(TypeError) { klass.new.bad_method }
+
+        lines = err.message.split("\n")
+        assert_equal("Return value: Expected type Integer, got type String with value \"not an integer\"", lines[0])
+        assert_match(/\ADefinition: .+method_validation.rb:\d+ \(#<Class:0x\h+>#bad_method\)\z/, lines[2])
+      end
+
+      it "reports type errors even when the method owner's to_s raises a non-StandardError" do
+        klass = Class.new do
+          extend T::Sig
+
+          def self.to_s = raise(Exception) # rubocop:disable Lint/RaiseException
+
+          sig { returns(Integer) }
+          def bad_method = "not an integer"
+        end
+
+        err = assert_raises(TypeError) { klass.new.bad_method }
+
+        lines = err.message.split("\n")
+        assert_equal("Return value: Expected type Integer, got type String with value \"not an integer\"", lines[0])
+        assert_match(/\ADefinition: .+method_validation.rb:\d+ \(#<Class:0x\h+>#bad_method\)\z/, lines[2])
+      end
+
       it "accepts T.proc" do
         @mod.sig { params(blk: T.proc.params(i: Integer).returns(Integer)).returns(Integer) }
         def @mod.foo(&blk)
@@ -581,52 +633,6 @@ module Opus::Types::Test
 
         lines = err.message.split("\n")
         assert_equal("The declaration for `bar` has arguments with duplicate names", lines[0])
-      end
-    end
-
-    describe 'secretly-defined methods with sigs' do
-      # The behavior of methods defined via this interface is special: we expect
-      # that the methods themselves will perform argument validation.  The sig
-      # itself should only be registered to the method so that the rest of sorbet-runtime
-      # continues to work "normally".
-      it 'should not raise errors on return type mismatch' do
-        c = Class.new do
-          extend T::Sig
-
-          built_sig = T::Private::Methods._declare_sig(self) do
-            returns(Integer)
-          end
-
-          T::Private::Methods._with_declared_signature(self, built_sig) do
-            def bad_return
-              "ok"
-            end
-          end
-        end
-        assert_equal("ok", c.new.bad_return)
-        # Force the sig block to be actually run.
-        T::Utils.signature_for_method(c.instance_method(:bad_return))
-        assert_equal("ok", c.new.bad_return)
-      end
-
-      it 'should not raise errors on argument type mismatch' do
-        c = Class.new do
-          extend T::Sig
-
-          built_sig = T::Private::Methods._declare_sig(self) do
-            params(x: Integer).returns(Symbol)
-          end
-
-          T::Private::Methods._with_declared_signature(self, built_sig) do
-            def bad_arg(x)
-              :ok
-            end
-          end
-        end
-        assert_equal(:ok, c.new.bad_arg("wrong arg type"))
-        # Force the sig block to be actually run.
-        T::Utils.signature_for_method(c.instance_method(:bad_arg))
-        assert_equal(:ok, c.new.bad_arg("wrong arg type"))
       end
     end
 

@@ -12,6 +12,7 @@
 #include "main/lsp/LSPConfiguration.h"
 #include "main/lsp/ShowOperation.h"
 #include "main/lsp/json_types.h"
+#include "main/lsp/notifications/sorbet_workspace_edit.h"
 #include "main/pipeline/pipeline.h"
 #include "payload/payload.h"
 
@@ -271,22 +272,22 @@ TypecheckingPath LSPIndexer::getTypecheckingPath(const vector<shared_ptr<core::F
 }
 
 void LSPIndexer::transferInitializeState(InitializedTask &task) {
-    ENFORCE(!this->config->opts.genPackages);
+    ENFORCE(this->config->opts.genPackagesMode == core::packages::GenPackagesMode::Disabled);
     // Copying the global state here means that we snapshot before any files have been loaded. That means that the
     // indexer and typechecker's file tables will almost immediately diverge, but that's not an issue as we don't share
     // `core::FileRef` values between the two.
-    auto enableGenPackages = false;
     auto enableGenPackagesAllowRelaxingTestVisibility = false;
-    auto typecheckerGS = std::exchange(
-        this->gs, this->gs->copyForLSPTypechecker(
-                      this->config->opts.cacheSensitiveOptions.sorbetPackages,
-                      this->config->opts.extraPackageFilesDirectoryUnderscorePrefixes,
-                      this->config->opts.extraPackageFilesDirectorySlashDeprecatedPrefixes,
-                      this->config->opts.extraPackageFilesDirectorySlashPrefixes,
-                      this->config->opts.packageSkipRBIExportEnforcementDirs,
-                      this->config->opts.allowRelaxedPackagerChecksFor, this->config->opts.updateVisibilityFor,
-                      this->config->opts.packagerLayers, this->config->opts.sorbetPackagesHint, enableGenPackages,
-                      enableGenPackagesAllowRelaxingTestVisibility, this->config->opts.testPackages));
+    auto typecheckerGS =
+        std::exchange(this->gs, this->gs->copyForLSPTypechecker(
+                                    this->config->opts.cacheSensitiveOptions.sorbetPackages,
+                                    this->config->opts.extraPackageFilesDirectoryUnderscorePrefixes,
+                                    this->config->opts.extraPackageFilesDirectorySlashDeprecatedPrefixes,
+                                    this->config->opts.extraPackageFilesDirectorySlashPrefixes,
+                                    this->config->opts.packageSkipRBIExportEnforcementDirs,
+                                    this->config->opts.allowRelaxedPackagerChecksFor,
+                                    this->config->opts.updateVisibilityFor, this->config->opts.packagerLayers,
+                                    this->config->opts.sorbetPackagesHint, core::packages::GenPackagesMode::Disabled,
+                                    enableGenPackagesAllowRelaxingTestVisibility, this->config->opts.testPackages));
 
     task.setGlobalState(std::move(typecheckerGS));
     task.setKeyValueStore(std::move(this->kvstore));
@@ -300,12 +301,22 @@ void LSPIndexer::initialize(IndexerInitializationTask &task, vector<shared_ptr<c
     {
         core::UnfreezeFileTable unfreezeFiles{*this->gs};
 
+        auto ix = 0;
         for (auto &file : files) {
+            ++ix;
             auto fref = this->gs->findFileByPath(file->path());
             if (fref.exists()) {
                 this->gs->replaceFile(fref, std::move(file));
             } else {
-                this->gs->enterFile(std::move(file));
+                fref = this->gs->enterFile(std::move(file));
+            }
+
+            auto expectedFref = core::FileRef(ix);
+            if (fref != expectedFref) {
+                ENFORCE(false);
+
+                config->logger->error("Mismatched ref during indexer initialization path=\"{}\" expected={} actual={}",
+                                      file->path(), expectedFref.id(), fref.id());
             }
         }
     }
@@ -326,34 +337,20 @@ unique_ptr<LSPFileUpdates> LSPIndexer::commitEdit(SorbetWorkspaceEditParams &edi
 
     UnorderedMap<core::FileRef, shared_ptr<core::File>> newlyEvictedFiles;
     // Update globalStateHashes. Keep track of file IDs for these files, along with old hashes for these files.
-    vector<core::FileRef> frefs;
     {
         core::UnfreezeFileTable fileTableAccess(*gs);
+        update.updatedFileRefs.reserve(update.updatedFiles.size());
         for (auto &file : update.updatedFiles) {
             auto fref = gs->findFileByPath(file->path());
             if (fref.exists()) {
-                newlyEvictedFiles[fref] = gs->getFiles()[fref.id()];
-                gs->replaceFile(fref, file);
+                newlyEvictedFiles[fref] = gs->replaceFile(fref, file);
             } else {
                 // This file update adds a new file to GlobalState.
                 update.hasNewFiles = true;
                 fref = gs->enterFile(file);
                 fref.data(*gs).strictLevel = pipeline::decideStrictLevel(*gs, fref, config->opts);
             }
-            frefs.emplace_back(fref);
-        }
-    }
-
-    // Index changes in gs. pipeline::index sorts output by file id, but we need to reorder to match the order of
-    // other fields.
-    UnorderedMap<core::FileRef, int> fileToPos;
-    {
-        int i = -1;
-        for (auto fref : frefs) {
-            // We should have ensured before reaching here that there are no duplicates.
-            ENFORCE(!fileToPos.contains(fref));
-            i++;
-            fileToPos[fref] = i;
+            update.updatedFileRefs.emplace_back(fref);
         }
     }
 
@@ -364,8 +361,8 @@ unique_ptr<LSPFileUpdates> LSPIndexer::commitEdit(SorbetWorkspaceEditParams &edi
         // which one it will be.
         gs->errorQueue = make_shared<core::ErrorQueue>(gs->errorQueue->logger, gs->errorQueue->tracer,
                                                        make_shared<core::NullFlusher>());
-        auto trees = hashing::Hashing::indexAndComputeFileHashes(*gs, config->opts, *config->logger,
-                                                                 absl::Span<core::FileRef>(frefs), workers, kvstore);
+        auto trees = hashing::Hashing::indexAndComputeFileHashes(
+            *gs, config->opts, *config->logger, absl::MakeSpan(update.updatedFileRefs), workers, kvstore);
         ENFORCE(trees.hasResult(), "The indexer thread doesn't support cancellation");
     }
 
@@ -456,6 +453,33 @@ void LSPIndexer::updateConfigAndGsFromOptions(const DidChangeConfigurationParams
         gs->highlightUntypedDiagnosticSeverity =
             convertDiagnosticSeverity(options.settings->highlightUntypedDiagnosticSeverity.value());
     }
+}
+
+bool LSPIndexer::preemptionPossible(const TaskQueue::QueueType &tasks) const {
+    if (tasks.empty()) {
+        return false;
+    }
+
+    auto cannotPreempt =
+        absl::c_find_if_not(tasks, [&indexer = *this](auto &task) { return task->canPreempt(indexer); });
+
+    // No tasks can preempt
+    if (cannotPreempt == tasks.begin()) {
+        return false;
+    }
+
+    // All tasks can preempt
+    if (cannotPreempt == tasks.end()) {
+        return true;
+    }
+
+    // If the first task that can't preempt is a workspace edit, return that preemption is no longer possible so that
+    // the main thread will move the slow path edit to the front of the queue and force a slow path cancellation.
+    if (dynamic_cast<SorbetWorkspaceEditTask *>(cannotPreempt->get())) {
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace sorbet::realmain::lsp

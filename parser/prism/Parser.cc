@@ -1,5 +1,6 @@
 #include "parser/prism/Parser.h"
 #include "absl/types/span.h"
+#include "core/errors/parser.h"
 #include "parser/prism/Helpers.h"
 
 using namespace std;
@@ -9,22 +10,30 @@ namespace sorbet::parser::Prism {
 using namespace std::literals::string_view_literals;
 
 Prism::ParseResult Parser::run(core::MutableContext ctx, bool preserveConcreteSyntax) {
-    auto source = ctx.file.data(ctx).source();
+    auto parser = make_unique<Prism::Parser>(ctx.file.data(ctx).source());
+    pm_node_t *root = pm_parse(parser->getRawParserPointer());
+
     bool collectComments = ctx.state.cacheSensitiveOptions.rbsEnabled;
-    return Parser::parseWithoutTranslation(source, collectComments);
+    vector<core::LocOffsets> comments;
+    if (collectComments) {
+        comments = parser->collectCommentLocations();
+    }
+
+    auto errors = parser->collectErrors();
+    for (auto &error : errors) {
+        if (error.id != PM_ERR_UNEXPECTED_TOKEN_CLOSE_CONTEXT) {
+            auto loc = core::Loc(ctx.file, parser->translateLocation(error.location));
+            if (auto e = ctx.state.beginError(loc, core::errors::Parser::ParserError)) {
+                e.setHeader("{}", error.message);
+            }
+        }
+    }
+
+    return ParseResult{move(parser), root, move(comments)};
 }
 
 pm_parser_t *Parser::getRawParserPointer() {
     return &parser;
-}
-
-// Parses and returns raw Prism nodes for intermediate processing (e.g., RBS rewriting).
-ParseResult Parser::parseWithoutTranslation(string_view source, bool collectComments) {
-    auto parser = make_unique<Prism::Parser>(source);
-    pm_node_t *root = pm_parse(parser->getRawParserPointer());
-    auto errors = parser->collectErrors();
-    auto comments = collectComments ? parser->collectCommentLocations() : vector<core::LocOffsets>{};
-    return ParseResult{move(parser), root, move(errors), move(comments)};
 }
 
 core::LocOffsets Parser::translateLocation(pm_location_t location) const {
@@ -97,7 +106,7 @@ bool Parser::isTUntyped(pm_node_t *node) const {
         return false;
     }
 
-    pm_call_node_t *call = down_cast<pm_call_node_t>(node);
+    pm_call_node_t *call = down_cast_nonnull<pm_call_node_t>(node);
     auto methodName = resolveConstant(call->name);
 
     return methodName == "untyped"sv && isT(call->receiver);
@@ -109,11 +118,11 @@ bool Parser::isT(pm_node_t *node) const {
     }
 
     if (PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE)) { // T
-        auto *constNode = down_cast<pm_constant_read_node_t>(node);
+        auto *constNode = down_cast_nonnull<pm_constant_read_node_t>(node);
         auto name = resolveConstant(constNode->name);
         return name == "T";
     } else if (PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE)) { // ::T
-        auto *pathNode = down_cast<pm_constant_path_node_t>(node);
+        auto *pathNode = down_cast_nonnull<pm_constant_path_node_t>(node);
         auto name = resolveConstant(pathNode->name);
         return name == "T" && pathNode->parent == nullptr;
     }
@@ -126,7 +135,7 @@ bool Parser::isSetterCall(pm_node_t *node) const {
         return false;
     }
 
-    auto *call = down_cast<pm_call_node_t>(node);
+    auto *call = down_cast_nonnull<pm_call_node_t>(node);
     auto methodName = resolveConstant(call->name);
     return !methodName.empty() && methodName.back() == '=';
 }
@@ -135,12 +144,12 @@ bool Parser::isSafeNavigationCall(pm_node_t *node) const {
     return PM_NODE_TYPE_P(node, PM_CALL_NODE) && PM_NODE_FLAG_P(node, PM_CALL_NODE_FLAGS_SAFE_NAVIGATION);
 }
 
-bool Parser::isVisibilityCall(pm_node_t *node) const {
+bool Parser::isMethodDefModifierCall(pm_node_t *node, const core::GlobalState &gs) const {
     if (!PM_NODE_TYPE_P(node, PM_CALL_NODE)) {
         return false;
     }
 
-    auto *call = down_cast<pm_call_node_t>(node);
+    auto *call = down_cast_nonnull<pm_call_node_t>(node);
 
     // Must have no receiver (implicit self)
     if (call->receiver != nullptr) {
@@ -158,11 +167,8 @@ bool Parser::isVisibilityCall(pm_node_t *node) const {
         return false;
     }
 
-    // Check if the method name is a visibility modifier
     auto methodName = resolveConstant(call->name);
-    return methodName == "private"sv || methodName == "protected"sv || methodName == "public"sv ||
-           methodName == "private_class_method"sv || methodName == "public_class_method"sv ||
-           methodName == "package_private"sv || methodName == "package_private_class_method"sv;
+    return gs.lookupNameUTF8(methodName).isMethodDefModifierName();
 }
 
 bool Parser::isAttrAccessorCall(pm_node_t *node) const {
@@ -170,7 +176,7 @@ bool Parser::isAttrAccessorCall(pm_node_t *node) const {
         return false;
     }
 
-    auto *call = down_cast<pm_call_node_t>(node);
+    auto *call = down_cast_nonnull<pm_call_node_t>(node);
 
     // Must have no receiver or self receiver
     if (call->receiver != nullptr && !PM_NODE_TYPE_P(call->receiver, PM_SELF_NODE)) {

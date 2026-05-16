@@ -56,7 +56,7 @@ NameDef names[] = {
     {"orOp", "|"},
     {"backtick", "`"},
     {"defined_p", "defined?"},
-    {"undef"},
+    {"undef", "<undef>"},
     {"each"},
     {"subclasses"},
     {"transpose"},
@@ -214,7 +214,6 @@ NameDef names[] = {
     {"timestampedTokenProp", "timestamped_token_prop"},
     {"createdProp", "created_prop"},
     {"updatedProp", "updated_prop"},
-    {"merchantProp", "merchant_prop"},
     {"merchantTokenProp", "merchant_token_prop"},
     {"name"},
     {"encryptedProp", "encrypted_prop"},
@@ -294,6 +293,7 @@ NameDef names[] = {
     {"includeExamples", "include_examples"},
     {"includeContext", "include_context"},
     {"itBehavesLike", "it_behaves_like"},
+    {"localContext", "local_context"},
     {"RSpec", "RSpec", true},
     {"Core", "Core", true},
     {"ExampleGroup", "ExampleGroup", true},
@@ -615,8 +615,6 @@ NameDef names[] = {
     {"Tokens", "Tokens", true},
     {"AccountModelMerchant", "AccountModelMerchant", true},
     {"Token", "Token", true},
-    {"Account", "Account", true},
-    {"Merchant", "Merchant", true},
 
     // RBS
     {"RBSBind", "<RBSBind>", true},

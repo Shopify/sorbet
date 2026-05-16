@@ -199,8 +199,8 @@ optional<core::AutocorrectSuggestion> PackageInfo::addImport(const core::GlobalS
                     // insert the `import`.
                     auto importLoc = core::Loc(fullLoc().file(), import.loc);
                     auto [lineStart, numWhitespace] = importLoc.findStartOfIndentation(gs);
-                    auto beginPos =
-                        lineStart.adjust(gs, -numWhitespace, 0).beginPos(); // -numWhitespace for the indentation
+                    // -numWhitespace - 1 for the indentation and previous new line
+                    auto beginPos = lineStart.adjust(gs, -numWhitespace - 1, 0).beginPos();
                     auto endPos = importLoc.endPos();
                     core::Loc replaceLoc(importLoc.file(), beginPos, endPos);
 
@@ -611,6 +611,24 @@ core::packages::ImportType PackageInfo::fileToImportType(const core::GlobalState
 std::optional<core::AutocorrectSuggestion> PackageInfo::aggregateMissingImports(const core::GlobalState &gs) const {
     std::vector<core::AutocorrectSuggestion::Edit> allEdits;
     UnorderedMap<core::packages::MangledName, core::packages::ImportType> toImport;
+
+    for (auto &import : importedPackageNames) {
+        auto &pkgInfo = gs.packageDB().getPackageInfo(import.mangledName);
+        if (!pkgInfo.exists()) {
+            // This is an import to a package that doesn't exist. If the package the user was actually trying to import
+            // is used somewhere, then we're going to add an import to the correct name just below, so we can delete
+            // this line.
+            auto importLoc = core::Loc(fullLoc().file(), import.loc);
+            auto [lineStart, numWhitespace] = importLoc.findStartOfIndentation(gs);
+            // -numWhitespace - 1 for the indentation and previous new line
+            auto beginPos = lineStart.adjust(gs, -numWhitespace - 1, 0).beginPos();
+            auto endPos = importLoc.endPos();
+            core::Loc replaceLoc(importLoc.file(), beginPos, endPos);
+            core::AutocorrectSuggestion::Edit deleteEdit = {replaceLoc, ""};
+            allEdits.push_back(deleteEdit);
+        }
+    }
+
     for (auto &[file, referencedPackages] : packagesReferencedByFile) {
         auto importType = fileToImportType(gs, file);
         for (auto &[packageName, packageReferenceInfo] : referencedPackages) {
@@ -655,6 +673,22 @@ std::optional<core::AutocorrectSuggestion>
 PackageInfo::aggregateMissingExports(const core::GlobalState &gs, vector<core::SymbolRef> &toExport) const {
     std::vector<core::AutocorrectSuggestion::Edit> allEdits;
     for (auto &symbol : toExport) {
+        switch (symbol.kind()) {
+            case core::SymbolRef::Kind::ClassOrModule:
+                if (symbol.asClassOrModuleRef().data(gs)->flags.isExported) {
+                    continue;
+                }
+                break;
+            case core::SymbolRef::Kind::FieldOrStaticField:
+                if (symbol.asFieldRef().data(gs)->flags.isExported) {
+                    continue;
+                }
+                break;
+            case core::SymbolRef::Kind::TypeMember:
+            case core::SymbolRef::Kind::Method:
+            case core::SymbolRef::Kind::TypeParameter:
+                ENFORCE(false, "trying to export something other than ClassOrModule or FieldOrStaticField");
+        }
         auto autocorrect = addExport(gs, symbol);
         if (autocorrect.has_value()) {
             allEdits.insert(allEdits.end(), make_move_iterator(autocorrect.value().edits.begin()),
@@ -671,7 +705,7 @@ PackageInfo::aggregateMissingExports(const core::GlobalState &gs, vector<core::S
 }
 
 std::optional<core::AutocorrectSuggestion> PackageInfo::aggregateMissingVisibleTo(
-    const core::GlobalState &gs, std::vector<core::packages::MangledName> &visibleTos, bool visibleToTests) const {
+    const core::GlobalState &gs, UnorderedSet<core::packages::MangledName> &visibleTos, bool visibleToTests) const {
     std::vector<core::AutocorrectSuggestion::Edit> allEdits;
     for (auto &pkgName : visibleTos) {
         auto autocorrect = addVisibleTo(gs, pkgName);
@@ -695,6 +729,179 @@ std::optional<core::AutocorrectSuggestion> PackageInfo::aggregateMissingVisibleT
 
     AutocorrectSuggestion::mergeAdjacentEdits(allEdits);
     return core::AutocorrectSuggestion{fmt::format("Add missing `{}`", "visible_to"), std::move(allEdits)};
+}
+
+std::string PackageInfo::renderPackageRbContents(const core::GlobalState &gs, vector<Import> newImports,
+                                                 std::vector<core::SymbolRef> newExports) const {
+    fmt::memory_buffer result;
+
+    if (isPreludePackage()) {
+        fmt::format_to(std::back_inserter(result), "  prelude_package\n\n");
+    }
+
+    for (auto &directive : extraDirectives_) {
+        auto directiveSource = core::Loc(file, directive).source(gs);
+        ENFORCE(directiveSource.has_value());
+        fmt::format_to(std::back_inserter(result), "  {}\n", directiveSource.value());
+    }
+    if (locs.layer.exists()) {
+        fmt::format_to(std::back_inserter(result), "  layer '{}'\n", layer.show(gs));
+    }
+    if (locs.strictDependenciesLevel.exists()) {
+        fmt::format_to(std::back_inserter(result), "  strict_dependencies '{}'\n",
+                       strictDependenciesLevelToString(strictDependenciesLevel));
+    }
+    if (locs.minTypedLevel.exists() && locs.testsMinTypedLevel.exists()) {
+        ENFORCE(!gs.packageDB().testPackages());
+        fmt::format_to(std::back_inserter(result), "  sorbet min_typed_level: '{}', tests_min_typed_level: '{}'\n",
+                       core::SigilTraits<core::StrictLevel>::toString(minTypedLevel),
+                       core::SigilTraits<core::StrictLevel>::toString(testsMinTypedLevel));
+    } else if (locs.minTypedLevel.exists() && !locs.testsMinTypedLevel.exists()) {
+        ENFORCE(gs.packageDB().testPackages());
+        fmt::format_to(std::back_inserter(result), "  sorbet min_typed_level: '{}'\n",
+                       core::SigilTraits<core::StrictLevel>::toString(minTypedLevel));
+    }
+
+    // currentPackageStrictDependenciesLevel -> vector<StrictDependenciesLevelForCategory, header>
+    //
+    // The import list in a __package.rb has headers to organize imports by their strict_dependencies level. For
+    // example:
+    //
+    //   # strict_dependencies 'false':
+    //   import FalsePackage
+    //
+    //   # strict_dependencies 'layered' or higher:
+    //   import LayeredPackage
+    //   import DagPackage
+    //
+    // This map contains the information required to intersperse those headers. When an with a strict_dependencies level
+    // equal or higher to StrictDependenciesLevelForCategory is encountered, header will be printed once.
+    //
+    // NOTE: This information (the categories and how they are sorted) is duplicated with orderByStrictness.
+    static const UnorderedMap<StrictDependenciesLevel, vector<pair<StrictDependenciesLevel, string>>> headerMap = {
+        {StrictDependenciesLevel::None, {}},
+        {StrictDependenciesLevel::False,
+         {{StrictDependenciesLevel::False, "  # strict_dependencies 'false':\n"},
+          {StrictDependenciesLevel::Layered, "  # strict_dependencies 'layered' or more strict:\n"}}},
+        {StrictDependenciesLevel::Layered,
+         {{StrictDependenciesLevel::False, "  # strict_dependencies 'false':\n"},
+          {StrictDependenciesLevel::Layered, "  # strict_dependencies 'layered' or 'layered_dag':\n"},
+          {StrictDependenciesLevel::Dag, "  # strict_dependencies 'dag':\n"}}},
+        {StrictDependenciesLevel::LayeredDag,
+         {{StrictDependenciesLevel::False, "  # strict_dependencies 'false':\n"},
+          {StrictDependenciesLevel::Layered, "  # strict_dependencies 'layered' or 'layered_dag':\n"},
+          {StrictDependenciesLevel::Dag, "  # strict_dependencies 'dag':\n"}}},
+        {StrictDependenciesLevel::Dag,
+         {{StrictDependenciesLevel::False, "  # strict_dependencies 'false', 'layered', or 'layered_dag':\n"},
+          {StrictDependenciesLevel::Dag, "  # strict_dependencies 'dag':\n"}}},
+    };
+
+    fast_sort(newImports, [&](const auto &a, const auto &b) {
+        auto &aPkgInfo = gs.packageDB().getPackageInfo(a.mangledName);
+        auto &bPkgInfo = gs.packageDB().getPackageInfo(b.mangledName);
+        ENFORCE(aPkgInfo.exists());
+        ENFORCE(bPkgInfo.exists());
+        return orderImports(gs, aPkgInfo, a.isTestImport(), bPkgInfo, b.isTestImport()) < 0;
+    });
+
+    bool layeringViolationsHeaderShown = false;
+    bool testImportNewLineAdded = false;
+
+    ENFORCE(headerMap.find(strictDependenciesLevel) != headerMap.end(),
+            "should not happen, was a new StrictDependenciesLevel added?");
+    auto &headers = headerMap.find(strictDependenciesLevel)->second;
+    auto headersIt = headers.begin();
+    for (auto &import : newImports) {
+        auto impPackageName = import.mangledName.owner.show(gs);
+        auto &impPkgInfo = gs.packageDB().getPackageInfo(import.mangledName);
+        ENFORCE(impPkgInfo.exists());
+
+        if (gs.packageDB().enforceLayering() && import.type == ImportType::Normal) {
+            if (!layeringViolationsHeaderShown && causesLayeringViolation(gs.packageDB(), impPkgInfo)) {
+                fmt::format_to(std::back_inserter(result), "\n  # layering violations:\n");
+                layeringViolationsHeaderShown = true;
+            }
+
+            if (!causesLayeringViolation(gs.packageDB(), impPkgInfo)) {
+                auto headerToPrint = string();
+                // Find the last entry in [headersIt, headers.end()] that has a StrictDependenciesLevel less than or
+                // equal to the StrictDependenciesLevel of the package being imported. It has to be last one rather than
+                // just the next to handle headers being skipped.
+                //
+                // Ex. if only an dag package is imported, we want to skip the 'false' and 'layered'/'layered_dag'
+                // headers, even though they'll be less than the dag package being imported.
+                while (headersIt != headers.end() && headersIt->first <= impPkgInfo.strictDependenciesLevel) {
+                    headerToPrint = headersIt->second;
+                    headersIt++;
+                }
+                if (headerToPrint != "") {
+                    fmt::format_to(std::back_inserter(result), "\n{}", headerToPrint);
+                }
+            }
+        }
+
+        if (!testImportNewLineAdded && import.type != ImportType::Normal) {
+            fmt::format_to(std::back_inserter(result), "\n");
+            testImportNewLineAdded = true;
+        }
+
+        switch (import.type) {
+            case ImportType::Normal: {
+                auto *existingImport = importsPackage(import.mangledName);
+                if (existingImport != nullptr && existingImport->usesInternals) {
+                    ENFORCE(gs.packageDB().testPackages());
+                    fmt::format_to(std::back_inserter(result), "  import {}, uses_internals: true\n", impPackageName);
+                } else {
+                    fmt::format_to(std::back_inserter(result), "  import {}\n", impPackageName);
+                }
+                break;
+            }
+            case ImportType::TestHelper:
+                ENFORCE(!gs.packageDB().testPackages());
+                fmt::format_to(std::back_inserter(result), "  test_import {}\n", impPackageName);
+                break;
+            case ImportType::TestUnit:
+                ENFORCE(!gs.packageDB().testPackages());
+                fmt::format_to(std::back_inserter(result), "  test_import {}, only: \"test_rb\"\n", impPackageName);
+                break;
+        }
+    }
+
+    if (locs.exportAll.exists() || !exports_.empty()) {
+        fmt::format_to(std::back_inserter(result), "\n");
+    }
+    if (locs.exportAll.exists()) {
+        fmt::format_to(std::back_inserter(result), "  export_all!\n");
+    } else {
+        auto newExportsNames = vector<string>{};
+        absl::c_transform(newExports, back_inserter(newExportsNames),
+                          [&gs](SymbolRef export_) { return export_.show(gs); });
+        fast_sort(newExportsNames, [](string &l, string &r) { return l < r; });
+        for (auto &export_ : newExportsNames) {
+            fmt::format_to(back_inserter(result), "  export {}\n", export_);
+        }
+    }
+
+    if (!visibleTo().empty() || visibleToTests()) {
+        fmt::format_to(std::back_inserter(result), "\n");
+    }
+    // TODO(neil): sort the visible_to
+    for (auto &visibleTo : visibleTo()) {
+        auto visibleToPackageName = visibleTo.mangledName.owner.show(gs);
+        switch (visibleTo.type) {
+            case VisibleToType::Normal:
+                fmt::format_to(std::back_inserter(result), "  visible_to {}\n", visibleToPackageName);
+                break;
+            case VisibleToType::Wildcard:
+                fmt::format_to(std::back_inserter(result), "  visible_to {}::*\n", visibleToPackageName);
+                break;
+        }
+    }
+
+    if (visibleToTests()) {
+        fmt::format_to(std::back_inserter(result), "  visible_to 'tests'\n");
+    }
+    return to_string(result);
 }
 
 bool PackageInfo::operator==(const PackageInfo &rhs) const {

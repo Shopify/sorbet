@@ -4,6 +4,7 @@
 #include "ast/ast.h"
 #include "core/ErrorFlusher.h"
 #include "core/core.h"
+#include "core/packages/Stratum.h"
 #include "main/lsp/ErrorReporter.h"
 #include "main/lsp/LSPConfiguration.h"
 #include "main/lsp/LSPFileUpdates.h"
@@ -36,11 +37,14 @@ struct LSPQueryResult {
 };
 
 class UndoState;
+class FileStratumMapping;
 
 /**
  * Encapsulates typechecker operations and enforces that they happen on a single thread.
  */
 class LSPTypechecker final {
+    friend class FileStratumMapping;
+
     /** Contains the ID of the thread responsible for typechecking. */
     std::thread::id typecheckerThreadId;
     /**
@@ -86,6 +90,10 @@ class LSPTypechecker final {
     bool slowPathBlocked ABSL_GUARDED_BY(slowPathBlockedMutex) = false;
     absl::Mutex slowPathBlockedMutex;
 
+    std::vector<core::packages::Stratum> fileToStratum;
+
+    core::packages::Stratum lastStratum;
+
     enum class SlowPathMode {
         Init,
         Cancelable,
@@ -96,10 +104,17 @@ class LSPTypechecker final {
     bool runSlowPath(LSPFileUpdates &updates, std::unique_ptr<const OwnedKeyValueStore> ownedKvstore,
                      WorkerPool &workers, std::shared_ptr<core::ErrorFlusher> errorFlusher, SlowPathMode mode);
 
+    struct FastPathResult {
+        // All of the files that we typechecked during the fast path.
+        std::vector<core::FileRef> filesTypechecked;
+
+        // Copies of the indexed trees that were updated during the fast path, for updating the cache of open files.
+        std::vector<ast::ParsedFile> indexedTrees;
+    };
+
     /** Runs incremental typechecking on the provided updates. Returns the final list of files typechecked. */
-    std::vector<core::FileRef> runFastPath(LSPFileUpdates &updates, WorkerPool &workers,
-                                           std::shared_ptr<core::ErrorFlusher> errorFlusher,
-                                           bool isNoopUpdateForRetypecheck) const;
+    FastPathResult runFastPath(LSPFileUpdates &updates, WorkerPool &workers,
+                               std::shared_ptr<core::ErrorFlusher> errorFlusher, bool isNoopUpdateForRetypecheck) const;
 
     /**
      * Open the session-local kvstore.
@@ -195,7 +210,66 @@ public:
      * doesn't actually change anything.
      */
     std::unique_ptr<LSPFileUpdates> getNoopUpdate(absl::Span<const core::FileRef> frefs) const;
+
+    /**
+     * Return a helper that can query information about package strata, without exposing the rest of the typechecker.
+     */
+    FileStratumMapping getFileStratumMapping() const;
 };
+
+class FileStratumMapping {
+    friend class LSPTypechecker;
+
+    const LSPTypechecker &tc;
+
+    FileStratumMapping(const LSPTypechecker &tc) : tc{tc} {}
+
+public:
+    /**
+     * Get the id of the stratum that an edit involving these file refs could be checked at.
+     */
+    core::packages::Stratum getStratumForFiles(absl::Span<const core::FileRef> frefs) const;
+
+    /**
+     * Get the id of the stratum that an edit involving these paths could be checked at.
+     */
+    core::packages::Stratum getStratumForPaths(absl::Span<const std::string_view> paths) const;
+
+    /**
+     * Get the id of the stratum that an edit involving these uris could be checked at.
+     */
+    core::packages::Stratum getStratumForUris(absl::Span<const std::string_view> uris) const;
+
+    /**
+     * Get the id of the stratum that an edit involving this file ref could be checked at.
+     */
+    core::packages::Stratum getStratumForFile(core::FileRef ref) const;
+
+    /**
+     * Get the id of the stratum that an edit involving this path could be checked at.
+     */
+    core::packages::Stratum getStratumForPath(const std::string_view path) const {
+        return this->getStratumForFile(this->tc.state().findFileByPath(path));
+    }
+
+    /**
+     * Get the id of the stratum that an edit involving this uri could be checked at.
+     */
+    core::packages::Stratum getStratumForUri(std::string_view uri) const {
+        return this->getStratumForFile(this->tc.config->uri2FileRef(this->tc.state(), uri));
+    }
+
+    /**
+     * Get the id of the last stratum in the condensation graph.
+     */
+    core::packages::Stratum getLastStratum() const {
+        return this->tc.lastStratum;
+    }
+};
+
+inline FileStratumMapping LSPTypechecker::getFileStratumMapping() const {
+    return FileStratumMapping{*this};
+}
 
 /**
  * Provides lambdas with a set of operations that they are allowed to do with the LSPTypechecker.
@@ -240,6 +314,9 @@ public:
 
     void updateConfigAndGsFromOptions(const DidChangeConfigurationParams &options) const;
     std::unique_ptr<LSPFileUpdates> getNoopUpdate(absl::Span<const core::FileRef> frefs) const;
+    FileStratumMapping getFileStratumMapping() const {
+        return this->typechecker.getFileStratumMapping();
+    }
 };
 } // namespace sorbet::realmain::lsp
 #endif

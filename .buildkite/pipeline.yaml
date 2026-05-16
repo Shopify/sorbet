@@ -40,7 +40,9 @@ steps:
   - label: ":mac: test-static-sanitized.sh (master only)"
     command: '.buildkite/test-static-sanitized.sh < /dev/null'
     branches: "master"
-    artifact_paths: _out_/profile.json
+    artifact_paths:
+      - _out_/profile.json
+      - _out_/clang_tidy_profile.json
     agents:
       os: mac
     # TODO(jez) We should only retry for specific error.
@@ -50,7 +52,9 @@ steps:
 
   - label: ":linux: test-static-sanitized.sh"
     command: '.buildkite/test-static-sanitized.sh < /dev/null'
-    artifact_paths: _out_/profile.json
+    artifact_paths:
+      - _out_/profile.json
+      - _out_/clang_tidy_profile.json
     <<: *elastic
 
   - label: ":linux: test-vscode-extension.sh"
@@ -131,6 +135,15 @@ steps:
 # Success Phase - Allow the PR to be merged
   - label: "All tests and builds succeeded"
     command: '.buildkite/all-succeeded.sh'
+    agents:
+      # Run this on arbiter, because we already have the sparse-checkout plugin installed there,
+      # so we can be marginally faster by not having to re-download it all the
+      # time on each elastic CI worker when they start up.
+      os: arbiter
+    plugins:
+      - 'sparse-checkout#v1.6.0':
+          paths:
+            - .buildkite
 
   - label: ":linux: publish-ruby-gems.sh (non-blocking)"
     command: '.buildkite/publish-ruby-gems.sh < /dev/null'

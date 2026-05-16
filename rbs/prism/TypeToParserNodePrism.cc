@@ -18,8 +18,8 @@ bool hasTypeParam(absl::Span<const pair<core::LocOffsets, core::NameRef>> typePa
 }
 
 bool isEnumerator(pm_node_t *node, parser::Prism::Parser &prismParser, core::GlobalState &gs) {
-    auto *constNode = PM_NODE_TYPE_P(node, PM_CONSTANT_READ_NODE) ? down_cast<pm_constant_read_node_t>(node) : nullptr;
-    auto *pathNode = PM_NODE_TYPE_P(node, PM_CONSTANT_PATH_NODE) ? down_cast<pm_constant_path_node_t>(node) : nullptr;
+    auto *constNode = down_cast<pm_constant_read_node_t>(node);
+    auto *pathNode = down_cast<pm_constant_path_node_t>(node);
 
     if (!constNode && !pathNode) {
         return false;
@@ -144,8 +144,18 @@ pm_node_t *TypeToParserNodePrism::classInstanceType(const rbs_types_class_instan
 
 pm_node_t *TypeToParserNodePrism::classSingletonType(const rbs_types_class_singleton_t *node, core::LocOffsets loc,
                                                      const RBSDeclaration &declaration) {
+    auto argsValue = node->args;
+    auto isGeneric = argsValue != nullptr && argsValue->length > 0;
     auto innerType = typeNameType(node->name, false, declaration);
-    return prism.Call1(loc, prism.T(loc), "class_of"sv, innerType);
+    auto classOfNode = prism.Call1(loc, prism.T(loc), "class_of"sv, innerType);
+
+    if (isGeneric) {
+        auto args = translateNodeList(argsValue, declaration);
+        auto methodName = core::Names::squareBrackets().shortName(ctx.state);
+        return prism.Call(loc, classOfNode, methodName, absl::MakeSpan(args));
+    }
+
+    return classOfNode;
 }
 
 pm_node_t *TypeToParserNodePrism::unionType(const rbs_types_union_t *node, core::LocOffsets loc,

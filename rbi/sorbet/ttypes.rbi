@@ -14,6 +14,9 @@ class T::Types::Base
   sig { abstract.params(obj: Kernel).returns(T::Boolean) }
   def valid?(obj); end
 
+  sig { abstract.void }
+  def build_type; end
+
   def recursively_valid?(obj); end
 
   # Should return `String` but this is hard because technically
@@ -25,6 +28,7 @@ class T::Types::Base
   def subtype_of?(t2); end
   def to_s; end
   def describe_obj(obj); end
+  sig { params(obj: Kernel).returns(T.nilable(String)) }
   def error_message_for_obj(obj); end
   def error_message_for_obj_recursive(obj); end
   def validate!(obj); end
@@ -53,6 +57,9 @@ class T::Types::Simple < T::Types::Base
 
   sig { returns(T::Module[T.anything]) }
   def raw_type; end
+
+  sig { returns(T::Types::Union) }
+  def to_nilable; end
 end
 
 class T::Types::Union < T::Types::Base

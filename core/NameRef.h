@@ -101,7 +101,7 @@ private:
 public:
     // The value `0` implies that there is no NameKind tag present (NameKind begin at 1) and is a special-value used to
     // indicate a non-existent NameRef.
-    constexpr NameRef() : _id(0){};
+    constexpr NameRef() noexcept : _id(0){};
 
     // WellKnown is a tag to statically indicate that the caller is deliberately
     // constructing a well-known name, whose ID is stable across all
@@ -218,6 +218,10 @@ public:
     // (This is a small hack, because Sorbet should really use Symbols not names for that purpose:
     // https://github.com/sorbet/sorbet/issues/1747)
     bool isUpdateKnowledgeName() const;
+
+    // Returns true if this name is one of the "keywords" that can modify a method `def`,
+    // like private/protected/public, etc.
+    bool isMethodDefModifierName() const;
 
     std::string_view shortName(const GlobalState &gs) const;
     std::string showRaw(const GlobalState &gs) const;

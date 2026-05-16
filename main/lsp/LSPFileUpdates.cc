@@ -5,6 +5,9 @@ using namespace std;
 
 namespace sorbet::realmain::lsp {
 void LSPFileUpdates::mergeOlder(const LSPFileUpdates &older) {
+    ENFORCE(this->updatedFiles.size() == this->updatedFileRefs.size());
+    ENFORCE(older.updatedFiles.size() == older.updatedFileRefs.size());
+
     editCount += older.editCount;
     committedEditCount += older.committedEditCount;
     hasNewFiles = hasNewFiles || older.hasNewFiles;
@@ -12,17 +15,18 @@ void LSPFileUpdates::mergeOlder(const LSPFileUpdates &older) {
     preemptionsExpected += older.preemptionsExpected;
 
     // For updates, we prioritize _newer_ updates.
-    UnorderedSet<string> encountered;
-    for (auto &f : updatedFiles) {
-        encountered.emplace(f->path());
-    }
+    UnorderedSet<core::FileRef> encountered(this->updatedFileRefs.begin(), this->updatedFileRefs.end());
 
-    for (auto &f : older.updatedFiles) {
-        if (encountered.contains(f->path())) {
+    auto ix = -1;
+    for (auto fref : older.updatedFileRefs) {
+        ++ix;
+
+        if (encountered.contains(fref)) {
             continue;
         }
-        encountered.emplace(f->path());
-        updatedFiles.push_back(f);
+        encountered.emplace(fref);
+        this->updatedFileRefs.push_back(fref);
+        this->updatedFiles.push_back(older.updatedFiles[ix]);
     }
     typecheckingPath = TypecheckingPath::Slow;
 }
@@ -34,6 +38,7 @@ LSPFileUpdates LSPFileUpdates::copy() const {
     copy.committedEditCount = committedEditCount;
     copy.typecheckingPath = typecheckingPath;
     copy.hasNewFiles = hasNewFiles;
+    copy.updatedFileRefs = updatedFileRefs;
     copy.updatedFiles = updatedFiles;
     copy.cancellationExpected = cancellationExpected;
     copy.preemptionsExpected = preemptionsExpected;
@@ -206,7 +211,7 @@ LSPFileUpdates::fastPathFilesToTypecheck(const core::GlobalState &gs, const LSPC
             continue;
         }
 
-        result.extraFiles.emplace_back(oldFile->path());
+        result.extraFiles.emplace_back(ref);
         result.totalChanged += 1;
 
         if (result.totalChanged > (2 * config.opts.lspMaxFilesOnFastPath)) {
@@ -216,19 +221,18 @@ LSPFileUpdates::fastPathFilesToTypecheck(const core::GlobalState &gs, const LSPC
             // The "2 * ..." is so that we can get a rough idea of whether there's an easy
             // bang-for-buck bump we could make to the threshold by reading the logs.
             //
-            // One of two things could be true:
-            // - We're running on the indexer thread to decide typecheckingPath, which only cares about how
-            //   many extra files there are, not what they are.
+            // One of three things could be true:
+            // - We're running on the indexer thread via commitEdit to decide typecheckingPath,
+            //   which only cares about how many extra files there are, not what they are.
+            // - We're running on the indexer thread via canPreempt to decide whether preemption
+            //   is possible, which also only cares about the count.
             // - We're running on the typechecker thread (knowing that typecheckingPath was already
             //   TypecheckingPath::Fast) and simply need to compute the list of files to typecheck.
             //   But that would be a contradiction--because otherwise the indexer would have marked
             //   the update as not being able to take the fast path.
             //
-            // So it's actually only the first thing that's true.
-
-            // Crude indicator of being on indexer thread, as the typechecker thread always
-            // calls us with an empty map of evictedFiles
-            ENFORCE(!evictedFiles.empty());
+            // So it's actually only one of the first two things that's true, and neither of which
+            // care about the full file list, so let's early exit.
             return result;
         }
     }
