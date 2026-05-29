@@ -250,6 +250,64 @@ void CommentsAssociatorPrism::associateSignatureCommentsToNode(pm_node_t *node) 
     signaturesForNode[node] = move(comments);
 }
 
+bool CommentsAssociatorPrism::isDataDefineCall(pm_call_node_t *call) {
+    if (call == nullptr || parser.resolveConstant(call->name) != "define"sv || call->receiver == nullptr) {
+        return false;
+    }
+
+    // Keep this in sync with the Data rewriter's root-only Data.define handling:
+    // accept `Data.define` and `::Data.define`, but reject scoped `Foo::Data.define`.
+    if (auto *constant = down_cast<pm_constant_read_node_t>(call->receiver)) {
+        return parser.resolveConstant(constant->name) == "Data"sv;
+    }
+
+    if (auto *constantPath = down_cast<pm_constant_path_node_t>(call->receiver)) {
+        return constantPath->parent == nullptr && parser.resolveConstant(constantPath->name) == "Data"sv;
+    }
+
+    return false;
+}
+
+void CommentsAssociatorPrism::associateDataDefineMemberTypes(pm_call_node_t *call) {
+    if (call == nullptr || call->arguments == nullptr) {
+        return;
+    }
+
+    vector<CommentMapPrism::DataDefineMember> members;
+    bool hasTypedMember = false;
+    auto &args = call->arguments->arguments;
+    members.reserve(args.size);
+
+    for (size_t i = 0; i < args.size; i++) {
+        auto *arg = args.nodes[i];
+        auto *symbol = down_cast<pm_symbol_node_t>(arg);
+        if (symbol == nullptr) {
+            walkNode(arg);
+            continue;
+        }
+
+        auto name = parser.extractString(&symbol->unescaped);
+        auto nameLoc = translateLocation(symbol->value_loc);
+        auto argLoc = translateLocation(arg->location);
+        auto line = posToLine(argLoc.endPos());
+
+        optional<CommentNodePrism> typeComment;
+        auto it = commentByLine.find(line);
+        if (it != commentByLine.end() && absl::StartsWith(it->second.string, RBS_PREFIX)) {
+            typeComment = it->second;
+            hasTypedMember = true;
+            commentByLine.erase(it);
+        }
+
+        members.emplace_back(CommentMapPrism::DataDefineMember{ctx.state.enterNameUTF8(name), nameLoc, typeComment});
+        walkNode(arg);
+    }
+
+    if (hasTypedMember) {
+        dataDefineMembersForNode[up_cast(call)] = move(members);
+    }
+}
+
 bool CommentsAssociatorPrism::typeAliasAllowedInContext() const {
     return !contextAllowingTypeAlias.empty() && contextAllowingTypeAlias.back().first;
 }
@@ -725,6 +783,11 @@ void CommentsAssociatorPrism::walkNode(pm_node_t *node) {
                 walkNode(call->receiver);
                 walkArgumentsNode(call->arguments);
                 consumeCommentsInsideNode(node, "call");
+            } else if (isDataDefineCall(call)) {
+                associateAssertionCommentsToNode(node);
+                walkNode(call->receiver);
+                associateDataDefineMemberTypes(call);
+                walkNode(call->block);
             } else if (call->arguments != nullptr && call->arguments->arguments.size == 1 &&
                        parser.isSafeNavigationCall(node) && parser.isSetterCall(node)) {
                 // Handle safe navigation setter calls: `foo&.bar = val #: Type`
@@ -1189,7 +1252,7 @@ CommentMapPrism CommentsAssociatorPrism::run(pm_node_t *node) {
         }
     }
 
-    return CommentMapPrism{signaturesForNode, assertionsForNode};
+    return CommentMapPrism{move(signaturesForNode), move(assertionsForNode), move(dataDefineMembersForNode)};
 }
 
 pm_node_t *CommentsAssociatorPrism::createSyntheticPlaceholder(const CommentNodePrism &comment,

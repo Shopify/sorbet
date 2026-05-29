@@ -7,6 +7,7 @@
 #include "parser/prism/Helpers.h"
 #include "parser/prism/Parser.h"
 #include <memory>
+#include <optional>
 #include <regex>
 #include <string_view>
 
@@ -27,8 +28,22 @@ struct CommentNodePrism {
 };
 
 struct CommentMapPrism {
+    // A member of a Data.define call, optionally annotated with an inline `#:` type.
+    // The `typeComment` field, when present, contains a CommentNodePrism whose `string`
+    // is a string_view into the file source buffer (owned by GlobalState). It remains
+    // valid for the lifetime of the file data.
+    struct DataDefineMember {
+        core::NameRef name;
+        core::LocOffsets nameLoc;
+        std::optional<CommentNodePrism> typeComment;
+    };
+
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
+    // Non-owning keys into the Prism parser tree passed to CommentsAssociatorPrism::run().
+    // Maps Data.define Call nodes to their members when at least one symbol argument
+    // has an inline `#:` type comment.
+    UnorderedMap<pm_node_t *, std::vector<DataDefineMember>> dataDefineMembersForNode;
 };
 
 class CommentsAssociatorPrism {
@@ -51,6 +66,7 @@ private:
     std::map<int, CommentNodePrism> commentByLine;
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> signaturesForNode;
     UnorderedMap<pm_node_t *, std::vector<CommentNodePrism>> assertionsForNode;
+    UnorderedMap<pm_node_t *, std::vector<CommentMapPrism::DataDefineMember>> dataDefineMembersForNode;
     std::vector<std::pair<bool, core::LocOffsets>> contextAllowingTypeAlias;
     int lastLine;
 
@@ -67,6 +83,8 @@ private:
                              pm_node_t *&elsePart, std::string_view kind);
     void associateAssertionCommentsToNode(pm_node_t *node, bool adjustLocForHeredoc = false);
     void associateSignatureCommentsToNode(pm_node_t *node);
+    bool isDataDefineCall(pm_call_node_t *call);
+    void associateDataDefineMemberTypes(pm_call_node_t *call);
     void consumeCommentsInsideNode(pm_node_t *node, std::string_view kind);
     void consumeCommentsBetweenLines(int startLine, int endLine, std::string_view kind);
     void consumeOrphanedSignatureComments(int startLine, int endLine);
