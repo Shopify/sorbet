@@ -19,6 +19,22 @@ namespace sorbet::rbs {
 
 namespace {
 
+bool isDataDefineCall(pm_call_node_t *call, const parser::Prism::Parser &parser) {
+    if (parser.resolveConstant(call->name) != "define"sv || call->receiver == nullptr) {
+        return false;
+    }
+
+    if (auto *constantRead = down_cast<pm_constant_read_node_t>(call->receiver)) {
+        return parser.resolveConstant(constantRead->name) == "Data"sv;
+    }
+
+    if (auto *constantPath = down_cast<pm_constant_path_node_t>(call->receiver)) {
+        return constantPath->parent == nullptr && parser.resolveConstant(constantPath->name) == "Data"sv;
+    }
+
+    return false;
+}
+
 bool canHaveSignature(pm_node_t *node, const parser::Prism::Parser &parser, const core::GlobalState &gs) {
     if (node == nullptr) {
         return false;
@@ -669,8 +685,11 @@ void SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         }
         case PM_CALL_NODE: {
             auto *call = down_cast_nonnull<pm_call_node_t>(node);
-            if (auto *block = call->block) {
-                rewriteNode(block);
+            if (auto *block = down_cast<pm_block_node_t>(call->block)) {
+                if (isDataDefineCall(call, parser)) {
+                    maybeSynthesizeDataDefineVirtualInit(block, call);
+                }
+                rewriteNode(up_cast(block));
             }
             rewriteArgumentsNode(call->arguments);
             break;
@@ -726,6 +745,105 @@ void SigsRewriterPrism::rewriteNode(pm_node_t *node) {
         default:
             break;
     }
+}
+
+// For Data.define blocks with an orphan RBS signature associated with the
+// PM_BLOCK_NODE, synthesize a virtual `def initialize(x:, y:) = super` with
+// keyword args matching the Data.define members, then translate the RBS comment
+// into the sig node that will attach to that synthetic method during desugaring.
+void SigsRewriterPrism::maybeSynthesizeDataDefineVirtualInit(pm_block_node_t *block, pm_call_node_t *call) {
+    auto comments = commentsForNode(up_cast(block));
+    if (comments.signatures.empty() || call->arguments == nullptr) {
+        return;
+    }
+
+    auto synthLoc = comments.signatures[0].commentLoc();
+    if (!synthLoc.exists()) {
+        synthLoc = parser.translateLocation(call->message_loc);
+    }
+    auto pmSynthLoc = parser.convertLocOffsets(synthLoc);
+    auto pmZeroLoc = parser.convertLocOffsets(synthLoc.copyWithZeroLength());
+
+    pm_node_list_t keywords = prism.emptyNodeList();
+    for (size_t i = 0; i < call->arguments->arguments.size; i++) {
+        auto *arg = call->arguments->arguments.nodes[i];
+        auto *symbol = down_cast<pm_symbol_node_t>(arg);
+        if (symbol == nullptr) {
+            continue;
+        }
+
+        auto symbolName = string_view(reinterpret_cast<const char *>(symbol->unescaped.source), symbol->unescaped.length);
+        auto nameId = prism.addConstantToPool(symbolName);
+
+        auto *kwarg = prism.allocateNode<pm_required_keyword_parameter_node_t>();
+        *kwarg = (pm_required_keyword_parameter_node_t){
+            .base = prism.initializeBaseNode(PM_REQUIRED_KEYWORD_PARAMETER_NODE, symbol->base.location),
+            .name = nameId,
+            .name_loc = symbol->base.location,
+        };
+        pm_node_list_append(&keywords, up_cast(kwarg));
+    }
+
+    auto *params = prism.allocateNode<pm_parameters_node_t>();
+    *params = (pm_parameters_node_t){
+        .base = prism.initializeBaseNode(PM_PARAMETERS_NODE, pmSynthLoc),
+        .requireds = prism.emptyNodeList(),
+        .optionals = prism.emptyNodeList(),
+        .rest = nullptr,
+        .posts = prism.emptyNodeList(),
+        .keywords = keywords,
+        .keyword_rest = nullptr,
+        .block = nullptr,
+    };
+
+    auto *superNode = prism.allocateNode<pm_forwarding_super_node_t>();
+    *superNode = (pm_forwarding_super_node_t){
+        .base = prism.initializeBaseNode(PM_FORWARDING_SUPER_NODE, pmSynthLoc),
+        .block = nullptr,
+    };
+
+    pm_node_t *superStmt = up_cast(superNode);
+    auto *bodyStmts = down_cast_nonnull<pm_statements_node_t>(prism.StatementsNode(synthLoc, absl::MakeSpan(&superStmt, 1)));
+
+    auto *defNode = prism.allocateNode<pm_def_node_t>();
+    *defNode = (pm_def_node_t){
+        .base = prism.initializeBaseNode(PM_DEF_NODE, pmSynthLoc),
+        .name = prism.addConstantToPool("initialize"sv),
+        .name_loc = pmSynthLoc,
+        .receiver = nullptr,
+        .parameters = params,
+        .body = up_cast(bodyStmts),
+        .locals = {.size = 0, .capacity = 0, .ids = nullptr},
+        .def_keyword_loc = pmSynthLoc,
+        .operator_loc = pmZeroLoc,
+        .lparen_loc = pmZeroLoc,
+        .rparen_loc = pmZeroLoc,
+        .equal_loc = pmZeroLoc,
+        .end_keyword_loc = pmZeroLoc,
+    };
+
+    auto signatureTranslator = rbs::SignatureTranslatorPrism{ctx, parser};
+    auto *sig = signatureTranslator.translateMethodSignature(up_cast(defNode), comments.signatures[0], comments.annotations);
+    if (sig == nullptr) {
+        return;
+    }
+
+    vector<pm_node_t *> newBody;
+    newBody.push_back(sig);
+    newBody.push_back(up_cast(defNode));
+
+    if (block->body != nullptr) {
+        if (auto *statements = down_cast<pm_statements_node_t>(block->body)) {
+            newBody.reserve(newBody.size() + statements->body.size);
+            for (size_t i = 0; i < statements->body.size; i++) {
+                newBody.push_back(statements->body.nodes[i]);
+            }
+        } else {
+            newBody.push_back(block->body);
+        }
+    }
+
+    block->body = prism.StatementsNode(synthLoc, absl::MakeSpan(newBody));
 }
 
 void SigsRewriterPrism::run(pm_node_t *node) {

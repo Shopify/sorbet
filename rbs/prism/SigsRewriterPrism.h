@@ -56,6 +56,7 @@ private:
     void rewriteNodes(pm_node_list_t &nodes);
     void rewriteArgumentsNode(pm_arguments_node_t *args);
     void rewriteClass(pm_node_t *node);
+    void maybeSynthesizeDataDefineVirtualInit(pm_block_node_t *block, pm_call_node_t *call);
     std::unique_ptr<std::vector<pm_node_t *>> signaturesForNode(pm_node_t *node);
     CommentsPrism commentsForNode(pm_node_t *node);
     void insertTypeParams(pm_node_t *node, pm_node_t *body);
