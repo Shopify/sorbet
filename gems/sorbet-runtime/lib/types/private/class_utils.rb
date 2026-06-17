@@ -28,12 +28,16 @@ module T::Private::ClassUtils
     end
   end
 
-  def self.def_with_visibility(mod, name, visibility, method=nil, &block)
-    # In Ractor-wrapping mode, turn the validator closure into a Ractor-shareable
-    # proc so the resulting method can be invoked from non-main Ractors. This
-    # only succeeds if everything the block captures is already shareable (see
-    # `CallValidation.wrap_method_if_needed`).
-    if block && T::Private::Methods.ractor_wrapping?
+  def self.def_with_visibility(mod, name, visibility, method=nil, make_shareable: T::Private::Methods.ractor_wrapping?, &block)
+    # Turn the validator closure into a Ractor-shareable proc so the resulting
+    # method can be invoked from non-main Ractors. This only succeeds if
+    # everything the block captures is already shareable (see
+    # `CallValidation.wrap_method_if_needed`), so it is opt-in: only the final
+    # validators request it (via the `ractor_wrapping?` default). Transient stubs
+    # and hooks installed through `replace_method` pass `make_shareable: false`,
+    # since their closures capture unshareable state and are never called from
+    # other Ractors.
+    if block && make_shareable
       block = Ractor.shareable_proc(&block)
     end
     mod.module_exec do
@@ -97,7 +101,11 @@ module T::Private::ClassUtils
 
     T::Configuration.without_ruby_warnings do
       T::Private::DeclState.current.without_on_method_added do
-        def_with_visibility(mod, name, original_visibility, &blk)
+        # `replace_method` only installs transient stubs and hooks (the lazy sig
+        # wrapper, T::Struct's `inherited`, the final-check hooks), whose closures
+        # capture unshareable state and are never invoked from other Ractors, so
+        # they must not be turned into shareable procs.
+        def_with_visibility(mod, name, original_visibility, make_shareable: false, &blk)
       end
     end
 

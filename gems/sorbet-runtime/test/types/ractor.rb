@@ -6,6 +6,7 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
   RACTOR_FIXTURE = "#{__dir__}/fixtures/ractor.rb"
   REQUIRES_FINALIZE_FIXTURE = "#{__dir__}/fixtures/ractor_requires_finalize.rb"
   COERCION_FIXTURE = "#{__dir__}/fixtures/ractor_coercion.rb"
+  POST_FINALIZE_FIXTURE = "#{__dir__}/fixtures/ractor_post_finalize.rb"
 
   before do
     unless defined?(::Ractor) && ::Ractor.respond_to?(:shareable_proc)
@@ -52,6 +53,16 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
       ractor_local_cache: true
       main_nilable: nil
       main_array: [1]
+    EXPECTED
+  end
+
+  it 'allows defining sigs and subclassing T::Struct after finalize!' do
+    result, status = Open3.capture2(RbConfig.ruby, POST_FINALIZE_FIXTURE)
+    assert(status.success?, "ruby failed (exit #{status.exitstatus})")
+    assert_equal(<<~EXPECTED, result)
+      late_main: 12
+      late_ractor: 15
+      struct_subclass: 7
     EXPECTED
   end
 end
