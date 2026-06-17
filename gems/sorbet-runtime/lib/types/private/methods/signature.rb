@@ -268,6 +268,23 @@ class T::Private::Methods::Signature
     @return_type.build_type
   end
 
+  # Force the lazily-memoized `name` of every type referenced by this signature
+  # (recursively, since composite types compute their name from their members).
+  # Used before deep-freezing a signature for Ractor sharing, so that error
+  # messages built from non-main Ractors read an already-memoized `name` instead
+  # of trying to write a frozen ivar or read a non-shareable constant.
+  def force_name_init
+    @arg_types.each { |_, type| type.name }
+    @kwarg_types.each { |_, type| type.name }
+    @block_type&.name
+    @rest_type&.name
+    @keyrest_type&.name
+    @return_type.name
+    @effective_return_type.name
+    @bind&.name
+    nil
+  end
+
   EMPTY_LIST = [].freeze
   EMPTY_HASH = {}.freeze
 end

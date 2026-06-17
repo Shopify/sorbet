@@ -32,6 +32,11 @@ module T::Private::Methods
   # in installed_hooks.
   @old_hooks = nil
 
+  # When true, method validators are built as Ractor-shareable procs (via
+  # `Ractor.shareable_proc`) so that `sig`-wrapped methods can be called from
+  # non-main Ractors. Flipped on by `finalize!`. See `make_method_shareable`.
+  @ractor_wrapping = false
+
   # These names are for backwards compatibility from when these were `Object.new` instances
   # rubocop:disable Naming/ClassAndModuleCamelCase
   module ARG_NOT_PROVIDED
@@ -607,6 +612,55 @@ module T::Private::Methods
     # Make sure that there are no lingering declaration blocks being kept alive
     # (so we're not retaining any extra references for a possible GC)
     T::Private::DeclState.current.reset!
+  end
+
+  # Whether method validators should be built as Ractor-shareable procs.
+  def self.ractor_wrapping?
+    @ractor_wrapping
+  end
+
+  # Prepare the runtime so that already-declared `sig`-wrapped methods can be
+  # called from non-main Ractors.
+  #
+  # This must be called from the main Ractor, after all typed classes have been
+  # loaded. It:
+  #   1. Switches validator construction into "Ractor-shareable" mode, so that
+  #      every subsequently-built validator is a `Ractor.shareable_proc`.
+  #   2. Eagerly forces every pending `sig` to build its validator (and to
+  #      initialize its types), draining `@sig_wrappers`. After this point the
+  #      call path no longer mutates shared registry state on first call.
+  #
+  # @return [Integer] the number of signatures that were finalized
+  def self.finalize!
+    unless defined?(Ractor) && Ractor.respond_to?(:shareable_proc)
+      raise "T::Configuration.finalize! requires a Ruby with `Ractor.shareable_proc` (Ruby 4.0+)."
+    end
+
+    # Phase 1: build every pending validator and initialize every type, while
+    # `@ractor_wrapping` is still false. Nothing is frozen yet, so the lazy
+    # memoization that happens during signature construction (e.g. `Simple#name`
+    # during union de-duplication) still works normally. Type objects are shared
+    # across signatures, so they must all be fully built before any are frozen.
+    run_all_sig_blocks(force_type_init: true)
+
+    # Phase 2: no new signatures will be built now, so it is safe to deep-freeze
+    # each signature (and its shared type graph) and re-wrap every method as a
+    # `Ractor.shareable_proc`.
+    @ractor_wrapping = true
+    finalized = 0
+    @signatures_by_method.each_value do |sig|
+      original_method = sig.method
+      CallValidation.wrap_method_if_needed(original_method.owner, sig, original_method)
+      finalized += 1
+    end
+    finalized
+  end
+
+  # Best-effort: make `obj` Ractor-shareable so it can be captured by a
+  # shareable validator proc. Returns the (now shareable) object.
+  def self.make_method_shareable(obj)
+    return obj if Ractor.shareable?(obj)
+    Ractor.make_shareable(obj)
   end
 
   def self.all_checked_tests_sigs

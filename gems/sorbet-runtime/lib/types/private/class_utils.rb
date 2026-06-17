@@ -29,6 +29,13 @@ module T::Private::ClassUtils
   end
 
   def self.def_with_visibility(mod, name, visibility, method=nil, &block)
+    # In Ractor-wrapping mode, turn the validator closure into a Ractor-shareable
+    # proc so the resulting method can be invoked from non-main Ractors. This
+    # only succeeds if everything the block captures is already shareable (see
+    # `CallValidation.wrap_method_if_needed`).
+    if block && T::Private::Methods.ractor_wrapping?
+      block = Ractor.shareable_proc(&block)
+    end
     mod.module_exec do
       # Start a visibility (public/protected/private) region, so that
       # all of the method redefinitions happen with the right visibility

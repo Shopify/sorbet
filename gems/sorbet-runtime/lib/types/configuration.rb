@@ -17,6 +17,22 @@ module T::Configuration
     T::Private::RuntimeLevels.enable_checking_in_tests
   end
 
+  # Prepare the runtime so that `sig`-wrapped methods can be invoked from
+  # non-main Ractors.
+  #
+  # Call this from the main Ractor after all typed classes have been loaded
+  # (e.g. at the end of application boot). It eagerly builds every pending
+  # method validator as a `Ractor.shareable_proc` and initializes all types,
+  # so that subsequent calls from other Ractors neither mutate shared state nor
+  # rely on un-shareable closures.
+  #
+  # Requires Ruby 4.0+ (for `Ractor.shareable_proc`).
+  #
+  # @return [Integer] the number of signatures that were finalized
+  def self.finalize!
+    T::Private::Methods.finalize!
+  end
+
   # Announce to Sorbet that we would like the final checks to be enabled when
   # including and extending modules. Iff this is not called, then the following
   # example will not raise an error.

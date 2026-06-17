@@ -5,8 +5,10 @@ module T::Private::Methods::CallValidation
   CallValidation = T::Private::Methods::CallValidation
   Modes = T::Private::Methods::Modes
 
-  KERNEL_TO_S = Kernel.instance_method(:to_s)
-  MODULE_TO_S = Module.instance_method(:to_s)
+  # `Ractor.make_shareable` so these can be read from non-main Ractors when
+  # building type-error messages. Freezing an UnboundMethod is otherwise a no-op.
+  KERNEL_TO_S = defined?(Ractor) ? Ractor.make_shareable(Kernel.instance_method(:to_s)) : Kernel.instance_method(:to_s)
+  MODULE_TO_S = defined?(Ractor) ? Ractor.make_shareable(Module.instance_method(:to_s)) : Module.instance_method(:to_s)
   private_constant(:KERNEL_TO_S, :MODULE_TO_S)
 
   # Wraps a method with a layer of validation for the given type signature.
@@ -16,6 +18,19 @@ module T::Private::Methods::CallValidation
   # @param method_sig [T::Private::Methods::Signature]
   # @return [UnboundMethod] the new wrapper method (or the original one if we didn't wrap it)
   def self.wrap_method_if_needed(mod, method_sig, original_method)
+    if T::Private::Methods.ractor_wrapping?
+      # The validator blocks below close over `original_method` and `method_sig`.
+      # For `Ractor.shareable_proc` to accept those blocks, every captured value
+      # must already be Ractor-shareable, so freeze them (and their object graph)
+      # up front. Type objects are shared across signatures, so build this sig's
+      # types *before* deep-freezing it: `build_type` memoizes lazily and would
+      # otherwise raise FrozenError if a type was already frozen by an earlier
+      # signature that shares it.
+      method_sig.force_type_init
+      method_sig.force_name_init
+      original_method = T::Private::Methods.make_method_shareable(original_method)
+      method_sig = T::Private::Methods.make_method_shareable(method_sig)
+    end
     original_visibility = T::Private::ClassUtils.visibility_method_name(mod, method_sig.method_name)
     if method_sig.mode == T::Private::Methods::Modes.abstract
       create_abstract_wrapper(mod, method_sig.method_name, original_visibility)
