@@ -6,6 +6,7 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
   RACTOR_FIXTURE = "#{__dir__}/fixtures/ractor.rb"
   REQUIRES_FINALIZE_FIXTURE = "#{__dir__}/fixtures/ractor_requires_finalize.rb"
   COERCION_FIXTURE = "#{__dir__}/fixtures/ractor_coercion.rb"
+  WEAK_CACHE_FIXTURE = "#{__dir__}/fixtures/ractor_weak_cache.rb"
 
   before do
     unless defined?(::Ractor) && ::Ractor.respond_to?(:shareable_proc)
@@ -52,6 +53,22 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
       ractor_local_cache: true
       main_nilable: nil
       main_array: [1]
+    EXPECTED
+  end
+
+  it 'T::Private::WeakCache uses a shared map while unfrozen and Ractor-local storage once frozen' do
+    result, status = Open3.capture2(RbConfig.ruby, WEAK_CACHE_FIXTURE)
+    assert(status.success?, "ruby failed (exit #{status.exitstatus})")
+    assert_equal(<<~EXPECTED, result)
+      unfrozen_get: true
+      unfrozen_shareable: false
+      frozen: true
+      frozen_shareable: true
+      frozen_main_empty: true
+      frozen_main_get: true
+      ractor_isolated_empty: true
+      ractor_local_write: true
+      main_unaffected: true
     EXPECTED
   end
 end

@@ -17,7 +17,7 @@ module T::Types
       module Pool
         CACHE_FROZEN_OBJECTS = T.let(true, T::Boolean)
 
-        @cache = T.let(nil, ObjectSpace::WeakMap)
+        @cache = T.let(nil, T::Private::WeakCache)
 
         sig { params(mod: Module).returns(Base) }
         def self.type_for_module(mod)

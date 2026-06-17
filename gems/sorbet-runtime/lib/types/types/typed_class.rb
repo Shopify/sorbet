@@ -53,19 +53,16 @@ module T::Types
             false # Ruby 2.6 and older
           end
 
-        @cache = ObjectSpace::WeakMap.new
+        @cache = T::Private::WeakCache.new(:sorbet_typed_class_pool)
 
         def self.type_for_module(mod)
-          # In a non-main Ractor the process-shared cache (an un-shareable
-          # WeakMap) can't be touched, so use a Ractor-local cache instead.
-          cache = T::Private::Methods.non_main_ractor? ? T::Private::Methods.ractor_local_type_cache(:sorbet_typed_class_pool) : @cache
-          cached = cache[mod]
+          cached = @cache[mod]
           return cached if cached
 
           type = TypedClass.new(mod)
 
           if CACHE_FROZEN_OBJECTS || (!mod.frozen? && !type.frozen?)
-            cache[mod] = type
+            @cache[mod] = type
           end
           type
         end

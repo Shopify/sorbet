@@ -619,23 +619,6 @@ module T::Private::Methods
     @ractor_wrapping
   end
 
-  # True when running in a non-main Ractor after `finalize!`. The type-coercion
-  # pools use this to swap their process-shared (un-shareable) caches for a
-  # Ractor-local one. Gated on `@ractor_wrapping` so the default (non-finalized)
-  # path pays only a boolean check and never touches `Ractor`.
-  def self.non_main_ractor?
-    @ractor_wrapping && !Ractor.main?
-  end
-
-  # A per-Ractor type-coercion cache. Non-main Ractors can't read or write the
-  # pools' process-shared WeakMaps (stored in un-shareable module ivars), so each
-  # Ractor keeps its own cache in Ractor-local storage. This preserves coercion
-  # memoization within a Ractor (e.g. a `T.let(x, T::Array[Integer])` loop) while
-  # staying isolated from other Ractors. `key` distinguishes the pools.
-  def self.ractor_local_type_cache(key)
-    Ractor.store_if_absent(key) { ObjectSpace::WeakMap.new }
-  end
-
   # Prepare the runtime so that already-declared `sig`-wrapped methods can be
   # called from non-main Ractors.
   #
@@ -646,6 +629,8 @@ module T::Private::Methods
   #   2. Eagerly forces every pending `sig` to build its validator (and to
   #      initialize its types), draining `@sig_wrappers`. After this point the
   #      call path no longer mutates shared registry state on first call.
+  #   3. Freezes the type-coercion caches so they switch to Ractor-local storage
+  #      and can be used from non-main Ractors (e.g. `T.let`/`T.cast`).
   #
   # @return [Integer] the number of signatures that were finalized
   def self.finalize!
@@ -670,6 +655,11 @@ module T::Private::Methods
       CallValidation.wrap_method_if_needed(original_method.owner, sig, original_method)
       finalized += 1
     end
+
+    # Phase 3: switch the type-coercion caches to Ractor-local storage so they
+    # can be read and written from non-main Ractors.
+    T::Private::WeakCache.freeze_all!
+
     finalized
   end
 
