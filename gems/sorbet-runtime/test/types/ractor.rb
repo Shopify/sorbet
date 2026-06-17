@@ -7,6 +7,7 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
   REQUIRES_FINALIZE_FIXTURE = "#{__dir__}/fixtures/ractor_requires_finalize.rb"
   COERCION_FIXTURE = "#{__dir__}/fixtures/ractor_coercion.rb"
   POST_FINALIZE_FIXTURE = "#{__dir__}/fixtures/ractor_post_finalize.rb"
+  PROPS_FIXTURE = "#{__dir__}/fixtures/ractor_props.rb"
 
   before do
     unless defined?(::Ractor) && ::Ractor.respond_to?(:shareable_proc)
@@ -63,6 +64,21 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
       late_main: 12
       late_ractor: 15
       struct_subclass: 7
+    EXPECTED
+  end
+
+  it 'supports T::Enum and T::Struct (incl. (de)serialization) from non-main Ractors after finalize!' do
+    result, status = Open3.capture2(RbConfig.ruby, PROPS_FIXTURE)
+    assert(status.success?, "ruby failed (exit #{status.exitstatus})")
+    assert_equal(<<~EXPECTED, result)
+      enum_serialize: spades
+      enum_deserialize: true
+      struct_new: 10
+      struct_default: hearts
+      struct_setter: ["x"]
+      serialize: {"rank" => 7, "suit" => "hearts", "tags" => ["a", "b"]}
+      deserialize: spades
+      type_error: Can't set Card.rank to "nope" (instance of String) - need a Integer
     EXPECTED
   end
 end

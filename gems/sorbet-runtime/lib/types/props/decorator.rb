@@ -23,6 +23,62 @@ class T::Props::Decorator
   EMPTY_PROPS = T.let({}.freeze, T::Hash[Symbol, Rules], checked: false)
   private_constant :EMPTY_PROPS
 
+  # Make every decorator (and the class state read during (de)serialization)
+  # Ractor-shareable, so `T::Props`/`T::Struct` instances can be built and
+  # (de)serialized from non-main Ractors. Called by `T::Configuration.finalize!`.
+  #
+  # `ObjectSpace.each_object` is slow, but `finalize!` runs once, and this avoids
+  # the cost of every decorator registering itself on the common (non-finalized)
+  # path.
+  sig { void }
+  def self.finalize!
+    ObjectSpace.each_object(T::Props::Decorator) { |decorator| decorator.make_shareable! }
+  end
+
+  # Drain the lazily-generated (de)serialize methods (which would otherwise
+  # mutate the decorator on first use) and deeply freeze the decorator so it can
+  # be read from non-main Ractors. Making the decorator shareable does not freeze
+  # the class it references (classes are always Ractor-shareable).
+  sig { void }
+  def make_shareable!
+    return if frozen?
+
+    T.unsafe(self).eagerly_define_lazy_methods! if respond_to?(:eagerly_define_lazy_methods!)
+    T.unsafe(self).eagerly_define_lazy_vm_methods! if respond_to?(:eagerly_define_lazy_vm_methods!)
+    # The serialized-form lookup is a class ivar read at (de)serialize time.
+    T::Private::Methods.make_shareable(T.unsafe(self).prop_by_serialized_forms) if respond_to?(:prop_by_serialized_forms)
+
+    # Deep-freezes the decorator and its prop type graph. Each type realizes its
+    # lazy state in its own `freeze` (see TypedEnumerable#freeze), so the types
+    # are built as they are frozen.
+    T::Private::Methods.make_shareable(self)
+
+    # The fast-path setters were defined with un-shareable procs at prop-definition
+    # time (before the captured type objects were frozen). Now that the decorator
+    # (and so each `setter_proc`) is shareable, redefine them so the `name=`
+    # methods can be called from non-main Ractors. (Getters use `attr_reader`,
+    # which is already Ractor-callable.)
+    redefine_setters_as_shareable
+  end
+
+  # checked(:never) - Rules hash is expensive to check
+  sig { void.checked(:never) }
+  private def redefine_setters_as_shareable
+    # Only the fast-path setters (a frozen `setter_proc`, no `prop_set` override)
+    # can be redefined this way; custom `prop_set` setters close over the decorator.
+    return if method(:prop_set).owner != T::Props::Decorator
+
+    props.each do |name, rules|
+      next if rules[:immutable]
+      setter_proc = rules[:setter_proc]
+      next if setter_proc.nil?
+
+      T::Configuration.without_ruby_warnings do
+        @class.send(:define_method, :"#{name}=", &setter_proc)
+      end
+    end
+  end
+
   OVERRIDE_TRUE = T.let({
     reader: {allow_incompatible: false}.freeze,
     writer: {allow_incompatible: false}.freeze,

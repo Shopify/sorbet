@@ -660,6 +660,10 @@ module T::Private::Methods
     # can be read and written from non-main Ractors.
     T::Private::WeakCache.freeze_all!
 
+    # Phase 4: make every T::Props/T::Struct decorator shareable so instances can
+    # be built and (de)serialized from non-main Ractors.
+    T::Props::Decorator.finalize! if defined?(T::Props::Decorator)
+
     finalized
   end
 
@@ -679,13 +683,11 @@ module T::Private::Methods
   #
   # `Ractor.shareable_proc` (in `def_with_visibility`) only accepts a block whose
   # captures are all already shareable, so both values are made shareable here.
-  # The signature's types are built first: `make_shareable` deep-freezes them and
-  # `build_type` memoizes lazily, so building afterward would raise FrozenError
-  # (each type also memoizes its `name` in its own `freeze`).
+  # Each type realizes its own lazy state (`@type`, `name`, ...) in its `freeze`,
+  # so `make_shareable` builds the type graph as it deep-freezes it.
   def self.maybe_prepare_for_shareable_wrapping(method_sig, original_method)
     return [method_sig, original_method] unless @ractor_wrapping
 
-    method_sig.force_type_init
     [make_shareable(method_sig), make_shareable(original_method)]
   end
 
