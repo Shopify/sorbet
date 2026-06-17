@@ -56,13 +56,16 @@ module T::Types
         @cache = ObjectSpace::WeakMap.new
 
         def self.type_for_module(mod)
-          cached = @cache[mod]
+          # In a non-main Ractor the process-shared cache (an un-shareable
+          # WeakMap) can't be touched, so use a Ractor-local cache instead.
+          cache = T::Private::Methods.non_main_ractor? ? T::Private::Methods.ractor_local_type_cache(:sorbet_typed_class_pool) : @cache
+          cached = cache[mod]
           return cached if cached
 
           type = TypedClass.new(mod)
 
           if CACHE_FROZEN_OBJECTS || (!mod.frozen? && !type.frozen?)
-            @cache[mod] = type
+            cache[mod] = type
           end
           type
         end

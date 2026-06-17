@@ -79,10 +79,18 @@ module T::Types
     end
 
     def to_nilable
-      @nilable ||= T::Private::Types::SimplePairUnion.new(
+      return @nilable if @nilable
+
+      nilable = T::Private::Types::SimplePairUnion.new(
         self,
         T::Utils::Nilable::NIL_TYPE,
       )
+      # `finalize!` deep-freezes pooled `Simple` instances that appear in a sig,
+      # so this on-demand memoization (which isn't covered by `build_type`) would
+      # otherwise raise `FrozenError`. When frozen, return a fresh instance each
+      # time rather than memoizing.
+      @nilable = nilable unless frozen?
+      nilable
     end
 
     module Private
@@ -97,7 +105,10 @@ module T::Types
         @cache = ObjectSpace::WeakMap.new
 
         def self.type_for_module(mod)
-          cached = @cache[mod]
+          # In a non-main Ractor the process-shared cache (an un-shareable
+          # WeakMap) can't be touched, so use a Ractor-local cache instead.
+          cache = T::Private::Methods.non_main_ractor? ? T::Private::Methods.ractor_local_type_cache(:sorbet_simple_type_pool) : @cache
+          cached = cache[mod]
           return cached if cached
 
           type = if mod == ::Array
@@ -126,7 +137,7 @@ module T::Types
           # For a frozen object, though, adding a finalizer is not a valid
           # operation, so this still raises if `mod` is frozen.
           if CACHE_FROZEN_OBJECTS || (!mod.frozen? && !type.frozen?)
-            @cache[mod] = type
+            cache[mod] = type
           end
           type
         end
