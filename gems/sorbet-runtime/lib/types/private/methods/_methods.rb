@@ -663,11 +663,14 @@ module T::Private::Methods
     finalized
   end
 
-  # Best-effort: make `obj` Ractor-shareable so it can be captured by a
-  # shareable validator proc. Returns the (now shareable) object.
-  def self.make_method_shareable(obj)
-    return obj if Ractor.shareable?(obj)
-    Ractor.make_shareable(obj)
+  # Make `obj` Ractor-shareable, returning it. A no-op when `obj` is already
+  # shareable, or when this Ruby has no `Ractor` at all (so the same call sites
+  # work unchanged on older Rubies). Used both at load time (to share the
+  # UnboundMethod constants used in error messages) and by `finalize!` (to share
+  # the signatures captured by shareable validator procs).
+  def self.make_shareable(obj)
+    return obj unless defined?(Ractor)
+    Ractor.shareable?(obj) ? obj : Ractor.make_shareable(obj)
   end
 
   def self.all_checked_tests_sigs

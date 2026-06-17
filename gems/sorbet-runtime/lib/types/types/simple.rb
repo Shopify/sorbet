@@ -4,9 +4,9 @@
 module T::Types
   # Validates that an object belongs to the specified class.
   class Simple < Base
-    # `Ractor.make_shareable` so it can be read from non-main Ractors (e.g. when
-    # a type's `name` was not pre-memoized). Freezing an UnboundMethod is a no-op.
-    NAME_METHOD = defined?(Ractor) ? Ractor.make_shareable(Module.instance_method(:name)) : Module.instance_method(:name)
+    # Made shareable so it can be read from non-main Ractors (e.g. when a type's
+    # `name` was not pre-memoized). Freezing an UnboundMethod is otherwise a no-op.
+    NAME_METHOD = T::Private::Methods.make_shareable(Module.instance_method(:name))
     private_constant(:NAME_METHOD)
 
     attr_reader :raw_type

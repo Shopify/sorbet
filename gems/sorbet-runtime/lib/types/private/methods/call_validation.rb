@@ -5,10 +5,10 @@ module T::Private::Methods::CallValidation
   CallValidation = T::Private::Methods::CallValidation
   Modes = T::Private::Methods::Modes
 
-  # `Ractor.make_shareable` so these can be read from non-main Ractors when
-  # building type-error messages. Freezing an UnboundMethod is otherwise a no-op.
-  KERNEL_TO_S = defined?(Ractor) ? Ractor.make_shareable(Kernel.instance_method(:to_s)) : Kernel.instance_method(:to_s)
-  MODULE_TO_S = defined?(Ractor) ? Ractor.make_shareable(Module.instance_method(:to_s)) : Module.instance_method(:to_s)
+  # Made shareable so they can be read from non-main Ractors when building
+  # type-error messages. Freezing an UnboundMethod is otherwise a no-op.
+  KERNEL_TO_S = T::Private::Methods.make_shareable(Kernel.instance_method(:to_s))
+  MODULE_TO_S = T::Private::Methods.make_shareable(Module.instance_method(:to_s))
   private_constant(:KERNEL_TO_S, :MODULE_TO_S)
 
   # Wraps a method with a layer of validation for the given type signature.
@@ -28,8 +28,8 @@ module T::Private::Methods::CallValidation
       # signature that shares it.
       method_sig.force_type_init
       method_sig.force_name_init
-      original_method = T::Private::Methods.make_method_shareable(original_method)
-      method_sig = T::Private::Methods.make_method_shareable(method_sig)
+      original_method = T::Private::Methods.make_shareable(original_method)
+      method_sig = T::Private::Methods.make_shareable(method_sig)
     end
     original_visibility = T::Private::ClassUtils.visibility_method_name(mod, method_sig.method_name)
     if method_sig.mode == T::Private::Methods::Modes.abstract
