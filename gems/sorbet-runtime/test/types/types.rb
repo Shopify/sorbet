@@ -524,6 +524,16 @@ module Opus::Types::Test
         assert_equal(expected_error, msg)
       end
 
+      it 'realizes its lazy element type on freeze so it can still validate' do
+        type = T::Utils.coerce(T::Array[Integer])
+        type.freeze
+        assert(type.frozen?)
+        # `recursively_valid?` reads the lazily-built `@type`; freezing must have
+        # built it, or the `@type ||=` would raise FrozenError.
+        assert(type.recursively_valid?([1, 2]))
+        refute(type.recursively_valid?(["x"]))
+      end
+
       it 'can hand back the underlying type' do
         type = T::Array[Integer]
         assert_equal(Integer, type.type.raw_type)

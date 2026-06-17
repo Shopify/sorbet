@@ -19,6 +19,17 @@ module T::Types
       nil
     end
 
+    # overrides Object#freeze
+    #
+    # Realize the lazily-memoized `@type` before freezing, so the frozen type can
+    # still validate (the `@type ||=` in `type` can't write to a frozen object).
+    # `make_shareable` invokes this on each type as it freezes the graph, so the
+    # element type gets the same treatment in turn.
+    def freeze
+      build_type unless frozen?
+      super
+    end
+
     def underlying_class
       Enumerable
     end

@@ -17,6 +17,13 @@ module T::Private::Types
       @aliased_type ||= T::Utils.coerce(@callable.call)
     end
 
+    # overrides Object#freeze; resolve the lazily-evaluated alias before freezing
+    # so the frozen alias can still delegate validation (see TypedEnumerable#freeze).
+    def freeze
+      aliased_type unless frozen?
+      super
+    end
+
     # overrides Base
     def name
       aliased_type.name

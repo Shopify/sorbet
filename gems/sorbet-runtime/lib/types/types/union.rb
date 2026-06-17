@@ -42,6 +42,12 @@ module T::Types
       nil
     end
 
+    # overrides Object#freeze; realize lazy state before freezing (see TypedEnumerable#freeze).
+    def freeze
+      build_type unless frozen?
+      super
+    end
+
     # overrides Base
     def name
       # Use the attr_reader here so we can override it in SimplePairUnion
