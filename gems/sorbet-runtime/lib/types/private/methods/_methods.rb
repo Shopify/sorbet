@@ -673,6 +673,22 @@ module T::Private::Methods
     Ractor.shareable?(obj) ? obj : Ractor.make_shareable(obj)
   end
 
+  # Prepare a signature and its method to be captured by a Ractor-shareable
+  # validator proc, returning `[method_sig, original_method]`. A no-op unless
+  # `finalize!` has switched on Ractor wrapping.
+  #
+  # `Ractor.shareable_proc` (in `def_with_visibility`) only accepts a block whose
+  # captures are all already shareable, so both values are made shareable here.
+  # The signature's types are built first: `make_shareable` deep-freezes them and
+  # `build_type` memoizes lazily, so building afterward would raise FrozenError
+  # (each type also memoizes its `name` in its own `freeze`).
+  def self.maybe_prepare_for_shareable_wrapping(method_sig, original_method)
+    return [method_sig, original_method] unless @ractor_wrapping
+
+    method_sig.force_type_init
+    [make_shareable(method_sig), make_shareable(original_method)]
+  end
+
   def self.all_checked_tests_sigs
     @signatures_by_method.values.select { |sig| sig.check_level == :tests }
   end

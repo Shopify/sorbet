@@ -18,17 +18,11 @@ module T::Private::Methods::CallValidation
   # @param method_sig [T::Private::Methods::Signature]
   # @return [UnboundMethod] the new wrapper method (or the original one if we didn't wrap it)
   def self.wrap_method_if_needed(mod, method_sig, original_method)
-    if T::Private::Methods.ractor_wrapping?
-      # The validator blocks below close over `original_method` and `method_sig`.
-      # For `Ractor.shareable_proc` to accept those blocks, every captured value
-      # must already be Ractor-shareable, so freeze them (and their object graph)
-      # up front. Build this sig's types first: `make_shareable` deep-freezes
-      # them, and `build_type` memoizes lazily, so building afterward would raise
-      # FrozenError. (Each type also memoizes its `name` in its own `freeze`.)
-      method_sig.force_type_init
-      original_method = T::Private::Methods.make_shareable(original_method)
-      method_sig = T::Private::Methods.make_shareable(method_sig)
-    end
+    # After `finalize!`, the validator blocks built below must be Ractor-shareable,
+    # which requires the values they close over to be shareable. This is the one
+    # funnel above all the `create_validator_*` builders, so it is where the
+    # signature and method are made shareable. (No-op until `finalize!`.)
+    method_sig, original_method = T::Private::Methods.maybe_prepare_for_shareable_wrapping(method_sig, original_method)
     original_visibility = T::Private::ClassUtils.visibility_method_name(mod, method_sig.method_name)
     if method_sig.mode == T::Private::Methods::Modes.abstract
       create_abstract_wrapper(mod, method_sig.method_name, original_visibility)
