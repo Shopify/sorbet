@@ -118,6 +118,14 @@ module Opus::Types::Test
         assert_equal(ivars, m.instance_variables)
       end
 
+      it 'memoizes name on freeze so it stays readable once frozen' do
+        type = T::Types::Simple.new(String)
+        type.freeze
+        assert(type.frozen?)
+        # `name` would otherwise try to write `@name` and raise FrozenError.
+        assert_equal('String', type.name)
+      end
+
       it "shows a detailed error for constant reloading problems" do
         klass = ReloadedClass
 
@@ -1321,6 +1329,13 @@ module Opus::Types::Test
       it 'fails validation with a nil value' do
         msg = check_error_message_for_obj(@type, nil)
         assert_equal("Expected type T.deprecated_enum([:bar, :foo]), got nil", msg)
+      end
+
+      it 'memoizes name on freeze so it stays readable once frozen' do
+        @type.freeze
+        assert(@type.frozen?)
+        # `name` would otherwise try to write `@name` and raise FrozenError.
+        assert_equal('T.deprecated_enum([:bar, :foo])', @type.name)
       end
     end
 

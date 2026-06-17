@@ -22,12 +22,10 @@ module T::Private::Methods::CallValidation
       # The validator blocks below close over `original_method` and `method_sig`.
       # For `Ractor.shareable_proc` to accept those blocks, every captured value
       # must already be Ractor-shareable, so freeze them (and their object graph)
-      # up front. Type objects are shared across signatures, so build this sig's
-      # types *before* deep-freezing it: `build_type` memoizes lazily and would
-      # otherwise raise FrozenError if a type was already frozen by an earlier
-      # signature that shares it.
+      # up front. Build this sig's types first: `make_shareable` deep-freezes
+      # them, and `build_type` memoizes lazily, so building afterward would raise
+      # FrozenError. (Each type also memoizes its `name` in its own `freeze`.)
       method_sig.force_type_init
-      method_sig.force_name_init
       original_method = T::Private::Methods.make_shareable(original_method)
       method_sig = T::Private::Methods.make_shareable(method_sig)
     end

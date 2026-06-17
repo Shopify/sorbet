@@ -33,6 +33,18 @@ module T::Types
       # rubocop:enable Performance/BindCall
     end
 
+    # overrides Object#freeze
+    #
+    # Memoize `name` before freezing, so it can still be read afterward (the
+    # `@name ||=` above can't write to a frozen object). This matters once
+    # `finalize!` freezes the shared type objects (via `Ractor.make_shareable`,
+    # which calls this): building a type-error message from any Ractor reads
+    # `name`.
+    def freeze
+      name unless frozen?
+      super
+    end
+
     # overrides Base
     #
     # Identical to valid?; defined directly so the leaf-type hot path (every

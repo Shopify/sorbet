@@ -125,9 +125,6 @@ class T::Private::Methods::Signature
   sig {void}
   def force_type_init; end
 
-  sig {void}
-  def force_name_init; end
-
   EMPTY_LIST = T.let(T.unsafe(nil), T::Array[T.untyped])
   EMPTY_HASH = T.let(T.unsafe(nil), T::Hash[T.untyped, T.untyped])
 end

@@ -42,6 +42,16 @@ module T::Types
       @name ||= "T.deprecated_enum([#{@values.map(&:inspect).sort.join(', ')}])"
     end
 
+    # overrides Object#freeze
+    #
+    # Memoize `name` before freezing so it can still be read afterward (the
+    # `@name ||=` above can't write to a frozen object), e.g. when building a
+    # type-error message from a Ractor after `finalize!`.
+    def freeze
+      name unless frozen?
+      super
+    end
+
     # overrides Base
     def describe_obj(obj)
       obj.inspect
