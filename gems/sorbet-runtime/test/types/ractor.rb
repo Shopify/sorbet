@@ -50,6 +50,7 @@ class Opus::Types::Test::Ractor < Critic::Unit::UnitTest
       nilable: nil
       any: "x"
       class_of: Integer
+      type_alias: [1, 2, 3]
       let_error: Expected type Integer, got type String with value "x"
       ractor_local_cache: true
       main_nilable: nil

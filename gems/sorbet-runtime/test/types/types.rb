@@ -1243,6 +1243,18 @@ module Opus::Types::Test
         assert_equal('String', type.name)
       end
 
+      it 'resolves and drops its callable on freeze, and stays usable' do
+        type = T.type_alias { T::Array[Integer] }
+        refute(type.frozen?)
+        type.freeze
+        assert(type.frozen?)
+        # The deferred block is dropped (it isn't Ractor-shareable), and the alias
+        # keeps working when frozen.
+        assert_nil(type.instance_variable_get(:@callable))
+        assert(type.valid?([1, 2]))
+        refute(type.valid?("x"))
+      end
+
       it 'delegates name' do
         type = T.type_alias { T.any(Integer, String) }
         assert_equal('T.any(Integer, String)', type.name)

@@ -6,6 +6,10 @@
 Warning[:experimental] = false
 require_relative '../../../lib/sorbet-runtime'
 
+# A standalone type alias, never referenced by any sig -- finalize! still finds
+# it (via ObjectSpace) and makes it Ractor-shareable.
+Ints = T.type_alias { T::Array[Integer] }
+
 class Box
   extend T::Sig
 
@@ -28,6 +32,9 @@ puts "hash_build: #{Ractor.new { T.let({a: 1}, T::Hash[Symbol, Integer]) }.value
 puts "nilable: #{Ractor.new { T.let(nil, T.nilable(Integer)) }.value.inspect}"
 puts "any: #{Ractor.new { T.let('x', T.any(String, Integer)) }.value.inspect}"
 puts "class_of: #{Ractor.new { T.let(Integer, T.class_of(Integer)) }.value}"
+# A type alias used in a sig is resolved + frozen by finalize!, so the constant
+# holding it can be read (and used in T.let) from a non-main Ractor.
+puts "type_alias: #{Ractor.new { T.let([1, 2, 3], Ints) }.value.inspect}"
 
 # A failed T.let inside a Ractor surfaces the expected TypeError, which exercises
 # the coercion pool on the error path.

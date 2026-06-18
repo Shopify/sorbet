@@ -664,6 +664,10 @@ module T::Private::Methods
     # be built and (de)serialized from non-main Ractors.
     T::Props::Decorator.finalize! if defined?(T::Props::Decorator)
 
+    # Phase 5: make every type alias shareable so `T.type_alias` constants can be
+    # read from non-main Ractors.
+    T::Private::Types::TypeAlias.finalize! if defined?(T::Private::Types::TypeAlias)
+
     finalized
   end
 
