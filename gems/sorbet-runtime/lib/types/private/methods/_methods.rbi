@@ -26,6 +26,9 @@ module T::Private::Methods
     sig {returns(T.nilable(T::Boolean))}
     attr_accessor :overridable
 
+    sig {returns(T.nilable(Symbol))}
+    attr_accessor :attr_writer_name
+
     sig do
       params(
         mod: Module,
@@ -35,11 +38,12 @@ module T::Private::Methods
         final: T::Boolean,
         abstract: T.nilable(T::Boolean),
         override: T.nilable({allow_incompatible: T.any(T::Boolean, Symbol)}),
-        overridable: T.nilable(T::Boolean)
+        overridable: T.nilable(T::Boolean),
+        attr_writer_name: T.nilable(Symbol)
       )
         .void
     end
-    def initialize(mod, method_name, loc, blk, final, abstract, override, overridable); end
+    def initialize(mod, method_name, loc, blk, final, abstract, override, overridable, attr_writer_name=nil); end
   end
 
   @installed_hooks = T.let({}, T::Hash[Module, TrueClass])
@@ -67,6 +71,9 @@ module T::Private::Methods
 
   sig {params(mod: Module, loc: T.nilable(Thread::Backtrace::Location), arg: T.nilable(Symbol), blk: T.untyped).returns(NilClass)}
   def self.declare_sig(mod, loc, arg, &blk); end
+
+  sig {params(kind: Symbol, names: T::Array[T.untyped], blk: T.proc.params(name: T.untyped).void).returns(T::Boolean)}
+  def self.with_declared_attr_signatures(kind, names, &blk); end
 
   sig {params(mod: Module, arg: T.nilable(Symbol), blk: T.untyped).returns(DeclarationBlock)}
   def self._declare_sig(mod, arg=nil, &blk); end
@@ -98,6 +105,9 @@ module T::Private::Methods
 
   sig {params(method_name: Symbol, original_method: UnboundMethod, declaration_block: DeclarationBlock).returns(T::Private::Methods::Signature)}
   def self.run_sig(method_name, original_method, declaration_block); end
+
+  sig {params(declaration: T.nilable(T::Private::Methods::Declaration), attr_writer_name: T.nilable(Symbol)).returns(T.nilable(T::Private::Methods::Declaration))}
+  private_class_method def self.declaration_for_attr_writer(declaration, attr_writer_name); end
 
   sig {params(declaration_block: DeclarationBlock).returns(T::Private::Methods::Declaration)}
   def self.run_builder(declaration_block); end
@@ -154,6 +164,15 @@ module T::Private::Methods
   private_class_method def self.run_sig_block_for_key(key, force_type_init: false); end
 
   module MethodHooks
+    sig {params(names: T.untyped).void}
+    def attr_reader(*names); end
+
+    sig {params(names: T.untyped).void}
+    def attr_writer(*names); end
+
+    sig {params(names: T.untyped).void}
+    def attr_accessor(*names); end
+
     sig {params(name: Symbol).void}
     def method_added(name); end
   end

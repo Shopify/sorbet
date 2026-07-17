@@ -48,7 +48,7 @@ module T::Private::Methods
   #   (This can matter for circular load-time behavior, where a method is
   #   called while its Signature is being built)
   # - It's `nil` if we've finished building the sig
-  DeclarationBlock = Struct.new(:mod, :method_name, :loc, :blk_or_decl, :final, :abstract, :override, :overridable)
+  DeclarationBlock = Struct.new(:mod, :method_name, :loc, :blk_or_decl, :final, :abstract, :override, :overridable, :attr_writer_name)
 
   def self.declare_sig(mod, loc, arg, &blk)
     if T::Private::DeclState.current.active_declaration
@@ -67,6 +67,26 @@ module T::Private::Methods
     T::Private::DeclState.current.active_declaration = DeclarationBlock.new(mod, method_name, loc, blk, arg == :final, abstract, override, overridable)
 
     nil
+  end
+
+  def self.with_declared_attr_signatures(kind, names)
+    decl_state = T::Private::DeclState.current
+    active_declaration = decl_state.active_declaration
+    if active_declaration.nil? || names.size <= 1
+      return false
+    end
+
+    names.each_with_index do |name, index|
+      declaration = active_declaration.dup
+      if kind == :writer && index > 0 && (name.is_a?(Symbol) || name.is_a?(String))
+        declaration.attr_writer_name = name.to_sym
+      end
+      decl_state.active_declaration = declaration
+      yield name
+    end
+
+    decl_state.active_declaration = nil
+    true
   end
 
   private_class_method def self.ensure_valid_declare_dsl!(mod, method_name, dsl_name)
@@ -436,6 +456,8 @@ module T::Private::Methods
         nil
       end
 
+    current_declaration = declaration_for_attr_writer(current_declaration, declaration_block.attr_writer_name)
+
     # Release location information sooner
     declaration_block.loc = nil
 
@@ -455,6 +477,17 @@ module T::Private::Methods
     declaration_block.blk_or_decl = nil
 
     signature
+  end
+
+  private_class_method def self.declaration_for_attr_writer(declaration, attr_writer_name)
+    return declaration unless declaration && attr_writer_name
+
+    params = declaration.params
+    return declaration unless params.size == 1
+
+    declaration = declaration.dup
+    declaration.params = {attr_writer_name => params.values.first}
+    declaration
   end
 
   def self.run_builder(declaration_block)
@@ -679,6 +712,27 @@ module T::Private::Methods
   end
 
   module MethodHooks
+    private def attr_reader(*names)
+      handled = ::T::Private::Methods.with_declared_attr_signatures(:reader, names) do |name|
+        super(name)
+      end
+      super(*names) unless handled
+    end
+
+    private def attr_writer(*names)
+      handled = ::T::Private::Methods.with_declared_attr_signatures(:writer, names) do |name|
+        super(name)
+      end
+      super(*names) unless handled
+    end
+
+    private def attr_accessor(*names)
+      handled = ::T::Private::Methods.with_declared_attr_signatures(:accessor, names) do |name|
+        super(name)
+      end
+      super(*names) unless handled
+    end
+
     def method_added(name)
       ::T::Private::Methods._on_method_added(T.unsafe(self), T.unsafe(self), name)
       super(name)
