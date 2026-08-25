@@ -463,6 +463,7 @@ module T::Utils
   def self.run_all_sig_blocks(force_type_init: true); end
   def self.signature_for_method(method); end
   def self.signature_for_instance_method(mod, method_name); end
+  def self.signature_for_instance_method_defined_on(mod, method_name); end
 
   sig { params(type: T.anything).returns(T.nilable(T::Types::Base)) }
   def self.unwrap_nilable(type); end

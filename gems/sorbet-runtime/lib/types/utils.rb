@@ -83,6 +83,16 @@ module T::Utils
     T::Private::Methods.signature_for_method(mod.instance_method(method_name))
   end
 
+  # Returns the signature for an instance method defined directly on the supplied module,
+  # ignoring methods with the same name on prepended modules and ancestors.
+  # Returns nil if the supplied module does not define the method or the method is not typed.
+  #
+  # @example T::Utils.signature_for_instance_method_defined_on(MyClass, :my_method)
+  def self.signature_for_instance_method_defined_on(mod, method_name)
+    method = T::Private::ClassUtils.instance_method_defined_on(mod, method_name)
+    T::Private::Methods.signature_for_method(method) if method
+  end
+
   def self.wrap_method_with_call_validation_if_needed(mod, method_sig, original_method)
     T::Private::Methods::CallValidation.wrap_method_if_needed(mod, method_sig, original_method)
   end

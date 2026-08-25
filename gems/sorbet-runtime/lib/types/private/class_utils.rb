@@ -9,6 +9,22 @@
 # need to reintroduce this functionality, consult the git history for how to do
 # it safely.
 module T::Private::ClassUtils
+  # Returns the instance method defined directly on `mod`, even when a prepended
+  # module overrides it. Returns nil when `mod` does not define the method itself.
+  def self.instance_method_defined_on(mod, name)
+    method =
+      begin
+        mod.instance_method(name)
+      rescue NameError
+        return nil
+      end
+    while method.owner != mod
+      method = method.super_method
+      return nil unless method
+    end
+    method
+  end
+
   # `name` must be an instance method (for class methods, pass in mod.singleton_class)
   def self.visibility_method_name(mod, name)
     if mod.public_method_defined?(name)

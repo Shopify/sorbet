@@ -25,6 +25,15 @@ module T::Utils
   sig do
     params(
       mod: T::Module[T.anything],
+      method_name: Symbol
+    )
+      .returns(T.nilable(T::Private::Methods::Signature))
+  end
+  def self.signature_for_instance_method_defined_on(mod, method_name); end
+
+  sig do
+    params(
+      mod: T::Module[T.anything],
       method_sig: T::Private::Methods::Signature,
       original_method: UnboundMethod
     )

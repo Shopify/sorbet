@@ -43,6 +43,49 @@ module Opus::Types::Test
       end
     end
 
+    describe 'T::Utils.signature_for_instance_method_defined_on' do
+      it 'returns the signature hidden by an unsigned prepended method' do
+        klass = Class.new do
+          extend T::Sig
+
+          sig { returns(String) }
+          def foo
+            "original"
+          end
+        end
+        prepend_mod = Module.new do
+          def foo
+            "prepended"
+          end
+        end
+        klass.prepend(prepend_mod)
+
+        assert_nil(T::Utils.signature_for_instance_method(klass, :foo))
+        signature = T::Utils.signature_for_instance_method_defined_on(klass, :foo)
+        refute_nil(signature)
+        assert_equal(klass, signature.method.owner)
+        assert_equal('String', signature.return_type.name)
+      end
+
+      it 'returns nil when the method is only inherited' do
+        parent = Class.new do
+          extend T::Sig
+
+          sig { returns(String) }
+          def foo
+            "parent"
+          end
+        end
+        child = Class.new(parent)
+
+        assert_nil(T::Utils.signature_for_instance_method_defined_on(child, :foo))
+      end
+
+      it 'returns nil when the method does not exist' do
+        assert_nil(T::Utils.signature_for_instance_method_defined_on(Class.new, :foo))
+      end
+    end
+
     describe 'force_type_init' do
       it 'works' do
         Class.new do

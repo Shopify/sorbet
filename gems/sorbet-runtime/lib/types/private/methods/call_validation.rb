@@ -36,8 +36,10 @@ module T::Private::Methods::CallValidation
         end
       end
     end
-    # Return the newly created method (or the original one if we didn't replace it)
-    mod.instance_method(method_sig.method_name)
+    # Return the newly created method (or the original one if we didn't replace it).
+    # A prepended module can hide this method from `mod.instance_method`.
+    T::Private::ClassUtils.instance_method_defined_on(mod, method_sig.method_name) ||
+      raise("Failed to find #{mod}##{method_sig.method_name} after wrapping it")
   end
 
   @is_allowed_to_have_fast_path = true
