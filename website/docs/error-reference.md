@@ -584,14 +584,12 @@ end
 
 > This error is specific to RBS support when using the `--enable-experimental-rbs-comments` flag.
 
-Methods annotated with `@abstract` must always raise an error:
+Methods annotated with `@abstract` must always call `super`:
 
 ```ruby
 # @abstract
 #: -> void
-def baz
-  raise "not implemented"
-end
+def baz = super
 ```
 
 ## 3702
