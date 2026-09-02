@@ -693,12 +693,10 @@ Methods can be marked as abstract using the `@abstract` annotation comment:
 ```ruby
 # @abstract
 #: -> void
-def baz
-  raise "not implemented"
-end
+def baz = super
 ```
 
-Unlike Sorbet's `abstract` methods, methods annotated with `@abstract` must have a body that consists of a single recognized `raise` call.
+Unlike Sorbet's `abstract` methods, methods annotated with `@abstract` must have a body that consists only of a forwarding `super` call.
 
 ## Method annotations
 

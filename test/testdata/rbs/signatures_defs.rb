@@ -341,67 +341,59 @@ module Annotations
   class Abstract
     # @abstract
     #: -> Integer
-    def method_abstract1; end # error: Methods declared @abstract with an RBS comment must always raise
+    def method_abstract1; end # error: Methods declared @abstract with an RBS comment must always call super
 
     # @abstract
     #: -> Integer
     def method_abstract2
-      raise
+      super
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract3
-      raise "foo"
+    def method_abstract3 = super
+
+    # @abstract
+    #: -> Integer
+    def method_abstract4 # error: Methods declared @abstract with an RBS comment must always call super
+      super() # error: Abstract methods must not contain any code in their body
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract4
-      Kernel.raise "foo"
-    end
-
-    # @abstract
-    #: -> Integer
-    def method_abstract5 # error: Methods declared @abstract with an RBS comment must always raise
+    def method_abstract5 # error: Methods declared @abstract with an RBS comment must always call super
       puts "foo" # error: Abstract methods must not contain any code in their body
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract6 # error: Methods declared @abstract with an RBS comment must always raise
+    def method_abstract6 # error: Methods declared @abstract with an RBS comment must always call super
       puts "foo" # error: Abstract methods must not contain any code in their body
-      raise "foo"
+      super
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract7
-      raise StandardError
+    def method_abstract7 # error: Methods declared @abstract with an RBS comment must always call super
+      super(1) # error: Abstract methods must not contain any code in their body
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract8
-      raise StandardError, "error"
+    def method_abstract8 # error: Methods declared @abstract with an RBS comment must always call super
+      raise # error: Abstract methods must not contain any code in their body
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract8
-      raise ::Abstract::Error, "error"
+    def method_abstract9 # error: Methods declared @abstract with an RBS comment must always call super
+      super {} # error: Abstract methods must not contain any code in their body
     end
 
     # @abstract
     #: -> Integer
-    def method_abstract9 # error: Methods declared @abstract with an RBS comment must always raise
+    def method_abstract10 # error: Methods declared @abstract with an RBS comment must always call super
       Abstract.raise # error: Abstract methods must not contain any code in their body
-    end
-
-    # @abstract
-    #: -> Integer
-    def method_abstract10
-      self.raise
     end
 
     #: -> bot
