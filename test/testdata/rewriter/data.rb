@@ -105,3 +105,56 @@ class FullyQualifiedDataUsages
   Bar.new(1).a
   Quux.new()
 end
+
+# ============================================================================
+# Typed Data.define with Sorbet sig { } blocks
+# ============================================================================
+
+# Basic typed members with sig + def initialize(...) = super
+TypedWithSorbetSig = Data.define(:amount, :currency) do
+  extend T::Sig
+
+  sig { params(amount: Numeric, currency: String).void }
+  def initialize(amount:, currency:) = super
+end
+T.reveal_type(TypedWithSorbetSig.new(amount: 10, currency: "USD").amount) # error: Revealed type: `Numeric`
+T.reveal_type(TypedWithSorbetSig.new(amount: 10, currency: "USD").currency) # error: Revealed type: `String`
+TypedWithSorbetSig.new(amount: "bad", currency: "USD") # error: Expected `Numeric` but found `String("bad")` for argument `amount`
+
+# Complex types with Sorbet sig
+SorbetSigComplex = Data.define(:items, :label) do
+  extend T::Sig
+
+  sig { params(items: T::Array[Integer], label: T.nilable(String)).void }
+  def initialize(items:, label:) = super
+end
+T.reveal_type(SorbetSigComplex.new(items: [1], label: nil).items) # error: Revealed type: `T::Array[Integer]`
+T.reveal_type(SorbetSigComplex.new(items: [1], label: nil).label) # error: Revealed type: `T.nilable(String)`
+
+# Sorbet sig with additional methods
+SorbetSigWithMethods = Data.define(:name) do
+  extend T::Sig
+
+  sig { params(name: String).void }
+  def initialize(name:) = super
+
+  sig { returns(String) }
+  def greeting
+    "Hello, #{name}!"
+  end
+end
+T.reveal_type(SorbetSigWithMethods.new(name: "alice").name) # error: Revealed type: `String`
+
+# Sorbet sig: initialize without bare super — readers stay untyped.
+# When the initialize body transforms values (not bare `super`), we can't
+# reliably propagate sig types to readers, so Sorbet conservatively falls
+# back to untyped.
+SorbetSigNoBareSuper = Data.define(:x) do
+  extend T::Sig
+
+  sig { params(x: Integer).void }
+  def initialize(x:)
+    super(x: x * 2)
+  end
+end
+T.reveal_type(SorbetSigNoBareSuper.new(x: 1).x) # error: Revealed type: `T.untyped`
