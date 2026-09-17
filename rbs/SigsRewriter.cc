@@ -209,29 +209,6 @@ void insertHelpers(pm_node_t *body, absl::Span<pm_node_t *const> helpers) {
     }
 }
 
-bool isSelfOrKernel(pm_node_t *node, const parser::Prism::Parser *prismParser) {
-    if (isa_node<pm_self_node>(node)) {
-        return true;
-    }
-
-    if (auto *constant = down_cast<pm_constant_read_node_t>(node)) {
-        auto name = prismParser->resolveConstant(constant->name);
-        // Check if it's Kernel constant with no scope (::Kernel or bare Kernel)
-        return name == "Kernel";
-    }
-
-    if (auto *constantPath = down_cast<pm_constant_path_node_t>(node)) {
-        // Check if it's ::Kernel (parent is nullptr, representing root ::)
-        // We reject Foo::Kernel or any other scoped constant
-        if (constantPath->parent == nullptr) {
-            auto name = prismParser->resolveConstant(constantPath->name);
-            return name == "Kernel";
-        }
-    }
-
-    return false;
-}
-
 optional<core::AutocorrectSuggestion> autocorrectAbstractBody(core::MutableContext ctx, pm_node_t *method,
                                                               const parser::Prism::Parser *prismParser,
                                                               pm_node_t *method_body) {
@@ -240,7 +217,7 @@ optional<core::AutocorrectSuggestion> autocorrectAbstractBody(core::MutableConte
 
     if (method_body) {
         editLoc = prismParser->translateLocation(method_body->location);
-        corrected = "raise \"Abstract method called\"";
+        corrected = "super";
     } else {
         auto *def = down_cast_nonnull<pm_def_node_t>(method);
         if (def->end_keyword_loc.start == nullptr || def->end_keyword_loc.start == def->end_keyword_loc.end) {
@@ -254,18 +231,18 @@ optional<core::AutocorrectSuggestion> autocorrectAbstractBody(core::MutableConte
         auto lineEnd = core::Loc::pos2Detail(ctx.file.data(ctx), methodLoc.endPos()).line;
 
         if (lineStart == lineEnd) {
-            corrected = "raise \"Abstract method called\"; ";
+            corrected = "super; ";
         } else {
             auto [_endLoc, indentLength] = ctx.locAt(methodLoc).findStartOfIndentation(ctx);
-            corrected = "  raise \"Abstract method called\"\n" + string(indentLength, ' ');
+            corrected = "  super\n" + string(indentLength, ' ');
         }
     }
 
-    return core::AutocorrectSuggestion{"Replace the abstract method body with `raise`",
+    return core::AutocorrectSuggestion{"Replace the abstract method body with `super`",
                                        {core::AutocorrectSuggestion::Edit{ctx.locAt(editLoc), corrected}}};
 }
 
-bool isValidAbstractMethod(pm_node_t *node, const parser::Prism::Parser *prismParser) {
+bool isValidAbstractMethod(pm_node_t *node) {
     auto *def = down_cast<pm_def_node_t>(node);
     if (def == nullptr) {
         return false;
@@ -285,20 +262,14 @@ bool isValidAbstractMethod(pm_node_t *node, const parser::Prism::Parser *prismPa
         bodyNode = stmts->body.nodes[0];
     }
 
-    auto *call = down_cast<pm_call_node_t>(bodyNode);
-    if (call == nullptr) {
-        return false;
-    }
-
-    auto methodName = prismParser->resolveConstant(call->name);
-
-    // Check if it's a raise call with no receiver or self/Kernel receiver
-    return methodName == "raise" && (call->receiver == nullptr || isSelfOrKernel(call->receiver, prismParser));
+    // Explicit arguments or a block would change the call instead of forwarding it.
+    auto *super = down_cast<pm_forwarding_super_node_t>(bodyNode);
+    return super != nullptr && super->block == nullptr;
 }
 
-void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, parser::Prism::Parser *prismParser) {
-    if (isValidAbstractMethod(node, prismParser)) {
-        // Method properly raises, remove body to avoid error 5019 later in the pipeline
+void ensureAbstractMethodCallsSuper(core::MutableContext ctx, pm_node_t *node, parser::Prism::Parser *prismParser) {
+    if (isValidAbstractMethod(node)) {
+        // Remove the forwarding stub from the checker AST to avoid error 5019 later in the pipeline.
         auto *def = down_cast_nonnull<pm_def_node_t>(node);
         prismParser->destroyNode(def->body);
         def->body = nullptr;
@@ -308,8 +279,8 @@ void ensureAbstractMethodRaises(core::MutableContext ctx, pm_node_t *node, parse
     auto *def = down_cast_nonnull<pm_def_node_t>(node);
     auto nodeLoc = prismParser->translateLocation(node->location);
 
-    if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSAbstractMethodNoRaises)) {
-        e.setHeader("Methods declared @abstract with an RBS comment must always raise");
+    if (auto e = ctx.beginIndexerError(nodeLoc, core::errors::Rewriter::RBSAbstractMethodNoSuper)) {
+        e.setHeader("Methods declared @abstract with an RBS comment must contain only a forwarding super call");
         if (auto autocorrect = autocorrectAbstractBody(ctx, node, prismParser, def->body)) {
             e.addAutocorrect(move(*autocorrect));
         }
@@ -470,7 +441,7 @@ unique_ptr<vector<pm_node_t *>> SigsRewriter::signaturesForNode(pm_node_t *node)
     if (method != nullptr && !signatures->empty() &&
         absl::c_any_of(comments.annotations,
                        [](const Comment &annotation) { return annotation.string == "abstract"; })) {
-        ensureAbstractMethodRaises(ctx, up_cast(method), &parser);
+        ensureAbstractMethodCallsSuper(ctx, up_cast(method), &parser);
     }
 
     return signatures;
