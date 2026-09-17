@@ -287,6 +287,16 @@ void ensureAbstractMethodCallsSuper(core::MutableContext ctx, pm_node_t *node, p
     }
 }
 
+void maybeRewriteAbstractMethod(core::MutableContext ctx, pm_def_node_t *method, absl::Span<const Comment> annotations,
+                                bool hasSignatures, parser::Prism::Parser *prismParser) {
+    if (method == nullptr || !hasSignatures ||
+        !absl::c_any_of(annotations, [](const Comment &annotation) { return annotation.string == "abstract"; })) {
+        return;
+    }
+
+    ensureAbstractMethodCallsSuper(ctx, up_cast(method), prismParser);
+}
+
 } // namespace
 
 void SigsRewriter::insertTypeParams(pm_node_t *node, pm_node_t *body) {
@@ -411,6 +421,7 @@ unique_ptr<vector<pm_node_t *>> SigsRewriter::signaturesForNode(pm_node_t *node)
     auto *method = down_cast<pm_def_node_t>(node);
     auto *call = down_cast<pm_call_node_t>(node);
     if (call != nullptr && isMethodDefSignatureTarget(node, parser, ctx.state)) {
+        // Modifier calls such as `private def` store the method definition as their argument.
         method = down_cast_nonnull<pm_def_node_t>(call->arguments->arguments.nodes[0]);
     }
 
@@ -437,12 +448,7 @@ unique_ptr<vector<pm_node_t *>> SigsRewriter::signaturesForNode(pm_node_t *node)
         }
     }
 
-    // All signatures share this method node. Validate and erase its body only once.
-    if (method != nullptr && !signatures->empty() &&
-        absl::c_any_of(comments.annotations,
-                       [](const Comment &annotation) { return annotation.string == "abstract"; })) {
-        ensureAbstractMethodCallsSuper(ctx, up_cast(method), &parser);
-    }
+    maybeRewriteAbstractMethod(ctx, method, comments.annotations, !signatures->empty(), &parser);
 
     return signatures;
 }
