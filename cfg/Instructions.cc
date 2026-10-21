@@ -334,8 +334,7 @@ string TAbsurd::toString(const core::GlobalState &gs, const CFG &cfg) const {
 }
 
 string TAbsurd::showRaw(const core::GlobalState &gs, const CFG &cfg, int tabs) const {
-    return fmt::format("TAbsurd {{\n{0}&nbsp;what = {1},\n{0}}}", spacesForTabLevel(tabs),
-                       this->what.showRaw(gs, cfg, tabs + 1));
+    return fmt::format("TAbsurd {{\n{0}&nbsp;what = {1},\n{0}}}", spacesForTabLevel(tabs), this->what.showRaw(gs, cfg));
 }
 
 string KeepAlive::toString(const core::GlobalState &gs, const CFG &cfg) const {

@@ -320,6 +320,24 @@ BasicBlock *CFGBuilder::handleSpecialMethods(CFGContext cctx, BasicBlock *curren
             current->exprs.emplace_back(cctx.target, s.loc, make_insn<TAbsurd>(temp));
             return current;
         }
+        case core::Names::absurdRaise().rawId(): {
+            // `<Magic>.<absurd-raise>(x, raise(...))` comes from the RBS `raise #: absurd(x)`. We check `x` before
+            // the `raise`, because the `raise` never returns and would make the check unreachable.
+            if (!ast::MK::isMagicClass(s.recv)) {
+                return nullptr;
+            }
+            ENFORCE(s.numPosArgs() == 2 && !s.hasKwArgs());
+
+            auto &what = s.getPosArg(0);
+            ENFORCE(ast::isa_tree<ast::Local>(what) || ast::isa_tree<ast::UnresolvedIdent>(what) ||
+                    ast::isa_tree<ast::Self>(what));
+
+            auto temp = cctx.newTemporary(core::Names::statTemp());
+            current = walk(cctx.withTarget(temp), what, current);
+            auto checked = cctx.newTemporary(core::Names::statTemp());
+            current->exprs.emplace_back(checked, what.loc(), make_insn<TAbsurd>(temp, /* checkOnly */ true));
+            return walk(cctx, s.getPosArg(1), current);
+        }
         case core::Names::typeParameter().rawId(): {
             if (!sendRecvIsT(s)) {
                 return nullptr;

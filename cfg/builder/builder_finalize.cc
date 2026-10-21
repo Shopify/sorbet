@@ -252,7 +252,7 @@ void CFGBuilder::dealias(core::Context ctx, CFG &cfg) {
                         arg = maybeDealias(ctx, cfg, arg, current);
                     }
                 } else if (auto v = cast_instruction<TAbsurd>(bind.value)) {
-                    v->what.variable = maybeDealias(ctx, cfg, v->what.variable, current);
+                    v->what = maybeDealias(ctx, cfg, v->what, current);
                 } else if (auto v = cast_instruction<Return>(bind.value)) {
                     v->what.variable = maybeDealias(ctx, cfg, v->what.variable, current);
                 }

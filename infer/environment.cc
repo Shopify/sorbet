@@ -1634,7 +1634,7 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                 }
             },
             [&](cfg::TAbsurd &i) {
-                const core::TypeAndOrigins &typeAndOrigin = getTypeAndOrigin(i.what.variable);
+                const core::TypeAndOrigins &typeAndOrigin = getTypeAndOrigin(i.what);
 
                 // We sometimes typecheck unreachable code.
                 auto absurdIsUnreachable = this->isDead || typeAndOrigin.type.isBottom();
@@ -1651,7 +1651,7 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                     }
                 }
 
-                tp.type = core::Types::bottom();
+                tp.type = i.checkOnly ? core::Types::nilClass() : core::Types::bottom();
                 tp.origins.emplace_back(ctx.locAt(bind.loc));
             },
             [&](cfg::KeepAlive &i) {

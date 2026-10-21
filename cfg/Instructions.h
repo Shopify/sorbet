@@ -517,16 +517,19 @@ CheckSize(Cast, 40, 8);
 
 INSN(TAbsurd) : public Instruction {
 public:
-    VariableUseSite what;
+    LocalRef what;
+    // Only check exhaustiveness, without ending control flow. Used for `raise #: absurd(x)`, where the `raise` ends
+    // control flow instead.
+    bool checkOnly;
 
-    TAbsurd(LocalRef what) : what(what) {
+    TAbsurd(LocalRef what, bool checkOnly = false) : what(what), checkOnly(checkOnly) {
         categoryCounterInc("cfg", "tabsurd");
     }
 
     std::string toString(const core::GlobalState &gs, const CFG &cfg) const;
     std::string showRaw(const core::GlobalState &gs, const CFG &cfg, int tabs = 0) const;
 };
-CheckSize(TAbsurd, 16, 8);
+CheckSize(TAbsurd, 8, 8);
 
 INSN(KeepAlive) : public Instruction {
 public:
