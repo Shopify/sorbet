@@ -235,6 +235,9 @@ class Environment {
     core::TypeAndOrigins getTypeFromRebind(core::Context ctx, const core::DispatchComponent &main,
                                            cfg::LocalRef fallback);
 
+    // Reports an error if control flow can reach a `T.absurd` of `what`.
+    void checkAbsurd(core::Context ctx, core::LocOffsets loc, cfg::LocalRef what) const;
+
 public:
     Environment(core::Loc ownerLoc);
     Environment(const Environment &rhs) = delete;

@@ -38,8 +38,20 @@ bool Inference::willRun(core::Context ctx, core::LocOffsets loc, core::MethodRef
     return true;
 }
 
+// `<Magic>.<absurd-raise>(x)` comes from the RBS `raise #: absurd(x)`, and checks `x` like `T.absurd(x)`.
+bool isAbsurd(const cfg::InstructionPtr &value) {
+    // Regular T.absurd
+    if (cfg::isa_instruction<cfg::TAbsurd>(value)) {
+        return true;
+    }
+
+    // `<Magic>.<absurd-raise>(x)`
+    auto send = cfg::cast_instruction<cfg::Send>(value);
+    return send != nullptr && send->fun == core::Names::absurdRaise();
+}
+
 bool silenceDeadCodeError(const cfg::InstructionPtr &value) {
-    return value.isSynthetic() || cfg::isa_instruction<cfg::TAbsurd>(value);
+    return value.isSynthetic() || isAbsurd(value);
 }
 
 unique_ptr<cfg::CFG> Inference::run(core::Context ctx, unique_ptr<cfg::CFG> cfg) {
@@ -213,7 +225,7 @@ unique_ptr<cfg::CFG> Inference::run(core::Context ctx, unique_ptr<cfg::CFG> cfg)
             //      error.
 
             for (auto &expr : bb->exprs) {
-                if (!absurdLoc.exists() && cfg::isa_instruction<cfg::TAbsurd>(expr.value)) {
+                if (!absurdLoc.exists() && isAbsurd(expr.value)) {
                     absurdLoc = ctx.locAt(expr.loc);
                 }
                 if (silenceDeadCodeError(expr.value)) {

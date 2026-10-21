@@ -1012,6 +1012,26 @@ core::TypePtr flatmapHack(core::Context ctx, const core::TypePtr &receiver, cons
     return mapType;
 }
 
+void Environment::checkAbsurd(core::Context ctx, core::LocOffsets loc, cfg::LocalRef what) const {
+    const core::TypeAndOrigins &typeAndOrigin = getTypeAndOrigin(what);
+
+    // We sometimes typecheck unreachable code.
+    auto absurdIsUnreachable = this->isDead || typeAndOrigin.type.isBottom();
+    if (absurdIsUnreachable) {
+        return;
+    }
+
+    if (auto e = ctx.beginError(loc, core::errors::Infer::NotExhaustive)) {
+        if (typeAndOrigin.type.isUntyped()) {
+            e.setHeader("Control flow could reach `{}` because argument was `{}`", "T.absurd", "T.untyped");
+        } else {
+            e.setHeader("Control flow could reach `{}` because the type `{}` wasn't handled", "T.absurd",
+                        typeAndOrigin.type.show(ctx));
+        }
+        e.addErrorSection(typeAndOrigin.explainGot(ctx, ownerLoc));
+    }
+}
+
 core::TypePtr
 Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Binding &bind, int loopCount,
                             int bindMinLoops, KnowledgeFilter &knowledgeFilter, core::TypeConstraint &constr,
@@ -1030,6 +1050,18 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
         typecase(
             bind.value,
             [&](cfg::Send &send) {
+                if (send.fun == core::Names::absurdRaise()) {
+                    // `<Magic>.<absurd-raise>(x)` comes from the RBS `raise #: absurd(x)`, right before the `raise`.
+                    // It checks `x` like `T.absurd(x)`, but doesn't end control flow, so the `raise` is still checked.
+                    // Unlike other `<Magic>` methods it isn't dispatched, because the check depends on `isDead`.
+                    ENFORCE(send.numArgs == 1);
+
+                    checkAbsurd(ctx, bind.loc, send.argRefs()[0]);
+                    tp.type = core::Types::nilClass();
+                    tp.origins.emplace_back(ctx.locAt(bind.loc));
+                    return;
+                }
+
                 // Overwrite lspQueryMatch for send nodes, so that we only produce a result when
                 // hovering over the method or arguments (not the block)
                 auto locWithoutBlock = send.locWithoutBlock(bind.loc);
@@ -1634,23 +1666,7 @@ Environment::processBinding(core::Context ctx, const cfg::CFG &inWhat, cfg::Bind
                 }
             },
             [&](cfg::TAbsurd &i) {
-                const core::TypeAndOrigins &typeAndOrigin = getTypeAndOrigin(i.what.variable);
-
-                // We sometimes typecheck unreachable code.
-                auto absurdIsUnreachable = this->isDead || typeAndOrigin.type.isBottom();
-                if (!absurdIsUnreachable) {
-                    if (auto e = ctx.beginError(bind.loc, core::errors::Infer::NotExhaustive)) {
-                        if (typeAndOrigin.type.isUntyped()) {
-                            e.setHeader("Control flow could reach `{}` because argument was `{}`", "T.absurd",
-                                        "T.untyped");
-                        } else {
-                            e.setHeader("Control flow could reach `{}` because the type `{}` wasn't handled",
-                                        "T.absurd", typeAndOrigin.type.show(ctx));
-                        }
-                        e.addErrorSection(typeAndOrigin.explainGot(ctx, ownerLoc));
-                    }
-                }
-
+                checkAbsurd(ctx, bind.loc, i.what.variable);
                 tp.type = core::Types::bottom();
                 tp.origins.emplace_back(ctx.locAt(bind.loc));
             },
