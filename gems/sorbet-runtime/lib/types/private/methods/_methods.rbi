@@ -102,6 +102,9 @@ module T::Private::Methods
   sig {params(key: String, sig_block: T.proc.returns(Signature)).returns(T::Boolean)}
   def self._sig_block_is_current?(key, sig_block); end
 
+  sig {params(declaration_block: DeclarationBlock).returns(T::Boolean)}
+  def self._sig_block_running?(declaration_block); end
+
   sig {params(declaration_block: DeclarationBlock).returns(T::Private::Methods::Declaration)}
   def self.run_builder(declaration_block); end
 

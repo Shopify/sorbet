@@ -401,8 +401,14 @@ module T::Private::Methods
       built_sig = T.let(nil, T.nilable(Signature))
     end
     T::Private::ClassUtils.replace_method(original_method, mod, method_name) do |*args, &blk|
-      callee = Kernel.__callee__ || raise("Unknown __callee__ for method without a signature")
       method_sig = built_sig
+      # The sig block may call the method whose signature it is building.
+      # There is no signature to validate against until that block finishes.
+      if !method_sig && T::Private::Methods._sig_block_running?(current_declaration)
+        next original_method.bind_call(self, *args, &blk)
+      end
+
+      callee = Kernel.__callee__ || raise("Unknown __callee__ for method without a signature")
       if !method_sig
         # Check if this wrapper's sig_block is still the active one for this key
         #
@@ -558,10 +564,31 @@ module T::Private::Methods
       declaration_block.override,
       declaration_block.overridable
     )
-    decl = builder.instance_exec(&sig_state).finalize!.decl
+    # DeclarationBlock is mutable, so identify an active block by its object rather than its fields.
+    # Thread#[] is fiber-local, but another fiber can enter this method while the block runs.
+    running_sig_blocks = Thread.current.thread_variable_get(:sorbet_runtime_running_sig_blocks) ||
+      Thread.current.thread_variable_set(:sorbet_runtime_running_sig_blocks, {}.compare_by_identity)
+    previous_sig_state = running_sig_blocks[declaration_block]
+    running_sig_blocks[declaration_block] = sig_state
+    begin
+      decl = builder.instance_exec(&sig_state).finalize!.decl
+    ensure
+      if previous_sig_state
+        running_sig_blocks[declaration_block] = previous_sig_state
+      else
+        running_sig_blocks.delete(declaration_block)
+      end
+    end
     # Record that we've already run `blk` once and constructed a `Declaration`
     declaration_block.sig_state = decl
     decl
+  end
+
+  # Only public so that it can be accessed in the first-call wrapper closure.
+  def self._sig_block_running?(declaration_block)
+    sig_state = declaration_block.sig_state
+    sig_state.is_a?(Proc) &&
+      Thread.current.thread_variable_get(:sorbet_runtime_running_sig_blocks)&.fetch(declaration_block, nil).equal?(sig_state)
   end
 
   def self.build_sig(method_name, original_method, current_declaration)

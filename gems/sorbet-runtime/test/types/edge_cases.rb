@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 # typed: ignore
 require_relative '../test_helper'
-require 'concurrent/atomic/cyclic_barrier'
+require 'timeout'
 
 class Opus::Types::Test::EdgeCasesTest < Critic::Unit::UnitTest
   it 'can type ==' do
@@ -930,36 +930,131 @@ class Opus::Types::Test::EdgeCasesTest < Critic::Unit::UnitTest
     assert_match(/A previous invocation of #<Class:/, e.message)
   end
 
+  it 'allows a sig block to call its own method while preserving later validation' do
+    klass = Class.new do
+      extend T::Sig
+
+      sig { params(type: T.untyped).returns(T.class_of(klass[Integer])) }
+      def self.[](type)
+        type == String ? 'invalid' : self
+      end
+    end
+
+    assert_equal(klass, klass[Integer])
+    err = assert_raises(TypeError) { klass[String] }
+    assert_match(/Return value: Expected type T.class_of/, err.message)
+  end
+
+  it 'still validates other signed methods called from a sig block' do
+    other = Class.new do
+      extend T::Sig
+
+      sig { returns(Integer) }
+      def self.value
+        'invalid'
+      end
+    end
+
+    other_error = nil
+    klass = Class.new do
+      extend T::Sig
+
+      sig do
+        begin
+          other.value
+        rescue TypeError => e
+          other_error = e
+        end
+        klass.value
+        returns(Integer)
+      end
+      def self.value
+        42
+      end
+    end
+
+    assert_equal(42, klass.value)
+    assert_instance_of(TypeError, other_error)
+  end
+
+  it 'allows reentry from another fiber on the same thread' do
+    signature_runs = 0
+    klass = Class.new do
+      extend T::Sig
+
+      sig do
+        signature_runs += 1
+        raise 'sig ran again' if signature_runs > 1
+        returns(T.class_of(Fiber.new { klass.value }.resume))
+      end
+      def self.value
+        self
+      end
+    end
+
+    assert_equal(klass, klass.value)
+    assert_equal(1, signature_runs)
+  end
+
+  it 'clears the running sig block when the block raises' do
+    attempts = 0
+    klass = Class.new do
+      extend T::Sig
+
+      sig do
+        klass.value
+        attempts += 1
+        raise 'sig failed' if attempts == 1
+        returns(Integer)
+      end
+      def self.value
+        42
+      end
+    end
+
+    err = assert_raises(RuntimeError) { klass.value }
+    assert_equal('sig failed', err.message)
+    err = assert_raises(RuntimeError) { klass.value }
+    assert_match(/A previous invocation of #<Class:/, err.message)
+    assert_equal(2, attempts)
+  end
+
   it 'does not crash when two threads call the same wrapper' do
+    entered = Queue.new
+    resume_builder = Queue.new
+    builders = Queue.new
+    first_builder = true
+    klass = Class.new do
+      extend T::Sig
+
+      sig do
+        if first_builder
+          first_builder = false
+          entered << true
+          resume_builder.pop
+        end
+        builders << Thread.current
+        returns(Integer)
+      end
+      def self.value
+        42
+      end
+    end
+
+    thread = nil
     begin
-      barrier = Concurrent::CyclicBarrier.new(2)
-      mutex = Mutex.new
-      mod = T::Private::Methods.singleton_class
-      original_method = mod.instance_method(:run_sig_block_for_method)
-      T::Private::ClassUtils.replace_method(original_method, mod, :run_sig_block_for_method) do |*args|
-        barrier.wait
-        mutex.synchronize { original_method.bind_call(T::Private::Methods, *args) }
+      thread = Thread.new { klass.value }
+      Timeout.timeout(10) do
+        entered.pop
+        assert_equal(42, klass.value)
+        assert_equal(Thread.current, builders.pop(true))
+        resume_builder << true
+        assert_equal(42, thread.value)
+        assert_equal(thread, builders.pop(true))
       end
-
-      klass = Class.new do
-        extend T::Sig
-        sig { void }
-        def self.hello; end
-      end
-
-      thread = Thread.new { klass.hello }
-      klass.hello
     ensure
+      resume_builder << true
       thread&.join
-
-      # We can directly restore this by redefining the method because we know
-      # that `run_sig_block_for_method` was defined on
-      # `T::Private::Methods.singleton_class`, not an ancestor.
-      #
-      # (If that weren't the case, we'd have to restore via `remove_method`)
-      T::Configuration.without_ruby_warnings do
-        mod.send(:define_method, original_method.name, original_method)
-      end
     end
   end
 
