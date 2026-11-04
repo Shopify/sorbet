@@ -1,0 +1,596 @@
+class <emptyTree><<C <root>>> < (::<todo sym>)
+  class <emptyTree>::<C TypedPoint><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def y<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>, :y, <emptyTree>::<C String>).void()
+    end
+
+    def initialize<<todo method>>(x:, y:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of y>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C TypedPoint>.new(:x, 1, :y, "hello")
+
+  <emptyTree>::<C TypedPoint>.new(:x, "bad", :y, "hello")
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C TypedPoint>.new(:x, 1, :y, "hi").x())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C TypedPoint>.new(:x, 1, :y, "hi").y())
+
+  class <emptyTree>::<C Money><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Numeric>)
+    end
+
+    def amount<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def currency<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:amount, <emptyTree>::<C Numeric>, :currency, <emptyTree>::<C String>).void()
+    end
+
+    def initialize<<todo method>>(amount:, currency: = "USD", &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of amount>
+
+    <runtime method definition of currency>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C Money>.new(:amount, 10).currency())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C Money>.new(:amount, 10).amount())
+
+  <emptyTree>::<C Money>.new(:amount, "bad")
+
+  class <emptyTree>::<C DataWithMethods><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def user<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:user, <emptyTree>::<C String>).void()
+    end
+
+    def initialize<<todo method>>(user:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C T>::<C Boolean>)
+    end
+
+    def active?<<todo method>>(&<blk>)
+      <self>.user().empty?().!()
+    end
+
+    <runtime method definition of user>
+
+    <runtime method definition of initialize>
+
+    <runtime method definition of active?>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C DataWithMethods>.new(:user, "alice").user())
+
+  class <emptyTree>::<C QualifiedData><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def a<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Float>)
+    end
+
+    def b<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:a, <emptyTree>::<C Integer>, :b, <emptyTree>::<C Float>).void()
+    end
+
+    def initialize<<todo method>>(a:, b:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of a>
+
+    <runtime method definition of b>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C QualifiedData>.new(:a, 1, :b, 2.000000).a())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C QualifiedData>.new(:a, 1, :b, 2.000000).b())
+
+  class <emptyTree>::<C PlainData><<C <todo sym>>> < (::<root>::<C Data>)
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    def y<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:x, ::BasicObject, :y, ::BasicObject).void()
+    end
+
+    def initialize<<todo method>>(x = nil, y = nil, &<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of y>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C PlainData>.new(1, 2).x())
+
+  class <emptyTree>::<C BlockNoSig><<C <todo sym>>> < (::<root>::<C Data>)
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:x, ::BasicObject).void()
+    end
+
+    def initialize<<todo method>>(x = nil, &<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def to_s<<todo method>>(&<blk>)
+      "BlockNoSig"
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of initialize>
+
+    <runtime method definition of to_s>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C BlockNoSig>.new(1).x())
+
+  class <emptyTree>::<C MismatchedSingle><<C <todo sym>>> < (::<root>::<C Data>)
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:a, <emptyTree>::<C Integer>).void()
+    end
+
+    def initialize<<todo method>>(x:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C MismatchedSingle>.new(:x, 1).x())
+
+  class <emptyTree>::<C PartialData><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def y<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Float>)
+    end
+
+    def z<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>, :y, <emptyTree>::<C String>, :z, <emptyTree>::<C Float>).void()
+    end
+
+    def initialize<<todo method>>(x:, y:, z:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of y>
+
+    <runtime method definition of z>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C PartialData>.new(:x, 1, :y, "hi", :z, 2.000000).x())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C PartialData>.new(:x, 1, :y, "hi", :z, 2.000000).y())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C PartialData>.new(:x, 1, :y, "hi", :z, 2.000000).z())
+
+  module <emptyTree>::<C Printable><<C <todo sym>>> < ()
+  end
+
+  class <emptyTree>::<C IncludeData><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def val<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:val, <emptyTree>::<C Integer>).void()
+    end
+
+    def initialize<<todo method>>(val:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of val>
+
+    <runtime method definition of initialize>
+
+    <self>.include(<emptyTree>::<C Printable>)
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C IncludeData>.new(:val, 42).val())
+
+  class <emptyTree>::<C NilableData><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def name<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(::<root>::<C T>.nilable(<emptyTree>::<C String>))
+    end
+
+    def email<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:name, <emptyTree>::<C String>, :email, ::<root>::<C T>.nilable(<emptyTree>::<C String>)).void()
+    end
+
+    def initialize<<todo method>>(name:, email:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of name>
+
+    <runtime method definition of email>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C NilableData>.new(:name, "alice", :email, nil).name())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C NilableData>.new(:name, "alice", :email, nil).email())
+
+  class <emptyTree>::<C UnionData><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(::<root>::<C T>.any(<emptyTree>::<C String>, <emptyTree>::<C Integer>, <emptyTree>::<C Symbol>))
+    end
+
+    def value<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:value, ::<root>::<C T>.any(<emptyTree>::<C String>, <emptyTree>::<C Integer>, <emptyTree>::<C Symbol>)).void()
+    end
+
+    def initialize<<todo method>>(value:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of value>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C UnionData>.new(:value, "hi").value())
+
+  class <emptyTree>::<C CollectionData><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(::<root>::<C T>::<C Array>.<syntheticSquareBrackets>(<emptyTree>::<C String>))
+    end
+
+    def items<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(::<root>::<C T>::<C Hash>.<syntheticSquareBrackets>(<emptyTree>::<C Symbol>, <emptyTree>::<C Integer>))
+    end
+
+    def meta<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:items, ::<root>::<C T>::<C Array>.<syntheticSquareBrackets>(<emptyTree>::<C String>), :meta, ::<root>::<C T>::<C Hash>.<syntheticSquareBrackets>(<emptyTree>::<C Symbol>, <emptyTree>::<C Integer>)).void()
+    end
+
+    def initialize<<todo method>>(items:, meta:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of items>
+
+    <runtime method definition of meta>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C CollectionData>.new(:items, ["a"], :meta, {:x => 1}).items())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C CollectionData>.new(:items, ["a"], :meta, {:x => 1}).meta())
+
+  class <emptyTree>::<C ManyMembers><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def a<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def b<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Float>)
+    end
+
+    def c<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Symbol>)
+    end
+
+    def d<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(::<root>::<C T>::<C Boolean>)
+    end
+
+    def e<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:a, <emptyTree>::<C Integer>, :b, <emptyTree>::<C String>, :c, <emptyTree>::<C Float>, :d, <emptyTree>::<C Symbol>, :e, ::<root>::<C T>::<C Boolean>).void()
+    end
+
+    def initialize<<todo method>>(a:, b:, c:, d:, e:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of a>
+
+    <runtime method definition of b>
+
+    <runtime method definition of c>
+
+    <runtime method definition of d>
+
+    <runtime method definition of e>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C ManyMembers>.new(:a, 1, :b, "x", :c, 1.000000, :d, :y, :e, true).a())
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C ManyMembers>.new(:a, 1, :b, "x", :c, 1.000000, :d, :y, :e, true).e())
+
+  module <emptyTree>::<C Predicates><<C <todo sym>>> < ()
+    class <emptyTree>::<C UserCheck><<C <todo sym>>> < (::<root>::<C Data>)
+      ::T::Sig::WithoutRuntime.sig() do ||
+        <self>.returns(<emptyTree>::<C String>)
+      end
+
+      def user<<todo method>>(&<blk>)
+        ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+      end
+
+      ::T::Sig::WithoutRuntime.sig() do ||
+        <self>.params(:user, <emptyTree>::<C String>).void()
+      end
+
+      def initialize<<todo method>>(user:, &<blk>)
+        <self>.<untypedSuper>(ZSuperArgs)
+      end
+
+      ::T::Sig::WithoutRuntime.sig() do ||
+        <self>.returns(::<root>::<C T>::<C Boolean>)
+      end
+
+      def qualifies?<<todo method>>(&<blk>)
+        <self>.user().empty?().!()
+      end
+
+      <runtime method definition of user>
+
+      <runtime method definition of initialize>
+
+      <runtime method definition of qualifies?>
+    end
+  end
+
+  <emptyTree>::<C T>.reveal_type(<emptyTree>::<C Predicates>::<C UserCheck>.new(:user, "alice").user())
+
+  class <emptyTree>::<C WrongType><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>).void()
+    end
+
+    def initialize<<todo method>>(x:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C WrongType>.new(:x, "bad")
+
+  class <emptyTree>::<C MissingKwarg><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Integer>)
+    end
+
+    def x<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def y<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:x, <emptyTree>::<C Integer>, :y, <emptyTree>::<C String>).void()
+    end
+
+    def initialize<<todo method>>(x:, y:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of x>
+
+    <runtime method definition of y>
+
+    <runtime method definition of initialize>
+  end
+
+  <emptyTree>::<C MissingKwarg>.new(:x, 1)
+
+  class <emptyTree>::<C RbsExplicit><<C <todo sym>>> < (::<root>::<C Data>)
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C Numeric>)
+    end
+
+    def amount<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.returns(<emptyTree>::<C String>)
+    end
+
+    def currency<<todo method>>(&<blk>)
+      ::T.unsafe(::Kernel).raise("Sorbet rewriter pass partially unimplemented")
+    end
+
+    ::T::Sig::WithoutRuntime.sig() do ||
+      <self>.params(:amount, <emptyTree>::<C Numeric>, :currency, <emptyTree>::<C String>).void()
+    end
+
+    def initialize<<todo method>>(amount:, currency:, &<blk>)
+      <self>.<untypedSuper>(ZSuperArgs)
+    end
+
+    <runtime method definition of amount>
+
+    <runtime method definition of currency>
+
+    <runtime method definition of initialize>
+  end
+
+  <cast:assert_type!>(<emptyTree>::<C RbsExplicit>.new(:amount, 10, :currency, "CAD").amount(), <todo sym>, <emptyTree>::<C Numeric>)
+
+  <cast:assert_type!>(<emptyTree>::<C RbsExplicit>.new(:amount, 10, :currency, "CAD").currency(), <todo sym>, <emptyTree>::<C String>)
+
+  <emptyTree>::<C RbsExplicit>.new(:amount, "bad", :currency, "CAD")
+end
